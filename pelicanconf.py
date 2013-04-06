@@ -4,12 +4,11 @@
 AUTHOR = u'Harry J.W. Percival'
 SITENAME = u'Obey the Testing Goat!'
 SITEURL = 'http://www.obeythetestinggoat.com'
-#FEED_DOMAIN = http://www.example.com'
+FEED_DOMAIN = SITEURL
 
 TIMEZONE = 'Europe/London'
 DEFAULT_LANG = u'en'
 
-THEME = 'theme'
 
 # Blogroll
 LINKS =  (('Pelican', 'http://docs.notmyidea.org/alexis/pelican/'),
@@ -23,4 +22,7 @@ SOCIAL = (('You can add links in your config file', '#'),
 
 DEFAULT_PAGINATION = 10
 
+THEME = 'theme'
 STATIC_PATHS = ['static']
+OUTPUT_PATH = 'html/'
+
