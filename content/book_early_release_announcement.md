@@ -1,7 +1,6 @@
 Title: "Test Driven Development of Web Applications" -- the book exists, and is available on Early Release
 Date: 2013-03-26 18:35
 Tags: book, O'Reilly, Early Release
-Category: yeah
 Slug: tdd-web-programming-book-on-oreilly-early-release
 Author: Harry
 Summary: My book is out on O'Reilly early release!

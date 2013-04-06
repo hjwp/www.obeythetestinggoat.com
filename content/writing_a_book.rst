@@ -3,7 +3,6 @@ The next stage: writing a book
 
 :date: 2013-01-08
 :tags: tdd, book
-:category: yeah
 :slug: writing-a-book-announcement
 :author: Harry
 :summary: I've decided to try and develop this tutorial into an actual book on test-driven development for web apps.  Have a look at the chapter outline I've posted as part 6:
