@@ -9,9 +9,7 @@ SITEURL = 'http://www.obeythetestinggoat.com'
 TIMEZONE = 'Europe/London'
 DEFAULT_LANG = u'en'
 
-import os
 THEME = 'theme'
-THEME = os.path.join(os.path.dirname(__file__), 'theme')
 
 # Blogroll
 LINKS =  (('Pelican', 'http://docs.notmyidea.org/alexis/pelican/'),
@@ -24,3 +22,5 @@ SOCIAL = (('You can add links in your config file', '#'),
           ('Another social link', '#'),)
 
 DEFAULT_PAGINATION = 10
+
+STATIC_PATHS = ['static']
