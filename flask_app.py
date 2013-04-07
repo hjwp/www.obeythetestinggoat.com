@@ -7,5 +7,5 @@ app = Flask(__name__)
 
 @app.route('/')
 def hello_world():
-    return 'Hello from Flask!'
+    return "If you're seeing this, I'm probably rebuilding the site.  It should be back within seconds... If you just can't wait, go here: http://chimera.labs.oreilly.com/books/1234000000754"
 
