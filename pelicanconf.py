@@ -27,5 +27,5 @@ DEFAULT_PAGINATION = 10
 
 THEME = 'theme'
 STATIC_PATHS = ['static/js/', 'static/img/', 'static/images/', 'static/css/']
-OUTPUT_PATH = 'html/'
+OUTPUT_PATH = 'output/'
 DISQUS_SITENAME = 'obeythetestinggoat'
