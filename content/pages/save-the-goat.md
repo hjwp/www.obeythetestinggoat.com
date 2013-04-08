@@ -11,19 +11,22 @@ Tags: testing goat, o'reilly, petition, artwork
     </blockquote>
 </div>
 
-My beloved publisher, O'Reilly, don't understand how important the
-Testing Goat is to the Python Testing community.  They want to put
-a snake on the cover :-/
+My beloved publisher, O'Reilly, have suggested putting a snake on the cover 
+
+-- "That's what we usually have, for Python books... Why, do you have a better
+idea?"
+
+-- "Yes, a goat"
+
+-- "A goat? That's weird... Is it important to you?"
 
 
+I'd say it is!  Let's help them to understand how dear the Testing Goat is to
+the Python Testing community Share your pictures, emotional experiences,
+favourite goat moments...  Every comment counts as a signature on this virtual
+petition.
 
-Let's help them understand how important the Goat is to the Python
-testing community!
-
-Share your pictures, emotional experiences, favourite goat moments...  Every
-comment counts as a signature on this virtual petition.
-
-With your help we can have an O'Reilly book about testing with a 
-goat on the cover.
+With your help we can have an **Actual O'Reilly Book** about TestingInPython
+with **An Actual Goat** on the cover.  Wouldn't that be awesome?
 
 
