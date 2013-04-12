@@ -3,6 +3,31 @@ Date: 2013-04-06
 Slug: save-the-testing-goat-campaign
 Tags: testing goat, o'reilly, petition, artwork
 
+[update 2013-04-09 19:24 GMT] 
+
+SUCCESS!
+========
+
+![NEW AWESOME GOAT COVER](/static/images/new_goat_cover_lrg.jpg)
+
+WE DID IT!  
+
+O'Reilly gave us a Goat!
+------------------------
+
+**And what a goat!  Look at it!  Glorious!**
+
+
+*Thanks to each and every person that helped make it happen.  I hope you're 
+as pleased as I am.  Thanks to Meghan my editor, thanks to the Design team
+at O'Reilly, and, just, wow.  awesome.*
+
+
+The old version of the post follows, for posterity...
+
+<hr />
+
+
 <div class="right">
     <blockquote>
         <img src="/static/images/goat_up_a_tree_flickr_caitlinstewart_2846642630_cropped.jpg" width="350" />
