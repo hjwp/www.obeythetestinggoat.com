@@ -6,7 +6,7 @@ Author: Harry
 Summary: My book is out on O'Reilly early release!
 
 
-![Front cover of book](/static/images/front_cover_screenshot.png)
+![Front cover of book](/static/images/new_goat_cover_lrg.jpg)
 
 I can't quite believe this is actually happening, but I have not only signed a contract with O'Reilly, but i have actually written the first four chapters, or at least a first draft of the first four chapters!
 
