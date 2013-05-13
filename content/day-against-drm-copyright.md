@@ -3,7 +3,7 @@ Date: 2013-05-03 18:35
 Tags: book, O'Reilly, copyright
 Slug: day-against-drm-copyright
 Author: Harry
-Summary: Not only does my book have no DRM, it also has a 10-year limit on copyright, and will be released online under creative commons in parallel to the print release
+Summary: <p>Not only does my book have no DRM, it also has a 10-year limit on copyright, and will be released online under creative commons in parallel to the print release</p>
 
 Hooray for O'Reilly, who are giving away ebooks half-price in celebration of the FSF's "Day against DRM"!
 
