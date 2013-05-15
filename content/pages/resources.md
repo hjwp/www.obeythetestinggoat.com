@@ -14,6 +14,8 @@ Videos
 
 * Selenium are really pushing the boundaries -- you can now [use Selenium to test mobile apps](http://pyvideo.org/video/1699/mobile-application-testing-with-python-and-seleni) -- and not just the mobile browsers, native apps too. 
 
+* Carl Meyer's thoughts on [Testing and Django](http://pyvideo.org/video/699/testing-and-django), good on the pitfalls of using the database too much in "unit" tests (something I probably need to talk about in the book...). See also this discussion on [/r/Python](http://www.reddit.com/r/django/comments/1c67rl/is_tddjangotutorial_truly_a_good_resource_i_want/)
+
 
 Links
 -----

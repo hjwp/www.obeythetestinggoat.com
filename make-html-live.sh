@@ -1,3 +1,3 @@
 rm -rf html.bak
-mv html html.bah
+mv html html.bak
 cp -r output html
