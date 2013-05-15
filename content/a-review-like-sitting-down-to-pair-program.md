@@ -1,7 +1,7 @@
 Title: A lovely review! "like sitting down to pair-program with the author"
 Date: 2013-05-13 8:35
 Tags: review, pair programming, goat
-Slug: review-a-conversation-with-a-developer
+Slug: review-like-sitting-down-to-pair-program-with-the-author
 Author: Harry
 Summary: <p>Jason wrote a review of my book, saying things like: "I find far too many programming books compartmentalize the material, each section is separate and abstract. Rather, this book's strength is in the broad use and application of these tools. By the end of this book you won't be a master with these tools but you will have used them enough to build a good foundation for starting your own projects and into the habit of test, code, refactor, commit."</p>
 
@@ -35,7 +35,7 @@ book isn't enough -- it's not a reference book, so you won't be able to use it a
 book.  It won't teach you everything about Django, or even everything about unit testing -- on
 several occasions in the book I say "you should go and read the Django documentation", or "you
 should take a look at the other assertion methods from the unittest module", and I think some
-readers have found that frustrating.  "Why should I go elsewhwere to learn?"...
+readers have found that frustrating.  "Why should I go elsewhere to learn?"...
 
 So I think this is something I need to set expectations about better, perhaps in the intro.
 "This isn't a reference book".
