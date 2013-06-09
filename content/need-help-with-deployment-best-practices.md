@@ -71,4 +71,9 @@ So, your suggestions much appreciated! How do you do your deploys?  Fabric?
 FTP?  Git hooks?  Something else?  What do you think would work as a simple
 solution for beginners?
 
+*[update 2013-06-09] I've had a first bash at it, and the solution involves the
+reader starting up their own server, provisioning nginx + gunicorn + upstart,
+and deploying using fabric, git and virtualenvs.  comments welcomed!  You
+can find the [current draft here](http://chimera.labs.oreilly.com/books/1234000000754/ch08.html)]*
+
 
