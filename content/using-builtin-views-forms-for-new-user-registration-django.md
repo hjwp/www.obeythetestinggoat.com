@@ -13,6 +13,7 @@ There's a form in `django.contrib.auth.forms`, and a class-based view for
 creating new objects called `CreateView`, and I believe this is all you
 need for a working registration form/view:
 
+    :::python
     from django.views.generic.edit import CreateView
     from django.contrib.auth.forms import UserCreationForm
 
@@ -27,9 +28,9 @@ need for a working registration form/view:
         # rest of your URLs as normal
     )
 
-Then, in *register.html*, you get a `{{ form }}` you can use, including
-a username, password and password confirmation, and it handles validation
-errors and EVERYTHING.
+Then, in *register.html* (which you do have to create yourself), you get a 
+`{{ form }}` you can use, including a username, password and password
+confirmation, and it handles validation errors and EVERYTHING.
 
 Obviously it doesn't include registering (and validating) an email address 
 for the user, but still, I'm pretty excited.  Did everyone else already
