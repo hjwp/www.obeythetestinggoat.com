@@ -256,5 +256,17 @@ really do lose a lot from using mocks everywhere, and I think that the price
 you pay in terms of test speed is sometimes worth paying if you want more
 "realistic" tests.
 
+I would say this:  don't optimise prematurely.  Start by writing tests in the
+way that seems most obvious to you, tests that are as readable as possible, 
+and don't couple themselves too tightly to the implementation with a lot of
+mocks.  If test speed becomes a problem at some point down the road, there
+are plenty of smart people out there that will give you tips on how to speed
+them up -- just remember that mocky unit tests don't really test your
+application, so you'll need to keep a few end-to-end tests in there no matter
+what.
+
 Over to you folks!  I'm far from an expert, have only been writing tests for
-about 3 years, and all for the same company.  What am I missing?
+about 3 years, and all for the same company.  Have you ever been bitten by
+a bug because your tests were too mocky?  What ratio of unit tests to
+integration tests works for you?
+
