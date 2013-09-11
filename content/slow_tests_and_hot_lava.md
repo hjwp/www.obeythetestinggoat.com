@@ -24,9 +24,11 @@ which definitely made baby test sanity Jesus cry.  It was an excellent talk,
 and full of good advice, as well as the memorable quote *"The Database is Hot
 Lava"*
 
+But, is it?
+
 ## The traditional argument: slow tests are bad
 
-So what's going on?  Here's the traditional argument for fast tests:
+Here's the traditional argument for fast tests:
 
 Tests that take ages to run won't get run, which will break your development
 process in several ways, and reduce the benefits you get from testing.  You
@@ -37,7 +39,7 @@ do TDD with slow tests.
 
 The reference for this point of view is Gary Berhnahardt's talk from Pycon
 2012, entitled [Fast Tests, Slow test](https://www.youtube.com/watch?v=RAxiiRPHS9k)
-If you haven't already, I definitely encourage you to watch that talk, Gary 
+If you haven't already, I **strongly** encourage you to watch that talk, Gary 
 knows what he's talking about, whereas I suspect I don't.
 
 ## Why I think this is wrong: fast tests don't help you code, and they don't help you find bugs
@@ -53,8 +55,9 @@ other
 * and that, ultimately, doesn't help you find unexpected bugs
 * and it doesn't help you find regressions when you're refactoring either
 
-So let's look at an example. Imagine our site does a bit of setup for each user:
-it makes a temp folder for them, and then sets a flag on their user profile:
+So let's look at an example. Imagine our site does a bit of setup for each
+user: it makes a temp folder for them, and then sets a flag on their user
+profile:
 
 Imagine this:
 
@@ -74,8 +77,9 @@ Here's the kind of test I'm inclinde to write:
         self.assertTrue(os.path.exists('/tmp/jim')
         self.assertTrue(user.get_profile().environment_setup)
 
-Arg!  That's not a unit test at all!  It touches the database, which is hot lava! Worse
-still, it touches the filesystem!  It'll be really slow!  And it has too many dependencies!
+Arg!  That's not a unit test at all!  It touches the database, which is hot
+lava! Worse still, it touches the filesystem!  It'll be really slow!  And it
+has too many dependencies!
 
 That, at least, is what the purists would say.  They would prefer a "fast",
 test that looks like this - a "real" unit test:
@@ -90,31 +94,35 @@ test that looks like this - a "real" unit test:
         mock_profile = mock_user.get_profile.return_value
         self.assertEqual(mock_profile.environment_setup, True)
 
-Well, I would argue that you have a much less readable test there, and it's also a test
-that's very closely coupled to the implementation.  It discourages refactoring, because
-something as simple as changing the name of the helper method `setup_temp_storage` involves
-changing the test code in 4 places -- three of which (eg
-`mock_setup_temp_storage`) won't be found by automated refactoring tools.
+Well, I would argue that you have a much less readable test there, and it's
+also a test that's very closely coupled to the implementation.  It discourages
+refactoring, because something as simple as changing the name of the helper
+method `setup_temp_storage` involves changing the test code in 4 places --
+three of which (eg `mock_setup_temp_storage`) won't be found by automated
+refactoring tools.
 
-Or, imagine I change `setup_temp_storage` to take a username instead of a user.  I go and find
-its unit tests and change it, then change its implementation.  What will happen next is that
-*my* unit test for `setup_user_environment` would break, because it uses the real function, and
-so that's my reminder to change the place it gets used. 
+Or, imagine I change `setup_temp_storage` to take a username instead of a user.
+I go and find its unit tests and change it, then change its implementation.
+What will happen next is that *my* unit test for `setup_user_environment` would
+break, because it uses the real function, and so that's my reminder to change
+the place it gets used. 
 
-In contrast, in the "fast" test, `setup_user_environment` is mocked, so that test will still pass,
-even though my code is broken.
+In contrast, in the "fast" test, `setup_user_environment` is mocked, so that
+test will still pass, even though my code is broken.
 
-Sure you could argue that my `os.path.exists` call is tightly coupled to the implementation of
-`setup_temp_storage`, and that if I end up using it in lots of tests, they'll be annoying to 
-change, if I ever change the location of temp storage, for example.  But I could factor it out
-into a test helper method, if I notice myself duplicating test code a lot.
+Sure you could argue that my `os.path.exists` call is tightly coupled to the
+implementation of `setup_temp_storage`, and that if I end up using it in lots
+of tests, they'll be annoying to change, if I ever change the location of temp
+storage, for example.  But I could factor it out into a test helper method, if
+I notice myself duplicating test code a lot.
 
 ## What is the correct balance of unit to integration tests?
 
-Now unit test purists and I would probably agree that this example doesn't prove you should
-*never* mock anything, or that "proper" unit tests are useless.  Clearly, both are useful, and
-as my example clearly shows, you definitely need some level of integration tests to check that
-all your pieces fit together.
+Now unit test purists and I would probably agree that this example doesn't
+prove you should *never* mock anything, or that "proper" unit tests are
+useless.  Clearly, both are useful, and as my example clearly shows, you
+definitely need some level of integration tests to check that all your pieces
+fit together.
 
 What I am saying is that, in a case where you can test a piece of code with
 either a mocky or a non-mocky test, I prefer non-mocky tests.  Gary Berhnardt
@@ -134,21 +142,29 @@ is rare:
 - code tends to be hard to unit test without mocking -- the database, the
   Django request/response stack, or the template layer, or whatever.
 
-I've just tended to find that there aren't many places where I find myself spelling out more than
-2 or 3 tests for any given function -- in which case, I tend to find, unit tests don't offer
-any substantial advantage.  In the example above, there's probably only one two cases, maybe a 
-second one for the case where `setup_temp_storage` raises an exception.
+I've just tended to find that there aren't many places where I find myself
+spelling out more than 2 or 3 tests for any given function -- in which case, I
+tend to find, unit tests don't offer any substantial advantage.  In the example
+above, there's probably only one two cases, maybe a second one for the case
+where `setup_temp_storage` raises an exception.
 
-But what about the fact that integration tests are slow?  The database is hot lava!  Isn't it?
+But what about the fact that integration tests are slow?  The database is hot
+lava!  Isn't it?
 
 ## The database is, at worst, lukewarm lava
 
-Remember, Django uses an *in-memory* Sqlite database when you're running its unit tests. It's
-pretty fast.  Here's a test suite which hits the DB for some tests and not for others, with
-1,000 tests of each:
+> NB - this is Django-specific
+
+Remember, Django uses an *in-memory* Sqlite database when you're running its
+unit tests. It's pretty fast.  Here's a test suite which hits the DB for some
+tests and not for others, with 1,000 tests of each:
 
     :::python
-    # assumes a Car model with a 
+    from django.db import models
+    class Car(models.Model):
+        colour = models.TextField()
+        def get_colour(self):
+            return self.colour.capitalize()
 
     import unittest
     from django.test import TestCase
@@ -156,7 +172,7 @@ pretty fast.  Here's a test suite which hits the DB for some tests and not for o
 
     class FastTest(unittest.TestCase):
         def create_car(self):
-            return Car(colour = 'blue')
+            return Car(colour='blue')
 
     class SlowTest(TestCase):
         def create_car(self):
@@ -166,7 +182,7 @@ pretty fast.  Here's a test suite which hits the DB for some tests and not for o
         method_name = 'test_car_{0}'.format(i)
         def testfn(self):
             car = self.create_car()
-            self.assertEqual(car.colour, 'Blue')
+            self.assertEqual(car.get_colour(), 'Blue')
         setattr(FastTest, method_name, testfn)
         setattr(SlowTest, method_name, testfn)
 
@@ -174,54 +190,67 @@ pretty fast.  Here's a test suite which hits the DB for some tests and not for o
 So what's the difference in speed between the two?
 
     $ python manage.py test myapp.FastTest
-    Ran 1000 tests in 0.032s
+    Ran 1000 tests in 0.108s
 
     $ python manage.py test myapp.SlowTest
-    Ran 1000 tests in 0.231s
+    Ran 1000 tests in 0.311s
 
-A factor of 8.  An order of magnitude perhaps, but not two orders of magnitude.
-And notice that's 1000 tests, still running in less than a second. So, is shifting
-from tests that run in microseconds to tests that run in tens of microseconds *really worth*
-all the losses in terms of readability and ease of refactoring?
+A factor of 3.  YMMV. At most one order of magnitude, but certainly not two
+orders of magnitude. And notice that's 1000 tests, still running in less than a
+second. So, is shifting from tests that run in microseconds to tests that run
+in tens of microseconds *really worth* all the losses in terms of readability
+and ease of refactoring?
 
 ## Unsurprisingly, it's all down to your own circumstances
 
-I think we all have a tendency to take the solutions we've applied to our own particular
-circumanstances, and want to generalise them to universal rules, saying they should 
-apply to everybody.
+I think we all have a tendency to take the solutions we've applied to our own
+particular circumanstances, and want to generalise them to universal rules,
+saying they should apply to everybody.
 
-Casey's team didn't have a CI setup, so their only way of preventing regressions was for
-the individual developer to run the full suite before checking in code. Their test suite
-was taking 45 minutes to run, leading to developers skipping the test run and checking in
-broken code. You might argue that their real problem was a problem of process, but they 
-couldn't fix that, so instead they put effort into making their tests faster, and in the
-process made them more efficient and better, so it was a win for them.
+Casey's team didn't have a CI setup, so their only way of preventing
+regressions was for the individual developer to run the full suite before
+checking in code. Their test suite was taking 45 minutes to run, leading to
+developers skipping the test run and checking in broken code. You might argue
+that their real problem was a problem of process, but they couldn't fix that,
+so instead they put effort into making their tests faster, and in the process
+made them more efficient and better, so it was a win for them.
 
-At work, we have also have a unit test suite that takes 45 minutes to run (many of the tests
-aren't very unittey, and are in fact very integrationey).  So there's no way that we run
-all the unit tests as we do TDD (which we do for everything).  Instead, we run a subset of the
-tests (usually the Django app we're working on), and we leave the CI system to run the
-full unit test suite overnight.
+At work, we have also have a unit test suite that takes 45 minutes to run (many
+of the tests aren't very unittey, and are in fact very integrationey).  So
+there's no way that we run all the unit tests as we do TDD (which we do for
+everything).  Instead, we run a subset of the tests (usually the Django app
+we're working on), and we leave the CI system to run the full unit test suite
+overnight.
 
 And you know what, the *unit test suite almost never picks up unexpected bugs*.
 
-That's because our code is well compartmentalised, and, even though they're not very unit-ey
-unit tests, they are still quite compartmentalised too.
+That's because our code is well compartmentalised, and, even though they're not
+very unit-ey unit tests, they are still quite granular and independent from each
+other.
 
-Instead, we have a suite of 400-odd *functional* tests that run with Selenium, checking every
-part of the application -- and they *do* find unexpected bugs.
+Instead, we have a suite of 400-odd *functional* tests that run with Selenium,
+checking every part of the application -- and they *do* find unexpected bugs. They
+take about 8 hours for a full run, so you bet we only run one or two of those 
+during day-to-day TDD.
 
-Now, we're building a PaaS, so we have a lot of what Gary B. would call "boundaries" - a lot
-of dependencies on external systems: the filesystem, the database (we run a shared-hosting 
-database-as-a-service too), Tornado + websockets, Paypal, Dropbox, github, pypi, linux chroots and
-cgroups, CRON, Nginx and uWSGI, and many more.  There's a lot of moving parts, and ultimately
-the only thing that's going to reassure us that everything really works is a full-stack test.
+Now, we're building a PaaS, so we have a lot of what Gary B. would call
+"boundaries" - a lot of dependencies on external systems: the filesystem, the
+database (we run a shared-hosting database-as-a-service too), Tornado +
+websockets, Paypal, Dropbox, github, pypi, linux chroots and cgroups, CRON,
+Nginx and uWSGI, and many more.  There's a lot of moving parts, and ultimately
+the only thing that's going to reassure us that everything really works is a
+full-stack test.
 
-So that's what works for us.  We are pretty much forced to have a lot of slow tests, so 
-maybe I'm just trying to justify our own specific circumstances and try and force a generalisation
-onto the world.
+So that's what works for us.  We are pretty much forced to have a lot of slow
+tests, so maybe I'm just trying to justify our own specific circumstances and
+try and force a generalisation onto the world.
 
-But I'm not so sure.  I really think there's something to it.  I think you really do lose a lot
-from using mocks everywhere, and I think that the price you pay in terms of test speed is sometimes
-worth paying if you want more "realistic" tests.
+## My turn to generalise from my own circumstances!
 
+But I'm not so sure.  I really think there's something to it.  I think you
+really do lose a lot from using mocks everywhere, and I think that the price
+you pay in terms of test speed is sometimes worth paying if you want more
+"realistic" tests.
+
+Over to you folks!  I'm far from an expert, have only been writing tests for
+about 3 years, and all for the same company.  What am I missing?
