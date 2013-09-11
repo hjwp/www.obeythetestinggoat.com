@@ -101,7 +101,10 @@ method `setup_temp_storage` involves changing the test code in 4 places --
 three of which (eg `mock_setup_temp_storage`) won't be found by automated
 refactoring tools.
 
-Or, imagine I change `setup_temp_storage` to take a username instead of a user.
+> IMO, there's no point in a test that duplicates the implementation, line
+> for line, with a series of mocks
+
+Imagine I change `setup_temp_storage` to take a username instead of a user.
 I go and find its unit tests and change it, then change its implementation.
 What will happen next is that *my* unit test for `setup_user_environment` would
 break, because it uses the real function, and so that's my reminder to change
@@ -222,16 +225,17 @@ everything).  Instead, we run a subset of the tests (usually the Django app
 we're working on), and we leave the CI system to run the full unit test suite
 overnight.
 
-And you know what, the *unit test suite almost never picks up unexpected bugs*.
+And you know what? *The full unit test suite almost never picks up any bugs*.
 
 That's because our code is well compartmentalised, and, even though they're not
-very unit-ey unit tests, they are still quite granular and independent from each
-other.
+very unit-ey unit tests, they are still quite granular and independent from
+each other.
 
-Instead, we have a suite of 400-odd *functional* tests that run with Selenium,
-checking every part of the application -- and they *do* find unexpected bugs. They
-take about 8 hours for a full run, so you bet we only run one or two of those 
-during day-to-day TDD.
+Instead, we have a suite of 400-odd *functional* tests that run with Selenium;
+these are definitely integration/system tests, or what some people would 
+call acceptance tests. They check every part of the application -- and they
+*do* find unexpected bugs. They take about 8 hours for a full run, so you bet
+we only run one or two individual FTs during day-to-day TDD.
 
 Now, we're building a PaaS, so we have a lot of what Gary B. would call
 "boundaries" - a lot of dependencies on external systems: the filesystem, the
