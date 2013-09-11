@@ -3,8 +3,8 @@ Date: 2013-09-11 04:00
 Tags: unit tests, speed, mocking
 Slug: fast-tests-useless-hot-lava-be-damned
 Author: Harry
-Status: draft
-Summary: <p>In which I troll the "fast tests" community by claiming they are useless</p>
+Status: published
+Summary: <p>In which I provoke the "unit test purist" community by claiming that fast tests are useless</p>
 
 tl;dr: I think it's a waste of time to strive for an ultrafast test suite,
 because it leads to overly mocky, disjointed tests which don't help you
