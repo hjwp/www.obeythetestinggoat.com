@@ -68,7 +68,7 @@ Imagine this:
         profile.environment_setup = True
         profile.save()
 
-Here's the kind of test I'm inclinde to write:
+Here's the kind of test I'm inclined to write:
 
     :::python
     def test_sets_up_temp_storage_and_sets_flag_on_profile(self):
