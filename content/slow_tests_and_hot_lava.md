@@ -50,7 +50,7 @@ up with worse tests.  Why is that?
 
 * faster tests mean more "unittey" tests -- tests with less dependencies
 * that means using more mocks
-* that leads to a very granular tests, which are highyly decoupled from each
+* that leads to a very granular tests, which are highly decoupled from each
 other
 * and that, ultimately, doesn't help you find unexpected bugs
 * and it doesn't help you find regressions when you're refactoring either
