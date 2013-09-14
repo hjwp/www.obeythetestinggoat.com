@@ -13,7 +13,7 @@ wrong!
 
 At this year's DjangoCon, Casey Kinsley gave a talk in which he (at least
 ostensibly) advocated striving for faster test suites.  As we'll find out, I've
-often thought that stiving for fast tests suites can be a bit misguided, so I
+often thought that striving for fast tests suites can be a bit misguided, so I
 went along preparing to disagree loudly -- as anyone who knows me can attest,
 disagreeing loudly is just about my favourite thing to do, and a major
 character flaw.
