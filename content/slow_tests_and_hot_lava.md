@@ -12,7 +12,7 @@ catch bugs and don't help you code well.
 
 At this year's DjangoCon, Casey Kinsey gave a talk in which he (at least
 ostensibly) advocated striving for faster test suites.  As we'll find out, I've
-often thought that stiving for fast tests suites can be a bit misguided, so I
+often thought that striving for fast tests suites can be a bit misguided, so I
 went along preparing to disagree loudly -- as anyone who knows me can attest,
 disagreeing loudly is just about my favourite thing to do, and a major
 character flaw.
@@ -49,7 +49,7 @@ up with worse tests.  Why is that?
 
 * faster tests mean more "unittey" tests -- tests with less dependencies
 * that means using more mocks
-* that leads to a very granular tests, which are highyly decoupled from each
+* that leads to a very granular tests, which are highly decoupled from each
 other
 * and that, ultimately, doesn't help you find unexpected bugs
 * and it doesn't help you find regressions when you're refactoring either
@@ -67,7 +67,7 @@ Imagine this:
         profile.environment_setup = True
         profile.save()
 
-Here's the kind of test I'm inclinde to write:
+Here's the kind of test I'm inclined to write:
 
     :::python
     def test_sets_up_temp_storage_and_sets_flag_on_profile(self):
