@@ -6,12 +6,11 @@ Author: Harry
 Status: published
 Summary: <p>In which I provoke the "unit test purist" community by claiming that fast tests are useless</p>
 
-tl;dr: I think it's a waste of time to strive for an ultrafast test suite,
-because it leads to overly mocky, disjointed tests which don't help you
-catch bugs and don't help you code well.  By all means, please, tell me why I'm
-wrong!
+tl;dr: I think there's a real danger that striving for an ultrafast test suite,
+will lead you to overly mocky, disjointed tests which don't help you
+catch bugs and don't help you code well.
 
-At this year's DjangoCon, Casey Kinsley gave a talk in which he (at least
+At this year's DjangoCon, Casey Kinsey gave a talk in which he (at least
 ostensibly) advocated striving for faster test suites.  As we'll find out, I've
 often thought that stiving for fast tests suites can be a bit misguided, so I
 went along preparing to disagree loudly -- as anyone who knows me can attest,
