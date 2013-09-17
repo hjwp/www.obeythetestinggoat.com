@@ -41,6 +41,11 @@ The reference for this point of view is Gary Berhnahardt's talk from Pycon
 If you haven't already, I **strongly** encourage you to watch that talk, Gary 
 knows what he's talking about, whereas I suspect I don't.
 
+*update 2013-09-17* -- everyone should also watch Gary's follow-up talk, 
+[Boundaries](https://www.youtube.com/watch?v=eOYal8elnZk) in which he 
+expands on the concepts of test isolation, and how it fits with trying to adopt
+a more functional paradigm in the core business logic of your application.
+
 ## Why I think this is wrong: fast tests don't help you code, and they don't help you find bugs
 
 I'm being deliberately provocative here, and this is a bit of a strawman, but
