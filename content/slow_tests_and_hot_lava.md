@@ -37,7 +37,7 @@ you hope to gain from TDD, which is better designed code, because you can't
 do TDD with slow tests.
 
 The reference for this point of view is Gary Berhnahardt's talk from Pycon
-2012, entitled [Fast Tests, Slow test](https://www.youtube.com/watch?v=RAxiiRPHS9k)
+2013, entitled [Fast Tests, Slow test](https://www.youtube.com/watch?v=RAxiiRPHS9k)
 If you haven't already, I **strongly** encourage you to watch that talk, Gary 
 knows what he's talking about, whereas I suspect I don't.
 
