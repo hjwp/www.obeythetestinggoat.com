@@ -36,7 +36,7 @@ before committing, and you won't be able to get the secondary benefit which
 you hope to gain from TDD, which is better designed code, because you can't
 do TDD with slow tests.
 
-The reference for this point of view is Gary Berhnahardt's talk from Pycon
+The reference for this point of view is Gary Bernhardt's talk from Pycon
 2013, entitled [Fast Tests, Slow test](https://www.youtube.com/watch?v=RAxiiRPHS9k)
 If you haven't already, I **strongly** encourage you to watch that talk, Gary 
 knows what he's talking about, whereas I suspect I don't.
@@ -132,7 +132,7 @@ definitely need some level of integration tests to check that all your pieces
 fit together.
 
 What I am saying is that, in a case where you can test a piece of code with
-either a mocky or a non-mocky test, I prefer non-mocky tests.  Gary Berhnardt
+either a mocky or a non-mocky test, I prefer non-mocky tests.  Gary Bernhardt
 says you should aim for 90% unit tests vs 10% "integration" tests (which is
 what you'd call the kind of test I write), and I tend to think the ratio is
 more like 50/50.
