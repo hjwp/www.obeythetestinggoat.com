@@ -12,6 +12,8 @@ Videos
 
 * Another PyCon talk on [how to get started with automated testing](http://pyvideo.org/video/1674/getting-started-with-automated-testing)
 
+* Emily Bache's [online course in Python unit testing](http://pluralsight.com/training/Courses/TableOfContents/unit-testing-python) featuring the excellent py.test.
+
 * [TDD London Style with Ruby RSpec](https://www.youtube.com/watch?v=tdNnN5yTIeM) by Gary Bernhardt again. Ruby, sacrilege obviously, but RSpec is pretty cool, Gary's typing has to be seen to be believed, and if "London Style" is actually a think I guess I have to link to it!
 
 * Selenium are really pushing the boundaries -- you can now [use Selenium to test mobile apps](http://pyvideo.org/video/1699/mobile-application-testing-with-python-and-seleni) -- and not just the mobile browsers, native apps too. 
