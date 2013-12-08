@@ -3,7 +3,7 @@ Date: 2013-12-08
 Slug: reviews-and-testimonials
 Tags: reviews, readers, testimonials
 
-Here's a few things people have said to me about the book, either directly or via online reviews:
+Here's a few nice things people have said to me about the book, either directly or via online reviews:
 
 ### Ifiok Jr, December 2013: "hands down the best teaching book I've ever read"
 
@@ -34,4 +34,5 @@ Here's a few things people have said to me about the book, either directly or vi
 > Why, even the first 4 chapters were worth the money spent; can't wait for more. A very good 'hands-on' book - something that's not so easy to come by. Made me love both Python and Django already - I'm a newbie with both.
 
 
-There are lots more on the [O'Reilly reviews page for the book](http://shop.oreilly.com/product/0636920029533.do#PowerReview)
+Thanks guys!  There are lots more on the [O'Reilly reviews page for the book](http://shop.oreilly.com/product/0636920029533.do#PowerReview)
+
