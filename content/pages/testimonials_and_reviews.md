@@ -5,7 +5,7 @@ Tags: reviews, readers, testimonials
 
 Here's a few nice things people have said to me about the book, either directly or via online reviews:
 
-### Ifiok Jr, December 2013: "hands down the best teaching book I've ever read"
+### Ifiok Jr., December 2013: "hands down the best teaching book I've ever read"
 
 > Hi Harry, 
 > 
@@ -16,6 +16,9 @@ Here's a few nice things people have said to me about the book, either directly 
 > I've just finished Chapter 13 and refactored to use Class Based Views. I did have to change some of your code (using TDD of course) and I'll probably send you the details via a pull request on github, once I get round to it. 
 > 
 > I can't thank you enough, and have purchased an electronic copy of the book as a thumbs up! 
+
+> [Ifiok Jr.](https://github.com/ifiokjr)
+
 
 ### Cian, December 2013: "Brilliant book. The examples are easy to follow, and.."
 
