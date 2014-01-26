@@ -2,7 +2,6 @@ Title: How to log exceptions to stderr in Django
 Date: 2014-01-23 13:35
 Tags: django, logging, exceptions, debugging
 Author: Harry
-Status: draft
 Summary: <p>Django logging can be a little baffling.  Here's an answer to the "how do I make django log all exceptions to the console?" question, which isn't necessarily obvious.</p>
 
 
@@ -188,5 +187,7 @@ a straightforward question, actually does involve several different components:
 * the logging module, and Django's logging config
 * Django's exception-handling middleware.
 
-The latter is the place you need to act if you want to log exceptions.
+Whilst the former is where youd' go to choose *where* things get logged to
+(eg stderr or a file), and what the minimum log level is, the latter is the
+place you actually need to go to if you want to log exceptions. 
 
