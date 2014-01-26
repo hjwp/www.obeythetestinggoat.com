@@ -77,7 +77,7 @@ Here's the kind of test I'm inclined to write:
     :::python
     def test_sets_up_temp_storage_and_sets_flag_on_profile(self):
         user = User.objects.create(username='jim')
-        setup_user_environment(mock_user)
+        setup_user_environment(user)
         self.assertTrue(os.path.exists('/tmp/jim')
         self.assertTrue(user.get_profile().environment_setup)
 

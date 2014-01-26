@@ -34,5 +34,10 @@ Here's a few nice things people have said to me about the book, either directly 
 > Why, even the first 4 chapters were worth the money spent; can't wait for more. A very good 'hands-on' book - something that's not so easy to come by. Made me love both Python and Django already - I'm a newbie with both.
 
 
+## Steve Young, Jan 2014:
+
+> this has been the best resource for TDD/python/web I have read. And it happens that I am specifically interested in Django development, so it was perfect for me.  The book is easy to read, the code in the book has very few (if any) mistakes, and it covers a wealth of material.  Great job!!
+
+
 Thanks guys!  There are lots more on the [O'Reilly reviews page for the book](http://shop.oreilly.com/product/0636920029533.do#PowerReview)
 
