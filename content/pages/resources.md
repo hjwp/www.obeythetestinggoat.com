@@ -16,6 +16,8 @@ Tags: resources, videos, links, tutorials, tdd, testing, python, django
 
 * [TDD London Style with Ruby RSpec](https://www.youtube.com/watch?v=tdNnN5yTIeM) by Gary Bernhardt again. Ruby, sacrilege obviously, but RSpec is pretty cool, Gary's typing has to be seen to be believed, and if "London Style" is actually a think I guess I have to link to it! (video)
 
+* Steve Freeman, author of "Growing Object-Oriented software guided by tests", does an excellent analysis of the [things that can go wrong with TDD](http://vimeo.com/83960706) (Video).
+
 * Selenium are really pushing the boundaries -- you can now [use Selenium to test mobile apps](http://pyvideo.org/video/1699/mobile-application-testing-with-python-and-seleni) -- and not just the mobile browsers, native apps too.  (video)
 
 * Carl Meyer's thoughts on [Testing and Django](http://pyvideo.org/video/699/testing-and-django), good on the pitfalls of using the database too much in "unit" tests (something I probably need to talk about in the book...). See also this discussion on [/r/Python](http://www.reddit.com/r/django/comments/1c67rl/is_tddjangotutorial_truly_a_good_resource_i_want/) (video)
