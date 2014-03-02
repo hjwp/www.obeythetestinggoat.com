@@ -37,9 +37,13 @@ Here's a few nice things people have said to me about the book, either directly 
 > Why, even the first 4 chapters were worth the money spent; can't wait for more. A very good 'hands-on' book - something that's not so easy to come by. Made me love both Python and Django already - I'm a newbie with both.
 
 
-## Steve Young, Jan 2014:
+### Steve Young, Jan 2014: "the best resource for TDD/python/web I have read"
 
 > this has been the best resource for TDD/python/web I have read. And it happens that I am specifically interested in Django development, so it was perfect for me.  The book is easy to read, the code in the book has very few (if any) mistakes, and it covers a wealth of material.  Great job!!
+
+### Eric Seidler, Feb 2014: "incorporates all of the myriad technologies that are needed to do real web development"
+
+> The book has really been great so far. I found it a little challenging to learn Django and TDD at the same time. But, on the other hand, I haven't seen any other book that incorporates all of the myriad technologies that are needed to do real web development. I appreciate that you throw everything in the mix, just like what's needed for a real app, instead of keeping all the technologies boxed off in separate chapters. 
 
 
 Thanks guys!  There are lots more on the [O'Reilly reviews page for the book](http://shop.oreilly.com/product/0636920029533.do#PowerReview)
