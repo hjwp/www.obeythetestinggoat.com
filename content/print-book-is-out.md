@@ -2,10 +2,7 @@ Title: The print book is available!
 Date: 2014-07-08 10:38
 Tags: Book, physical book, dead trees, release
 Author: Harry
-Summary: <p>My copy of the print book arrived! So
-it's official, you can now 
-[buy the real, physical object thing](http://www.jdoqocy.com/click-7347114-11724864).
-</p>
+Summary: <p>My copy of the print book arrived! So it's official, you can now <a href="http://www.jdoqocy.com/click-7347114-11724864">buy the real, physical object thing</a></p>
 
 
 My copy of the print edition arrived in the post!
@@ -14,6 +11,7 @@ My copy of the print edition arrived in the post!
     <img src="/static/images/harry_with_new_book.jpg" alt="Harry holding his own book" />
     <figcaption>I am my own customer...</figcaption>
 </figure>
+<br />
 
 *(OK that actually happened last month.  This post is a little late.  I was distracted by Oscons and stuff!)*
 
@@ -26,7 +24,7 @@ Or, if you've been waiting for the print version to come out before recommending
 
 The online version will always be free and licensed under creative commons.  I'll just link to the acknowledgements chapter, since it really wouldn't have been possible without all the help I got:
 
-http://chimera.labs.oreilly.com/books/1234000000754/pr03.html
+* [CC-licensed free version](http://chimera.labs.oreilly.com/books/1234000000754/pr03.html)
 
 It's been a crazy 18 months. Happy reading everyone!
 
