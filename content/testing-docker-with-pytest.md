@@ -22,50 +22,196 @@ So instead, it felt like starting with an intermeditate-level layer of integrate
 
 ## An example test
 
-    def test_create_starts_container_and_returns_port_with_postgres_connectable(docker_cleanup):
-        response = post_to_api_create(port=6123)
+```python
+def test_create_starts_container_with_postgres_connectable(docker_cleanup):
+    response = post_to_api_create()
 
-        port = response.json()["port"]
-        assert port == 6123
+    port = response.json()["port"]
+    assert port > 1024
 
-        connection = _get_db_connection(port)
-        connection.close()
+    connection = psycopg2.connect(
+        database="postgres",
+        user="pythonanywhere_helper", password="papwd",
+        host="localhost", port=port,
+    )
+    connection.close()
+```
 
 Where
 
-    def post_to_api_create(port):
-        response = requests.post(
-            "https://localhost/api/containers/",
-            {
-                "admin_password": OUR_PASSWORD,
-                "port": port,
-            },
-            verify=False,
-            auth=(POSTGRES_API_USERNAME, POSTGRES_API_PASSWORD),
-        )
-        assert response.status_code == 200
-        assert response.json()["status"] == "OK"
-        return response
+```python
+def post_to_api_create():
+    response = requests.post(
+        "http://localhost:5000/api/create",
+        {"admin_password": "papwd"}
+    )
+    assert response.status_code == 200
+    assert response.json()["status"] == "OK"
+    return response
+```
 
-And
-
-    def _get_db_connection(port, database='postgres'):
-        return psycopg2.connect(
-            database=database,
-            user="pythonanywhere_helper",
-            password=OUR_PASSWORD,
-            host="localhost",
-            port=port,
-        )
 
 So you can see that's a very integration-ey, end-to-end test -- it does a real POST request, to a place where it expects to see an actual webapp running, and it expectes to see a real, connectable database spun up and ready for it.
 
-(it also tests another thing, which is, whether the api returns the same port it was given.  that's a little naughty, but by-the-bye)
-
 Now this test runs in about 10 seconds - not super-fast, like the milliseconds you might want a unit test to run in, but much faster than our FT, which takes 5 or 6 minutes. And, meanwhile, we can actually write this test first. To write an isolated, mocky test, we'd need to know the docker-py API already, and be sure that it was going to work, which we weren't.
 
+To illustrate this point, take a look at the difference between an early implementation and a later one:
 
-## py.test observations
+
+### A first implementation
+
+```python
+USER_IMAGE_DOCKERFILE = '''
+FROM postgres
+USER postgres
+RUN /etc/init.d/postgresql start && \\
+    psql -c "CREATE USER pythonanywhere_helper WITH SUPERUSER PASSWORD '{hashed}';"
+CMD ["/usr/lib/postgresql/9.3/bin/postgres", "-D", "/var/lib/postgresql/9.3/main", "-c", "config_file=/etc/postgresql/9.3/main/postgresql.conf"]
+'''
+
+def get_user_dockerfile(admin_password):
+    hashed = 'md5' + md5(admin_password + 'pythonanywhere_helper').hexdigest()
+    return USER_IMAGE_DOCKERFILE.format(
+        hashed=hashed,
+    )
+
+def create_container_with_password(password):
+    tempdir = tempfile.mkdtemp()
+    with open(os.path.join(tempdir, 'Dockerfile'), 'w') as f:
+        f.write(get_user_dockerfile(password))
+
+    response = docker.build(path=tempdir)
+    response_lines = list(response)
+
+    image_finder = r'Successfully built ([0-9a-f]+)'
+    match = re.search(image_finder, response_lines[-1])
+    if match:
+        image_id = match.group(1)
+    else:
+        raise Exception('Image failed to build:\n{}'.format(
+            '\n'.join(response_lines)
+        ))
+
+    container = docker.create_container(
+        image=image_id,
+    )
+    return container
+```
+
+(These are some library functions we wrote, I won't show you the trivial flask app that calls them).
+
+This was one of our first implementations -- we needed to be able to customise the postgres superuser password for each user, and our first solution involved building a new image for each user, by generating and running a custom dockerfile for them.
+
+We were never quite sure whether the Dockerfile voodoo was going to work, and we weren't really postgres experts either, so having the high-level integration test, which actually tried to spin up a container and connect to the postgres database that should be running inside it, was a really good way of getting to a solution that worked.
+
+Imagine what a more isolated test for this code might look like:
+
+```python
+@patch('containers.docker')
+def test_uses_dockerfile_to_build_new_image(mock_docker):
+    expected_dockerfile = USER_IMAGE_DORCKERFILE.format('md5sekritpythonanywhere_helper').hexdigest()
+    def check_dockerfile_contents(path):
+        with open(os.path.join(path, 'Dockerfile')) as f:
+            assert f.read() == expected_dockerfile
+
+    mock_docker.build.side_effect = check_dockerfile_contents
+
+    create_container_with_password('sekrit')
+
+    assert mock_docker.build.called is True
+
+ @patch('containers.docker')
+def test_creates_container_from_docker_image(mock_docker):
+    create_container_with_password('sekrit')
+    mock_docker.create_container.assert_called_once_with(
+        mock_docker.build.return_value
+    )
+```
+
+
+
+There's no way we could have written that test until we actually had a working solution.  And,
+on top of that, the test would have been totally useless when it came to evolving our requirements and our implementation
+
+To give you an idea, here's what our current implmentation looks like:
+
+```python
+def start_new_container(storage_dirname, password, requested_port):
+    prep_storage_dir(storage_dirname)
+    run_command_on_temporary_container_with_mounts(
+        command=['chown', '-R', 'postgres:postgres', POSTGRES_DIR],
+        storage_dirname=storage_dirname,
+        user='root',
+    )
+    run_command_on_temporary_container_with_mounts(
+        command=INITIALISE_POSTGRES,
+        storage_dirname=storage_dirname
+    )
+    run_command_on_temporary_container_with_mounts(
+        command=[
+            'bash', '-c', 
+            START_POSTGRES_AND_SET_PASSWORD.format(password)
+        ],
+        storage_dirname=storage_dirname
+    )
+    user_container = create_postgres_container(name=storage_dirname)
+    start_container_with_storage(
+        user_container, storage_dirname, 
+        ports={POSTGRES_PORT: requested_port},
+    )
+    with open(port_file_path(storage_dirname), 'w') as f:
+        f.write(str(requested_port))
+    return requested_port
+```
+
+I won't bore you with the details of `run_command_on_temporary_container_with_mounts`, but one way or another we realised that building separate images for each user wasn't going to work, and that instead we were going to want to have some permanent storage mounted in from outside of docker, which would contain the postgres data directory, and which would effectively "save" customisations like the users's password.
+
+So a radically different implementation, but look how little the main test changed:
+
+```python
+def post_to_api_create(storage_dir=None, port=None):
+    if storage_dir is None:
+        storage_dir = uuid.uuid4()
+    if port is None:
+        port = random.randint(6000, 9999)
+    response = requests.post(
+        "https://localhost/api/containers/",
+        {
+            "storage_dir": storage_dir,
+            "admin_password": OUR_PASSWORD,
+            "port": port,
+        },
+        verify=False,
+        auth=(POSTGRES_API_USERNAME, POSTGRES_API_PASSWORD),
+    )
+    return response
+
+def test_create_starts_container_and_with_postgres_connectable(docker_cleanup):
+    response = post_to_api_create(port=6123)
+    # rest of test as before!
+```
+
+
+And now imagine all the time we'd have had to spend rewriting mocks, if we'd decided to have isolated tests as well.
+
+# The pros & cons of the "integrated-tests-only" workflow
+
+#### Pros:
+
+* Allowed us to experiment freely with an API that was new to us, and get feedback on whether it was *really* working
+* Allowed us to refactor code freely, extracting helper functions etc, without needing to rewrite mocky unit tests
+
+#### Cons:
+
+* Being end-to-end tests, they ran much slower than unit tests would - on the order of seconds, and later, a minute or two, once we grew from three or four tests to a dozen or two
+
+* Being integrated tests, they're not designed to run on a development machine. Instead, each code change means pushing updated source up to the server using ansible, restarting the control webapp, and then re-running the tests in an SSH session.
+
+* Because the tests call across a web API, the code being tested runs in a different process to the test code, meaning tracebacks aren't integrated into your test results.  Instead, you have to tail a logfile, and make sure you have logging set up appropriately
+
+
+
+## Aside: py.test observations
 
 One Py.test selling point is "less boilerplate". Notice that none of these tests are methods in a class, and there's no self variable.  On top of that, we ust use `assert` keywords, no complicated remembering of `self.assertIn`, `self.assertIsNotNone`,  and so on.
 
@@ -73,32 +219,25 @@ One Py.test selling point is "less boilerplate". Notice that none of these tests
 
 Another thing you may be interested in is the `docker_cleanup` argument to the test.  py.test will magically look for a special fixture function named the same as that argument, and use it in the test.  Here's how it looks:
 
-    from docker import Client
-    docker = Client(base_url='unix://var/run/docker.sock')
 
-    @pytest.fixture()
-    def docker_cleanup(request):
-        all_containers_before = docker.containers(all=True)
+```python
+from docker import Client
+docker = Client(base_url='unix://var/run/docker.sock')
 
-        def kill_new_containers():
-            for container in docker.containers(all=True):
-                if container not in all_containers_before:
-                    docker.remove_container(container, force=True)
+@pytest.fixture()
+def docker_cleanup(request):
+    containers_before = docker.containers()
 
-        def identify_new_container():
-            return next(
-                c for c in docker.containers() if c not in all_containers_before
-            )
+    def kill_new_containers():
+        current_containers = docker.containers()
+        for container in current_containers:
+            if container not in containers_before:
+                print('killing {}'.format(container['Names'][0]))
+                docker.kill(container)
 
-        request.addfinalizer(kill_new_containers)
+    request.addfinalizer(kill_new_containers)
+```
 
-        helper = FixtureHelper()
-        helper.identify_new_container = identify_new_container
-        helper.kill_new_containers = kill_new_containers
-        return helper
-
-    class FixtureHelper(object):
-        pass
 
 The fixture function has a couple of jobs:
 
@@ -108,9 +247,5 @@ The fixture function has a couple of jobs:
 I've found it to be an interesting model for cleanup and teardown.
 
 Incidentally, until I started using py.test I'd always associated "fixtures" with Django "fixtures", which basically meant serialized versions of model data, but really py.test is using the word in a more correct usage of the term, to mean "state that the world has to be in for the test to run properly".
-
-
-# A peek at the implementation, for the curious
-
 
 
