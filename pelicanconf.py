@@ -11,7 +11,7 @@ DEFAULT_LANG = u'en'
 
 
 # Blogroll
-LINKS =  (
+LINKS = (
     ('Pelican', 'http://docs.notmyidea.org/alexis/pelican/'),
     ('Python.org', 'http://python.org'),
     ('Jinja2', 'http://jinja.pocoo.org'),
