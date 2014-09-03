@@ -1,6 +1,6 @@
 Title: Test-Driving a docker-based Postgres service using py.test
 Date: 2014-07-20 10:39
-Tags: Docker, py.test, integration tests
+Tags: Docker, py.test, integrated tests, integration tests
 Status: draft
 Author: Harry
 Summary: <p>We've been experimenting with Docker and py.test with integrated tests.  Is there any sense of writing unit tests here?</p>
@@ -19,7 +19,7 @@ Normally we use a "double-loop" TDD process, with an outside loop of functional 
 
 But for the inner loop we were in a green field -- this wasn't going to be another app in our monolithic Django project, we wanted it to be a standalone service, one that you could package up and use in another context.  It would provide all its services via an API, and need no knowledge of the rest of PythonAnywhere.  So how should we write the self-contained tests for this app?  Should it, in turn, have a double loop?  Relying on isolated unit tests only felt like a waste of time -- after all, the whole app was basically a thin wrapper that hooks up a web service to a series of Docker commands.  All boundaries.  Isolated unit tests would end up being all mocks.  And from a TDD-process point of view, because we'd never actually used docker-py before, we didn't know its API, so we wouldn't know what mocks to write before we'd actually decided what the code was going to look like, and tried it out.  And trying it out would involve either running one of the PythonAnywhere FTs (super-slow, so a tediously and onerous feedback loop), or with manual tests, with all the uncertainty that implies.
 
-So instead, it felt like starting with an intermediate-level layer of integrated tests might be best: we've already got our top-level UI layer tests in the form of functional tests.  The next level down was the API level -- does calling this particular URL on the API actually give us a working container?
+So instead, it felt like starting with an intermediate-level layer of integrated tests might be best: we've already got our top-level UI layer full-stack tests in the form of functional tests.  The next level down was the API level -- does calling this particular URL on the API actually give us a working container?
 
 ## An example test
 
@@ -110,7 +110,9 @@ Imagine what a more isolated test for this code might look like:
 ```python
 @patch('containers.docker')
 def test_uses_dockerfile_to_build_new_image(mock_docker):
-    expected_dockerfile = USER_IMAGE_DORCKERFILE.format('md5sekritpythonanywhere_helper').hexdigest()
+    expected_dockerfile = USER_IMAGE_DOCKERFILE.format(
+        'md5sekritpythonanywhere_helper'
+    ).hexdigest()
     def check_dockerfile_contents(path):
         with open(os.path.join(path, 'Dockerfile')) as f:
             assert f.read() == expected_dockerfile
@@ -253,7 +255,7 @@ Incidentally, until I started using py.test I'd always associated "fixtures" wit
 
 I can potentially imagine a time when we might start to see value in a layer of "real" unit tests... So far though, there's really no "business logic" that we could extract and write fast unit tests for. Or at least, there's no business logic that I identify as such, and I'd be very pleased for someone to come along and school me about it?
 
-On the other hand, I can definitely see a time where we might want to split out our tests for the web API from the tests for the Postgres and Docker stuff, and I can see value in a setup where a developer can run these tests locally rather than having to push code up to a dev box.  Vagrant and VirtualBox might be one solution, but, honestly, installing Docker and Postgres on a dev box doesn't feel that onerous either, as long as we know we'll be testing on a "real" box in integration. Or at least, it doesn't feel onerous until we start talking about my poor laptop with its paltry 120GB SSD.  No room here!
+On the other hand, I can definitely see a time where we might want to split out our tests for the web API from the tests for the Postgres and Docker stuff, and I can see value in a setup where a developer can run these tests locally rather than having to push code up to a dev box.  Vagrant and VirtualBox might be one solution, but, honestly, installing Docker and Postgres on a dev box doesn't feel that onerous either, as long as we know we'll be testing on a "real" box in CI. Or at least, it doesn't feel onerous until we start talking about my poor laptop with its paltry 120GB SSD.  No room here!
 
 And the bonus of being able to see honest-to-God tracebacks in your test run output feels like it might be worth it.
 
