@@ -181,3 +181,7 @@ def wait_for_page_load(browser):
     wait_for(page_has_loaded)
 ```
 
+
+Note that this solution only works for "non-javascript" clicks, ie clicks that will cause the browser to load a brand new page, and thus load a brand new HTML element.
+
+Let me know what you think!
