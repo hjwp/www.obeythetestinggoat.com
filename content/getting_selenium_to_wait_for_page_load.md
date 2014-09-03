@@ -1,7 +1,6 @@
 Title: How to get Selenium to wait for page load after a click
 Date: 2014-09-02
 Tags: Selenium, javascript, Ajax, functional tests
-Status: draft
 Author: Harry
 Summary: <p>Getting Selenium to wait until the next page has fully loaded after you click on a link seems like it should be easy, but it's actually very hard to do reliably, but I think we may have cracked it.  Read on!</p>
 
@@ -16,7 +15,11 @@ new_value = browser.find_element_by_id('my-id').text
 assert new_value != old_value ## fails unexpectedly
 ```
 
-You scratch your head, and eventually conclude Selenium must be fetching the element from the old page.  "Why would it do that?!", you exclaim in a programmer-rage, "In real life, when you click on a link, you see the browser starts to load a new page, and you wait for it to load, right?  That's obviously what you'd want Selenium to do too, and it should be totally trivial to implement, Selenium should just wait until the page has completed loading after you click!".  
+*(Here's another example, from [chapter 20 in my book](http://chimera.labs.oreilly.com/books/1234000000754/ch20.html#_a_common_selenium_problem_race_conditions))*
+
+You scratch your head, and eventually conclude Selenium must be fetching the element from the old page.  "Why would it do that?!", you exclaim in a programmer-rage, "In real life, when you click on a link, you see the browser starts to load a new page, and you wait for it to load, right?  That's obviously what you'd want Selenium to do too, and it should be totally trivial to implement!"
+
+> "Selenium should just wait until the page has completed loading after you click!"
 
 ```python
 browser.find_element_by_link_text('my link').click() # should just block until the next page has loaded
@@ -37,7 +40,7 @@ browser.implicitly_wait(3)
 old_value = browser.find_element_by_id('thing-on-old-page').text
 browser.find_element_by_link_text('my link').click()
 new_value = browser.find_element_by_id('thing-on-new-page').text # will block for 3 seconds until thing-on-new-page appears
-assert new_value != old_value ## fails unexpectedly
+assert new_value != old_value
 ```
 
 But the problem comes when `#thing-on-new-page` also exists on the old page.  So what to do?
@@ -63,8 +66,8 @@ WebDriverWait(browser, 3).until(
 
 Several problems with that though:
 
-1. HIDEOUSLY UGLY
-2. It's not generic --  even if I do write a nice wrapper, it's tedious to have to call it every time I click on a thing, specifying a different thing to wait for each time
+1. HIDEOUSLY UGLY [\*](https://twitter.com/raganwald/status/504252812272754688)
+2. It's not generic --  even if I do write a nice wrapper, it's tedious to have to call it every time I click on a thing, specifying a different other thing to wait for each time
 3. And it won't work for the case when I want to check that some text stays the *same* between page loads.
 
 
@@ -73,19 +76,40 @@ Really, I just want a reliable way of waiting until the page has finished loadin
 
 ### Some things that won't work
 
+The naive attempt would be something like this:
+
 ```python
+
+def wait_for(condition_function):
+    start_time = time.time()
+    while time.time() < start_time + 3:
+        if condition_function():
+            return True
+        else:
+            time.sleep(0.1)
+    raise Exception(
+        'Timeout waiting for {}'.format(condition_function.name)
+    )
+
+
 def click_through_to_new_page(link_text):
     browser.find_element_by_link_text('my link').click()
-    wait_for(
-        lambda: browser.execute_script('return document.readyState') == 'complete'
-    )
+
+    def page_has_loaded():
+        page_state = browser.execute_script(
+            'return document.readyState;'
+        ) 
+        return page_state == 'complete'
+
+    wait_for(page_has_loaded)
 ```
-Unfortunately is open to the race condition where we manage to execute the script in the old page, before the browser has started processing the click.
+
+The `wait_for` helper function is good, but unfortunately `click_through_to_new_page` is open to the race condition where we manage to execute the script in the old page, before the browser has started processing the click, and `page_has_loaded` just returns true straight away.
 
 
 ### Our current working solution
 
-Full credit to [@ThomasMarks](https://twitter.com/ThomasMarks/status/506439068327358464) for coming up with this: if you keep some references to elements from the old page lying around, then they will become stale once the DOM refreshes.  So you could poll them and wait for a `StaleElementReferenceException` error.  Bulletproof!
+Full credit to [@ThomasMarks](https://twitter.com/ThomasMarks/status/506439068327358464) for coming up with this: if you keep some references to elements from the old page lying around, then they will become stale once the DOM refreshes, and stale elements cause selenium to raise a `StaleElementReferenceException` if you try and interact with them.  So just poll one until you get an error.  Bulletproof!
 
 ```python
 def click_through_to_new_page(link_text):
@@ -94,7 +118,8 @@ def click_through_to_new_page(link_text):
 
     def link_has_gone_stale():
         try:
-            link.find_elements_by_id('doesnt-matter') # if this works, the old page isn't stale
+            # poll the link with an arbitrary call
+            link.find_elements_by_id('doesnt-matter') 
             return False
         except StaleElementReferenceException:
             return True
@@ -112,20 +137,20 @@ class wait_for_page_load(object):
         self.browser = browser
 
     def __enter__(self):
-        self.old_page = browser.find_element_by_tag_name('html')
+        self.old_page = self.browser.find_element_by_tag_name('html')
 
-    def page_has_reloaded(self):
-        new_page = self.browser.find_element_by_tag_name('html').id 
+    def page_has_loaded(self):
+        new_page = self.browser.find_element_by_tag_name('html')
         return new_page.id != self.old_page.id
 
-    def __exit__(self):
-        wait_for(self.page_has_reloaded)
+    def __exit__(self, *_):
+        wait_for(self.page_has_loaded)
+```
+
+And now we can do:
 
 
-
-
-# and now we can do
-
+```python
 with wait_for_page_load(browser):
     browser.find_element_by_link_text('my link').click()
 ```
@@ -135,10 +160,10 @@ And I think that might just be bulletproof!
 
 
 
-## And for bonus points!
+## And for bonus points...
 
 
-Use the contextmanager decorator and the scary, magical yield keyword!
+Use the contextmanager decorator and the magical-but-slightly-scary yield keyword!
 
 ```python
 from contextlib import contextmanager
@@ -149,9 +174,10 @@ def wait_for_page_load(browser):
 
     yield
 
-    def page_has_reloaded(self):
-        new_page = browser.find_element_by_tag_name('html').id 
-        return new_page.id != self.old_page.id
+    def page_has_loaded():
+        new_page = browser.find_element_by_tag_name('html')
+        return new_page.id != old_page.id
 
-    wait_for(self.page_has_reloaded)
+    wait_for(page_has_loaded)
 ```
+
