@@ -6,7 +6,7 @@ Summary: <p>Getting Selenium to wait until the next page has fully loaded after 
 
 ## Oft-heard is the folorn cry...
 
-Every so often you get bitten by a weird bug in Selenium.  You tell it to click a link, and then you ask it something about the new page, and it returns you something from the old page:
+Every so often you get bitten by a weird behaviour in one of your Selenium tests.  You tell it to click a link, and then you ask it something about the new page, and it returns you something from the old page:
 
 ```python
 old_value = browser.find_element_by_id('my-id').text
