@@ -1,5 +1,5 @@
 Title: How to get Selenium to wait for page load after a click
-Date: 2014-09-02
+Date: 2014-09-03
 Tags: Selenium, javascript, Ajax, functional tests
 Author: Harry
 Summary: <p>Getting Selenium to wait until the next page has fully loaded after you click on a link seems like it should be easy, but it's actually very hard to do reliably, but I think we may have cracked it.  Read on!</p>
@@ -15,7 +15,7 @@ new_value = browser.find_element_by_id('my-id').text
 assert new_value != old_value ## fails unexpectedly
 ```
 
-*(Here's another example, from [chapter 20 in my book](http://chimera.labs.oreilly.com/books/1234000000754/ch20.html#_a_common_selenium_problem_race_conditions))*
+*(There's another example, [in chapter 20 of my book](http://chimera.labs.oreilly.com/books/1234000000754/ch20.html#_a_common_selenium_problem_race_conditions))*
 
 You scratch your head, and eventually conclude Selenium must be fetching the element from the old page.  "Why would it do that?!", you exclaim in a programmer-rage, "In real life, when you click on a link, you see the browser starts to load a new page, and you wait for it to load, right?  That's obviously what you'd want Selenium to do too, and it should be totally trivial to implement!"
 
