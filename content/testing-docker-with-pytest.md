@@ -101,7 +101,7 @@ def create_container_with_password(password):
 
 (These are some library functions we wrote, I won't show you the trivial flask app that calls them).
 
-This was one of our first implementations -- we needed to be able to customise the Postgres superuser password for each user, and our first solution involved building a new image for each user, by generating and running a custom Dockerfile for them.
+This was one of our first attempts -- we needed to be able to customise the Postgres superuser password for each user, and our initial solution involved building a new image for each user, by generating and running a custom Dockerfile for them.
 
 We were never quite sure whether the Dockerfile voodoo was going to work, and we weren't really Postgres experts either, so having the high-level integration test, which actually tried to spin up a container and connect to the Postgres database that should be running inside it, was a really good way of getting to a solution that worked.
 
@@ -133,8 +133,7 @@ def test_creates_container_from_docker_image(mock_docker):
 
 
 
-There's no way we could have written that test until we actually had a working solution.  And,
-on top of that, the test would have been totally useless when it came to evolving our requirements and our implementation
+There's no way we could have written that test until we actually had a working solution.  And, on top of that, the test would have been totally useless when it came to evolving our requirements and our solution
 
 To give you an idea, here's what our current implementation looks like:
 
@@ -181,7 +180,6 @@ def post_to_api_create(storage_dir=None, port=None):
             "port": port,
         },
         verify=False,
-        auth=(POSTGRES_API_USERNAME, POSTGRES_API_PASSWORD),
     )
     return response
 
