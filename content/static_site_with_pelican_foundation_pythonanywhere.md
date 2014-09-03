@@ -12,9 +12,9 @@ of interest.
 A static HTML site on PythonAnywhere
 ------------------------------------
 
-Full disclosure: I work at PythonAnywhere.  Skip this bit if you prefer a
+*Disclosure: I work at PythonAnywhere.  Skip this bit if you prefer a
 different hosting provider. But we do happen to have built a pretty 
-low-effort way of getting websites off the ground.
+low-effort way of getting websites off the ground.*
 
 Even though we don't have a specific option for "static HTML site",
 PythonAnywhere has support for static file directories, and is set up to serve
@@ -49,18 +49,18 @@ to host a new blog.  The first was more important, so in true agile style
 I decided to make sure I could do that first.
 
 I started by replacing *index.html* with one of the samples from the foundation
-site, and checking that it worked.  The main thing to check was that the css
+site, and checking that it worked.  The main thing to check was that the CSS
 all loaded OK.
 
 <link>
 <screenshot>
 
-I actually set up a separatic static files directory with the URL /static/, but
+I actually set up a separate static files directory with the URL /static/, but
 in retrospect I think you could get away without that, just using subfolders in
 the main directory which is already mapped to "/".
 
-Then I had the usual pain of fiddlinig with CSS to get the exact column + 
-row alignmment I wanted.  Made substantially easier by Foundation, yes, but 
+Then I had the usual pain of fiddling with CSS to get the exact column + 
+row alignment I wanted.  Made substantially easier by Foundation, yes, but 
 still a hassle.  By the end I had something like this:
 
 <screenshot>
@@ -77,7 +77,7 @@ Bringing in Pelican
 I then installed Pelican on my local PC and went through its default 
 'quickstart' setup.  Once it's configured, you just run `make html` and
 it pulls in all your blog posts and other pages from a folder called
-*content*, converting them from mardown or RST to HTML.  Perfect,
+*content*, converting them from markdown or RST to HTML.  Perfect,
 except it has its own CSS and theme, which look nothing like my site.
 
 A pelican theme is a series of jinja2 templates in a folder. Making a custom
@@ -89,7 +89,7 @@ theme, which means it really is a matter of tweaking things rather than
 reinventing the wheel. Here's the diff from my version of *article.html*, the
 template for blog posts:
 
-
+```diff
     $ diff -b `pwhich.py pelican`/themes/simple/templates/article.html theme/templates/article.html 
     3c3,4
     < <section id="content" class="body">
@@ -119,6 +119,5 @@ template for blog posts:
     >     </div>
     >     {% include 'sidebar.html' %}
     > </div>
-
-
+```
 
