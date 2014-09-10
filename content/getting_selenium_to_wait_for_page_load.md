@@ -129,6 +129,8 @@ def click_through_to_new_page(link_text):
 
 Or, here's a genericised, sanitized version of the same thing, based on comparing Selenium's internal "IDs" for an object, and made into a nice Pythonic context manager:
 
+[*update 2014-09-06 -- see the comments, it's possible that comparing ids is not as efffective as waiting for stale reference exceptions. Will investigate, but bewarned that YMMV for now.*]
+
 
 ```python
 class wait_for_page_load(object):
