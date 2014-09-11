@@ -1,7 +1,6 @@
 Title: Test-Driving a docker-based Postgres service using py.test
-Date: 2014-07-20 10:39
+Date: 2014-09-11 16:59
 Tags: Docker, py.test, integrated tests, integration tests
-Status: draft
 Author: Harry
 Summary: <p>We've been experimenting with Docker and py.test with integrated tests.  Is there any sense of writing unit tests here?</p>
 
@@ -19,7 +18,7 @@ Normally we use a "double-loop" TDD process, with an outside loop of functional 
 
 But for the inner loop we were in a green field -- this wasn't going to be another app in our monolithic Django project, we wanted it to be a standalone service, one that you could package up and use in another context.  It would provide all its services via an API, and need no knowledge of the rest of PythonAnywhere.  So how should we write the self-contained tests for this app?  Should it, in turn, have a double loop?  Relying on isolated unit tests only felt like a waste of time -- after all, the whole app was basically a thin wrapper that hooks up a web service to a series of Docker commands.  All boundaries.  Isolated unit tests would end up being all mocks.  And from a TDD-process point of view, because we'd never actually used docker-py before, we didn't know its API, so we wouldn't know what mocks to write before we'd actually decided what the code was going to look like, and tried it out.  And trying it out would involve either running one of the PythonAnywhere FTs (super-slow, so a tediously and onerous feedback loop), or with manual tests, with all the uncertainty that implies.
 
-So instead, it felt like starting with an intermediate-level layer of integrated tests might be best: we've already got our top-level UI layer full-stack tests in the form of functional tests.  The next level down was the API level -- does calling this particular URL on the API actually give us a working container?
+So instead, it felt like starting with an intermediate-level layer of integrated tests might be best: we've already got our top-level UI layer full-stack tests in the form of functional tests.  The next level down was the API level -- does calling this particular URL on the API *actually* give us a working container?
 
 ## An example test
 
@@ -134,6 +133,8 @@ def test_creates_container_from_docker_image(mock_docker):
 
 
 There's no way we could have written that test until we actually had a working solution.  And, on top of that, the test would have been totally useless when it came to evolving our requirements and our solution
+
+### A later implementation -- but minimal change to the main test
 
 To give you an idea, here's what our current implementation looks like:
 
