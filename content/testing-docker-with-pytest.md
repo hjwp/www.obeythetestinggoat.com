@@ -4,6 +4,7 @@ Tags: Docker, py.test, integrated tests, integration tests
 Author: Harry
 Summary: <p>We've been experimenting with Docker and py.test with integrated tests.  Is there any sense of writing unit tests here?</p>
 
+*[Cross-posted on the [PythonAnywhere blog](https://blog.pythonanywhere.com/97/)]*
 
 We've been working on incorporating a Postgres database service into PythonAnywhere, and we decided to make it into a bit of a standalone project.  The shiny is that we're using Docker to containerise Postgres servers for our users, and while we were at it we thought we'd try a bit of a different approach to testing.  I'd be interested in feedback -- what do you like, what might you do differently?
 
