@@ -40,7 +40,12 @@ There are two ways you can read this book:
         Obviously this is my favourite option!  O'Reilly are great,
         they have DRM-free versions you can download in all sorts
         of formats (MOBI/epub/pdf), and you'll get updates
-        automatically every few weeks.  You can also read it at
+        automatically every few weeks.
+        You can also get it from 
+        <a href="http://www.amazon.com/gp/product/1449364829/ref=as_li_tl?ie=UTF8&camp=1789&creative=390957&creativeASIN=1449364829&linkCode=as2&tag=obethetesgoa-20&linkId=LGUDSZ2Z3SJ6FCTF">amazon.com</a><img src="http://ir-na.amazon-adsystem.com/e/ir?t=obethetesgoa-20&l=as2&o=1&a=1449364829" width="1" height="1" border="0" alt="" style="border:none !important; margin:0px !important;" /> 
+        and
+        <a href="http://www.amazon.co.uk/gp/product/1449364829/ref=as_li_tl?ie=UTF8&camp=1634&creative=19450&creativeASIN=1449364829&linkCode=as2&tag=obethetesgoa-21&linkId=IAQLSY3X23DH2MLI">amazon.co.uk</a><img src="http://ir-uk.amazon-adsystem.com/e/ir?t=obethetesgoa-21&l=as2&o=2&a=1449364829" width="1" height="1" border="0" alt="" style="border:none !important; margin:0px !important;" />
+        and lots of other Amazons I'm sure, or read it online at
         <a href="http://my.safaribooksonline.com/9781449365141">Safari</a>
         if you have an account there.
         </p>
