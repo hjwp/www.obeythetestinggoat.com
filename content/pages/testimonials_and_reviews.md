@@ -5,6 +5,14 @@ Tags: reviews, readers, testimonials
 
 Here's a few nice things people have said to me about the book, either directly or via online reviews:
 
+### Edward Cheadle, September 2014:  "well written, easy to understand and pulls together all the concepts of modern software development"
+
+> I saw the book at Barnes and Noble, looked through it and bought it.  I did see I could read the book for free and then make a decision whether or not to buy it,  but I looked it over and realized I wanted it in print so I could make notes, mark pages and keep it as a reference. I am now on page 22 and I am very glad I just bought it.
+
+> I am a systems administrator, learning Python, and looking at how software is developed so I can create and manage a infrastructure for continuous integration of modern applications. I figure if I really understand what programmers need to do, I can help build a solid infrastructure, but also the book is a lot of fun
+
+> I know I am not your target audience, but the book is well written, easy to understand and pulls together all the concepts of modern software development in a way I can understand.  It is helping me learn python because I enjoy a project to work on rather than endless discussions of how loops work and what  a variable is. The basic concepts of a language are  important, so I have other books I use as reference.  Your book pulls me in and gives me the desire to learn about if statements, classes etc... and makes reading the other books less dry.
+
 
 ### Casey Brant, August 2014: "something here for Django newbies and old hats alike."
 
