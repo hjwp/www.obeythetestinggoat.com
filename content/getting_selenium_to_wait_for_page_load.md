@@ -88,7 +88,7 @@ def wait_for(condition_function):
         else:
             time.sleep(0.1)
     raise Exception(
-        'Timeout waiting for {}'.format(condition_function.name)
+        'Timeout waiting for {}'.format(condition_function.__name__)
     )
 
 

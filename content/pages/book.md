@@ -1,7 +1,7 @@
 Title: The Book
 Date: 2013-04-06
 Slug: book
-Tags: book, o'reilly, read online, buy, ebook, pdf
+Tags: book, o''reilly, read online, buy, ebook, pdf
 
 <div class="right">
     <blockquote>
@@ -11,6 +11,7 @@ Tags: book, o'reilly, read online, buy, ebook, pdf
         <img src="http://www.ftjcfx.com/image-7079286-11260198" width="1" height="1" border="0"/>
     </blockquote>
 </div>
+4F
 
 "Test-Driven Web Development with Python" aims to teach TDD for web
 programming. It uses a concrete example -- the development of a website,
@@ -29,7 +30,7 @@ There are two ways you can read this book:
 
 <div class="row">
     <div class="large-3 columns">
-        <a class="button" href="http://www.kqzyfj.com/click-7079286-11260198?url=http%3A%2F%2Fshop.oreilly.com%2Fproduct%2F0636920029533.do%3Fcmp%3Daf-code-book-product_cj_9781449367794_%7BPID%7D&cjsku=0636920029533" target="_top">
+        <a class="button" href="http://bit.ly/1pyuCm5" target="_top">
             Buy it now via O'Reilly
         </a>
         <img src="http://www.awltovhc.com/image-7079286-11260198" width="1" height="1" border="0"/>
@@ -39,7 +40,12 @@ There are two ways you can read this book:
         Obviously this is my favourite option!  O'Reilly are great,
         they have DRM-free versions you can download in all sorts
         of formats (MOBI/epub/pdf), and you'll get updates
-        automatically every few weeks.  You can also read it at
+        automatically every few weeks.
+        You can also get it from 
+        <a href="http://www.amazon.com/gp/product/1449364829/ref=as_li_tl?ie=UTF8&camp=1789&creative=390957&creativeASIN=1449364829&linkCode=as2&tag=obethetesgoa-20&linkId=LGUDSZ2Z3SJ6FCTF">amazon.com</a><img src="http://ir-na.amazon-adsystem.com/e/ir?t=obethetesgoa-20&l=as2&o=1&a=1449364829" width="1" height="1" border="0" alt="" style="border:none !important; margin:0px !important;" /> 
+        and
+        <a href="http://www.amazon.co.uk/gp/product/1449364829/ref=as_li_tl?ie=UTF8&camp=1634&creative=19450&creativeASIN=1449364829&linkCode=as2&tag=obethetesgoa-21&linkId=IAQLSY3X23DH2MLI">amazon.co.uk</a><img src="http://ir-uk.amazon-adsystem.com/e/ir?t=obethetesgoa-21&l=as2&o=2&a=1449364829" width="1" height="1" border="0" alt="" style="border:none !important; margin:0px !important;" />
+        and lots of other Amazons I'm sure, or read it online at
         <a href="http://my.safaribooksonline.com/9781449365141">Safari</a>
         if you have an account there.
         </p>
