@@ -29,3 +29,10 @@ THEME = 'theme'
 STATIC_PATHS = ['static/js/', 'static/img/', 'static/images/', 'static/css/']
 OUTPUT_PATH = 'output/'
 DISQUS_SITENAME = 'obeythetestinggoat'
+
+PLUGIN_PATHS = ['./pelican-plugins']
+PLUGINS = ['asciidoc_reader']
+ASCIIDOC_OPTIONS = [
+    '-a source-highlighter=pygments'
+]
+ASCIIDOC_BACKEND = 'html5'
