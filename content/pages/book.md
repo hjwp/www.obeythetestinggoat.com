@@ -83,7 +83,7 @@ So, If you're an experienced TDD-er, read my draft, and let me
 know what you think: am I presenting TDD in the right way?  What would you do
 differently?  Is there anything you think I'm missing?
 
-If you're a beginner, I need your help too!  This book is meant to be fore you, so
+If you're a beginner, I need your help too!  This book is meant to be for you, so
 let me know if the books works well for you as a lerning tool - am I going too 
 fast or too slow, am I presenting things in an intelligible way, etc etc.
 
