@@ -11,7 +11,6 @@ Tags: book, o''reilly, read online, buy, ebook, pdf
         <img src="http://www.ftjcfx.com/image-7079286-11260198" width="1" height="1" border="0"/>
     </blockquote>
 </div>
-4F
 
 "Test-Driven Web Development with Python" aims to teach TDD for web
 programming. It uses a concrete example -- the development of a website,
