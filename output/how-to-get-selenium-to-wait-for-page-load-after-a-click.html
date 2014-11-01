@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<!--[if IE 8]>    <html class="no-js lt-ie9" lang="en"> <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en"> <!--<![endif]-->
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+        <!-- Set the viewport width to device width for mobile -->
+        <meta name="viewport" content="width=device-width" />
+        <title>Obey the Testing Goat!</title>
+        <meta charset="utf-8" />
+        <link rel="stylesheet" href="/static/css/normalize.css">
+        <link rel="stylesheet" href="/static/css/pygments.css">
+        <link rel="stylesheet" href="/static/css/extra.css">
+        <link rel="stylesheet" href="/static/css/foundation.css">
+        <link href='http://fonts.googleapis.com/css?family=Life+Savers:400,700|Sanchez:400,400italic|Ovo' rel='stylesheet' type='text/css'>
+
+
+        <link rel="stylesheet" href="/static/css/social_foundicons.css">
+        <!--[if lt IE 8]>
+            <link rel="stylesheet" href="stylesheets/social_foundicons_ie7.css">
+        <![endif]-->
+
+
+        <link href="http://www.obeythetestinggoat.com/feeds/all.atom.xml" type="application/atom+xml" rel="alternate" title="Obey the Testing Goat! Full Atom Feed" />
+        <link href="http://www.obeythetestinggoat.com/feeds/misc.atom.xml" type="application/atom+xml" rel="alternate" title="Obey the Testing Goat! Categories Atom Feed" />
+</head>
+
+<body>
+    <header class="row">
+        <div class="large-12 columns">
+            <div class="row">
+                <span class="right"><a href="http://www.obeythetestinggoat.com/feeds/all.atom.xml" type="application/rss+xml"><i class="social foundicon-rss"></i> RSS</a></span>
+                <div class="large-2 columns">
+                    <a href="http://www.obeythetestinggoat.com"><img src="/static/images/kid_goat.png" alt="The Testing Goat" title="The Testing Goat" /></a>
+                </div>
+                <div class="large-10 columns">
+                    <h1>Obey the Testing Goat!</h1>
+                    <h2><small><em>TDD for the Web, with Python, Selenium, Django, JavaScript and pals...</em></small></h2>
+                </div>
+            </div>
+        </div>
+    </header> <!-- end top banner -->
+
+<div class="row">
+    <div class="large-9 small-12 columns"> <!-- blog post div -->
+        <header>
+            <h2><a href="how-to-get-selenium-to-wait-for-page-load-after-a-click.html" rel="bookmark" title="Permalink to How to get Selenium to wait for page load after a click">How to get Selenium to wait for page load after a click</a></h2>
+
+             
+
+        </header>
+        <footer class="post-info">
+            <abbr class="published" title="2014-09-03T00:00:00">
+              Wed 03 September 2014
+            </abbr>
+                <address class="vcard author">
+                  By <a class="url fn" href="http://www.obeythetestinggoat.com/author/harry.html">Harry</a>
+                </address>
+        </footer><!-- /.post-info -->
+
+        <div>
+            <h2>Oft-heard is the folorn cry...</h2>
+<p>Every so often you get bitten by a weird behaviour in one of your Selenium tests.  You tell it to click a link, and then you ask it something about the new page, and it returns you something from the old page:</p>
+<div class="highlight"><pre><span class="n">old_value</span> <span class="o">=</span> <span class="n">browser</span><span class="o">.</span><span class="n">find_element_by_id</span><span class="p">(</span><span class="s">&#39;my-id&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">text</span>
+<span class="n">browser</span><span class="o">.</span><span class="n">find_element_by_link_text</span><span class="p">(</span><span class="s">&#39;my link&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">click</span><span class="p">()</span>
+<span class="n">new_value</span> <span class="o">=</span> <span class="n">browser</span><span class="o">.</span><span class="n">find_element_by_id</span><span class="p">(</span><span class="s">&#39;my-id&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">text</span>
+<span class="k">assert</span> <span class="n">new_value</span> <span class="o">!=</span> <span class="n">old_value</span> <span class="c">## fails unexpectedly</span>
+</pre></div>
+
+
+<p><em>(There's another example, <a href="http://chimera.labs.oreilly.com/books/1234000000754/ch20.html#_a_common_selenium_problem_race_conditions">in chapter 20 of my book</a>)</em></p>
+<p>You scratch your head, and eventually conclude Selenium must be fetching the element from the old page.  "Why would it do that?!", you exclaim in a programmer-rage, "In real life, when you click on a link, you see the browser starts to load a new page, and you wait for it to load, right?  That's obviously what you'd want Selenium to do too, and it should be totally trivial to implement!"</p>
+<blockquote>
+<p>"Selenium should just wait until the page has completed loading after you click!"</p>
+</blockquote>
+<div class="highlight"><pre><span class="n">browser</span><span class="o">.</span><span class="n">find_element_by_link_text</span><span class="p">(</span><span class="s">&#39;my link&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">click</span><span class="p">()</span> <span class="c"># should just block until the next page has loaded</span>
+</pre></div>
+
+
+<p>... with a sane timeout perhaps.  There's even a <code>document.readyState</code> <a href="https://dvcs.w3.org/hg/webdriver/raw-file/default/webdriver-spec.html#page-load-strategies-1">API</a> for checking on whether a page has loaded!  Grrr...</p>
+<p>The thing is that, from the Selenium point of view, it's not that simple (and I'm grateful for David from Mozilla (<a href="https://twitter.com/AutomatedTester">@AutomatedTester</a>) for patiently explaining this to me, more than once.)</p>
+<p>You see, Selenium has no way of telling whether you've asked it to click on a "real" hyperlink that goes to a new URL, or whether the link goes to the same page, or whether the click is going to be intercepted by some sort of JavaScript to do some rich UI stuff on the same page.</p>
+<p>More than that, since Selenium webdriver has become more advanced, clicks are much more like "real" clicks, which has the benefit of making our tests more realistic, but it also means it's hard for Selenium to be able to track the impact that a click has on the browsers' internals -- it might try to poll the browser for its page-loaded status immediately after clicking, but that's open to a race condition where the browser was multitasking, hasn't quite got round to dealing with the click yet, and it gives you the <code>.readyState</code> of the old page.</p>
+<p>So, instead, Selenium does its best.  The <code>implicitly_wait</code> argument will at least put a little retry loop in if you try and fetch an element that doesn't exist on the old page:</p>
+<div class="highlight"><pre><span class="n">browser</span><span class="o">.</span><span class="n">implicitly_wait</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
+<span class="n">old_value</span> <span class="o">=</span> <span class="n">browser</span><span class="o">.</span><span class="n">find_element_by_id</span><span class="p">(</span><span class="s">&#39;thing-on-old-page&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">text</span>
+<span class="n">browser</span><span class="o">.</span><span class="n">find_element_by_link_text</span><span class="p">(</span><span class="s">&#39;my link&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">click</span><span class="p">()</span>
+<span class="n">new_value</span> <span class="o">=</span> <span class="n">browser</span><span class="o">.</span><span class="n">find_element_by_id</span><span class="p">(</span><span class="s">&#39;thing-on-new-page&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">text</span> <span class="c"># will block for 3 seconds until thing-on-new-page appears</span>
+<span class="k">assert</span> <span class="n">new_value</span> <span class="o">!=</span> <span class="n">old_value</span>
+</pre></div>
+
+
+<p>But the problem comes when <code>#thing-on-new-page</code> also exists on the old page.  So what to do?</p>
+<p>The "recommended" solution is an 
+<a href="https://selenium.googlecode.com/git/docs/api/py/webdriver_support/selenium.webdriver.support.expected_conditions.html">explicit wait</a>:</p>
+<div class="highlight"><pre><span class="kn">from</span> <span class="nn">selenium.webdriver.common.by</span> <span class="kn">import</span> <span class="n">By</span>
+<span class="kn">from</span> <span class="nn">selenium.webdriver.support.ui</span> <span class="kn">import</span> <span class="n">WebDriverWait</span> 
+<span class="kn">from</span> <span class="nn">selenium.webdriver.support</span> <span class="kn">import</span> <span class="n">expected_conditions</span>
+
+<span class="n">old_value</span> <span class="o">=</span> <span class="n">browser</span><span class="o">.</span><span class="n">find_element_by_id</span><span class="p">(</span><span class="s">&#39;thing-on-old-page&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">text</span>
+<span class="n">browser</span><span class="o">.</span><span class="n">find_element_by_link_text</span><span class="p">(</span><span class="s">&#39;my link&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">click</span><span class="p">()</span>
+<span class="n">WebDriverWait</span><span class="p">(</span><span class="n">browser</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span><span class="o">.</span><span class="n">until</span><span class="p">(</span>
+    <span class="n">expected_conditions</span><span class="o">.</span><span class="n">text_to_be_present_in_element</span><span class="p">(</span>
+        <span class="p">(</span><span class="n">By</span><span class="o">.</span><span class="n">ID</span><span class="p">,</span> <span class="s">&#39;thing-on-new-page&#39;</span><span class="p">),</span>
+        <span class="s">&#39;expected new text&#39;</span>
+    <span class="p">)</span>
+<span class="p">)</span>
+</pre></div>
+
+
+<p>Several problems with that though:</p>
+<ol>
+<li>HIDEOUSLY UGLY <a href="https://twitter.com/raganwald/status/504252812272754688">*</a></li>
+<li>It's not generic --  even if I do write a nice wrapper, it's tedious to have to call it every time I click on a thing, specifying a different other thing to wait for each time</li>
+<li>And it won't work for the case when I want to check that some text stays the <em>same</em> between page loads.</li>
+</ol>
+<p>Really, I just want a reliable way of waiting until the page has finished loading after I click on a thing.  I totally understand that David and pals aren't going to provide that for me by default because they can't tell what's a Javascript click and what's a click that goes to a new page, but <em>I</em> know.  But how to do it?</p>
+<h3>Some things that won't work</h3>
+<p>The naive attempt would be something like this:</p>
+<div class="highlight"><pre><span class="k">def</span> <span class="nf">wait_for</span><span class="p">(</span><span class="n">condition_function</span><span class="p">):</span>
+    <span class="n">start_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+    <span class="k">while</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">&lt;</span> <span class="n">start_time</span> <span class="o">+</span> <span class="mi">3</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">condition_function</span><span class="p">():</span>
+            <span class="k">return</span> <span class="bp">True</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mf">0.1</span><span class="p">)</span>
+    <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span>
+        <span class="s">&#39;Timeout waiting for {}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">condition_function</span><span class="o">.</span><span class="n">__name__</span><span class="p">)</span>
+    <span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">click_through_to_new_page</span><span class="p">(</span><span class="n">link_text</span><span class="p">):</span>
+    <span class="n">browser</span><span class="o">.</span><span class="n">find_element_by_link_text</span><span class="p">(</span><span class="s">&#39;my link&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">click</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">page_has_loaded</span><span class="p">():</span>
+        <span class="n">page_state</span> <span class="o">=</span> <span class="n">browser</span><span class="o">.</span><span class="n">execute_script</span><span class="p">(</span>
+            <span class="s">&#39;return document.readyState;&#39;</span>
+        <span class="p">)</span> 
+        <span class="k">return</span> <span class="n">page_state</span> <span class="o">==</span> <span class="s">&#39;complete&#39;</span>
+
+    <span class="n">wait_for</span><span class="p">(</span><span class="n">page_has_loaded</span><span class="p">)</span>
+</pre></div>
+
+
+<p>The <code>wait_for</code> helper function is good, but unfortunately <code>click_through_to_new_page</code> is open to the race condition where we manage to execute the script in the old page, before the browser has started processing the click, and <code>page_has_loaded</code> just returns true straight away.</p>
+<h3>Our current working solution</h3>
+<p>Full credit to <a href="https://twitter.com/ThomasMarks/status/506439068327358464">@ThomasMarks</a> for coming up with this: if you keep some references to elements from the old page lying around, then they will become stale once the DOM refreshes, and stale elements cause selenium to raise a <code>StaleElementReferenceException</code> if you try and interact with them.  So just poll one until you get an error.  Bulletproof!</p>
+<div class="highlight"><pre><span class="k">def</span> <span class="nf">click_through_to_new_page</span><span class="p">(</span><span class="n">link_text</span><span class="p">):</span>
+    <span class="n">link</span> <span class="o">=</span> <span class="n">browser</span><span class="o">.</span><span class="n">find_element_by_link_text</span><span class="p">(</span><span class="s">&#39;my link&#39;</span><span class="p">)</span>
+    <span class="n">link</span><span class="o">.</span><span class="n">click</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">link_has_gone_stale</span><span class="p">():</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="c"># poll the link with an arbitrary call</span>
+            <span class="n">link</span><span class="o">.</span><span class="n">find_elements_by_id</span><span class="p">(</span><span class="s">&#39;doesnt-matter&#39;</span><span class="p">)</span> 
+            <span class="k">return</span> <span class="bp">False</span>
+        <span class="k">except</span> <span class="n">StaleElementReferenceException</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">True</span>
+
+    <span class="n">wait_for</span><span class="p">(</span><span class="n">link_has_gone_stale</span><span class="p">)</span>
+</pre></div>
+
+
+<p>Or, here's a genericised, sanitized version of the same thing, based on comparing Selenium's internal "IDs" for an object, and made into a nice Pythonic context manager:</p>
+<p>[<em>update 2014-09-06 -- see the comments, it's possible that comparing ids is not as efffective as waiting for stale reference exceptions. Will investigate, but bewarned that YMMV for now.</em>]</p>
+<div class="highlight"><pre><span class="k">class</span> <span class="nc">wait_for_page_load</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">browser</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">browser</span> <span class="o">=</span> <span class="n">browser</span>
+
+    <span class="k">def</span> <span class="nf">__enter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">old_page</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">browser</span><span class="o">.</span><span class="n">find_element_by_tag_name</span><span class="p">(</span><span class="s">&#39;html&#39;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">page_has_loaded</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">new_page</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">browser</span><span class="o">.</span><span class="n">find_element_by_tag_name</span><span class="p">(</span><span class="s">&#39;html&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">new_page</span><span class="o">.</span><span class="n">id</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">old_page</span><span class="o">.</span><span class="n">id</span>
+
+    <span class="k">def</span> <span class="nf">__exit__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">_</span><span class="p">):</span>
+        <span class="n">wait_for</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">page_has_loaded</span><span class="p">)</span>
+</pre></div>
+
+
+<p>And now we can do:</p>
+<div class="highlight"><pre><span class="k">with</span> <span class="n">wait_for_page_load</span><span class="p">(</span><span class="n">browser</span><span class="p">):</span>
+    <span class="n">browser</span><span class="o">.</span><span class="n">find_element_by_link_text</span><span class="p">(</span><span class="s">&#39;my link&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">click</span><span class="p">()</span>
+</pre></div>
+
+
+<p>And I think that might just be bulletproof!</p>
+<h2>And for bonus points...</h2>
+<p>Use the contextmanager decorator and the magical-but-slightly-scary yield keyword!</p>
+<div class="highlight"><pre><span class="kn">from</span> <span class="nn">contextlib</span> <span class="kn">import</span> <span class="n">contextmanager</span>
+
+<span class="nd">@contextmanager</span>
+<span class="k">def</span> <span class="nf">wait_for_page_load</span><span class="p">(</span><span class="n">browser</span><span class="p">):</span>
+    <span class="n">old_page</span> <span class="o">=</span> <span class="n">browser</span><span class="o">.</span><span class="n">find_element_by_tag_name</span><span class="p">(</span><span class="s">&#39;html&#39;</span><span class="p">)</span>
+
+    <span class="k">yield</span>
+
+    <span class="k">def</span> <span class="nf">page_has_loaded</span><span class="p">():</span>
+        <span class="n">new_page</span> <span class="o">=</span> <span class="n">browser</span><span class="o">.</span><span class="n">find_element_by_tag_name</span><span class="p">(</span><span class="s">&#39;html&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">new_page</span><span class="o">.</span><span class="n">id</span> <span class="o">!=</span> <span class="n">old_page</span><span class="o">.</span><span class="n">id</span>
+
+    <span class="n">wait_for</span><span class="p">(</span><span class="n">page_has_loaded</span><span class="p">)</span>
+</pre></div>
+
+
+<p>Note that this solution only works for "non-javascript" clicks, ie clicks that will cause the browser to load a brand new page, and thus load a brand new HTML element.</p>
+<p>Let me know what you think!</p>
+        </div><!-- /.entry-content -->
+
+    <div class="comments">
+        <h3>Comments</h3>
+        <div id="disqus_thread"></div>
+        <script type="text/javascript">
+                var disqus_shortname = 'obeythetestinggoat';
+
+            /* * * DON'T EDIT BELOW THIS LINE * * */
+            (function() {
+                var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+                dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+                (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+            })();
+        </script>
+        <noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+        <a href="http://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+    </div>
+
+
+
+    </div>
+<div class="large-3 small-6 columns">
+    <h6><a href="/pages/book.html">Read the book</a></h6>
+    <p>
+        I'm writing a book all about TDD and Web programming.
+        <a href="/pages/book.html">Read the draft</a> and let me
+        know what you think!
+    </p>
+</div>
+
+<div class="large-3 small-6 columns">
+    <h6><a href="/pages/reviews-and-testimonials.html">Reviews & Testimonials</a></h6>
+   
+    <p>
+        <i>"Hands down the best teaching book I've ever read"</i> &mdash;
+        <i>"Even the first 4 chapters were worth the money"</i> &mdash;
+        <i>"Oh my gosh! This book is outstanding"</i> &mdash;
+        <i>"The testing goat is my new friend"</i> &mdash;
+        <a href="/pages/reviews-and-testimonials.html">Read more...</a>
+    </p>
+
+</div>
+
+
+<div class="large-3 small-6 columns">
+    <h6><a href="/pages/tdd-resources.html">Resources</a></h6>
+    <p>A selection of links and videos about TDD, not necessarily all mine, eg <a href="http://pyvideo.org/video/1657/fully-test-driven-web-development-with-django-and">this tutorial
+        at PyCon 2013</a>, how to <a href="http://arstechnica.com/information-technology/2013/03/how-can-i-motivate-coworkers-to-write-unit-tests/">motivate coworkers to write unit tests</a>, thoughts on <a href="http://pyvideo.org/video/699/testing-and-django">Django's test tools</a>, <a href="https://www.youtube.com/watch?v=tdNnN5yTIeM">London-style TDD</a> and <a href="/pages/tdd-resources.html">more</a>.
+</div>
+
+
+<div class="large-3 small-6 columns">
+    <h6><a href="http://www.tdd-django-tutorial.com">Old TDD / Django Tutorial</a></h6>
+    <p>
+    This is my <a href="http://www.tdd-django-tutorial.com">old TDD tutorial</a>,
+    which follows along with the official Django tutorial, but with full TDD.  It
+    badly needs updating. Read the book instead!
+    </p>
+</div>
+
+<div class="large-3 small-6 columns">
+    <h6><a href="/pages/save-the-testing-goat-campaign.html">Save the Testing Goat Campaign</a></h6>
+    <p>
+    The campaign page, preserved for history, which led to the glorious presence
+    of the Testing Goat on the front of the book.
+    </p>
+</div></div>
+
+  <footer class="row">
+    <div class="large-12 columns">
+      <hr>
+      <div class="row">
+        <div class="large-8 columns">
+            <p>
+                <a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/3.0/"><img alt="Creative Commons License" style="border-width:0" src="http://i.creativecommons.org/l/by-nc-sa/3.0/88x31.png" /></a>
+                &nbsp
+                <span xmlns:dct="http://purl.org/dc/terms/" href="http://purl.org/dc/dcmitype/Text" property="dct:title" rel="dct:type">Obey the Testing Goat website</span> 
+                by <a xmlns:cc="http://creativecommons.org/ns#" href="http://www.obeythetestinggoat.com" property="cc:attributionName" rel="cc:attributionURL">Harry J.W. Percival</a> 
+                is licensed under a 
+                <a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/3.0/">Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License</a>.
+                Site powered by <a href="http://getpelican.com/">Pelican</a>, and
+                hosted on <a href="http://www.pythonanywhere.com">PythonAnywhere</a>
+            </p>
+       </div>
+
+        <div class="large-4 columns">
+          <ul class="inline-list right">
+            <li><a href="/pages/book.html">Book</a></li>
+            <li><a href="/pages/tdd-resources.html">Resources</a></li>
+            <li>
+                <a href="http://www.obeythetestinggoat.com/feeds/all.atom.xml" type="application/rss+xml"><i class="social foundicon-rss"></i> RSS</a></span>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <script src="/static/js/vendor/custom.modernizr.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+
+  <script>
+  document.write('<script src=js/vendor/' +
+  ('__proto__' in {} ? 'zepto' : 'jquery') +
+  '.js><\/script>')
+  </script>
+  <script src="js/foundation.min.js"></script>
+  <script>
+    $(document).foundation();
+  </script>
+  <script type="text/javascript">
+    $(window).load(function() {
+      $('#featured').orbit({ fluid: '2x1' });
+    });
+  </script>
+
+
+  <script>   (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){   (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),   m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)   })(window,document,'script','//www.google-analytics.com/analytics.js','ga');    ga('create', 'UA-40928035-1', 'obeythetestinggoat.com');   ga('send', 'pageview');  </script> 
+  <!-- End Footer -->
+
+</body>
+</html>

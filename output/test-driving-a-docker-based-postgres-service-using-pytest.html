@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<!--[if IE 8]>    <html class="no-js lt-ie9" lang="en"> <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en"> <!--<![endif]-->
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+        <!-- Set the viewport width to device width for mobile -->
+        <meta name="viewport" content="width=device-width" />
+        <title>Obey the Testing Goat!</title>
+        <meta charset="utf-8" />
+        <link rel="stylesheet" href="/static/css/normalize.css">
+        <link rel="stylesheet" href="/static/css/pygments.css">
+        <link rel="stylesheet" href="/static/css/extra.css">
+        <link rel="stylesheet" href="/static/css/foundation.css">
+        <link href='http://fonts.googleapis.com/css?family=Life+Savers:400,700|Sanchez:400,400italic|Ovo' rel='stylesheet' type='text/css'>
+
+
+        <link rel="stylesheet" href="/static/css/social_foundicons.css">
+        <!--[if lt IE 8]>
+            <link rel="stylesheet" href="stylesheets/social_foundicons_ie7.css">
+        <![endif]-->
+
+
+        <link href="http://www.obeythetestinggoat.com/feeds/all.atom.xml" type="application/atom+xml" rel="alternate" title="Obey the Testing Goat! Full Atom Feed" />
+        <link href="http://www.obeythetestinggoat.com/feeds/misc.atom.xml" type="application/atom+xml" rel="alternate" title="Obey the Testing Goat! Categories Atom Feed" />
+</head>
+
+<body>
+    <header class="row">
+        <div class="large-12 columns">
+            <div class="row">
+                <span class="right"><a href="http://www.obeythetestinggoat.com/feeds/all.atom.xml" type="application/rss+xml"><i class="social foundicon-rss"></i> RSS</a></span>
+                <div class="large-2 columns">
+                    <a href="http://www.obeythetestinggoat.com"><img src="/static/images/kid_goat.png" alt="The Testing Goat" title="The Testing Goat" /></a>
+                </div>
+                <div class="large-10 columns">
+                    <h1>Obey the Testing Goat!</h1>
+                    <h2><small><em>TDD for the Web, with Python, Selenium, Django, JavaScript and pals...</em></small></h2>
+                </div>
+            </div>
+        </div>
+    </header> <!-- end top banner -->
+
+<div class="row">
+    <div class="large-9 small-12 columns"> <!-- blog post div -->
+        <header>
+            <h2><a href="test-driving-a-docker-based-postgres-service-using-pytest.html" rel="bookmark" title="Permalink to Test-Driving a docker-based Postgres service using py.test">Test-Driving a docker-based Postgres service using py.test</a></h2>
+
+             
+
+        </header>
+        <footer class="post-info">
+            <abbr class="published" title="2014-09-11T16:59:00">
+              Thu 11 September 2014
+            </abbr>
+                <address class="vcard author">
+                  By <a class="url fn" href="http://www.obeythetestinggoat.com/author/harry.html">Harry</a>
+                </address>
+        </footer><!-- /.post-info -->
+
+        <div>
+            <p><em>[Cross-posted on the <a href="https://blog.pythonanywhere.com/97/">PythonAnywhere blog</a>]</em></p>
+<p>We've been working on incorporating a Postgres database service into PythonAnywhere, and we decided to make it into a bit of a standalone project.  The shiny is that we're using Docker to containerise Postgres servers for our users, and while we were at it we thought we'd try a bit of a different approach to testing.  I'd be interested in feedback -- what do you like, what might you do differently?</p>
+<h2>Context:  A Docker-based Postgres service</h2>
+<p>The objective is to build a service that, on demand, will spin up a Docker container with Postgres running on it, and listening on a particular port.  The service is going to be controlled by a web API.  We've got Flask to run the web service, docker-py to control containers, and Ansible to provision servers.</p>
+<h2>A single loop of integrated tests</h2>
+<p>Normally we use a "double-loop" TDD process, with an outside loop of functional tests that use selenium to interact with our web app, and an inner loop of more isolated unit tests.  For our development of the Postgres service, we still have the outer loop of functional tests -- selenium tests that log into the site via a browser, and test the service from the perspective of the user -- clicking through the right buttons on our UI and seeing if they can get a console that connects to a new Postgres service.</p>
+<p>But for the inner loop we were in a green field -- this wasn't going to be another app in our monolithic Django project, we wanted it to be a standalone service, one that you could package up and use in another context.  It would provide all its services via an API, and need no knowledge of the rest of PythonAnywhere.  So how should we write the self-contained tests for this app?  Should it, in turn, have a double loop?  Relying on isolated unit tests only felt like a waste of time -- after all, the whole app was basically a thin wrapper that hooks up a web service to a series of Docker commands.  All boundaries.  Isolated unit tests would end up being all mocks.  And from a TDD-process point of view, because we'd never actually used docker-py before, we didn't know its API, so we wouldn't know what mocks to write before we'd actually decided what the code was going to look like, and tried it out.  And trying it out would involve either running one of the PythonAnywhere FTs (super-slow, so a tediously and onerous feedback loop), or with manual tests, with all the uncertainty that implies.</p>
+<p>So instead, it felt like starting with an intermediate-level layer of integrated tests might be best: we've already got our top-level UI layer full-stack tests in the form of functional tests.  The next level down was the API level -- does calling this particular URL on the API <em>actually</em> give us a working container?</p>
+<h2>An example test</h2>
+<div class="highlight"><pre><span class="k">def</span> <span class="nf">test_create_starts_container_with_postgres_connectable</span><span class="p">(</span><span class="n">docker_cleanup</span><span class="p">):</span>
+    <span class="n">response</span> <span class="o">=</span> <span class="n">post_to_api_create</span><span class="p">()</span>
+
+    <span class="n">port</span> <span class="o">=</span> <span class="n">response</span><span class="o">.</span><span class="n">json</span><span class="p">()[</span><span class="s">&quot;port&quot;</span><span class="p">]</span>
+    <span class="k">assert</span> <span class="n">port</span> <span class="o">&gt;</span> <span class="mi">1024</span>
+
+    <span class="n">connection</span> <span class="o">=</span> <span class="n">psycopg2</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span>
+        <span class="n">database</span><span class="o">=</span><span class="s">&quot;postgres&quot;</span><span class="p">,</span>
+        <span class="n">user</span><span class="o">=</span><span class="s">&quot;pythonanywhere_helper&quot;</span><span class="p">,</span> <span class="n">password</span><span class="o">=</span><span class="s">&quot;papwd&quot;</span><span class="p">,</span>
+        <span class="n">host</span><span class="o">=</span><span class="s">&quot;localhost&quot;</span><span class="p">,</span> <span class="n">port</span><span class="o">=</span><span class="n">port</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">connection</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+</pre></div>
+
+
+<p>Where</p>
+<div class="highlight"><pre><span class="k">def</span> <span class="nf">post_to_api_create</span><span class="p">():</span>
+    <span class="n">response</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">post</span><span class="p">(</span>
+        <span class="s">&quot;http://localhost:5000/api/create&quot;</span><span class="p">,</span>
+        <span class="p">{</span><span class="s">&quot;admin_password&quot;</span><span class="p">:</span> <span class="s">&quot;papwd&quot;</span><span class="p">}</span>
+    <span class="p">)</span>
+    <span class="k">assert</span> <span class="n">response</span><span class="o">.</span><span class="n">status_code</span> <span class="o">==</span> <span class="mi">200</span>
+    <span class="k">assert</span> <span class="n">response</span><span class="o">.</span><span class="n">json</span><span class="p">()[</span><span class="s">&quot;status&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s">&quot;OK&quot;</span>
+    <span class="k">return</span> <span class="n">response</span>
+</pre></div>
+
+
+<p>So you can see that's a very integration-ey, end-to-end test -- it does a real POST request, to a place where it expects to see an actual webapp running, and it expects to see a real, connectable database spun up and ready for it.</p>
+<p>Now this test runs in about 10 seconds - not super-fast, like the milliseconds you might want a unit test to run in, but much faster than our FT, which takes 5 or 6 minutes. And, meanwhile, we can actually write this test first. To write an isolated, mocky test, we'd need to know the docker-py API already, and be sure that it was going to work, which we weren't.</p>
+<p>To illustrate this point, take a look at the difference between an early implementation and a later one:</p>
+<h3>A first implementation</h3>
+<div class="highlight"><pre><span class="n">USER_IMAGE_DOCKERFILE</span> <span class="o">=</span> <span class="s">&#39;&#39;&#39;</span>
+<span class="s">FROM postgres</span>
+<span class="s">USER postgres</span>
+<span class="s">RUN /etc/init.d/postgresql start &amp;&amp; </span><span class="se">\\</span><span class="s"></span>
+<span class="s">    psql -c &quot;CREATE USER pythonanywhere_helper WITH SUPERUSER PASSWORD &#39;{hashed}&#39;;&quot;</span>
+<span class="s">CMD [&quot;/usr/lib/postgresql/9.3/bin/postgres&quot;, &quot;-D&quot;, &quot;/var/lib/postgresql/9.3/main&quot;, &quot;-c&quot;, &quot;config_file=/etc/postgresql/9.3/main/postgresql.conf&quot;]</span>
+<span class="s">&#39;&#39;&#39;</span>
+
+<span class="k">def</span> <span class="nf">get_user_dockerfile</span><span class="p">(</span><span class="n">admin_password</span><span class="p">):</span>
+    <span class="n">hashed</span> <span class="o">=</span> <span class="s">&#39;md5&#39;</span> <span class="o">+</span> <span class="n">md5</span><span class="p">(</span><span class="n">admin_password</span> <span class="o">+</span> <span class="s">&#39;pythonanywhere_helper&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">USER_IMAGE_DOCKERFILE</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+        <span class="n">hashed</span><span class="o">=</span><span class="n">hashed</span><span class="p">,</span>
+    <span class="p">)</span>
+
+<span class="k">def</span> <span class="nf">create_container_with_password</span><span class="p">(</span><span class="n">password</span><span class="p">):</span>
+    <span class="n">tempdir</span> <span class="o">=</span> <span class="n">tempfile</span><span class="o">.</span><span class="n">mkdtemp</span><span class="p">()</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">tempdir</span><span class="p">,</span> <span class="s">&#39;Dockerfile&#39;</span><span class="p">),</span> <span class="s">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">get_user_dockerfile</span><span class="p">(</span><span class="n">password</span><span class="p">))</span>
+
+    <span class="n">response</span> <span class="o">=</span> <span class="n">docker</span><span class="o">.</span><span class="n">build</span><span class="p">(</span><span class="n">path</span><span class="o">=</span><span class="n">tempdir</span><span class="p">)</span>
+    <span class="n">response_lines</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">response</span><span class="p">)</span>
+
+    <span class="n">image_finder</span> <span class="o">=</span> <span class="s">r&#39;Successfully built ([0-9a-f]+)&#39;</span>
+    <span class="n">match</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">image_finder</span><span class="p">,</span> <span class="n">response_lines</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+    <span class="k">if</span> <span class="n">match</span><span class="p">:</span>
+        <span class="n">image_id</span> <span class="o">=</span> <span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s">&#39;Image failed to build:</span><span class="se">\n</span><span class="s">{}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="s">&#39;</span><span class="se">\n</span><span class="s">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">response_lines</span><span class="p">)</span>
+        <span class="p">))</span>
+
+    <span class="n">container</span> <span class="o">=</span> <span class="n">docker</span><span class="o">.</span><span class="n">create_container</span><span class="p">(</span>
+        <span class="n">image</span><span class="o">=</span><span class="n">image_id</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">return</span> <span class="n">container</span>
+</pre></div>
+
+
+<p>(These are some library functions we wrote, I won't show you the trivial flask app that calls them).</p>
+<p>This was one of our first attempts -- we needed to be able to customise the Postgres superuser password for each user, and our initial solution involved building a new image for each user, by generating and running a custom Dockerfile for them.</p>
+<p>We were never quite sure whether the Dockerfile voodoo was going to work, and we weren't really Postgres experts either, so having the high-level integration test, which actually tried to spin up a container and connect to the Postgres database that should be running inside it, was a really good way of getting to a solution that worked.</p>
+<p>Imagine what a more isolated test for this code might look like:</p>
+<div class="highlight"><pre><span class="nd">@patch</span><span class="p">(</span><span class="s">&#39;containers.docker&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">test_uses_dockerfile_to_build_new_image</span><span class="p">(</span><span class="n">mock_docker</span><span class="p">):</span>
+    <span class="n">expected_dockerfile</span> <span class="o">=</span> <span class="n">USER_IMAGE_DOCKERFILE</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+        <span class="s">&#39;md5sekritpythonanywhere_helper&#39;</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()</span>
+    <span class="k">def</span> <span class="nf">check_dockerfile_contents</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s">&#39;Dockerfile&#39;</span><span class="p">))</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">()</span> <span class="o">==</span> <span class="n">expected_dockerfile</span>
+
+    <span class="n">mock_docker</span><span class="o">.</span><span class="n">build</span><span class="o">.</span><span class="n">side_effect</span> <span class="o">=</span> <span class="n">check_dockerfile_contents</span>
+
+    <span class="n">create_container_with_password</span><span class="p">(</span><span class="s">&#39;sekrit&#39;</span><span class="p">)</span>
+
+    <span class="k">assert</span> <span class="n">mock_docker</span><span class="o">.</span><span class="n">build</span><span class="o">.</span><span class="n">called</span> <span class="ow">is</span> <span class="bp">True</span>
+
+ <span class="nd">@patch</span><span class="p">(</span><span class="s">&#39;containers.docker&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">test_creates_container_from_docker_image</span><span class="p">(</span><span class="n">mock_docker</span><span class="p">):</span>
+    <span class="n">create_container_with_password</span><span class="p">(</span><span class="s">&#39;sekrit&#39;</span><span class="p">)</span>
+    <span class="n">mock_docker</span><span class="o">.</span><span class="n">create_container</span><span class="o">.</span><span class="n">assert_called_once_with</span><span class="p">(</span>
+        <span class="n">mock_docker</span><span class="o">.</span><span class="n">build</span><span class="o">.</span><span class="n">return_value</span>
+    <span class="p">)</span>
+</pre></div>
+
+
+<p>There's no way we could have written that test until we actually had a working solution.  And, on top of that, the test would have been totally useless when it came to evolving our requirements and our solution</p>
+<h3>A later implementation -- but minimal change to the main test</h3>
+<p>To give you an idea, here's what our current implementation looks like:</p>
+<div class="highlight"><pre><span class="k">def</span> <span class="nf">start_new_container</span><span class="p">(</span><span class="n">storage_dirname</span><span class="p">,</span> <span class="n">password</span><span class="p">,</span> <span class="n">requested_port</span><span class="p">):</span>
+    <span class="n">prep_storage_dir</span><span class="p">(</span><span class="n">storage_dirname</span><span class="p">)</span>
+    <span class="n">run_command_on_temporary_container_with_mounts</span><span class="p">(</span>
+        <span class="n">command</span><span class="o">=</span><span class="p">[</span><span class="s">&#39;chown&#39;</span><span class="p">,</span> <span class="s">&#39;-R&#39;</span><span class="p">,</span> <span class="s">&#39;postgres:postgres&#39;</span><span class="p">,</span> <span class="n">POSTGRES_DIR</span><span class="p">],</span>
+        <span class="n">storage_dirname</span><span class="o">=</span><span class="n">storage_dirname</span><span class="p">,</span>
+        <span class="n">user</span><span class="o">=</span><span class="s">&#39;root&#39;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">run_command_on_temporary_container_with_mounts</span><span class="p">(</span>
+        <span class="n">command</span><span class="o">=</span><span class="p">[</span>
+            <span class="s">&#39;bash&#39;</span><span class="p">,</span> <span class="s">&#39;-c&#39;</span><span class="p">,</span> 
+            <span class="n">INITIALISE_POSTGRES_AND_SET_PASSWORD</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">password</span><span class="p">)</span>
+        <span class="p">],</span>
+        <span class="n">storage_dirname</span><span class="o">=</span><span class="n">storage_dirname</span>
+    <span class="p">)</span>
+    <span class="n">user_container</span> <span class="o">=</span> <span class="n">create_postgres_container</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">storage_dirname</span><span class="p">)</span>
+    <span class="n">start_container_with_storage</span><span class="p">(</span>
+        <span class="n">user_container</span><span class="p">,</span> <span class="n">storage_dirname</span><span class="p">,</span> 
+        <span class="n">ports</span><span class="o">=</span><span class="p">{</span><span class="n">POSTGRES_PORT</span><span class="p">:</span> <span class="n">requested_port</span><span class="p">},</span>
+    <span class="p">)</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">port_file_path</span><span class="p">(</span><span class="n">storage_dirname</span><span class="p">),</span> <span class="s">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">requested_port</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">requested_port</span>
+</pre></div>
+
+
+<p>I won't bore you with the details of <code>run_command_on_temporary_container_with_mounts</code>, but one way or another we realised that building separate images for each user wasn't going to work, and that instead we were going to want to have some permanent storage mounted in from outside of Docker, which would contain the Postgres data directory, and which would effectively "save" customisations like the user's password.</p>
+<p>So a radically different implementation, but look how little the main test changed:</p>
+<div class="highlight"><pre><span class="k">def</span> <span class="nf">post_to_api_create</span><span class="p">(</span><span class="n">storage_dir</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">port</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">storage_dir</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="n">storage_dir</span> <span class="o">=</span> <span class="n">uuid</span><span class="o">.</span><span class="n">uuid4</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">port</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="n">port</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">6000</span><span class="p">,</span> <span class="mi">9999</span><span class="p">)</span>
+    <span class="n">response</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">post</span><span class="p">(</span>
+        <span class="s">&quot;https://localhost/api/containers/&quot;</span><span class="p">,</span>
+        <span class="p">{</span>
+            <span class="s">&quot;storage_dir&quot;</span><span class="p">:</span> <span class="n">storage_dir</span><span class="p">,</span>
+            <span class="s">&quot;admin_password&quot;</span><span class="p">:</span> <span class="n">OUR_PASSWORD</span><span class="p">,</span>
+            <span class="s">&quot;port&quot;</span><span class="p">:</span> <span class="n">port</span><span class="p">,</span>
+        <span class="p">},</span>
+        <span class="n">verify</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">return</span> <span class="n">response</span>
+
+<span class="k">def</span> <span class="nf">test_create_starts_container_with_postgres_connectable</span><span class="p">(</span><span class="n">docker_cleanup</span><span class="p">):</span>
+    <span class="n">response</span> <span class="o">=</span> <span class="n">post_to_api_create</span><span class="p">(</span><span class="n">port</span><span class="o">=</span><span class="mi">6123</span><span class="p">)</span>
+    <span class="c"># rest of test as before!</span>
+</pre></div>
+
+
+<p>And now imagine all the time we'd have had to spend rewriting mocks, if we'd decided to have isolated tests as well.</p>
+<h2>Aside: py.test observations</h2>
+<p>One py.test selling point is "less boilerplate". Notice that none of these tests are methods in a class, and there's no self variable.  On top of that, we just use <code>assert</code> keywords, no complicated remembering of <code>self.assertIn</code>, <code>self.assertIsNotNone</code>,  and so on.  Absolutely loving that.</p>
+<h3>py.test fixtures</h3>
+<p>Another thing you may be interested in is the <code>docker_cleanup</code> argument to the test.  py.test will magically look for a special fixture function named the same as that argument, and use it in the test.  Here's how it looks:</p>
+<div class="highlight"><pre><span class="kn">from</span> <span class="nn">docker</span> <span class="kn">import</span> <span class="n">Client</span>
+<span class="n">docker</span> <span class="o">=</span> <span class="n">Client</span><span class="p">(</span><span class="n">base_url</span><span class="o">=</span><span class="s">&#39;unix://var/run/docker.sock&#39;</span><span class="p">)</span>
+
+<span class="nd">@pytest.fixture</span><span class="p">()</span>
+<span class="k">def</span> <span class="nf">docker_cleanup</span><span class="p">(</span><span class="n">request</span><span class="p">):</span>
+    <span class="n">containers_before</span> <span class="o">=</span> <span class="n">docker</span><span class="o">.</span><span class="n">containers</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">kill_new_containers</span><span class="p">():</span>
+        <span class="n">current_containers</span> <span class="o">=</span> <span class="n">docker</span><span class="o">.</span><span class="n">containers</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">container</span> <span class="ow">in</span> <span class="n">current_containers</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">container</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">containers_before</span><span class="p">:</span>
+                <span class="k">print</span><span class="p">(</span><span class="s">&#39;killing {}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">container</span><span class="p">[</span><span class="s">&#39;Names&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]))</span>
+                <span class="n">docker</span><span class="o">.</span><span class="n">kill</span><span class="p">(</span><span class="n">container</span><span class="p">)</span>
+
+    <span class="n">request</span><span class="o">.</span><span class="n">addfinalizer</span><span class="p">(</span><span class="n">kill_new_containers</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">kill_new_containers</span>
+</pre></div>
+
+
+<p>The fixture function has a couple of jobs:</p>
+<ul>
+<li>
+<p>It adds a "finalizer" (the equivalent of unittest <code>addCleanup</code> or <code>tearDown</code>) which will run at the end of the tests, to kill any containers that have been started by the test</p>
+</li>
+<li>
+<p>It provides that same finalizer, and a helper method to identify new containers, to the tests that use the fixture, as a helper tool (I haven't showed any examples of that here though)</p>
+</li>
+</ul>
+<p>As it's illustrated here, there are no obvious advantages over the unittest <code>setUp/tearDown</code> ideas, although you can see it would make it a little easier to share setup and cleanup code between tests in different files and tests.  There's a lot more to them, and if you really want to get #mindblown, go checkout out <a href="http://pytest.org/latest/yieldfixture.html">pytest yield fixtures</a></p>
+<p>Incidentally, until I started using py.test I'd always associated "fixtures" with Django "fixtures", which basically meant serialized versions of model data, but really py.test is using the word in a more correct usage of the term, to mean "state that the world has to be in for the test to run properly".</p>
+<h1>The pros &amp; cons of the "integrated-tests-only" workflow</h1>
+<h4>Pros:</h4>
+<ul>
+<li>Allowed us to experiment freely with an API that was new to us, and get feedback on whether it was <em>really</em> working</li>
+<li>Allowed us to refactor code freely, extracting helper functions etc, without needing to rewrite mocky unit tests</li>
+</ul>
+<h4>Cons:</h4>
+<ul>
+<li>
+<p>Being end-to-end tests, they ran much slower than unit tests would - on the order of seconds, and later, a minute or two, once we grew from three or four tests to a dozen or two. And, on top of that...</p>
+</li>
+<li>
+<p>Being integrated tests, they're not designed to run on a development machine. Instead, each code change means pushing updated source up to the server using Ansible, restarting the control webapp, and then re-running the tests in an SSH session.</p>
+</li>
+<li>
+<p>Because the tests call across a web API, the code being tested runs in a different process to he test code, meaning tracebacks aren't integrated into your test results.  Instead, you have to tail a logfile, and make sure you have logging set up appropriately.</p>
+</li>
+</ul>
+<h2>Conclusions and next steps</h2>
+<p>I can potentially imagine a time when we might start to see value in a layer of "real" unit tests... So far though, there's really no "business logic" that we could extract and write fast unit tests for. Or at least, there's no business logic that I identify as such, and I'd be very pleased for someone to come along and school me about it?</p>
+<p>On the other hand, I can definitely see a time where we might want to split out our tests for the web API from the tests for the Postgres and Docker stuff, and I can see value in a setup where a developer can run these tests locally rather than having to push code up to a dev box.  Vagrant and VirtualBox might be one solution, but, honestly, installing Docker and Postgres on a dev box doesn't feel that onerous either, as long as we know we'll be testing on a "real" box in CI. Or at least, it doesn't feel onerous until we start talking about my poor laptop with its paltry 120GB SSD.  No room here!</p>
+<p>And the bonus of being able to see honest-to-God tracebacks in your test run output feels like it might be worth it.</p>
+<p>But, overall, at this stage in development, given the almost total lack of "business logic" in our app, and given the fact that we were working with a new API and a new set of technologies -- I've found that doing without "real" unit tests has actually worked very well.</p>
+        </div><!-- /.entry-content -->
+
+    <div class="comments">
+        <h3>Comments</h3>
+        <div id="disqus_thread"></div>
+        <script type="text/javascript">
+                var disqus_shortname = 'obeythetestinggoat';
+
+            /* * * DON'T EDIT BELOW THIS LINE * * */
+            (function() {
+                var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+                dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+                (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+            })();
+        </script>
+        <noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+        <a href="http://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+    </div>
+
+
+
+    </div>
+<div class="large-3 small-6 columns">
+    <h6><a href="/pages/book.html">Read the book</a></h6>
+    <p>
+        I'm writing a book all about TDD and Web programming.
+        <a href="/pages/book.html">Read the draft</a> and let me
+        know what you think!
+    </p>
+</div>
+
+<div class="large-3 small-6 columns">
+    <h6><a href="/pages/reviews-and-testimonials.html">Reviews & Testimonials</a></h6>
+   
+    <p>
+        <i>"Hands down the best teaching book I've ever read"</i> &mdash;
+        <i>"Even the first 4 chapters were worth the money"</i> &mdash;
+        <i>"Oh my gosh! This book is outstanding"</i> &mdash;
+        <i>"The testing goat is my new friend"</i> &mdash;
+        <a href="/pages/reviews-and-testimonials.html">Read more...</a>
+    </p>
+
+</div>
+
+
+<div class="large-3 small-6 columns">
+    <h6><a href="/pages/tdd-resources.html">Resources</a></h6>
+    <p>A selection of links and videos about TDD, not necessarily all mine, eg <a href="http://pyvideo.org/video/1657/fully-test-driven-web-development-with-django-and">this tutorial
+        at PyCon 2013</a>, how to <a href="http://arstechnica.com/information-technology/2013/03/how-can-i-motivate-coworkers-to-write-unit-tests/">motivate coworkers to write unit tests</a>, thoughts on <a href="http://pyvideo.org/video/699/testing-and-django">Django's test tools</a>, <a href="https://www.youtube.com/watch?v=tdNnN5yTIeM">London-style TDD</a> and <a href="/pages/tdd-resources.html">more</a>.
+</div>
+
+
+<div class="large-3 small-6 columns">
+    <h6><a href="http://www.tdd-django-tutorial.com">Old TDD / Django Tutorial</a></h6>
+    <p>
+    This is my <a href="http://www.tdd-django-tutorial.com">old TDD tutorial</a>,
+    which follows along with the official Django tutorial, but with full TDD.  It
+    badly needs updating. Read the book instead!
+    </p>
+</div>
+
+<div class="large-3 small-6 columns">
+    <h6><a href="/pages/save-the-testing-goat-campaign.html">Save the Testing Goat Campaign</a></h6>
+    <p>
+    The campaign page, preserved for history, which led to the glorious presence
+    of the Testing Goat on the front of the book.
+    </p>
+</div></div>
+
+  <footer class="row">
+    <div class="large-12 columns">
+      <hr>
+      <div class="row">
+        <div class="large-8 columns">
+            <p>
+                <a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/3.0/"><img alt="Creative Commons License" style="border-width:0" src="http://i.creativecommons.org/l/by-nc-sa/3.0/88x31.png" /></a>
+                &nbsp
+                <span xmlns:dct="http://purl.org/dc/terms/" href="http://purl.org/dc/dcmitype/Text" property="dct:title" rel="dct:type">Obey the Testing Goat website</span> 
+                by <a xmlns:cc="http://creativecommons.org/ns#" href="http://www.obeythetestinggoat.com" property="cc:attributionName" rel="cc:attributionURL">Harry J.W. Percival</a> 
+                is licensed under a 
+                <a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/3.0/">Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License</a>.
+                Site powered by <a href="http://getpelican.com/">Pelican</a>, and
+                hosted on <a href="http://www.pythonanywhere.com">PythonAnywhere</a>
+            </p>
+       </div>
+
+        <div class="large-4 columns">
+          <ul class="inline-list right">
+            <li><a href="/pages/book.html">Book</a></li>
+            <li><a href="/pages/tdd-resources.html">Resources</a></li>
+            <li>
+                <a href="http://www.obeythetestinggoat.com/feeds/all.atom.xml" type="application/rss+xml"><i class="social foundicon-rss"></i> RSS</a></span>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <script src="/static/js/vendor/custom.modernizr.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+
+  <script>
+  document.write('<script src=js/vendor/' +
+  ('__proto__' in {} ? 'zepto' : 'jquery') +
+  '.js><\/script>')
+  </script>
+  <script src="js/foundation.min.js"></script>
+  <script>
+    $(document).foundation();
+  </script>
+  <script type="text/javascript">
+    $(window).load(function() {
+      $('#featured').orbit({ fluid: '2x1' });
+    });
+  </script>
+
+
+  <script>   (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){   (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),   m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)   })(window,document,'script','//www.google-analytics.com/analytics.js','ga');    ga('create', 'UA-40928035-1', 'obeythetestinggoat.com');   ga('send', 'pageview');  </script> 
+  <!-- End Footer -->
+
+</body>
+</html>

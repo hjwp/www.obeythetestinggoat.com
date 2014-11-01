@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<!--[if IE 8]>    <html class="no-js lt-ie9" lang="en"> <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en"> <!--<![endif]-->
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+        <!-- Set the viewport width to device width for mobile -->
+        <meta name="viewport" content="width=device-width" />
+        <title>Obey the Testing Goat!</title>
+        <meta charset="utf-8" />
+        <link rel="stylesheet" href="/static/css/normalize.css">
+        <link rel="stylesheet" href="/static/css/pygments.css">
+        <link rel="stylesheet" href="/static/css/extra.css">
+        <link rel="stylesheet" href="/static/css/foundation.css">
+        <link href='http://fonts.googleapis.com/css?family=Life+Savers:400,700|Sanchez:400,400italic|Ovo' rel='stylesheet' type='text/css'>
+
+
+        <link rel="stylesheet" href="/static/css/social_foundicons.css">
+        <!--[if lt IE 8]>
+            <link rel="stylesheet" href="stylesheets/social_foundicons_ie7.css">
+        <![endif]-->
+
+
+        <link href="http://www.obeythetestinggoat.com/feeds/all.atom.xml" type="application/atom+xml" rel="alternate" title="Obey the Testing Goat! Full Atom Feed" />
+        <link href="http://www.obeythetestinggoat.com/feeds/misc.atom.xml" type="application/atom+xml" rel="alternate" title="Obey the Testing Goat! Categories Atom Feed" />
+</head>
+
+<body>
+    <header class="row">
+        <div class="large-12 columns">
+            <div class="row">
+                <span class="right"><a href="http://www.obeythetestinggoat.com/feeds/all.atom.xml" type="application/rss+xml"><i class="social foundicon-rss"></i> RSS</a></span>
+                <div class="large-2 columns">
+                    <a href="http://www.obeythetestinggoat.com"><img src="/static/images/kid_goat.png" alt="The Testing Goat" title="The Testing Goat" /></a>
+                </div>
+                <div class="large-10 columns">
+                    <h1>Obey the Testing Goat!</h1>
+                    <h2><small><em>TDD for the Web, with Python, Selenium, Django, JavaScript and pals...</em></small></h2>
+                </div>
+            </div>
+        </div>
+    </header> <!-- end top banner -->
+
+<div class="row">
+    <div class="large-9 small-12 columns"> <!-- blog post div -->
+        <header>
+            <h2><a href="fast-tests-useless-hot-lava-be-damned.html" rel="bookmark" title="Permalink to Fast tests are useless, hot lava be damned">Fast tests are useless, hot lava be damned</a></h2>
+
+             
+
+        </header>
+        <footer class="post-info">
+            <abbr class="published" title="2013-09-11T04:00:00">
+              Wed 11 September 2013
+            </abbr>
+                <address class="vcard author">
+                  By <a class="url fn" href="http://www.obeythetestinggoat.com/author/harry.html">Harry</a>
+                </address>
+        </footer><!-- /.post-info -->
+
+        <div>
+            <p>tl;dr: I think there's a real danger that striving for an ultrafast test suite,
+will lead you to overly mocky, disjointed tests which don't help you
+catch bugs and don't help you code well.</p>
+<p>At this year's DjangoCon, Casey Kinsey gave a talk in which he (at least
+ostensibly) advocated striving for faster test suites.  As we'll find out, I've
+often thought that striving for fast tests suites can be a bit misguided, so I
+went along preparing to disagree loudly -- as anyone who knows me can attest,
+disagreeing loudly is just about my favourite thing to do, and a major
+character flaw.</p>
+<p>As it turns out I found very little to disagree with, aside from <a href="http://www.slideshare.net/cordiskinsey/djangocon-2013-how-to-write-fast-and-efficient-unit-tests-in-django/22">one
+particularly tortured use of a Mock object</a>
+which definitely made baby test sanity Jesus cry.  It was an excellent talk, 
+and full of good advice, as well as the memorable quote <em>"The Database is Hot
+Lava"</em></p>
+<p>But, is it?</p>
+<h2>The traditional argument: slow tests are bad</h2>
+<p>Here's the traditional argument for fast tests:</p>
+<p>Tests that take ages to run won't get run, which will break your development
+process in several ways, and reduce the benefits you get from testing.  You
+won't pick up defects early, because no-one is running the full test suite
+before committing, and you won't be able to get the secondary benefit which 
+you hope to gain from TDD, which is better designed code, because you can't
+do TDD with slow tests.</p>
+<p>The reference for this point of view is Gary Bernhardt's talk from Pycon
+2013, entitled <a href="https://www.youtube.com/watch?v=RAxiiRPHS9k">Fast Tests, Slow test</a>
+If you haven't already, I <strong>strongly</strong> encourage you to watch that talk, Gary 
+knows what he's talking about, whereas I suspect I don't.</p>
+<p><em>update 2013-09-17</em> -- everyone should also watch Gary's follow-up talk, 
+<a href="https://www.youtube.com/watch?v=eOYal8elnZk">Boundaries</a> in which he 
+expands on the concepts of test isolation, and how it fits with trying to adopt
+a more functional paradigm in the core business logic of your application.</p>
+<h2>Why I think this is wrong: fast tests don't help you code, and they don't help you find bugs</h2>
+<p>I'm being deliberately provocative here, and this is a bit of a strawman, but
+I think the problem with turning slow tests into fast tests is that you end
+up with worse tests.  Why is that?</p>
+<ul>
+<li>faster tests mean more "unittey" tests -- tests with less dependencies</li>
+<li>that means using more mocks</li>
+<li>that leads to a very granular tests, which are highly decoupled from each
+other</li>
+<li>and that, ultimately, doesn't help you find unexpected bugs</li>
+<li>and it doesn't help you find regressions when you're refactoring either</li>
+</ul>
+<p>So let's look at an example. Imagine our site does a bit of setup for each
+user: it makes a temp folder for them, and then sets a flag on their user
+profile:</p>
+<p>Imagine this:</p>
+<div class="highlight"><pre><span class="k">def</span> <span class="nf">setup_user_environment</span><span class="p">(</span><span class="n">user</span><span class="p">):</span>
+    <span class="n">setup_temp_storage</span><span class="p">(</span><span class="n">user</span><span class="p">)</span>
+    <span class="n">profile</span> <span class="o">=</span> <span class="n">user</span><span class="o">.</span><span class="n">get_profile</span><span class="p">()</span>
+    <span class="n">profile</span><span class="o">.</span><span class="n">environment_setup</span> <span class="o">=</span> <span class="bp">True</span>
+    <span class="n">profile</span><span class="o">.</span><span class="n">save</span><span class="p">()</span>
+</pre></div>
+
+
+<p>Here's the kind of test I'm inclined to write:</p>
+<div class="highlight"><pre><span class="k">def</span> <span class="nf">test_sets_up_temp_storage_and_sets_flag_on_profile</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">user</span> <span class="o">=</span> <span class="n">User</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="n">username</span><span class="o">=</span><span class="s">&#39;jim&#39;</span><span class="p">)</span>
+    <span class="n">setup_user_environment</span><span class="p">(</span><span class="n">user</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="s">&#39;/tmp/jim&#39;</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="n">user</span><span class="o">.</span><span class="n">get_profile</span><span class="p">()</span><span class="o">.</span><span class="n">environment_setup</span><span class="p">)</span>
+</pre></div>
+
+
+<p>Arg!  That's not a unit test at all!  It touches the database, which is hot
+lava! Worse still, it touches the filesystem!  It'll be really slow!  And it
+has too many dependencies!</p>
+<p>That, at least, is what the purists would say.  They would prefer a "fast",
+test that looks like this - a "real" unit test:</p>
+<div class="highlight"><pre><span class="k">def</span> <span class="nf">test_calls_setup_temp_storage_and_sets_flag_on_profile</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">mock_user</span> <span class="o">=</span> <span class="n">Mock</span><span class="p">()</span>
+    <span class="k">with</span> <span class="n">patch</span><span class="p">(</span><span class="s">&#39;myapp.setup_temp_storage&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">mock_setup_temp_storage</span><span class="p">:</span>
+        <span class="n">setup_user_environment</span><span class="p">(</span><span class="n">mock_user</span><span class="p">)</span>
+    <span class="n">mock_setup_temp_storage</span><span class="o">.</span><span class="n">assert_called_once_with</span><span class="p">(</span><span class="n">mock_user</span><span class="p">)</span>
+    <span class="n">mock_profile</span> <span class="o">=</span> <span class="n">mock_user</span><span class="o">.</span><span class="n">get_profile</span><span class="o">.</span><span class="n">return_value</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">mock_profile</span><span class="o">.</span><span class="n">environment_setup</span><span class="p">,</span> <span class="bp">True</span><span class="p">)</span>
+</pre></div>
+
+
+<p>Well, I would argue that you have a much less readable test there, and it's
+also a test that's very closely coupled to the implementation.  It discourages
+refactoring, because something as simple as changing the name of the helper
+method <code>setup_temp_storage</code> involves changing the test code in 4 places --
+three of which (eg <code>mock_setup_temp_storage</code>) won't be found by automated
+refactoring tools.</p>
+<blockquote>
+<p>IMO, there's no point in a test that duplicates the implementation, line
+for line, with a series of mocks</p>
+</blockquote>
+<p>Imagine I change <code>setup_temp_storage</code> to take a username instead of a user.
+I go and find its unit tests and change it, then change its implementation.
+What will happen next is that <em>my</em> unit test for <code>setup_user_environment</code> would
+break, because it uses the real function, and so that's my reminder to change
+the place it gets used. </p>
+<p>In contrast, in the "fast" test, <code>setup_user_environment</code> is mocked, so that
+test will still pass, even though my code is broken.</p>
+<p>Sure you could argue that my <code>os.path.exists</code> call is tightly coupled to the
+implementation of <code>setup_temp_storage</code>, and that if I end up using it in lots
+of tests, they'll be annoying to change, if I ever change the location of temp
+storage, for example.  But I could factor it out into a test helper method, if
+I notice myself duplicating test code a lot.</p>
+<h2>What is the correct balance of unit to integration tests?</h2>
+<p>Now unit test purists and I would probably agree that this example doesn't
+prove you should <em>never</em> mock anything, or that "proper" unit tests are
+useless.  Clearly, both are useful, and as my example clearly shows, you
+definitely need some level of integration tests to check that all your pieces
+fit together.</p>
+<p>What I am saying is that, in a case where you can test a piece of code with
+either a mocky or a non-mocky test, I prefer non-mocky tests.  Gary Bernhardt
+says you should aim for 90% unit tests vs 10% "integration" tests (which is
+what you'd call the kind of test I write), and I tend to think the ratio is
+more like 50/50.</p>
+<p>Unit tests are definitely better for nailing down code which has lots of edge
+cases and possible logical pitfalls -- like the classic example of a roman
+numeral converter.  But my assertion is: in web development, that kind of code
+is rare:</p>
+<ul>
+<li>helper methods on models tend to be quite simple</li>
+<li>view functions tend to be simple:  get a post request, instantiate a form,
+  save a database item if the form validates and redirect, return a template
+  with errors if not</li>
+<li>code tends to be hard to unit test without mocking -- the database, the
+  Django request/response stack, or the template layer, or whatever.</li>
+</ul>
+<p>I've just tended to find that there aren't many places where I find myself
+spelling out more than 2 or 3 tests for any given function -- in which case, I
+tend to find, unit tests don't offer any substantial advantage.  In the example
+above, there's probably only one two cases, maybe a second one for the case
+where <code>setup_temp_storage</code> raises an exception.</p>
+<p>But what about the fact that integration tests are slow?  The database is hot
+lava!  Isn't it?</p>
+<h2>The database is, at worst, lukewarm lava</h2>
+<blockquote>
+<p>NB - this is Django-specific</p>
+</blockquote>
+<p>Remember, Django uses an <em>in-memory</em> Sqlite database when you're running its
+unit tests. It's pretty fast.  Here's a test suite which hits the DB for some
+tests and not for others, with 1,000 tests of each:</p>
+<div class="highlight"><pre><span class="kn">from</span> <span class="nn">django.db</span> <span class="kn">import</span> <span class="n">models</span>
+<span class="k">class</span> <span class="nc">Car</span><span class="p">(</span><span class="n">models</span><span class="o">.</span><span class="n">Model</span><span class="p">):</span>
+    <span class="n">colour</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">TextField</span><span class="p">()</span>
+    <span class="k">def</span> <span class="nf">get_colour</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">colour</span><span class="o">.</span><span class="n">capitalize</span><span class="p">()</span>
+
+<span class="kn">import</span> <span class="nn">unittest</span>
+<span class="kn">from</span> <span class="nn">django.test</span> <span class="kn">import</span> <span class="n">TestCase</span>
+<span class="kn">from</span> <span class="nn">myapp.models</span> <span class="kn">import</span> <span class="n">Car</span>
+
+<span class="k">class</span> <span class="nc">FastTest</span><span class="p">(</span><span class="n">unittest</span><span class="o">.</span><span class="n">TestCase</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">create_car</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">Car</span><span class="p">(</span><span class="n">colour</span><span class="o">=</span><span class="s">&#39;blue&#39;</span><span class="p">)</span>
+
+<span class="k">class</span> <span class="nc">SlowTest</span><span class="p">(</span><span class="n">TestCase</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">create_car</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">Car</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="n">colour</span><span class="o">=</span><span class="s">&#39;blue&#39;</span><span class="p">)</span>
+
+<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1000</span><span class="p">):</span>
+    <span class="n">method_name</span> <span class="o">=</span> <span class="s">&#39;test_car_{0}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">testfn</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">car</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">create_car</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">car</span><span class="o">.</span><span class="n">get_colour</span><span class="p">(),</span> <span class="s">&#39;Blue&#39;</span><span class="p">)</span>
+    <span class="nb">setattr</span><span class="p">(</span><span class="n">FastTest</span><span class="p">,</span> <span class="n">method_name</span><span class="p">,</span> <span class="n">testfn</span><span class="p">)</span>
+    <span class="nb">setattr</span><span class="p">(</span><span class="n">SlowTest</span><span class="p">,</span> <span class="n">method_name</span><span class="p">,</span> <span class="n">testfn</span><span class="p">)</span>
+</pre></div>
+
+
+<p>So what's the difference in speed between the two?</p>
+<div class="highlight"><pre><span class="err">$</span> <span class="n">python</span> <span class="n">manage</span><span class="p">.</span><span class="n">py</span> <span class="n">test</span> <span class="n">myapp</span><span class="p">.</span><span class="n">FastTest</span>
+<span class="n">Ran</span> <span class="mi">1000</span> <span class="n">tests</span> <span class="n">in</span> <span class="mf">0.108</span><span class="n">s</span>
+
+<span class="err">$</span> <span class="n">python</span> <span class="n">manage</span><span class="p">.</span><span class="n">py</span> <span class="n">test</span> <span class="n">myapp</span><span class="p">.</span><span class="n">SlowTest</span>
+<span class="n">Ran</span> <span class="mi">1000</span> <span class="n">tests</span> <span class="n">in</span> <span class="mf">0.311</span><span class="n">s</span>
+</pre></div>
+
+
+<p>A factor of 3.  YMMV. At most one order of magnitude, but certainly not two
+orders of magnitude. And notice that's 1000 tests, still running in less than a
+second. So, is shifting from tests that run in microseconds to tests that run
+in tens of microseconds <em>really worth</em> all the losses in terms of readability
+and ease of refactoring?</p>
+<h2>Unsurprisingly, it's all down to your own circumstances</h2>
+<p>I think we all have a tendency to take the solutions we've applied to our own
+particular circumanstances, and want to generalise them to universal rules,
+saying they should apply to everybody.</p>
+<p>Casey's team didn't have a CI setup, so their only way of preventing
+regressions was for the individual developer to run the full suite before
+checking in code. Their test suite was taking 45 minutes to run, leading to
+developers skipping the test run and checking in broken code. You might argue
+that their real problem was a problem of process, but they couldn't fix that,
+so instead they put effort into making their tests faster, and in the process
+made them more efficient and better, so it was a win for them.</p>
+<p>At work, we have also have a unit test suite that takes 45 minutes to run (many
+of the tests aren't very unittey, and are in fact very integrationey).  So
+there's no way that we run all the unit tests as we do TDD (which we do for
+everything).  Instead, we run a subset of the tests (usually the Django app
+we're working on), and we leave the CI system to run the full unit test suite
+overnight.</p>
+<p>And you know what? <em>The full unit test suite almost never picks up any bugs</em>.</p>
+<p>That's because our code is well compartmentalised, and, even though they're not
+very unit-ey unit tests, they are still quite granular and independent from
+each other.</p>
+<p>Instead, we have a suite of 400-odd <em>functional</em> tests that run with Selenium;
+these are definitely integration/system tests, or what some people would 
+call acceptance tests. They check every part of the application -- and they
+<em>do</em> find unexpected bugs. They take about 8 hours for a full run, so you bet
+we only run one or two individual FTs during day-to-day TDD.</p>
+<p>Now, we're building a PaaS, so we have a lot of what Gary B. would call
+"boundaries" - a lot of dependencies on external systems: the filesystem, the
+database (we run a shared-hosting database-as-a-service too), Tornado +
+websockets, Paypal, Dropbox, github, pypi, linux chroots and cgroups, CRON,
+Nginx and uWSGI, and many more.  There's a lot of moving parts, and ultimately
+the only thing that's going to reassure us that everything really works is a
+full-stack test.</p>
+<p>So that's what works for us.  We are pretty much forced to have a lot of slow
+tests, so maybe I'm just trying to justify our own specific circumstances and
+try and force a generalisation onto the world.</p>
+<h2>My turn to generalise from my own circumstances!</h2>
+<p>But I'm not so sure.  I really think there's something to it.  I think you
+really do lose a lot from using mocks everywhere, and I think that the price
+you pay in terms of test speed is sometimes worth paying if you want more
+"realistic" tests.</p>
+<p>I would say this:  don't optimise prematurely.  Start by writing tests in the
+way that seems most obvious to you, tests that are as readable as possible, 
+and don't couple themselves too tightly to the implementation with a lot of
+mocks.  If test speed becomes a problem at some point down the road, there
+are plenty of smart people out there that will give you tips on how to speed
+them up -- just remember that mocky unit tests don't really test your
+application, so you'll need to keep a few end-to-end tests in there no matter
+what.</p>
+<p>Over to you folks!  I'm far from an expert, have only been writing tests for
+about 3 years, and all for the same company.  Have you ever been bitten by
+a bug because your tests were too mocky?  What ratio of unit tests to
+integration tests works for you?</p>
+        </div><!-- /.entry-content -->
+
+    <div class="comments">
+        <h3>Comments</h3>
+        <div id="disqus_thread"></div>
+        <script type="text/javascript">
+                var disqus_shortname = 'obeythetestinggoat';
+
+            /* * * DON'T EDIT BELOW THIS LINE * * */
+            (function() {
+                var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+                dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+                (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+            })();
+        </script>
+        <noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+        <a href="http://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+    </div>
+
+
+
+    </div>
+<div class="large-3 small-6 columns">
+    <h6><a href="/pages/book.html">Read the book</a></h6>
+    <p>
+        I'm writing a book all about TDD and Web programming.
+        <a href="/pages/book.html">Read the draft</a> and let me
+        know what you think!
+    </p>
+</div>
+
+<div class="large-3 small-6 columns">
+    <h6><a href="/pages/reviews-and-testimonials.html">Reviews & Testimonials</a></h6>
+   
+    <p>
+        <i>"Hands down the best teaching book I've ever read"</i> &mdash;
+        <i>"Even the first 4 chapters were worth the money"</i> &mdash;
+        <i>"Oh my gosh! This book is outstanding"</i> &mdash;
+        <i>"The testing goat is my new friend"</i> &mdash;
+        <a href="/pages/reviews-and-testimonials.html">Read more...</a>
+    </p>
+
+</div>
+
+
+<div class="large-3 small-6 columns">
+    <h6><a href="/pages/tdd-resources.html">Resources</a></h6>
+    <p>A selection of links and videos about TDD, not necessarily all mine, eg <a href="http://pyvideo.org/video/1657/fully-test-driven-web-development-with-django-and">this tutorial
+        at PyCon 2013</a>, how to <a href="http://arstechnica.com/information-technology/2013/03/how-can-i-motivate-coworkers-to-write-unit-tests/">motivate coworkers to write unit tests</a>, thoughts on <a href="http://pyvideo.org/video/699/testing-and-django">Django's test tools</a>, <a href="https://www.youtube.com/watch?v=tdNnN5yTIeM">London-style TDD</a> and <a href="/pages/tdd-resources.html">more</a>.
+</div>
+
+
+<div class="large-3 small-6 columns">
+    <h6><a href="http://www.tdd-django-tutorial.com">Old TDD / Django Tutorial</a></h6>
+    <p>
+    This is my <a href="http://www.tdd-django-tutorial.com">old TDD tutorial</a>,
+    which follows along with the official Django tutorial, but with full TDD.  It
+    badly needs updating. Read the book instead!
+    </p>
+</div>
+
+<div class="large-3 small-6 columns">
+    <h6><a href="/pages/save-the-testing-goat-campaign.html">Save the Testing Goat Campaign</a></h6>
+    <p>
+    The campaign page, preserved for history, which led to the glorious presence
+    of the Testing Goat on the front of the book.
+    </p>
+</div></div>
+
+  <footer class="row">
+    <div class="large-12 columns">
+      <hr>
+      <div class="row">
+        <div class="large-8 columns">
+            <p>
+                <a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/3.0/"><img alt="Creative Commons License" style="border-width:0" src="http://i.creativecommons.org/l/by-nc-sa/3.0/88x31.png" /></a>
+                &nbsp
+                <span xmlns:dct="http://purl.org/dc/terms/" href="http://purl.org/dc/dcmitype/Text" property="dct:title" rel="dct:type">Obey the Testing Goat website</span> 
+                by <a xmlns:cc="http://creativecommons.org/ns#" href="http://www.obeythetestinggoat.com" property="cc:attributionName" rel="cc:attributionURL">Harry J.W. Percival</a> 
+                is licensed under a 
+                <a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/3.0/">Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License</a>.
+                Site powered by <a href="http://getpelican.com/">Pelican</a>, and
+                hosted on <a href="http://www.pythonanywhere.com">PythonAnywhere</a>
+            </p>
+       </div>
+
+        <div class="large-4 columns">
+          <ul class="inline-list right">
+            <li><a href="/pages/book.html">Book</a></li>
+            <li><a href="/pages/tdd-resources.html">Resources</a></li>
+            <li>
+                <a href="http://www.obeythetestinggoat.com/feeds/all.atom.xml" type="application/rss+xml"><i class="social foundicon-rss"></i> RSS</a></span>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <script src="/static/js/vendor/custom.modernizr.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+
+  <script>
+  document.write('<script src=js/vendor/' +
+  ('__proto__' in {} ? 'zepto' : 'jquery') +
+  '.js><\/script>')
+  </script>
+  <script src="js/foundation.min.js"></script>
+  <script>
+    $(document).foundation();
+  </script>
+  <script type="text/javascript">
+    $(window).load(function() {
+      $('#featured').orbit({ fluid: '2x1' });
+    });
+  </script>
+
+
+  <script>   (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){   (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),   m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)   })(window,document,'script','//www.google-analytics.com/analytics.js','ga');    ga('create', 'UA-40928035-1', 'obeythetestinggoat.com');   ga('send', 'pageview');  </script> 
+  <!-- End Footer -->
+
+</body>
+</html>

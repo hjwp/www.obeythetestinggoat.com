@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<!--[if IE 8]>    <html class="no-js lt-ie9" lang="en"> <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en"> <!--<![endif]-->
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+        <!-- Set the viewport width to device width for mobile -->
+        <meta name="viewport" content="width=device-width" />
+        <title>Obey the Testing Goat!</title>
+        <meta charset="utf-8" />
+        <link rel="stylesheet" href="/static/css/normalize.css">
+        <link rel="stylesheet" href="/static/css/pygments.css">
+        <link rel="stylesheet" href="/static/css/extra.css">
+        <link rel="stylesheet" href="/static/css/foundation.css">
+        <link href='http://fonts.googleapis.com/css?family=Life+Savers:400,700|Sanchez:400,400italic|Ovo' rel='stylesheet' type='text/css'>
+
+
+        <link rel="stylesheet" href="/static/css/social_foundicons.css">
+        <!--[if lt IE 8]>
+            <link rel="stylesheet" href="stylesheets/social_foundicons_ie7.css">
+        <![endif]-->
+
+
+        <link href="http://www.obeythetestinggoat.com/feeds/all.atom.xml" type="application/atom+xml" rel="alternate" title="Obey the Testing Goat! Full Atom Feed" />
+        <link href="http://www.obeythetestinggoat.com/feeds/misc.atom.xml" type="application/atom+xml" rel="alternate" title="Obey the Testing Goat! Categories Atom Feed" />
+</head>
+
+<body>
+    <header class="row">
+        <div class="large-12 columns">
+            <div class="row">
+                <span class="right"><a href="http://www.obeythetestinggoat.com/feeds/all.atom.xml" type="application/rss+xml"><i class="social foundicon-rss"></i> RSS</a></span>
+                <div class="large-2 columns">
+                    <a href="http://www.obeythetestinggoat.com"><img src="/static/images/kid_goat.png" alt="The Testing Goat" title="The Testing Goat" /></a>
+                </div>
+                <div class="large-10 columns">
+                    <h1>Obey the Testing Goat!</h1>
+                    <h2><small><em>TDD for the Web, with Python, Selenium, Django, JavaScript and pals...</em></small></h2>
+                </div>
+            </div>
+        </div>
+    </header> <!-- end top banner -->
+
+<div class="row">
+    <div class="large-9 small-12 columns"> <!-- blog post div -->
+        <header>
+            <h2><a href="how-to-log-exceptions-to-stderr-in-django.html" rel="bookmark" title="Permalink to How to log exceptions to stderr in Django">How to log exceptions to stderr in Django</a></h2>
+
+             
+
+        </header>
+        <footer class="post-info">
+            <abbr class="published" title="2014-01-23T13:35:00">
+              Thu 23 January 2014
+            </abbr>
+                <address class="vcard author">
+                  By <a class="url fn" href="http://www.obeythetestinggoat.com/author/harry.html">Harry</a>
+                </address>
+        </footer><!-- /.post-info -->
+
+        <div>
+            <p>Here's a common set of questions about Django:</p>
+<ul>
+<li>How do I get django to log errors to stderr?</li>
+<li>Why can't I see Django exceptions in the console?</li>
+<li>How do I get Django to log exceptions?</li>
+<li>How to print debug messages in Django?</li>
+</ul>
+<p>I know they're common because I've often found asking myself some kind of variant
+on these questions, at some point or other.  Then I saw that, in Django 1.6, the
+<a href="https://docs.djangoproject.com/en/1.6/topics/logging/#django-s-default-logging-configuration">default logging configuration</a> actually does send logging messages to the console</p>
+<p>So does this mean that exceptions in Django are going to start appearing in the console
+then?  No.</p>
+<h2>Just because you wish for it doesn't make it so</h2>
+<p>I think my own difficulties with this issue stemmed from the fact that,
+<em>obviously</em>, in my mind, the thing you'd want to log would be exceptions, and
+that, since Django will show us a clever debug page (if DEBUG iTrue), or a 
+standard server 500 page, then I sort of assumed it would log that exception
+as well. But it doesn't</p>
+<p>The reason I struggled with this because I wasn't clear on the fact that there are
+actually two systems involved here:</p>
+<ul>
+<li>Django's logging system (based on the Python <code>logging</code> module)</li>
+<li>Django's exception handling layer (middleware)</li>
+</ul>
+<p>By default (as of Django 1.6), Django <em>is</em> configured to send logging messages to
+the console.  There are two gotchas however:</p>
+<ul>
+<li>Django's default logging level is set to WARNING, which means any attempt to use
+<code>logging.debug</code> or <code>logging.info</code> will fail</li>
+<li>Django has a middleware layer that automatically catches exceptions, and handles
+them differently depending on whether you have <code>DEBUG = True</code> or not, but it 
+<em>doesn't</em> explicitly log them.</li>
+</ul>
+<h2>Unit testing Django's logging config (if you want)</h2>
+<p>This is a blog about TDD, so let's write a test first.  It works by monkey-patching
+in an extra view function into the project's url config (mwahahaha). The view then
+tries to do various calls to, eg, <code>logging.debug</code>, just we'd like to be able to in 
+our real views.</p>
+<p>Finally it explodes with an exception, so we can test whether any information about
+the exception ends up in the logs</p>
+<p>We mock out sys.stderr to pick up on what was actually sent to the console.</p>
+<div class="highlight"><pre><span class="c"># test assumes django 1.6 and project called &#39;myproj&#39;</span>
+<span class="c"># also assumes this file is saved in myproj/myproj/test_logging.py,</span>
+<span class="c"># ie in the same folder as settings.py</span>
+<span class="kn">from</span> <span class="nn">django.test</span> <span class="kn">import</span> <span class="n">TestCase</span>
+<span class="kn">from</span> <span class="nn">django.conf.urls</span> <span class="kn">import</span> <span class="n">url</span>
+<span class="kn">from</span> <span class="nn">unittest.mock</span> <span class="kn">import</span> <span class="n">patch</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">from</span> <span class="nn">django.http</span> <span class="kn">import</span> <span class="n">HttpResponse</span>
+<span class="kn">from</span> <span class="nn">.urls</span> <span class="kn">import</span> <span class="n">urlpatterns</span>
+<span class="kn">from</span> <span class="nn">.settings</span>  <span class="kn">import</span> <span class="n">DEBUG</span> <span class="c"># django.conf.settings are messed with by test runner</span>
+
+
+<span class="k">def</span> <span class="nf">do_logging</span><span class="p">(</span><span class="n">request</span><span class="p">):</span>
+    <span class="c"># dummy view that tries to log at all levels, and then raises an exception</span>
+    <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s">&#39;debug logged&#39;</span><span class="p">)</span>
+    <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s">&#39;info logged&#39;</span><span class="p">)</span>
+    <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s">&#39;warning logged&#39;</span><span class="p">)</span>
+    <span class="n">logging</span><span class="o">.</span><span class="n">critical</span><span class="p">(</span><span class="s">&#39;critical logged&#39;</span><span class="p">)</span>
+    <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s">&#39;arg&#39;</span><span class="p">)</span>
+<span class="n">urls_with_logging_test</span> <span class="o">=</span> <span class="n">urlpatterns</span> <span class="o">+</span> <span class="p">[</span><span class="n">url</span><span class="p">(</span><span class="s">r&#39;^testlogging/$&#39;</span><span class="p">,</span> <span class="n">do_logging</span><span class="p">)]</span>
+
+
+<span class="k">class</span> <span class="nc">LoggingTest</span><span class="p">(</span><span class="n">TestCase</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="nf">test_level</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">root_log_level</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">()</span><span class="o">.</span><span class="n">level</span>
+        <span class="k">if</span> <span class="n">DEBUG</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">logging</span><span class="o">.</span><span class="n">getLevelName</span><span class="p">(</span><span class="n">root_log_level</span><span class="p">),</span> <span class="s">&#39;DEBUG&#39;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">logging</span><span class="o">.</span><span class="n">getLevelName</span><span class="p">(</span><span class="n">root_log_level</span><span class="p">),</span> <span class="s">&#39;INFO&#39;</span><span class="p">)</span>
+
+
+    <span class="nd">@patch</span><span class="p">(</span><span class="s">&#39;myproj.urls.urlpatterns&#39;</span><span class="p">,</span> <span class="n">urls_with_logging_test</span><span class="p">)</span>
+    <span class="nd">@patch</span><span class="p">(</span><span class="s">&#39;myproj.test_logging.sys.stderr&#39;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">test_logs_to_stderr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mock_stderr</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;/testlogging/&#39;</span><span class="p">)</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="k">pass</span>
+        <span class="n">written</span> <span class="o">=</span> <span class="s">&#39;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">c</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">mock_stderr</span><span class="o">.</span><span class="n">write</span><span class="o">.</span><span class="n">call_args_list</span><span class="p">)</span>
+        <span class="k">print</span><span class="p">(</span><span class="n">written</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertIn</span><span class="p">(</span><span class="s">&#39;critical logged&#39;</span><span class="p">,</span> <span class="n">written</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertIn</span><span class="p">(</span><span class="s">&#39;warning logged&#39;</span><span class="p">,</span> <span class="n">written</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertIn</span><span class="p">(</span><span class="s">&#39;info logged&#39;</span><span class="p">,</span> <span class="n">written</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">settings</span><span class="o">.</span><span class="n">DEBUG</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">assertIn</span><span class="p">(</span><span class="s">&#39;debug logged&#39;</span><span class="p">,</span> <span class="n">written</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">assertNotIn</span><span class="p">(</span><span class="s">&#39;debug logged&#39;</span><span class="p">,</span> <span class="n">written</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertIn</span><span class="p">(</span><span class="s">&#39;arg&#39;</span><span class="p">,</span> <span class="n">written</span><span class="p">,</span> <span class="s">&#39;Could not see exception in logs&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertIn</span><span class="p">(</span><span class="s">&#39;do_logging&#39;</span><span class="p">,</span> <span class="n">written</span><span class="p">,</span> <span class="s">&#39;Could not see traceback info&#39;</span><span class="p">)</span>
+</pre></div>
+
+
+<h2>Setting the base log level (if you want):</h2>
+<p>Here's what you need to add to <em>settings.py</em> if you want to set the log
+level lower, so that, say, <code>logging.info</code> actually works.  You don't actually
+need this to get the exception logging to work, but I discovered it while 
+investigating this problem, so I thought I'd write it up here, since it's 
+not obvious from the docs.</p>
+<div class="highlight"><pre><span class="n">LOGGING</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s">&#39;version&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s">&#39;root&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s">&#39;level&#39;</span><span class="p">:</span> <span class="s">&#39;DEBUG&#39;</span> <span class="k">if</span> <span class="n">DEBUG</span> <span class="k">else</span> <span class="s">&#39;INFO&#39;</span><span class="p">},</span>
+<span class="p">}</span>
+</pre></div>
+
+
+<p>I have a feeling someone will tell me that resetting the root log level is a 
+silly thing to do, but it does work.  By all means enlighten me if this isn't
+a good idea.</p>
+<h2>Using middleware to catch and log exceptions</h2>
+<p>Onto the real answer to this problem. Normally, to log an exception, you'd have
+something like this</p>
+<div class="highlight"><pre><span class="k">try</span><span class="p">:</span>
+    <span class="n">do_something_that_might_explode</span><span class="p">()</span>
+<span class="k">except</span><span class="p">:</span>
+    <span class="n">logging</span><span class="o">.</span><span class="n">exception</span><span class="p">(</span><span class="s">&#39;Oh noes, it exploded&#39;</span><span class="p">)</span>
+</pre></div>
+
+
+<p>And then <code>logging.exception</code> will automagically print a full traceback as well
+as our little message.</p>
+<p>But how to get this to just happen, by default, for any exceptions in our code?
+The answer is what Django calls "middleware", code that can get run while handling
+any request.</p>
+<div class="highlight"><pre><span class="kn">import</span> <span class="nn">logging</span>
+
+<span class="k">class</span> <span class="nc">ExceptionLoggingMiddleware</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="nf">process_exception</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="n">exception</span><span class="p">):</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">exception</span><span class="p">(</span><span class="s">&#39;Exception handling request for &#39;</span> <span class="o">+</span> <span class="n">request</span><span class="o">.</span><span class="n">path</span><span class="p">)</span>
+</pre></div>
+
+
+<p>Cf the <a href="https://docs.djangoproject.com/en/1.6/topics/http/middleware/#process-exception">Django docs on
+middleware</a>,
+but that's really all you need!</p>
+<p>If this is saved to, say, <em>myproj/myproj/exception_logging_middleware.py</em>, you would
+then add it to your project in <em>settings.py</em> by:</p>
+<div class="highlight"><pre><span class="n">MIDDLEWARE_CLASSES</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="s">&#39;django.contrib.sessions.middleware.SessionMiddleware&#39;</span><span class="p">,</span>
+    <span class="s">&#39;django.middleware.common.CommonMiddleware&#39;</span><span class="p">,</span>
+    <span class="s">&#39;django.middleware.csrf.CsrfViewMiddleware&#39;</span><span class="p">,</span>
+    <span class="s">&#39;django.contrib.auth.middleware.AuthenticationMiddleware&#39;</span><span class="p">,</span>
+    <span class="s">&#39;django.contrib.messages.middleware.MessageMiddleware&#39;</span><span class="p">,</span>
+    <span class="s">&#39;django.middleware.clickjacking.XFrameOptionsMiddleware&#39;</span><span class="p">,</span>
+    <span class="s">&#39;myproj.exception_logging_middleware.ExceptionLoggingMiddleware&#39;</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+
+
+<p>If you've actually used the test, you'll find it now passes.</p>
+<h2>Summary</h2>
+<p>In summary "how do I get Django to log all exceptions to stderr", which seems such
+a straightforward question, actually does involve several different components:</p>
+<ul>
+<li>the logging module, and Django's logging config</li>
+<li>Django's exception-handling middleware.</li>
+</ul>
+<p>Whilst the former is where youd' go to choose <em>where</em> things get logged to
+(eg stderr or a file), and what the minimum log level is, the latter is the
+place you actually need to go to if you want to log exceptions. </p>
+        </div><!-- /.entry-content -->
+
+    <div class="comments">
+        <h3>Comments</h3>
+        <div id="disqus_thread"></div>
+        <script type="text/javascript">
+                var disqus_shortname = 'obeythetestinggoat';
+
+            /* * * DON'T EDIT BELOW THIS LINE * * */
+            (function() {
+                var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+                dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+                (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+            })();
+        </script>
+        <noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+        <a href="http://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+    </div>
+
+
+
+    </div>
+<div class="large-3 small-6 columns">
+    <h6><a href="/pages/book.html">Read the book</a></h6>
+    <p>
+        I'm writing a book all about TDD and Web programming.
+        <a href="/pages/book.html">Read the draft</a> and let me
+        know what you think!
+    </p>
+</div>
+
+<div class="large-3 small-6 columns">
+    <h6><a href="/pages/reviews-and-testimonials.html">Reviews & Testimonials</a></h6>
+   
+    <p>
+        <i>"Hands down the best teaching book I've ever read"</i> &mdash;
+        <i>"Even the first 4 chapters were worth the money"</i> &mdash;
+        <i>"Oh my gosh! This book is outstanding"</i> &mdash;
+        <i>"The testing goat is my new friend"</i> &mdash;
+        <a href="/pages/reviews-and-testimonials.html">Read more...</a>
+    </p>
+
+</div>
+
+
+<div class="large-3 small-6 columns">
+    <h6><a href="/pages/tdd-resources.html">Resources</a></h6>
+    <p>A selection of links and videos about TDD, not necessarily all mine, eg <a href="http://pyvideo.org/video/1657/fully-test-driven-web-development-with-django-and">this tutorial
+        at PyCon 2013</a>, how to <a href="http://arstechnica.com/information-technology/2013/03/how-can-i-motivate-coworkers-to-write-unit-tests/">motivate coworkers to write unit tests</a>, thoughts on <a href="http://pyvideo.org/video/699/testing-and-django">Django's test tools</a>, <a href="https://www.youtube.com/watch?v=tdNnN5yTIeM">London-style TDD</a> and <a href="/pages/tdd-resources.html">more</a>.
+</div>
+
+
+<div class="large-3 small-6 columns">
+    <h6><a href="http://www.tdd-django-tutorial.com">Old TDD / Django Tutorial</a></h6>
+    <p>
+    This is my <a href="http://www.tdd-django-tutorial.com">old TDD tutorial</a>,
+    which follows along with the official Django tutorial, but with full TDD.  It
+    badly needs updating. Read the book instead!
+    </p>
+</div>
+
+<div class="large-3 small-6 columns">
+    <h6><a href="/pages/save-the-testing-goat-campaign.html">Save the Testing Goat Campaign</a></h6>
+    <p>
+    The campaign page, preserved for history, which led to the glorious presence
+    of the Testing Goat on the front of the book.
+    </p>
+</div></div>
+
+  <footer class="row">
+    <div class="large-12 columns">
+      <hr>
+      <div class="row">
+        <div class="large-8 columns">
+            <p>
+                <a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/3.0/"><img alt="Creative Commons License" style="border-width:0" src="http://i.creativecommons.org/l/by-nc-sa/3.0/88x31.png" /></a>
+                &nbsp
+                <span xmlns:dct="http://purl.org/dc/terms/" href="http://purl.org/dc/dcmitype/Text" property="dct:title" rel="dct:type">Obey the Testing Goat website</span> 
+                by <a xmlns:cc="http://creativecommons.org/ns#" href="http://www.obeythetestinggoat.com" property="cc:attributionName" rel="cc:attributionURL">Harry J.W. Percival</a> 
+                is licensed under a 
+                <a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/3.0/">Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License</a>.
+                Site powered by <a href="http://getpelican.com/">Pelican</a>, and
+                hosted on <a href="http://www.pythonanywhere.com">PythonAnywhere</a>
+            </p>
+       </div>
+
+        <div class="large-4 columns">
+          <ul class="inline-list right">
+            <li><a href="/pages/book.html">Book</a></li>
+            <li><a href="/pages/tdd-resources.html">Resources</a></li>
+            <li>
+                <a href="http://www.obeythetestinggoat.com/feeds/all.atom.xml" type="application/rss+xml"><i class="social foundicon-rss"></i> RSS</a></span>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <script src="/static/js/vendor/custom.modernizr.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+
+  <script>
+  document.write('<script src=js/vendor/' +
+  ('__proto__' in {} ? 'zepto' : 'jquery') +
+  '.js><\/script>')
+  </script>
+  <script src="js/foundation.min.js"></script>
+  <script>
+    $(document).foundation();
+  </script>
+  <script type="text/javascript">
+    $(window).load(function() {
+      $('#featured').orbit({ fluid: '2x1' });
+    });
+  </script>
+
+
+  <script>   (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){   (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),   m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)   })(window,document,'script','//www.google-analytics.com/analytics.js','ga');    ga('create', 'UA-40928035-1', 'obeythetestinggoat.com');   ga('send', 'pageview');  </script> 
+  <!-- End Footer -->
+
+</body>
+</html>

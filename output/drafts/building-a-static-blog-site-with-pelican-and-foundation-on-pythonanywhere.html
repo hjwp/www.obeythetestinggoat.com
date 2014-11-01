@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<!--[if IE 8]>    <html class="no-js lt-ie9" lang="en"> <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en"> <!--<![endif]-->
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+        <!-- Set the viewport width to device width for mobile -->
+        <meta name="viewport" content="width=device-width" />
+        <title>Obey the Testing Goat!</title>
+        <meta charset="utf-8" />
+        <link rel="stylesheet" href="/static/css/normalize.css">
+        <link rel="stylesheet" href="/static/css/pygments.css">
+        <link rel="stylesheet" href="/static/css/extra.css">
+        <link rel="stylesheet" href="/static/css/foundation.css">
+        <link href='http://fonts.googleapis.com/css?family=Life+Savers:400,700|Sanchez:400,400italic|Ovo' rel='stylesheet' type='text/css'>
+
+
+        <link rel="stylesheet" href="/static/css/social_foundicons.css">
+        <!--[if lt IE 8]>
+            <link rel="stylesheet" href="stylesheets/social_foundicons_ie7.css">
+        <![endif]-->
+
+
+        <link href="http://www.obeythetestinggoat.com/feeds/all.atom.xml" type="application/atom+xml" rel="alternate" title="Obey the Testing Goat! Full Atom Feed" />
+        <link href="http://www.obeythetestinggoat.com/feeds/misc.atom.xml" type="application/atom+xml" rel="alternate" title="Obey the Testing Goat! Categories Atom Feed" />
+</head>
+
+<body>
+    <header class="row">
+        <div class="large-12 columns">
+            <div class="row">
+                <span class="right"><a href="http://www.obeythetestinggoat.com/feeds/all.atom.xml" type="application/rss+xml"><i class="social foundicon-rss"></i> RSS</a></span>
+                <div class="large-2 columns">
+                    <a href="http://www.obeythetestinggoat.com"><img src="/static/images/kid_goat.png" alt="The Testing Goat" title="The Testing Goat" /></a>
+                </div>
+                <div class="large-10 columns">
+                    <h1>Obey the Testing Goat!</h1>
+                    <h2><small><em>TDD for the Web, with Python, Selenium, Django, JavaScript and pals...</em></small></h2>
+                </div>
+            </div>
+        </div>
+    </header> <!-- end top banner -->
+
+<div class="row">
+    <div class="large-9 small-12 columns"> <!-- blog post div -->
+        <header>
+            <h2><a href="building-a-static-blog-site-with-pelican-and-foundation-on-pythonanywhere.html" rel="bookmark" title="Permalink to Building a static blog site with Pelican and Foundation on PythonAnywhere">Building a static blog site with Pelican and Foundation on PythonAnywhere</a></h2>
+
+             
+
+        </header>
+        <footer class="post-info">
+            <abbr class="published" title="2013-04-19T10:00:00">
+              Fri 19 April 2013
+            </abbr>
+                <address class="vcard author">
+                  By <a class="url fn" href="http://www.obeythetestinggoat.com/author/harry.html">Harry</a>
+                </address>
+        </footer><!-- /.post-info -->
+
+        <div>
+            <p>I thought a few notes on how I pulled together this site by integrating the
+Pelican static blog generator and the Foundation HTML5/CSS framework might be
+of interest.</p>
+<h2>A static HTML site on PythonAnywhere</h2>
+<p><em>Disclosure: I work at PythonAnywhere.  Skip this bit if you prefer a
+different hosting provider. But we do happen to have built a pretty 
+low-effort way of getting websites off the ground.</em></p>
+<p>Even though we don't have a specific option for "static HTML site",
+PythonAnywhere has support for static file directories, and is set up to serve
+any files called "index.html" that are inside any of your static directories.</p>
+<p>So when starting a new site on PythonAnywhere, you can just pick any of the 
+WSGI microframeworks on offer, and then completely ignore it from there on
+(although who knows, it might come in useful later if you want to add some
+more functionality to the site).  I chose Flask.</p>
+<p>The next step is creating a simple <em>index.html</em> and serving it from a static
+directory mapped to the URL for the root of the site, <code>/</code></p>
+<p><insert screenshot></p>
+<div class="highlight"><pre><span class="nt">&lt;html&gt;</span>
+    <span class="nt">&lt;p&gt;</span>Hello from a static page<span class="nt">&lt;/p&gt;</span>
+<span class="nt">&lt;/html&gt;</span>
+</pre></div>
+
+
+<p>That should replace the "Hello from Flask" on the site with a "Hello from 
+a static page"</p>
+<p><insert screenshot></p>
+<h2>Starting with a basic Foundation site</h2>
+<p>I wanted to achieve two things:  have a homepage for my book that would
+point people towards where they can buy it or read it for free, and also
+to host a new blog.  The first was more important, so in true agile style
+I decided to make sure I could do that first.</p>
+<p>I started by replacing <em>index.html</em> with one of the samples from the foundation
+site, and checking that it worked.  The main thing to check was that the CSS
+all loaded OK.</p>
+<p><link>
+<screenshot></p>
+<p>I actually set up a separate static files directory with the URL /static/, but
+in retrospect I think you could get away without that, just using subfolders in
+the main directory which is already mapped to "/".</p>
+<p>Then I had the usual pain of fiddling with CSS to get the exact column + 
+row alignment I wanted.  Made substantially easier by Foundation, yes, but 
+still a hassle.  By the end I had something like this:</p>
+<p><screenshot></p>
+<p>The main bit of customisation of foundation I did was to use different fonts.
+I got mine from google web fonts.</p>
+<p><how did I get scss to work??></p>
+<h2>Bringing in Pelican</h2>
+<p>I then installed Pelican on my local PC and went through its default 
+'quickstart' setup.  Once it's configured, you just run <code>make html</code> and
+it pulls in all your blog posts and other pages from a folder called
+<em>content</em>, converting them from markdown or RST to HTML.  Perfect,
+except it has its own CSS and theme, which look nothing like my site.</p>
+<p>A pelican theme is a series of jinja2 templates in a folder. Making a custom
+theme just means replacing those files.  I just copied the basic theme,
+stripped out a lot of the unnecessary HTML scaffolding (mostly class=) stuff,
+and used tools from foundation instead.  The key thing is that the pelican
+theme shows all the template tags you might want to use for each part of the
+theme, which means it really is a matter of tweaking things rather than
+reinventing the wheel. Here's the diff from my version of <em>article.html</em>, the
+template for blog posts:</p>
+<div class="highlight"><pre>    $ diff -b `pwhich.py pelican`/themes/simple/templates/article.html theme/templates/article.html 
+    3c3,4
+    &lt; &lt;section id=&quot;content&quot; class=&quot;body&quot;&gt;
+    ---
+    &gt; &lt;div class=&quot;row&quot;&gt;
+    &gt;     &lt;div class=&quot;large-9 small-12 columns&quot;&gt; &lt;!-- blog post div --&gt;
+    5,7c6,7
+    &lt;     &lt;h2 class=&quot;entry-title&quot;&gt;
+    &lt;       &lt;a href=&quot;{{ article.url }}&quot; rel=&quot;bookmark&quot;
+    &lt;          title=&quot;Permalink to {{ article.title|striptags }}&quot;&gt;{{ article.title }}&lt;/a&gt;&lt;/h2&gt;
+    ---
+    &gt;             &lt;h2&gt;&lt;a href=&quot;{{ article.url }}&quot; rel=&quot;bookmark&quot; title=&quot;Permalink to {{ article.title|striptags }}&quot;&gt;{{ article.title }}&lt;/a&gt;&lt;/h2&gt;
+    &gt; 
+    9a10
+    &gt; 
+    21c22,23
+    &lt;   &lt;div class=&quot;entry-content&quot;&gt;
+    ---
+    &gt; 
+    &gt;         &lt;div&gt;
+    24c26,31
+    &lt; &lt;/section&gt;
+    ---
+    &gt; 
+    &gt;         {% include &#39;comments.html&#39; %}
+    &gt; 
+    &gt;     &lt;/div&gt;
+    &gt;     {% include &#39;sidebar.html&#39; %}
+    &gt; &lt;/div&gt;
+</pre></div>
+        </div><!-- /.entry-content -->
+
+    <div class="comments">
+        <h3>Comments</h3>
+        <div id="disqus_thread"></div>
+        <script type="text/javascript">
+                var disqus_shortname = 'obeythetestinggoat';
+
+            /* * * DON'T EDIT BELOW THIS LINE * * */
+            (function() {
+                var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+                dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+                (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+            })();
+        </script>
+        <noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+        <a href="http://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+    </div>
+
+
+
+    </div>
+<div class="large-3 small-6 columns">
+    <h6><a href="/pages/book.html">Read the book</a></h6>
+    <p>
+        I'm writing a book all about TDD and Web programming.
+        <a href="/pages/book.html">Read the draft</a> and let me
+        know what you think!
+    </p>
+</div>
+
+<div class="large-3 small-6 columns">
+    <h6><a href="/pages/reviews-and-testimonials.html">Reviews & Testimonials</a></h6>
+   
+    <p>
+        <i>"Hands down the best teaching book I've ever read"</i> &mdash;
+        <i>"Even the first 4 chapters were worth the money"</i> &mdash;
+        <i>"Oh my gosh! This book is outstanding"</i> &mdash;
+        <i>"The testing goat is my new friend"</i> &mdash;
+        <a href="/pages/reviews-and-testimonials.html">Read more...</a>
+    </p>
+
+</div>
+
+
+<div class="large-3 small-6 columns">
+    <h6><a href="/pages/tdd-resources.html">Resources</a></h6>
+    <p>A selection of links and videos about TDD, not necessarily all mine, eg <a href="http://pyvideo.org/video/1657/fully-test-driven-web-development-with-django-and">this tutorial
+        at PyCon 2013</a>, how to <a href="http://arstechnica.com/information-technology/2013/03/how-can-i-motivate-coworkers-to-write-unit-tests/">motivate coworkers to write unit tests</a>, thoughts on <a href="http://pyvideo.org/video/699/testing-and-django">Django's test tools</a>, <a href="https://www.youtube.com/watch?v=tdNnN5yTIeM">London-style TDD</a> and <a href="/pages/tdd-resources.html">more</a>.
+</div>
+
+
+<div class="large-3 small-6 columns">
+    <h6><a href="http://www.tdd-django-tutorial.com">Old TDD / Django Tutorial</a></h6>
+    <p>
+    This is my <a href="http://www.tdd-django-tutorial.com">old TDD tutorial</a>,
+    which follows along with the official Django tutorial, but with full TDD.  It
+    badly needs updating. Read the book instead!
+    </p>
+</div>
+
+<div class="large-3 small-6 columns">
+    <h6><a href="/pages/save-the-testing-goat-campaign.html">Save the Testing Goat Campaign</a></h6>
+    <p>
+    The campaign page, preserved for history, which led to the glorious presence
+    of the Testing Goat on the front of the book.
+    </p>
+</div></div>
+
+  <footer class="row">
+    <div class="large-12 columns">
+      <hr>
+      <div class="row">
+        <div class="large-8 columns">
+            <p>
+                <a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/3.0/"><img alt="Creative Commons License" style="border-width:0" src="http://i.creativecommons.org/l/by-nc-sa/3.0/88x31.png" /></a>
+                &nbsp
+                <span xmlns:dct="http://purl.org/dc/terms/" href="http://purl.org/dc/dcmitype/Text" property="dct:title" rel="dct:type">Obey the Testing Goat website</span> 
+                by <a xmlns:cc="http://creativecommons.org/ns#" href="http://www.obeythetestinggoat.com" property="cc:attributionName" rel="cc:attributionURL">Harry J.W. Percival</a> 
+                is licensed under a 
+                <a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/3.0/">Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License</a>.
+                Site powered by <a href="http://getpelican.com/">Pelican</a>, and
+                hosted on <a href="http://www.pythonanywhere.com">PythonAnywhere</a>
+            </p>
+       </div>
+
+        <div class="large-4 columns">
+          <ul class="inline-list right">
+            <li><a href="/pages/book.html">Book</a></li>
+            <li><a href="/pages/tdd-resources.html">Resources</a></li>
+            <li>
+                <a href="http://www.obeythetestinggoat.com/feeds/all.atom.xml" type="application/rss+xml"><i class="social foundicon-rss"></i> RSS</a></span>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <script src="/static/js/vendor/custom.modernizr.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+
+  <script>
+  document.write('<script src=js/vendor/' +
+  ('__proto__' in {} ? 'zepto' : 'jquery') +
+  '.js><\/script>')
+  </script>
+  <script src="js/foundation.min.js"></script>
+  <script>
+    $(document).foundation();
+  </script>
+  <script type="text/javascript">
+    $(window).load(function() {
+      $('#featured').orbit({ fluid: '2x1' });
+    });
+  </script>
+
+
+  <script>   (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){   (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),   m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)   })(window,document,'script','//www.google-analytics.com/analytics.js','ga');    ga('create', 'UA-40928035-1', 'obeythetestinggoat.com');   ga('send', 'pageview');  </script> 
+  <!-- End Footer -->
+
+</body>
+</html>

@@ -1,0 +1,1551 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom"><title>Obey the Testing Goat!</title><link href="http://www.obeythetestinggoat.com/" rel="alternate"></link><link href="http://www.obeythetestinggoat.com/feeds/all-en.atom.xml" rel="self"></link><id>http://www.obeythetestinggoat.com/</id><updated>2014-10-23T00:00:00+01:00</updated><entry><title>Decorators!</title><link href="http://www.obeythetestinggoat.com/decorators.html" rel="alternate"></link><updated>2014-10-23T00:00:00+01:00</updated><author><name>Harry</name></author><id>tag:www.obeythetestinggoat.com,2014-10-23:decorators.html</id><summary type="html">&lt;p&gt;Someone recently wrote to me asking about decorators, and saying they found them a bit confusing.  Here's a post based on the email I replied to them with. &lt;/p&gt;
+&lt;p&gt;The best way to understand decorators is to build a couple of them, so here are two examples for you to try out.  The first is in the Django world, the second is actually a simpler, pure-python one.&lt;/p&gt;
+&lt;h2&gt;Challenge: build a decorator in a simple Django app&lt;/h2&gt;
+&lt;p&gt;We've built a very basic todo lists app using Django.  It has views to deal with viewing lists, creating new lists, and adding to existing lists.  Two of these views end up doing some similar work, which is to retrieve a list object from the database based on its list ID:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;add_item&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;request&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;list_id&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
+    &lt;span class="n"&gt;list_&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;List&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;objects&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;get&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nb"&gt;id&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="n"&gt;list_id&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+    &lt;span class="n"&gt;Item&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;objects&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;create&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;text&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="n"&gt;request&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;POST&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;item_text&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;],&lt;/span&gt; &lt;span class="nb"&gt;list&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="n"&gt;list_&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+    &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="n"&gt;redirect&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;/lists/&lt;/span&gt;&lt;span class="si"&gt;%d&lt;/span&gt;&lt;span class="s"&gt;/&amp;#39;&lt;/span&gt; &lt;span class="o"&gt;%&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;list_&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;id&lt;/span&gt;&lt;span class="p"&gt;,))&lt;/span&gt;
+
+
+&lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;view_list&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;request&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;list_id&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
+    &lt;span class="n"&gt;list_&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;List&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;objects&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;get&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nb"&gt;id&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="n"&gt;list_id&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+    &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="n"&gt;render&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;request&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s"&gt;&amp;#39;list.html&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;list&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="n"&gt;list_&lt;/span&gt;&lt;span class="p"&gt;})&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;(Full code &lt;a href="https://github.com/hjwp/book-example/blob/chapter_06/lists/views.py"&gt;here&lt;/a&gt;)&lt;/p&gt;
+&lt;p&gt;This is a good use case for a decorator.&lt;/p&gt;
+&lt;p&gt;A decorator can be used to extract duplicated work, and also to change the arguments to a function.  So we should be able to build a decorator that does the list-getting for us.  Here's the target:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span class="nd"&gt;@get_list&lt;/span&gt;
+&lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;add_item&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;request&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;list_&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
+    &lt;span class="n"&gt;Item&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;objects&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;create&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;text&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="n"&gt;request&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;POST&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;item_text&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;],&lt;/span&gt; &lt;span class="nb"&gt;list&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="n"&gt;list_&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+    &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="n"&gt;redirect&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;/lists/&lt;/span&gt;&lt;span class="si"&gt;%d&lt;/span&gt;&lt;span class="s"&gt;/&amp;#39;&lt;/span&gt; &lt;span class="o"&gt;%&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;list_&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;id&lt;/span&gt;&lt;span class="p"&gt;,))&lt;/span&gt;
+
+
+&lt;span class="nd"&gt;@get_list&lt;/span&gt;
+&lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;view_list&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;request&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;list_&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
+    &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="n"&gt;render&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;request&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s"&gt;&amp;#39;list.html&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;list&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="n"&gt;list_&lt;/span&gt;&lt;span class="p"&gt;})&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;So how do we build a decorator that does that?  A decorator is a function that takes a function, and returns another function that does a slightly modified version of the work the original function was doing.  We want our decorator to transform the simplified view functions we have above, into something that looks like the original functions.&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;(you end up saying "function" a lot in any explanation of decorators...)&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;Here's a template:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;get_list&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;view_fn&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
+
+    &lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;decorated_view&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="o"&gt;...&lt;/span&gt;&lt;span class="err"&gt;?&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
+        &lt;span class="err"&gt;???&lt;/span&gt;
+        &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="n"&gt;view_fn&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="o"&gt;...&lt;/span&gt;&lt;span class="err"&gt;?&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+
+    &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="n"&gt;decorated_view&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;Can you get it working?  Thankfully, our code has tests, so they'll tell you when you get it right...&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span class="n"&gt;git&lt;/span&gt; &lt;span class="n"&gt;clone&lt;/span&gt; &lt;span class="o"&gt;-&lt;/span&gt;&lt;span class="n"&gt;b&lt;/span&gt; &lt;span class="n"&gt;chapter_06&lt;/span&gt; &lt;span class="n"&gt;https&lt;/span&gt;&lt;span class="o"&gt;:&lt;/span&gt;&lt;span class="c1"&gt;//github.com/hjwp/book-example&lt;/span&gt;
+&lt;span class="n"&gt;python3&lt;/span&gt; &lt;span class="n"&gt;manage&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;py&lt;/span&gt; &lt;span class="n"&gt;test&lt;/span&gt; &lt;span class="n"&gt;lists&lt;/span&gt; &lt;span class="err"&gt;#&lt;/span&gt; &lt;span class="n"&gt;dependencies&lt;/span&gt;&lt;span class="o"&gt;:&lt;/span&gt; &lt;span class="n"&gt;django&lt;/span&gt; &lt;span class="mf"&gt;1.7&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;h2&gt;Some rules of thumb for decorators:&lt;/h2&gt;
+&lt;ul&gt;
+&lt;li&gt;they usually contain an "internal" function definition, which ends up being what the decorator returns.&lt;/li&gt;
+&lt;li&gt;that internal function usually calls the original function.&lt;/li&gt;
+&lt;li&gt;that internal function also needs to return something.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Decorators definitely are a bit brain-melting, so it may take a bit of effort to wrap your head around it.  Once you get the hang of them, they're dead useful though,&lt;/p&gt;
+&lt;h2&gt;A simpler decorator challenge:&lt;/h2&gt;
+&lt;p&gt;If you're finding it impossible, you could start with a simpler challenge...  say, building a decorator to make functions return an absolute value:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;absolute&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;fn&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
+    &lt;span class="c"&gt;# this decorator currently does nothing&lt;/span&gt;
+    &lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;modified_fn&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;x&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
+        &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="n"&gt;fn&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;x&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+    &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="n"&gt;modified_fn&lt;/span&gt;
+
+
+&lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;foo&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;x&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
+    &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="mi"&gt;1&lt;/span&gt; &lt;span class="o"&gt;-&lt;/span&gt; &lt;span class="n"&gt;x&lt;/span&gt;
+
+&lt;span class="k"&gt;assert&lt;/span&gt; &lt;span class="n"&gt;foo&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mi"&gt;3&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="o"&gt;==&lt;/span&gt; &lt;span class="o"&gt;-&lt;/span&gt;&lt;span class="mi"&gt;2&lt;/span&gt;
+
+
+&lt;span class="nd"&gt;@absolute&lt;/span&gt;
+&lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;foo&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;x&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
+    &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="mi"&gt;1&lt;/span&gt; &lt;span class="o"&gt;-&lt;/span&gt; &lt;span class="n"&gt;x&lt;/span&gt;
+
+&lt;span class="k"&gt;assert&lt;/span&gt; &lt;span class="n"&gt;foo&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mi"&gt;3&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="o"&gt;==&lt;/span&gt; &lt;span class="mi"&gt;2&lt;/span&gt;  &lt;span class="c"&gt;# this will fail, get is passing!&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;Try it out:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span class="n"&gt;git&lt;/span&gt; &lt;span class="n"&gt;clone&lt;/span&gt; &lt;span class="n"&gt;https&lt;/span&gt;&lt;span class="o"&gt;:&lt;/span&gt;&lt;span class="c1"&gt;//gist.github.com/2cc523b66d9c0fe41c4b.git deccy&lt;/span&gt;
+&lt;span class="n"&gt;python3&lt;/span&gt; &lt;span class="n"&gt;deccy&lt;/span&gt;&lt;span class="o"&gt;/&lt;/span&gt;&lt;span class="n"&gt;deccy&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;py&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;Enjoy!&lt;/p&gt;
+&lt;p&gt;&lt;em&gt;[update 2014-10-23 at 3pm, see also &lt;a href="https://www.youtube.com/watch?v=Jmf48MJpLEM"&gt;@baroque, the decorating decorator decorator&lt;/a&gt;]&lt;/em&gt;&lt;/p&gt;</summary><category term="Python"></category><category term="decorators"></category><category term="Django"></category></entry><entry><title>Test-Driving a docker-based Postgres service using py.test</title><link href="http://www.obeythetestinggoat.com/test-driving-a-docker-based-postgres-service-using-pytest.html" rel="alternate"></link><updated>2014-09-11T16:59:00+01:00</updated><author><name>Harry</name></author><id>tag:www.obeythetestinggoat.com,2014-09-11:test-driving-a-docker-based-postgres-service-using-pytest.html</id><summary type="html">&lt;p&gt;&lt;em&gt;[Cross-posted on the &lt;a href="https://blog.pythonanywhere.com/97/"&gt;PythonAnywhere blog&lt;/a&gt;]&lt;/em&gt;&lt;/p&gt;
+&lt;p&gt;We've been working on incorporating a Postgres database service into PythonAnywhere, and we decided to make it into a bit of a standalone project.  The shiny is that we're using Docker to containerise Postgres servers for our users, and while we were at it we thought we'd try a bit of a different approach to testing.  I'd be interested in feedback -- what do you like, what might you do differently?&lt;/p&gt;
+&lt;h2&gt;Context:  A Docker-based Postgres service&lt;/h2&gt;
+&lt;p&gt;The objective is to build a service that, on demand, will spin up a Docker container with Postgres running on it, and listening on a particular port.  The service is going to be controlled by a web API.  We've got Flask to run the web service, docker-py to control containers, and Ansible to provision servers.&lt;/p&gt;
+&lt;h2&gt;A single loop of integrated tests&lt;/h2&gt;
+&lt;p&gt;Normally we use a "double-loop" TDD process, with an outside loop of functional tests that use selenium to interact with our web app, and an inner loop of more isolated unit tests.  For our development of the Postgres service, we still have the outer loop of functional tests -- selenium tests that log into the site via a browser, and test the service from the perspective of the user -- clicking through the right buttons on our UI and seeing if they can get a console that connects to a new Postgres service.&lt;/p&gt;
+&lt;p&gt;But for the inner loop we were in a green field -- this wasn't going to be another app in our monolithic Django project, we wanted it to be a standalone service, one that you could package up and use in another context.  It would provide all its services via an API, and need no knowledge of the rest of PythonAnywhere.  So how should we write the self-contained tests for this app?  Should it, in turn, have a double loop?  Relying on isolated unit tests only felt like a waste of time -- after all, the whole app was basically a thin wrapper that hooks up a web service to a series of Docker commands.  All boundaries.  Isolated unit tests would end up being all mocks.  And from a TDD-process point of view, because we'd never actually used docker-py before, we didn't know its API, so we wouldn't know what mocks to write before we'd actually decided what the code was going to look like, and tried it out.  And trying it out would involve either running one of the PythonAnywhere FTs (super-slow, so a tediously and onerous feedback loop), or with manual tests, with all the uncertainty that implies.&lt;/p&gt;
+&lt;p&gt;So instead, it felt like starting with an intermediate-level layer of integrated tests might be best: we've already got our top-level UI layer full-stack tests in the form of functional tests.  The next level down was the API level -- does calling this particular URL on the API &lt;em&gt;actually&lt;/em&gt; give us a working container?&lt;/p&gt;
+&lt;h2&gt;An example test&lt;/h2&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;test_create_starts_container_with_postgres_connectable&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;docker_cleanup&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
+    &lt;span class="n"&gt;response&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;post_to_api_create&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;
+
+    &lt;span class="n"&gt;port&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;response&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;json&lt;/span&gt;&lt;span class="p"&gt;()[&lt;/span&gt;&lt;span class="s"&gt;&amp;quot;port&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;]&lt;/span&gt;
+    &lt;span class="k"&gt;assert&lt;/span&gt; &lt;span class="n"&gt;port&lt;/span&gt; &lt;span class="o"&gt;&amp;gt;&lt;/span&gt; &lt;span class="mi"&gt;1024&lt;/span&gt;
+
+    &lt;span class="n"&gt;connection&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;psycopg2&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;connect&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;
+        &lt;span class="n"&gt;database&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="s"&gt;&amp;quot;postgres&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+        &lt;span class="n"&gt;user&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="s"&gt;&amp;quot;pythonanywhere_helper&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;password&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="s"&gt;&amp;quot;papwd&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+        &lt;span class="n"&gt;host&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="s"&gt;&amp;quot;localhost&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;port&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="n"&gt;port&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+    &lt;span class="p"&gt;)&lt;/span&gt;
+    &lt;span class="n"&gt;connection&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;close&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;Where&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;post_to_api_create&lt;/span&gt;&lt;span class="p"&gt;():&lt;/span&gt;
+    &lt;span class="n"&gt;response&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;requests&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;post&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;
+        &lt;span class="s"&gt;&amp;quot;http://localhost:5000/api/create&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+        &lt;span class="p"&gt;{&lt;/span&gt;&lt;span class="s"&gt;&amp;quot;admin_password&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="s"&gt;&amp;quot;papwd&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;}&lt;/span&gt;
+    &lt;span class="p"&gt;)&lt;/span&gt;
+    &lt;span class="k"&gt;assert&lt;/span&gt; &lt;span class="n"&gt;response&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;status_code&lt;/span&gt; &lt;span class="o"&gt;==&lt;/span&gt; &lt;span class="mi"&gt;200&lt;/span&gt;
+    &lt;span class="k"&gt;assert&lt;/span&gt; &lt;span class="n"&gt;response&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;json&lt;/span&gt;&lt;span class="p"&gt;()[&lt;/span&gt;&lt;span class="s"&gt;&amp;quot;status&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;]&lt;/span&gt; &lt;span class="o"&gt;==&lt;/span&gt; &lt;span class="s"&gt;&amp;quot;OK&amp;quot;&lt;/span&gt;
+    &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="n"&gt;response&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;So you can see that's a very integration-ey, end-to-end test -- it does a real POST request, to a place where it expects to see an actual webapp running, and it expects to see a real, connectable database spun up and ready for it.&lt;/p&gt;
+&lt;p&gt;Now this test runs in about 10 seconds - not super-fast, like the milliseconds you might want a unit test to run in, but much faster than our FT, which takes 5 or 6 minutes. And, meanwhile, we can actually write this test first. To write an isolated, mocky test, we'd need to know the docker-py API already, and be sure that it was going to work, which we weren't.&lt;/p&gt;
+&lt;p&gt;To illustrate this point, take a look at the difference between an early implementation and a later one:&lt;/p&gt;
+&lt;h3&gt;A first implementation&lt;/h3&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span class="n"&gt;USER_IMAGE_DOCKERFILE&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="s"&gt;&amp;#39;&amp;#39;&amp;#39;&lt;/span&gt;
+&lt;span class="s"&gt;FROM postgres&lt;/span&gt;
+&lt;span class="s"&gt;USER postgres&lt;/span&gt;
+&lt;span class="s"&gt;RUN /etc/init.d/postgresql start &amp;amp;&amp;amp; &lt;/span&gt;&lt;span class="se"&gt;\\&lt;/span&gt;&lt;span class="s"&gt;&lt;/span&gt;
+&lt;span class="s"&gt;    psql -c &amp;quot;CREATE USER pythonanywhere_helper WITH SUPERUSER PASSWORD &amp;#39;{hashed}&amp;#39;;&amp;quot;&lt;/span&gt;
+&lt;span class="s"&gt;CMD [&amp;quot;/usr/lib/postgresql/9.3/bin/postgres&amp;quot;, &amp;quot;-D&amp;quot;, &amp;quot;/var/lib/postgresql/9.3/main&amp;quot;, &amp;quot;-c&amp;quot;, &amp;quot;config_file=/etc/postgresql/9.3/main/postgresql.conf&amp;quot;]&lt;/span&gt;
+&lt;span class="s"&gt;&amp;#39;&amp;#39;&amp;#39;&lt;/span&gt;
+
+&lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;get_user_dockerfile&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;admin_password&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
+    &lt;span class="n"&gt;hashed&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="s"&gt;&amp;#39;md5&amp;#39;&lt;/span&gt; &lt;span class="o"&gt;+&lt;/span&gt; &lt;span class="n"&gt;md5&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;admin_password&lt;/span&gt; &lt;span class="o"&gt;+&lt;/span&gt; &lt;span class="s"&gt;&amp;#39;pythonanywhere_helper&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;hexdigest&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;
+    &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="n"&gt;USER_IMAGE_DOCKERFILE&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;format&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;
+        &lt;span class="n"&gt;hashed&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="n"&gt;hashed&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+    &lt;span class="p"&gt;)&lt;/span&gt;
+
+&lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;create_container_with_password&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;password&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
+    &lt;span class="n"&gt;tempdir&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;tempfile&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;mkdtemp&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;
+    &lt;span class="k"&gt;with&lt;/span&gt; &lt;span class="nb"&gt;open&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;os&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;path&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;join&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;tempdir&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s"&gt;&amp;#39;Dockerfile&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;),&lt;/span&gt; &lt;span class="s"&gt;&amp;#39;w&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="k"&gt;as&lt;/span&gt; &lt;span class="n"&gt;f&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;
+        &lt;span class="n"&gt;f&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;write&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;get_user_dockerfile&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;password&lt;/span&gt;&lt;span class="p"&gt;))&lt;/span&gt;
+
+    &lt;span class="n"&gt;response&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;docker&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;build&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;path&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="n"&gt;tempdir&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+    &lt;span class="n"&gt;response_lines&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="nb"&gt;list&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;response&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+
+    &lt;span class="n"&gt;image_finder&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="s"&gt;r&amp;#39;Successfully built ([0-9a-f]+)&amp;#39;&lt;/span&gt;
+    &lt;span class="n"&gt;match&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;re&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;search&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;image_finder&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;response_lines&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="o"&gt;-&lt;/span&gt;&lt;span class="mi"&gt;1&lt;/span&gt;&lt;span class="p"&gt;])&lt;/span&gt;
+    &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="n"&gt;match&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;
+        &lt;span class="n"&gt;image_id&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;match&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;group&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mi"&gt;1&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+    &lt;span class="k"&gt;else&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;
+        &lt;span class="k"&gt;raise&lt;/span&gt; &lt;span class="ne"&gt;Exception&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;Image failed to build:&lt;/span&gt;&lt;span class="se"&gt;\n&lt;/span&gt;&lt;span class="s"&gt;{}&amp;#39;&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;format&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;
+            &lt;span class="s"&gt;&amp;#39;&lt;/span&gt;&lt;span class="se"&gt;\n&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;join&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;response_lines&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+        &lt;span class="p"&gt;))&lt;/span&gt;
+
+    &lt;span class="n"&gt;container&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;docker&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;create_container&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;
+        &lt;span class="n"&gt;image&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="n"&gt;image_id&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+    &lt;span class="p"&gt;)&lt;/span&gt;
+    &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="n"&gt;container&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;(These are some library functions we wrote, I won't show you the trivial flask app that calls them).&lt;/p&gt;
+&lt;p&gt;This was one of our first attempts -- we needed to be able to customise the Postgres superuser password for each user, and our initial solution involved building a new image for each user, by generating and running a custom Dockerfile for them.&lt;/p&gt;
+&lt;p&gt;We were never quite sure whether the Dockerfile voodoo was going to work, and we weren't really Postgres experts either, so having the high-level integration test, which actually tried to spin up a container and connect to the Postgres database that should be running inside it, was a really good way of getting to a solution that worked.&lt;/p&gt;
+&lt;p&gt;Imagine what a more isolated test for this code might look like:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span class="nd"&gt;@patch&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;containers.docker&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;test_uses_dockerfile_to_build_new_image&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;mock_docker&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
+    &lt;span class="n"&gt;expected_dockerfile&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;USER_IMAGE_DOCKERFILE&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;format&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;
+        &lt;span class="s"&gt;&amp;#39;md5sekritpythonanywhere_helper&amp;#39;&lt;/span&gt;
+    &lt;span class="p"&gt;)&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;hexdigest&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;
+    &lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;check_dockerfile_contents&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;path&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
+        &lt;span class="k"&gt;with&lt;/span&gt; &lt;span class="nb"&gt;open&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;os&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;path&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;join&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;path&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s"&gt;&amp;#39;Dockerfile&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;))&lt;/span&gt; &lt;span class="k"&gt;as&lt;/span&gt; &lt;span class="n"&gt;f&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;
+            &lt;span class="k"&gt;assert&lt;/span&gt; &lt;span class="n"&gt;f&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;read&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt; &lt;span class="o"&gt;==&lt;/span&gt; &lt;span class="n"&gt;expected_dockerfile&lt;/span&gt;
+
+    &lt;span class="n"&gt;mock_docker&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;build&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;side_effect&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;check_dockerfile_contents&lt;/span&gt;
+
+    &lt;span class="n"&gt;create_container_with_password&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;sekrit&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+
+    &lt;span class="k"&gt;assert&lt;/span&gt; &lt;span class="n"&gt;mock_docker&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;build&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;called&lt;/span&gt; &lt;span class="ow"&gt;is&lt;/span&gt; &lt;span class="bp"&gt;True&lt;/span&gt;
+
+ &lt;span class="nd"&gt;@patch&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;containers.docker&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;test_creates_container_from_docker_image&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;mock_docker&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
+    &lt;span class="n"&gt;create_container_with_password&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;sekrit&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+    &lt;span class="n"&gt;mock_docker&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;create_container&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;assert_called_once_with&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;
+        &lt;span class="n"&gt;mock_docker&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;build&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;return_value&lt;/span&gt;
+    &lt;span class="p"&gt;)&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;There's no way we could have written that test until we actually had a working solution.  And, on top of that, the test would have been totally useless when it came to evolving our requirements and our solution&lt;/p&gt;
+&lt;h3&gt;A later implementation -- but minimal change to the main test&lt;/h3&gt;
+&lt;p&gt;To give you an idea, here's what our current implementation looks like:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;start_new_container&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;storage_dirname&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;password&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;requested_port&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
+    &lt;span class="n"&gt;prep_storage_dir&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;storage_dirname&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+    &lt;span class="n"&gt;run_command_on_temporary_container_with_mounts&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;
+        &lt;span class="n"&gt;command&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;chown&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s"&gt;&amp;#39;-R&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s"&gt;&amp;#39;postgres:postgres&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;POSTGRES_DIR&lt;/span&gt;&lt;span class="p"&gt;],&lt;/span&gt;
+        &lt;span class="n"&gt;storage_dirname&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="n"&gt;storage_dirname&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+        &lt;span class="n"&gt;user&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;root&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+    &lt;span class="p"&gt;)&lt;/span&gt;
+    &lt;span class="n"&gt;run_command_on_temporary_container_with_mounts&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;
+        &lt;span class="n"&gt;command&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;
+            &lt;span class="s"&gt;&amp;#39;bash&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s"&gt;&amp;#39;-c&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; 
+            &lt;span class="n"&gt;INITIALISE_POSTGRES_AND_SET_PASSWORD&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;format&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;password&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+        &lt;span class="p"&gt;],&lt;/span&gt;
+        &lt;span class="n"&gt;storage_dirname&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="n"&gt;storage_dirname&lt;/span&gt;
+    &lt;span class="p"&gt;)&lt;/span&gt;
+    &lt;span class="n"&gt;user_container&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;create_postgres_container&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;name&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="n"&gt;storage_dirname&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+    &lt;span class="n"&gt;start_container_with_storage&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;
+        &lt;span class="n"&gt;user_container&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;storage_dirname&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; 
+        &lt;span class="n"&gt;ports&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="p"&gt;{&lt;/span&gt;&lt;span class="n"&gt;POSTGRES_PORT&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="n"&gt;requested_port&lt;/span&gt;&lt;span class="p"&gt;},&lt;/span&gt;
+    &lt;span class="p"&gt;)&lt;/span&gt;
+    &lt;span class="k"&gt;with&lt;/span&gt; &lt;span class="nb"&gt;open&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;port_file_path&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;storage_dirname&lt;/span&gt;&lt;span class="p"&gt;),&lt;/span&gt; &lt;span class="s"&gt;&amp;#39;w&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="k"&gt;as&lt;/span&gt; &lt;span class="n"&gt;f&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;
+        &lt;span class="n"&gt;f&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;write&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nb"&gt;str&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;requested_port&lt;/span&gt;&lt;span class="p"&gt;))&lt;/span&gt;
+    &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="n"&gt;requested_port&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;I won't bore you with the details of &lt;code&gt;run_command_on_temporary_container_with_mounts&lt;/code&gt;, but one way or another we realised that building separate images for each user wasn't going to work, and that instead we were going to want to have some permanent storage mounted in from outside of Docker, which would contain the Postgres data directory, and which would effectively "save" customisations like the user's password.&lt;/p&gt;
+&lt;p&gt;So a radically different implementation, but look how little the main test changed:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;post_to_api_create&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;storage_dir&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="bp"&gt;None&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;port&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="bp"&gt;None&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
+    &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="n"&gt;storage_dir&lt;/span&gt; &lt;span class="ow"&gt;is&lt;/span&gt; &lt;span class="bp"&gt;None&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;
+        &lt;span class="n"&gt;storage_dir&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;uuid&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;uuid4&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;
+    &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="n"&gt;port&lt;/span&gt; &lt;span class="ow"&gt;is&lt;/span&gt; &lt;span class="bp"&gt;None&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;
+        &lt;span class="n"&gt;port&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;random&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;randint&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mi"&gt;6000&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="mi"&gt;9999&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+    &lt;span class="n"&gt;response&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;requests&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;post&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;
+        &lt;span class="s"&gt;&amp;quot;https://localhost/api/containers/&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+        &lt;span class="p"&gt;{&lt;/span&gt;
+            &lt;span class="s"&gt;&amp;quot;storage_dir&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="n"&gt;storage_dir&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+            &lt;span class="s"&gt;&amp;quot;admin_password&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="n"&gt;OUR_PASSWORD&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+            &lt;span class="s"&gt;&amp;quot;port&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="n"&gt;port&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+        &lt;span class="p"&gt;},&lt;/span&gt;
+        &lt;span class="n"&gt;verify&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="bp"&gt;False&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+    &lt;span class="p"&gt;)&lt;/span&gt;
+    &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="n"&gt;response&lt;/span&gt;
+
+&lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;test_create_starts_container_with_postgres_connectable&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;docker_cleanup&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
+    &lt;span class="n"&gt;response&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;post_to_api_create&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;port&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="mi"&gt;6123&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+    &lt;span class="c"&gt;# rest of test as before!&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;And now imagine all the time we'd have had to spend rewriting mocks, if we'd decided to have isolated tests as well.&lt;/p&gt;
+&lt;h2&gt;Aside: py.test observations&lt;/h2&gt;
+&lt;p&gt;One py.test selling point is "less boilerplate". Notice that none of these tests are methods in a class, and there's no self variable.  On top of that, we just use &lt;code&gt;assert&lt;/code&gt; keywords, no complicated remembering of &lt;code&gt;self.assertIn&lt;/code&gt;, &lt;code&gt;self.assertIsNotNone&lt;/code&gt;,  and so on.  Absolutely loving that.&lt;/p&gt;
+&lt;h3&gt;py.test fixtures&lt;/h3&gt;
+&lt;p&gt;Another thing you may be interested in is the &lt;code&gt;docker_cleanup&lt;/code&gt; argument to the test.  py.test will magically look for a special fixture function named the same as that argument, and use it in the test.  Here's how it looks:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span class="kn"&gt;from&lt;/span&gt; &lt;span class="nn"&gt;docker&lt;/span&gt; &lt;span class="kn"&gt;import&lt;/span&gt; &lt;span class="n"&gt;Client&lt;/span&gt;
+&lt;span class="n"&gt;docker&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;Client&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;base_url&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;unix://var/run/docker.sock&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+
+&lt;span class="nd"&gt;@pytest.fixture&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;
+&lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;docker_cleanup&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;request&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
+    &lt;span class="n"&gt;containers_before&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;docker&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;containers&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;
+
+    &lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;kill_new_containers&lt;/span&gt;&lt;span class="p"&gt;():&lt;/span&gt;
+        &lt;span class="n"&gt;current_containers&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;docker&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;containers&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;
+        &lt;span class="k"&gt;for&lt;/span&gt; &lt;span class="n"&gt;container&lt;/span&gt; &lt;span class="ow"&gt;in&lt;/span&gt; &lt;span class="n"&gt;current_containers&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;
+            &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="n"&gt;container&lt;/span&gt; &lt;span class="ow"&gt;not&lt;/span&gt; &lt;span class="ow"&gt;in&lt;/span&gt; &lt;span class="n"&gt;containers_before&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;
+                &lt;span class="k"&gt;print&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;killing {}&amp;#39;&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;format&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;container&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;Names&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;][&lt;/span&gt;&lt;span class="mi"&gt;0&lt;/span&gt;&lt;span class="p"&gt;]))&lt;/span&gt;
+                &lt;span class="n"&gt;docker&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;kill&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;container&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+
+    &lt;span class="n"&gt;request&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;addfinalizer&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;kill_new_containers&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+    &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="n"&gt;kill_new_containers&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;The fixture function has a couple of jobs:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;It adds a "finalizer" (the equivalent of unittest &lt;code&gt;addCleanup&lt;/code&gt; or &lt;code&gt;tearDown&lt;/code&gt;) which will run at the end of the tests, to kill any containers that have been started by the test&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;It provides that same finalizer, and a helper method to identify new containers, to the tests that use the fixture, as a helper tool (I haven't showed any examples of that here though)&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;As it's illustrated here, there are no obvious advantages over the unittest &lt;code&gt;setUp/tearDown&lt;/code&gt; ideas, although you can see it would make it a little easier to share setup and cleanup code between tests in different files and tests.  There's a lot more to them, and if you really want to get #mindblown, go checkout out &lt;a href="http://pytest.org/latest/yieldfixture.html"&gt;pytest yield fixtures&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;Incidentally, until I started using py.test I'd always associated "fixtures" with Django "fixtures", which basically meant serialized versions of model data, but really py.test is using the word in a more correct usage of the term, to mean "state that the world has to be in for the test to run properly".&lt;/p&gt;
+&lt;h1&gt;The pros &amp;amp; cons of the "integrated-tests-only" workflow&lt;/h1&gt;
+&lt;h4&gt;Pros:&lt;/h4&gt;
+&lt;ul&gt;
+&lt;li&gt;Allowed us to experiment freely with an API that was new to us, and get feedback on whether it was &lt;em&gt;really&lt;/em&gt; working&lt;/li&gt;
+&lt;li&gt;Allowed us to refactor code freely, extracting helper functions etc, without needing to rewrite mocky unit tests&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h4&gt;Cons:&lt;/h4&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;Being end-to-end tests, they ran much slower than unit tests would - on the order of seconds, and later, a minute or two, once we grew from three or four tests to a dozen or two. And, on top of that...&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;Being integrated tests, they're not designed to run on a development machine. Instead, each code change means pushing updated source up to the server using Ansible, restarting the control webapp, and then re-running the tests in an SSH session.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;Because the tests call across a web API, the code being tested runs in a different process to he test code, meaning tracebacks aren't integrated into your test results.  Instead, you have to tail a logfile, and make sure you have logging set up appropriately.&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Conclusions and next steps&lt;/h2&gt;
+&lt;p&gt;I can potentially imagine a time when we might start to see value in a layer of "real" unit tests... So far though, there's really no "business logic" that we could extract and write fast unit tests for. Or at least, there's no business logic that I identify as such, and I'd be very pleased for someone to come along and school me about it?&lt;/p&gt;
+&lt;p&gt;On the other hand, I can definitely see a time where we might want to split out our tests for the web API from the tests for the Postgres and Docker stuff, and I can see value in a setup where a developer can run these tests locally rather than having to push code up to a dev box.  Vagrant and VirtualBox might be one solution, but, honestly, installing Docker and Postgres on a dev box doesn't feel that onerous either, as long as we know we'll be testing on a "real" box in CI. Or at least, it doesn't feel onerous until we start talking about my poor laptop with its paltry 120GB SSD.  No room here!&lt;/p&gt;
+&lt;p&gt;And the bonus of being able to see honest-to-God tracebacks in your test run output feels like it might be worth it.&lt;/p&gt;
+&lt;p&gt;But, overall, at this stage in development, given the almost total lack of "business logic" in our app, and given the fact that we were working with a new API and a new set of technologies -- I've found that doing without "real" unit tests has actually worked very well.&lt;/p&gt;</summary><category term="Docker"></category><category term="py.test"></category><category term="integrated tests"></category><category term="integration tests"></category></entry><entry><title>How to get Selenium to wait for page load after a click</title><link href="http://www.obeythetestinggoat.com/how-to-get-selenium-to-wait-for-page-load-after-a-click.html" rel="alternate"></link><updated>2014-09-03T00:00:00+01:00</updated><author><name>Harry</name></author><id>tag:www.obeythetestinggoat.com,2014-09-03:how-to-get-selenium-to-wait-for-page-load-after-a-click.html</id><summary type="html">&lt;h2&gt;Oft-heard is the folorn cry...&lt;/h2&gt;
+&lt;p&gt;Every so often you get bitten by a weird behaviour in one of your Selenium tests.  You tell it to click a link, and then you ask it something about the new page, and it returns you something from the old page:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span class="n"&gt;old_value&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;browser&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;find_element_by_id&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;my-id&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;text&lt;/span&gt;
+&lt;span class="n"&gt;browser&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;find_element_by_link_text&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;my link&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;click&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;
+&lt;span class="n"&gt;new_value&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;browser&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;find_element_by_id&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;my-id&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;text&lt;/span&gt;
+&lt;span class="k"&gt;assert&lt;/span&gt; &lt;span class="n"&gt;new_value&lt;/span&gt; &lt;span class="o"&gt;!=&lt;/span&gt; &lt;span class="n"&gt;old_value&lt;/span&gt; &lt;span class="c"&gt;## fails unexpectedly&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;&lt;em&gt;(There's another example, &lt;a href="http://chimera.labs.oreilly.com/books/1234000000754/ch20.html#_a_common_selenium_problem_race_conditions"&gt;in chapter 20 of my book&lt;/a&gt;)&lt;/em&gt;&lt;/p&gt;
+&lt;p&gt;You scratch your head, and eventually conclude Selenium must be fetching the element from the old page.  "Why would it do that?!", you exclaim in a programmer-rage, "In real life, when you click on a link, you see the browser starts to load a new page, and you wait for it to load, right?  That's obviously what you'd want Selenium to do too, and it should be totally trivial to implement!"&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;"Selenium should just wait until the page has completed loading after you click!"&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span class="n"&gt;browser&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;find_element_by_link_text&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;my link&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;click&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt; &lt;span class="c"&gt;# should just block until the next page has loaded&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;... with a sane timeout perhaps.  There's even a &lt;code&gt;document.readyState&lt;/code&gt; &lt;a href="https://dvcs.w3.org/hg/webdriver/raw-file/default/webdriver-spec.html#page-load-strategies-1"&gt;API&lt;/a&gt; for checking on whether a page has loaded!  Grrr...&lt;/p&gt;
+&lt;p&gt;The thing is that, from the Selenium point of view, it's not that simple (and I'm grateful for David from Mozilla (&lt;a href="https://twitter.com/AutomatedTester"&gt;@AutomatedTester&lt;/a&gt;) for patiently explaining this to me, more than once.)&lt;/p&gt;
+&lt;p&gt;You see, Selenium has no way of telling whether you've asked it to click on a "real" hyperlink that goes to a new URL, or whether the link goes to the same page, or whether the click is going to be intercepted by some sort of JavaScript to do some rich UI stuff on the same page.&lt;/p&gt;
+&lt;p&gt;More than that, since Selenium webdriver has become more advanced, clicks are much more like "real" clicks, which has the benefit of making our tests more realistic, but it also means it's hard for Selenium to be able to track the impact that a click has on the browsers' internals -- it might try to poll the browser for its page-loaded status immediately after clicking, but that's open to a race condition where the browser was multitasking, hasn't quite got round to dealing with the click yet, and it gives you the &lt;code&gt;.readyState&lt;/code&gt; of the old page.&lt;/p&gt;
+&lt;p&gt;So, instead, Selenium does its best.  The &lt;code&gt;implicitly_wait&lt;/code&gt; argument will at least put a little retry loop in if you try and fetch an element that doesn't exist on the old page:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span class="n"&gt;browser&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;implicitly_wait&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mi"&gt;3&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;span class="n"&gt;old_value&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;browser&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;find_element_by_id&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;thing-on-old-page&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;text&lt;/span&gt;
+&lt;span class="n"&gt;browser&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;find_element_by_link_text&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;my link&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;click&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;
+&lt;span class="n"&gt;new_value&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;browser&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;find_element_by_id&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;thing-on-new-page&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;text&lt;/span&gt; &lt;span class="c"&gt;# will block for 3 seconds until thing-on-new-page appears&lt;/span&gt;
+&lt;span class="k"&gt;assert&lt;/span&gt; &lt;span class="n"&gt;new_value&lt;/span&gt; &lt;span class="o"&gt;!=&lt;/span&gt; &lt;span class="n"&gt;old_value&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;But the problem comes when &lt;code&gt;#thing-on-new-page&lt;/code&gt; also exists on the old page.  So what to do?&lt;/p&gt;
+&lt;p&gt;The "recommended" solution is an 
+&lt;a href="https://selenium.googlecode.com/git/docs/api/py/webdriver_support/selenium.webdriver.support.expected_conditions.html"&gt;explicit wait&lt;/a&gt;:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span class="kn"&gt;from&lt;/span&gt; &lt;span class="nn"&gt;selenium.webdriver.common.by&lt;/span&gt; &lt;span class="kn"&gt;import&lt;/span&gt; &lt;span class="n"&gt;By&lt;/span&gt;
+&lt;span class="kn"&gt;from&lt;/span&gt; &lt;span class="nn"&gt;selenium.webdriver.support.ui&lt;/span&gt; &lt;span class="kn"&gt;import&lt;/span&gt; &lt;span class="n"&gt;WebDriverWait&lt;/span&gt; 
+&lt;span class="kn"&gt;from&lt;/span&gt; &lt;span class="nn"&gt;selenium.webdriver.support&lt;/span&gt; &lt;span class="kn"&gt;import&lt;/span&gt; &lt;span class="n"&gt;expected_conditions&lt;/span&gt;
+
+&lt;span class="n"&gt;old_value&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;browser&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;find_element_by_id&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;thing-on-old-page&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;text&lt;/span&gt;
+&lt;span class="n"&gt;browser&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;find_element_by_link_text&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;my link&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;click&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;
+&lt;span class="n"&gt;WebDriverWait&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;browser&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="mi"&gt;3&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;until&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;
+    &lt;span class="n"&gt;expected_conditions&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;text_to_be_present_in_element&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;
+        &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;By&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;ID&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s"&gt;&amp;#39;thing-on-new-page&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;),&lt;/span&gt;
+        &lt;span class="s"&gt;&amp;#39;expected new text&amp;#39;&lt;/span&gt;
+    &lt;span class="p"&gt;)&lt;/span&gt;
+&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;Several problems with that though:&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;HIDEOUSLY UGLY &lt;a href="https://twitter.com/raganwald/status/504252812272754688"&gt;*&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;It's not generic --  even if I do write a nice wrapper, it's tedious to have to call it every time I click on a thing, specifying a different other thing to wait for each time&lt;/li&gt;
+&lt;li&gt;And it won't work for the case when I want to check that some text stays the &lt;em&gt;same&lt;/em&gt; between page loads.&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;Really, I just want a reliable way of waiting until the page has finished loading after I click on a thing.  I totally understand that David and pals aren't going to provide that for me by default because they can't tell what's a Javascript click and what's a click that goes to a new page, but &lt;em&gt;I&lt;/em&gt; know.  But how to do it?&lt;/p&gt;
+&lt;h3&gt;Some things that won't work&lt;/h3&gt;
+&lt;p&gt;The naive attempt would be something like this:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;wait_for&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;condition_function&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
+    &lt;span class="n"&gt;start_time&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;time&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;time&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;
+    &lt;span class="k"&gt;while&lt;/span&gt; &lt;span class="n"&gt;time&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;time&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt; &lt;span class="o"&gt;&amp;lt;&lt;/span&gt; &lt;span class="n"&gt;start_time&lt;/span&gt; &lt;span class="o"&gt;+&lt;/span&gt; &lt;span class="mi"&gt;3&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;
+        &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="n"&gt;condition_function&lt;/span&gt;&lt;span class="p"&gt;():&lt;/span&gt;
+            &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="bp"&gt;True&lt;/span&gt;
+        &lt;span class="k"&gt;else&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;
+            &lt;span class="n"&gt;time&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;sleep&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mf"&gt;0.1&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+    &lt;span class="k"&gt;raise&lt;/span&gt; &lt;span class="ne"&gt;Exception&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;
+        &lt;span class="s"&gt;&amp;#39;Timeout waiting for {}&amp;#39;&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;format&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;condition_function&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;__name__&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+    &lt;span class="p"&gt;)&lt;/span&gt;
+
+
+&lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;click_through_to_new_page&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;link_text&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
+    &lt;span class="n"&gt;browser&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;find_element_by_link_text&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;my link&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;click&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;
+
+    &lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;page_has_loaded&lt;/span&gt;&lt;span class="p"&gt;():&lt;/span&gt;
+        &lt;span class="n"&gt;page_state&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;browser&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;execute_script&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;
+            &lt;span class="s"&gt;&amp;#39;return document.readyState;&amp;#39;&lt;/span&gt;
+        &lt;span class="p"&gt;)&lt;/span&gt; 
+        &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="n"&gt;page_state&lt;/span&gt; &lt;span class="o"&gt;==&lt;/span&gt; &lt;span class="s"&gt;&amp;#39;complete&amp;#39;&lt;/span&gt;
+
+    &lt;span class="n"&gt;wait_for&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;page_has_loaded&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;The &lt;code&gt;wait_for&lt;/code&gt; helper function is good, but unfortunately &lt;code&gt;click_through_to_new_page&lt;/code&gt; is open to the race condition where we manage to execute the script in the old page, before the browser has started processing the click, and &lt;code&gt;page_has_loaded&lt;/code&gt; just returns true straight away.&lt;/p&gt;
+&lt;h3&gt;Our current working solution&lt;/h3&gt;
+&lt;p&gt;Full credit to &lt;a href="https://twitter.com/ThomasMarks/status/506439068327358464"&gt;@ThomasMarks&lt;/a&gt; for coming up with this: if you keep some references to elements from the old page lying around, then they will become stale once the DOM refreshes, and stale elements cause selenium to raise a &lt;code&gt;StaleElementReferenceException&lt;/code&gt; if you try and interact with them.  So just poll one until you get an error.  Bulletproof!&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;click_through_to_new_page&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;link_text&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
+    &lt;span class="n"&gt;link&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;browser&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;find_element_by_link_text&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;my link&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+    &lt;span class="n"&gt;link&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;click&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;
+
+    &lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;link_has_gone_stale&lt;/span&gt;&lt;span class="p"&gt;():&lt;/span&gt;
+        &lt;span class="k"&gt;try&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;
+            &lt;span class="c"&gt;# poll the link with an arbitrary call&lt;/span&gt;
+            &lt;span class="n"&gt;link&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;find_elements_by_id&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;doesnt-matter&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; 
+            &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="bp"&gt;False&lt;/span&gt;
+        &lt;span class="k"&gt;except&lt;/span&gt; &lt;span class="n"&gt;StaleElementReferenceException&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;
+            &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="bp"&gt;True&lt;/span&gt;
+
+    &lt;span class="n"&gt;wait_for&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;link_has_gone_stale&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;Or, here's a genericised, sanitized version of the same thing, based on comparing Selenium's internal "IDs" for an object, and made into a nice Pythonic context manager:&lt;/p&gt;
+&lt;p&gt;[&lt;em&gt;update 2014-09-06 -- see the comments, it's possible that comparing ids is not as efffective as waiting for stale reference exceptions. Will investigate, but bewarned that YMMV for now.&lt;/em&gt;]&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span class="k"&gt;class&lt;/span&gt; &lt;span class="nc"&gt;wait_for_page_load&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nb"&gt;object&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
+
+    &lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;__init__&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;browser&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
+        &lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;browser&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;browser&lt;/span&gt;
+
+    &lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;__enter__&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
+        &lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;old_page&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;browser&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;find_element_by_tag_name&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;html&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+
+    &lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;page_has_loaded&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
+        &lt;span class="n"&gt;new_page&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;browser&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;find_element_by_tag_name&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;html&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+        &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="n"&gt;new_page&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;id&lt;/span&gt; &lt;span class="o"&gt;!=&lt;/span&gt; &lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;old_page&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;id&lt;/span&gt;
+
+    &lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;__exit__&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt;&lt;span class="n"&gt;_&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
+        &lt;span class="n"&gt;wait_for&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;page_has_loaded&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;And now we can do:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span class="k"&gt;with&lt;/span&gt; &lt;span class="n"&gt;wait_for_page_load&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;browser&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
+    &lt;span class="n"&gt;browser&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;find_element_by_link_text&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;my link&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;click&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;And I think that might just be bulletproof!&lt;/p&gt;
+&lt;h2&gt;And for bonus points...&lt;/h2&gt;
+&lt;p&gt;Use the contextmanager decorator and the magical-but-slightly-scary yield keyword!&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span class="kn"&gt;from&lt;/span&gt; &lt;span class="nn"&gt;contextlib&lt;/span&gt; &lt;span class="kn"&gt;import&lt;/span&gt; &lt;span class="n"&gt;contextmanager&lt;/span&gt;
+
+&lt;span class="nd"&gt;@contextmanager&lt;/span&gt;
+&lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;wait_for_page_load&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;browser&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
+    &lt;span class="n"&gt;old_page&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;browser&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;find_element_by_tag_name&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;html&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+
+    &lt;span class="k"&gt;yield&lt;/span&gt;
+
+    &lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;page_has_loaded&lt;/span&gt;&lt;span class="p"&gt;():&lt;/span&gt;
+        &lt;span class="n"&gt;new_page&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;browser&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;find_element_by_tag_name&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;html&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+        &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="n"&gt;new_page&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;id&lt;/span&gt; &lt;span class="o"&gt;!=&lt;/span&gt; &lt;span class="n"&gt;old_page&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;id&lt;/span&gt;
+
+    &lt;span class="n"&gt;wait_for&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;page_has_loaded&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;Note that this solution only works for "non-javascript" clicks, ie clicks that will cause the browser to load a brand new page, and thus load a brand new HTML element.&lt;/p&gt;
+&lt;p&gt;Let me know what you think!&lt;/p&gt;</summary><category term="Selenium"></category><category term="javascript"></category><category term="Ajax"></category><category term="functional tests"></category></entry><entry><title>The print book is available!</title><link href="http://www.obeythetestinggoat.com/the-print-book-is-available.html" rel="alternate"></link><updated>2014-07-08T10:38:00+01:00</updated><author><name>Harry</name></author><id>tag:www.obeythetestinggoat.com,2014-07-08:the-print-book-is-available.html</id><summary type="html">&lt;p&gt;My copy of the print edition arrived in the post!&lt;/p&gt;
+&lt;figure&gt;
+    &lt;img src="/static/images/harry_with_new_book.jpg" alt="Harry holding his own book" /&gt;
+    &lt;figcaption&gt;I am my own customer...&lt;/figcaption&gt;
+&lt;/figure&gt;
+
+&lt;p&gt;&lt;br /&gt;&lt;/p&gt;
+&lt;p&gt;&lt;em&gt;(OK that actually happened last month.  This post is a little late.  I was distracted by Oscons and stuff!)&lt;/em&gt;&lt;/p&gt;
+&lt;p&gt;Anyway, that's it, it's officially available. If you've been reading the free online version and have been holding out until the print version comes out, now's the time!&lt;/p&gt;
+&lt;p&gt;Or, if you've been waiting for the print version to come out before recommending the book to a friend, or buying a book for your local usergroup, or whatever it'll be, you know...&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;a href="http://www.jdoqocy.com/click-7347114-11724864"&gt;Buy the book via O'Reilly&lt;/a&gt;.&lt;/li&gt;
+&lt;li&gt;&lt;a href="http://www.amazon.co.uk/gp/product/1449364829/ref=as_li_qf_sp_asin_tl?ie=UTF8&amp;amp;camp=1634&amp;amp;creative=6738&amp;amp;creativeASIN=1449364829&amp;amp;linkCode=as2&amp;amp;tag=obethetesgoa-21"&gt;Buy the book on amazon.com&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;The online version will always be free and licensed under creative commons.  I'll just link to the acknowledgements chapter, since it really wouldn't have been possible without all the help I got:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;a href="http://chimera.labs.oreilly.com/books/1234000000754/pr03.html"&gt;CC-licensed free version&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;It's been a crazy 18 months. Happy reading everyone!&lt;/p&gt;</summary><category term="Book"></category><category term="physical book"></category><category term="dead trees"></category><category term="release"></category></entry><entry><title>Kent Beck on the limits of TDD</title><link href="http://www.obeythetestinggoat.com/kent-beck-on-the-limits-of-tdd.html" rel="alternate"></link><updated>2014-06-03T11:28:00+01:00</updated><author><name>Harry</name></author><id>tag:www.obeythetestinggoat.com,2014-06-03:kent-beck-on-the-limits-of-tdd.html</id><summary type="html">&lt;p&gt;For anyone that's been following the DHH / #isTDDDead controversy, or
+for anyone interested in what the limits of TDD are.  Kent Beck (the
+godfather) had some really good reflections on what he was hoping to
+learn from the discussions:&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;I'm puzzled by the limits of TDD--it works so well for algorithm-y, data-structure-y code. I love the feeling of confidence I get when I use TDD. I love the sense that I have a series of achievable steps in front of me--can't imagine the implementation? no problem, you can always write a test. I recognize that TDD loses value as tests take longer to run, as the number of possible faults per test failure increases, as tests become coupled to the implementation, and as tests lose fidelity with the production environment. How far out can TDD be pushed? Are there special cases where TDD works surprisingly well? Poorly? At what point is the cure worse than the disease? How can answers to any and all of these questions be communicated effectively? &lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;Read the full post on &lt;a href="https://www.facebook.com/notes/kent-beck/learning-about-tdd-the-purpose-of-istdddead/768162959883237"&gt;his facebook&lt;/a&gt;, and follow the 
+&lt;a href="https://plus.google.com/events/cco30ri6dpkej4h4d8mejmat98o"&gt;next episode of #isTDDDead&lt;/a&gt;&lt;/p&gt;</summary><category term="TDD"></category><category term="#isTDDDead"></category><category term="limitations"></category></entry><entry><title>Book upgraded to Django 1.7!</title><link href="http://www.obeythetestinggoat.com/book-upgraded-to-django-17.html" rel="alternate"></link><updated>2014-04-02T12:23:00+01:00</updated><author><name>Harry</name></author><id>tag:www.obeythetestinggoat.com,2014-04-02:book-upgraded-to-django-17.html</id><summary type="html">&lt;p&gt;In a (futile) attempt to future-proof the book, I decided to upgrade it to
+Django 1.7. Here's how that went down.&lt;/p&gt;
+&lt;h2&gt;Overview&lt;/h2&gt;
+&lt;p&gt;Unsurprisingly, the biggest change was to do with migrations.  Like any new
+change, my initial reaction was dislike, and I resented the new things, but I
+think overall it's a definite improvment.&lt;/p&gt;
+&lt;p&gt;In brief, here's what happened:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;The new migrations framework means 'any' change to models needs a migration,
+  or tests won't pass.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;This meant introducing the concept of migrations much earlier in the book; 
+  in fact, at the same time as I introduce the ORM.  I resented this because
+  it made the learning curve of the book steeper.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;On the other hand, because the new version of migrations essentially forces
+  you to have them from the very beginning, I was able to drop an entire 
+  chapter that was devoted to retrospectively building migrations after the
+  first deployment, which included all sorts of checking out of old versions,
+  and using &lt;code&gt;--fake&lt;/code&gt;, and so on.  So that's a big win.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;Using step-by-step TDD also forces you to make more migrations than you really
+  want to, if you're adding fields and constraints step-by-step.  It means I have
+  to introduce the reader early on to the idea of replacing existing migrations
+  too, another steepening of the learning curve.&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Here's some detail on the changes.&lt;/p&gt;
+&lt;h2&gt;Migrations make the introduction of &lt;em&gt;models.py&lt;/em&gt; more complex&lt;/h2&gt;
+&lt;p&gt;In chapter 5, where we build the first model, the narrative used to go:&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;Write a test &lt;/li&gt;
+&lt;li&gt;See it fail&lt;/li&gt;
+&lt;li&gt;Add code in &lt;em&gt;models.py&lt;/em&gt;, step by step&lt;/li&gt;
+&lt;li&gt;Get the tests further, see a different failure&lt;/li&gt;
+&lt;li&gt;Add more code in &lt;em&gt;models.py&lt;/em&gt;&lt;/li&gt;
+&lt;li&gt;Get the tests passing&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;Now it goes:&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;Write a test &lt;/li&gt;
+&lt;li&gt;See it fail&lt;/li&gt;
+&lt;li&gt;Add code in &lt;em&gt;models.py&lt;/em&gt;, step by step&lt;/li&gt;
+&lt;li&gt;See a database error&lt;/li&gt;
+&lt;li&gt;Create a migration&lt;/li&gt;
+&lt;li&gt;See the tests get further, see a different failure&lt;/li&gt;
+&lt;li&gt;Add more code in &lt;em&gt;models.py&lt;/em&gt;&lt;/li&gt;
+&lt;li&gt;See a database error&lt;/li&gt;
+&lt;li&gt;Explain the concept of squashing migrations into one&lt;/li&gt;
+&lt;li&gt;Delete the existing migration and re-create it. &lt;/li&gt;
+&lt;li&gt;See the tests pass&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;So you can see it's more complicated.  On the other hand, understanding
+how Django gets from &lt;em&gt;models.py&lt;/em&gt; to the database is important.  I had been
+just hand-waving and saying "use syncdb, and just delete the database if
+anything goes wrong", so maybe it's better to address this stuff head-on,
+rather than wait for a complicated later chapter.&lt;/p&gt;
+&lt;p&gt;If you're curious, you can &lt;a href="http://chimera.labs.oreilly.com/books/1234000000754/ch05.html#_the_django_orm_amp_our_first_model"&gt;view the whole narrative here&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;&lt;em&gt;(If you're a Django core developer and you're reading this, I'd love to
+hear your thoughts btw.  There's a few weeks before the book goes to print
+yet, so there's still time to tell me I'm doing it all wrong!)&lt;/em&gt;&lt;/p&gt;
+&lt;p&gt;I still kinda wish I could have kept my nice shallow learning curve - 
+I expended a lot of effort with the book, in trying to make sure concepts
+are introduced one at a time and gradually, and now I feel I'm slightly
+forced to lump two concepts onto the reader at the same time.  But, there's
+clearly an upside.&lt;/p&gt;
+&lt;h2&gt;But they save me from a fairly horrible chapter 13...&lt;/h2&gt;
+&lt;p&gt;It was always going to be an unlucky chapter wasn't it.  Because I'd 
+glossed over the concept of migrations until then, I would get the
+readers to deploy their code to a server in chapter 8 or so, and
+then code some new stuff, including a new database feature.&lt;/p&gt;
+&lt;p&gt;Then I had a chapter 13 in which we would try and deploy to the staging
+site, and see the new feature wouldn't work.  So then I had to explain
+migrations, and go through this process:&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;Find the old commit that matches the point at which we did the last
+   deployment, and check out the old version of &lt;em&gt;models.py&lt;/em&gt; from it.&lt;/li&gt;
+&lt;li&gt;Do a &lt;code&gt;manage.py schemamigration&lt;/code&gt;, and create a migration to match live&lt;/li&gt;
+&lt;li&gt;Check out the latest version of &lt;em&gt;models.py&lt;/em&gt;, and do another &lt;code&gt;schemamigration&lt;/code&gt;
+   to get the migration we want to apply.&lt;/li&gt;
+&lt;li&gt;Test it out locally.  Check out the old &lt;em&gt;models.py&lt;/em&gt; again, delete the databse,
+   syncdb, then run &lt;code&gt;migrate 0001 --fake&lt;/code&gt;, then check out the new code, and
+   run &lt;code&gt;migrate&lt;/code&gt;, check it works&lt;/li&gt;
+&lt;li&gt;Adjust the deploy script to include &lt;code&gt;migrate 0001 --fake&lt;/code&gt; followed by a &lt;code&gt;migrate&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;Test deploying to staging... OK&lt;/li&gt;
+&lt;li&gt;Deploy to live&lt;/li&gt;
+&lt;li&gt;And, don't forget to now remove the &lt;code&gt;migrate 001 --fake&lt;/code&gt; from your deploy 
+   script.&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;Ouch! Quite a lot of pain there!  Especially when you consider that the new
+procedure is:&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;Run the deploy script.  It just works, because we've had migrations all
+   along.&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;:-)&lt;/p&gt;
+&lt;h2&gt;Other thoughts.&lt;/h2&gt;
+&lt;p&gt;I found the fact that tests would fail if you didn't have migrations intriguing,
+but unfortunately it's not something you can rely on.  For example, in chapter
+12 I introduce a &lt;code&gt;unique_together&lt;/code&gt; constraint and test it thusly:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;test_duplicate_items_are_invalid&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
+    &lt;span class="n"&gt;list_&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;List&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;objects&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;create&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;
+    &lt;span class="n"&gt;Item&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;objects&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;create&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nb"&gt;list&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="n"&gt;list_&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;text&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;bla&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+    &lt;span class="k"&gt;with&lt;/span&gt; &lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;assertRaises&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;ValidationError&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
+        &lt;span class="n"&gt;item&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;Item&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nb"&gt;list&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="n"&gt;list_&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;text&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;bla&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+        &lt;span class="n"&gt;item&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;full_clean&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;To get that passing, I just add my &lt;code&gt;unique_together&lt;/code&gt; constraint:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span class="k"&gt;class&lt;/span&gt; &lt;span class="nc"&gt;Item&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;models&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;Model&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
+    &lt;span class="n"&gt;text&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;models&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;TextField&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;
+    &lt;span class="nb"&gt;list&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;models&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;ForeignKey&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;List&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+
+    &lt;span class="k"&gt;class&lt;/span&gt; &lt;span class="nc"&gt;Meta&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;
+        &lt;span class="n"&gt;unique_together&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;list&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s"&gt;&amp;#39;text&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;And at this point &lt;em&gt;Django doesn't warn me that I need a migration&lt;/em&gt;, because
+the test is actually happening at the validation layer.&lt;/p&gt;
+&lt;p&gt;I think that's a bit of a shame, but there's probably nothing to be done about
+it.  It's all because the concepts of data validation and database integrity
+constraints are separate in Django, even though their implementation in 
+&lt;em&gt;models.py&lt;/em&gt; actually often happens in a single place...&lt;/p&gt;
+&lt;h2&gt;One last thing...&lt;/h2&gt;
+&lt;p&gt;&lt;img src="/static/images/makemigrations_screenshot_colour.png" /&gt;&lt;/p&gt;
+&lt;p&gt;I love the pretty colours!&lt;/p&gt;</summary><category term="django"></category><category term="beta"></category><category term="migrations"></category></entry><entry><title>How to log exceptions to stderr in Django</title><link href="http://www.obeythetestinggoat.com/how-to-log-exceptions-to-stderr-in-django.html" rel="alternate"></link><updated>2014-01-23T13:35:00+00:00</updated><author><name>Harry</name></author><id>tag:www.obeythetestinggoat.com,2014-01-23:how-to-log-exceptions-to-stderr-in-django.html</id><summary type="html">&lt;p&gt;Here's a common set of questions about Django:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;How do I get django to log errors to stderr?&lt;/li&gt;
+&lt;li&gt;Why can't I see Django exceptions in the console?&lt;/li&gt;
+&lt;li&gt;How do I get Django to log exceptions?&lt;/li&gt;
+&lt;li&gt;How to print debug messages in Django?&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;I know they're common because I've often found asking myself some kind of variant
+on these questions, at some point or other.  Then I saw that, in Django 1.6, the
+&lt;a href="https://docs.djangoproject.com/en/1.6/topics/logging/#django-s-default-logging-configuration"&gt;default logging configuration&lt;/a&gt; actually does send logging messages to the console&lt;/p&gt;
+&lt;p&gt;So does this mean that exceptions in Django are going to start appearing in the console
+then?  No.&lt;/p&gt;
+&lt;h2&gt;Just because you wish for it doesn't make it so&lt;/h2&gt;
+&lt;p&gt;I think my own difficulties with this issue stemmed from the fact that,
+&lt;em&gt;obviously&lt;/em&gt;, in my mind, the thing you'd want to log would be exceptions, and
+that, since Django will show us a clever debug page (if DEBUG iTrue), or a 
+standard server 500 page, then I sort of assumed it would log that exception
+as well. But it doesn't&lt;/p&gt;
+&lt;p&gt;The reason I struggled with this because I wasn't clear on the fact that there are
+actually two systems involved here:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Django's logging system (based on the Python &lt;code&gt;logging&lt;/code&gt; module)&lt;/li&gt;
+&lt;li&gt;Django's exception handling layer (middleware)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;By default (as of Django 1.6), Django &lt;em&gt;is&lt;/em&gt; configured to send logging messages to
+the console.  There are two gotchas however:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Django's default logging level is set to WARNING, which means any attempt to use
+&lt;code&gt;logging.debug&lt;/code&gt; or &lt;code&gt;logging.info&lt;/code&gt; will fail&lt;/li&gt;
+&lt;li&gt;Django has a middleware layer that automatically catches exceptions, and handles
+them differently depending on whether you have &lt;code&gt;DEBUG = True&lt;/code&gt; or not, but it 
+&lt;em&gt;doesn't&lt;/em&gt; explicitly log them.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Unit testing Django's logging config (if you want)&lt;/h2&gt;
+&lt;p&gt;This is a blog about TDD, so let's write a test first.  It works by monkey-patching
+in an extra view function into the project's url config (mwahahaha). The view then
+tries to do various calls to, eg, &lt;code&gt;logging.debug&lt;/code&gt;, just we'd like to be able to in 
+our real views.&lt;/p&gt;
+&lt;p&gt;Finally it explodes with an exception, so we can test whether any information about
+the exception ends up in the logs&lt;/p&gt;
+&lt;p&gt;We mock out sys.stderr to pick up on what was actually sent to the console.&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span class="c"&gt;# test assumes django 1.6 and project called &amp;#39;myproj&amp;#39;&lt;/span&gt;
+&lt;span class="c"&gt;# also assumes this file is saved in myproj/myproj/test_logging.py,&lt;/span&gt;
+&lt;span class="c"&gt;# ie in the same folder as settings.py&lt;/span&gt;
+&lt;span class="kn"&gt;from&lt;/span&gt; &lt;span class="nn"&gt;django.test&lt;/span&gt; &lt;span class="kn"&gt;import&lt;/span&gt; &lt;span class="n"&gt;TestCase&lt;/span&gt;
+&lt;span class="kn"&gt;from&lt;/span&gt; &lt;span class="nn"&gt;django.conf.urls&lt;/span&gt; &lt;span class="kn"&gt;import&lt;/span&gt; &lt;span class="n"&gt;url&lt;/span&gt;
+&lt;span class="kn"&gt;from&lt;/span&gt; &lt;span class="nn"&gt;unittest.mock&lt;/span&gt; &lt;span class="kn"&gt;import&lt;/span&gt; &lt;span class="n"&gt;patch&lt;/span&gt;
+&lt;span class="kn"&gt;import&lt;/span&gt; &lt;span class="nn"&gt;logging&lt;/span&gt;
+&lt;span class="kn"&gt;import&lt;/span&gt; &lt;span class="nn"&gt;sys&lt;/span&gt;
+&lt;span class="kn"&gt;from&lt;/span&gt; &lt;span class="nn"&gt;django.http&lt;/span&gt; &lt;span class="kn"&gt;import&lt;/span&gt; &lt;span class="n"&gt;HttpResponse&lt;/span&gt;
+&lt;span class="kn"&gt;from&lt;/span&gt; &lt;span class="nn"&gt;.urls&lt;/span&gt; &lt;span class="kn"&gt;import&lt;/span&gt; &lt;span class="n"&gt;urlpatterns&lt;/span&gt;
+&lt;span class="kn"&gt;from&lt;/span&gt; &lt;span class="nn"&gt;.settings&lt;/span&gt;  &lt;span class="kn"&gt;import&lt;/span&gt; &lt;span class="n"&gt;DEBUG&lt;/span&gt; &lt;span class="c"&gt;# django.conf.settings are messed with by test runner&lt;/span&gt;
+
+
+&lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;do_logging&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;request&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
+    &lt;span class="c"&gt;# dummy view that tries to log at all levels, and then raises an exception&lt;/span&gt;
+    &lt;span class="n"&gt;logging&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;debug&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;debug logged&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+    &lt;span class="n"&gt;logging&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;info&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;info logged&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+    &lt;span class="n"&gt;logging&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;warning&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;warning logged&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+    &lt;span class="n"&gt;logging&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;critical&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;critical logged&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+    &lt;span class="k"&gt;raise&lt;/span&gt; &lt;span class="ne"&gt;Exception&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;arg&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;span class="n"&gt;urls_with_logging_test&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;urlpatterns&lt;/span&gt; &lt;span class="o"&gt;+&lt;/span&gt; &lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="n"&gt;url&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;r&amp;#39;^testlogging/$&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;do_logging&lt;/span&gt;&lt;span class="p"&gt;)]&lt;/span&gt;
+
+
+&lt;span class="k"&gt;class&lt;/span&gt; &lt;span class="nc"&gt;LoggingTest&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;TestCase&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
+
+    &lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;test_level&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
+        &lt;span class="n"&gt;root_log_level&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;logging&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;getLogger&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;level&lt;/span&gt;
+        &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="n"&gt;DEBUG&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;
+            &lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;assertEqual&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;logging&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;getLevelName&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;root_log_level&lt;/span&gt;&lt;span class="p"&gt;),&lt;/span&gt; &lt;span class="s"&gt;&amp;#39;DEBUG&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+        &lt;span class="k"&gt;else&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;
+            &lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;assertEqual&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;logging&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;getLevelName&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;root_log_level&lt;/span&gt;&lt;span class="p"&gt;),&lt;/span&gt; &lt;span class="s"&gt;&amp;#39;INFO&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+
+
+    &lt;span class="nd"&gt;@patch&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;myproj.urls.urlpatterns&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;urls_with_logging_test&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+    &lt;span class="nd"&gt;@patch&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;myproj.test_logging.sys.stderr&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+    &lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;test_logs_to_stderr&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;mock_stderr&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
+        &lt;span class="k"&gt;try&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;
+            &lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;client&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;get&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;/testlogging/&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+        &lt;span class="k"&gt;except&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;
+            &lt;span class="k"&gt;pass&lt;/span&gt;
+        &lt;span class="n"&gt;written&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="s"&gt;&amp;#39;&amp;#39;&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;join&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;c&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="mi"&gt;0&lt;/span&gt;&lt;span class="p"&gt;][&lt;/span&gt;&lt;span class="mi"&gt;0&lt;/span&gt;&lt;span class="p"&gt;]&lt;/span&gt; &lt;span class="k"&gt;for&lt;/span&gt; &lt;span class="n"&gt;c&lt;/span&gt; &lt;span class="ow"&gt;in&lt;/span&gt; &lt;span class="n"&gt;mock_stderr&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;write&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;call_args_list&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+        &lt;span class="k"&gt;print&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;written&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+        &lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;assertIn&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;critical logged&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;written&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+        &lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;assertIn&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;warning logged&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;written&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+        &lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;assertIn&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;info logged&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;written&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+        &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="n"&gt;settings&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;DEBUG&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;
+            &lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;assertIn&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;debug logged&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;written&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+        &lt;span class="k"&gt;else&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;
+            &lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;assertNotIn&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;debug logged&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;written&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+        &lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;assertIn&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;arg&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;written&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s"&gt;&amp;#39;Could not see exception in logs&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+        &lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;assertIn&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;do_logging&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;written&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s"&gt;&amp;#39;Could not see traceback info&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;h2&gt;Setting the base log level (if you want):&lt;/h2&gt;
+&lt;p&gt;Here's what you need to add to &lt;em&gt;settings.py&lt;/em&gt; if you want to set the log
+level lower, so that, say, &lt;code&gt;logging.info&lt;/code&gt; actually works.  You don't actually
+need this to get the exception logging to work, but I discovered it while 
+investigating this problem, so I thought I'd write it up here, since it's 
+not obvious from the docs.&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span class="n"&gt;LOGGING&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+    &lt;span class="s"&gt;&amp;#39;version&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="mi"&gt;1&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+    &lt;span class="s"&gt;&amp;#39;root&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;level&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="s"&gt;&amp;#39;DEBUG&amp;#39;&lt;/span&gt; &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="n"&gt;DEBUG&lt;/span&gt; &lt;span class="k"&gt;else&lt;/span&gt; &lt;span class="s"&gt;&amp;#39;INFO&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;},&lt;/span&gt;
+&lt;span class="p"&gt;}&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;I have a feeling someone will tell me that resetting the root log level is a 
+silly thing to do, but it does work.  By all means enlighten me if this isn't
+a good idea.&lt;/p&gt;
+&lt;h2&gt;Using middleware to catch and log exceptions&lt;/h2&gt;
+&lt;p&gt;Onto the real answer to this problem. Normally, to log an exception, you'd have
+something like this&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span class="k"&gt;try&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;
+    &lt;span class="n"&gt;do_something_that_might_explode&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;
+&lt;span class="k"&gt;except&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;
+    &lt;span class="n"&gt;logging&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;exception&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;Oh noes, it exploded&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;And then &lt;code&gt;logging.exception&lt;/code&gt; will automagically print a full traceback as well
+as our little message.&lt;/p&gt;
+&lt;p&gt;But how to get this to just happen, by default, for any exceptions in our code?
+The answer is what Django calls "middleware", code that can get run while handling
+any request.&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span class="kn"&gt;import&lt;/span&gt; &lt;span class="nn"&gt;logging&lt;/span&gt;
+
+&lt;span class="k"&gt;class&lt;/span&gt; &lt;span class="nc"&gt;ExceptionLoggingMiddleware&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nb"&gt;object&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
+
+    &lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;process_exception&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;request&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;exception&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
+        &lt;span class="n"&gt;logging&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;exception&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;Exception handling request for &amp;#39;&lt;/span&gt; &lt;span class="o"&gt;+&lt;/span&gt; &lt;span class="n"&gt;request&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;path&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;Cf the &lt;a href="https://docs.djangoproject.com/en/1.6/topics/http/middleware/#process-exception"&gt;Django docs on
+middleware&lt;/a&gt;,
+but that's really all you need!&lt;/p&gt;
+&lt;p&gt;If this is saved to, say, &lt;em&gt;myproj/myproj/exception_logging_middleware.py&lt;/em&gt;, you would
+then add it to your project in &lt;em&gt;settings.py&lt;/em&gt; by:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span class="n"&gt;MIDDLEWARE_CLASSES&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;
+    &lt;span class="s"&gt;&amp;#39;django.contrib.sessions.middleware.SessionMiddleware&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+    &lt;span class="s"&gt;&amp;#39;django.middleware.common.CommonMiddleware&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+    &lt;span class="s"&gt;&amp;#39;django.middleware.csrf.CsrfViewMiddleware&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+    &lt;span class="s"&gt;&amp;#39;django.contrib.auth.middleware.AuthenticationMiddleware&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+    &lt;span class="s"&gt;&amp;#39;django.contrib.messages.middleware.MessageMiddleware&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+    &lt;span class="s"&gt;&amp;#39;django.middleware.clickjacking.XFrameOptionsMiddleware&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+    &lt;span class="s"&gt;&amp;#39;myproj.exception_logging_middleware.ExceptionLoggingMiddleware&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;If you've actually used the test, you'll find it now passes.&lt;/p&gt;
+&lt;h2&gt;Summary&lt;/h2&gt;
+&lt;p&gt;In summary "how do I get Django to log all exceptions to stderr", which seems such
+a straightforward question, actually does involve several different components:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;the logging module, and Django's logging config&lt;/li&gt;
+&lt;li&gt;Django's exception-handling middleware.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Whilst the former is where youd' go to choose &lt;em&gt;where&lt;/em&gt; things get logged to
+(eg stderr or a file), and what the minimum log level is, the latter is the
+place you actually need to go to if you want to log exceptions. &lt;/p&gt;</summary><category term="django"></category><category term="logging"></category><category term="exceptions"></category><category term="debugging"></category></entry><entry><title>Unit testing fabric scripts for deployment</title><link href="http://www.obeythetestinggoat.com/unit-testing-fabric-deployment-scripts.html" rel="alternate"></link><updated>2013-09-19T07:30:00+01:00</updated><author><name>Harry</name></author><id>tag:www.obeythetestinggoat.com,2013-09-19:unit-testing-fabric-deployment-scripts.html</id><summary type="html">&lt;p&gt;In chapter 8 of my &lt;a href="http://www.obeythetestinggoat.com/pages/book.html"&gt;book&lt;/a&gt; I introduce a fabric script as a way of automating the deployment of our example app.  You can see the section where I do so &lt;a href="http://chimera.labs.oreilly.com/books/1234000000754/ch08.html#_automating_deployment_with_fabric"&gt;here&lt;/a&gt;.&lt;/p&gt;
+&lt;p&gt;After 7 chapters of building everything step-by-step with TDD and detailed unit tests, this fairly large script leaps out fully-formed, It prompted one of my readers to write in (Thanks Nick):&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;It didn't work the first time I used it (I retype, rather than copy-paste, to better understand the code. Occasional typos are inevitable, and unit testing is a great way to catch these small errors). With the rest of the project, there was substantial testing that went into the creation of each source file, meaning small errors were swiftly located and corrected. However, running the fabfile often caused errors in code that wasn't tested, which took me much longer to find a fix.&lt;/p&gt;
+&lt;p&gt;There should be a way to test the deployment script as thoroughly as the rest of the project code. Especially considering how critical deployment is to a web app, and how often it will likely need to be done, maintaining error-free consistency in this process seems like a critical part of the workflow, and worth writing tests for.&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;Nick is right isn't he? There's a bit of a disjoint here. Surely we need some kind of testing for our deployment scripts? &lt;/p&gt;
+&lt;p&gt;Admittedly in this chapter I'm explaining how to run Selenium tests against a staging site to make sure that our deployment procedure works, so our deployment script &lt;em&gt;is&lt;/em&gt; tested indirectly, but everywhere else in the book I've &lt;em&gt;also&lt;/em&gt; written unit tests for all my code.&lt;/p&gt;
+&lt;p&gt;At PythonAnywhere, we decided not to write tests for our fabric scripts, and we now regret it.  There's about 3000 lines of messy code in there, which we're scared of refactoring.&lt;/p&gt;
+&lt;p&gt;But how to write some kind of low-level tests for a fabric script? Here's a sample function:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;_update_virtualenv&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;source_folder&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
+    &lt;span class="n"&gt;virtualenv_folder&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;path&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;join&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;source_folder&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s"&gt;&amp;#39;../virtualenv&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+    &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="ow"&gt;not&lt;/span&gt; &lt;span class="n"&gt;exists&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;path&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;join&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;virtualenv_folder&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s"&gt;&amp;#39;bin&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s"&gt;&amp;#39;pip&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;)):&lt;/span&gt; &lt;span class="c"&gt;#&amp;lt;11&amp;gt;&lt;/span&gt;
+        &lt;span class="n"&gt;run&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;virtualenv --python=python3.3 &lt;/span&gt;&lt;span class="si"&gt;%s&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;&lt;/span&gt; &lt;span class="o"&gt;%&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;virtualenv_folder&lt;/span&gt;&lt;span class="p"&gt;,))&lt;/span&gt;
+    &lt;span class="n"&gt;run&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;&lt;/span&gt;&lt;span class="si"&gt;%s&lt;/span&gt;&lt;span class="s"&gt;/bin/pip install -r &lt;/span&gt;&lt;span class="si"&gt;%s&lt;/span&gt;&lt;span class="s"&gt;/requirements.txt&amp;#39;&lt;/span&gt; &lt;span class="o"&gt;%&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;
+            &lt;span class="n"&gt;virtualenv_folder&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;source_folder&lt;/span&gt;
+    &lt;span class="p"&gt;))&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;It seems to me there's no great ways of testing this sort of stuff?  Here's three I can think of:&lt;/p&gt;
+&lt;h3&gt;1. Mock out Fabric&lt;/h3&gt;
+&lt;p&gt;You could mock out the Fabric API, and write a bunch of tests that say things like:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;assertEqual&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;
+    &lt;span class="n"&gt;mock_run&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;method_calls&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+    &lt;span class="p"&gt;[&lt;/span&gt;
+        &lt;span class="n"&gt;call&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;virtualenv --python=python3.3 /path/to/virtualenv&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;),&lt;/span&gt;
+        &lt;span class="n"&gt;call&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;/path/to/virtualenv/bin/pip install -r /path/to/my/folder/requirements.txt&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;),&lt;/span&gt;
+    &lt;span class="p"&gt;]&lt;/span&gt;
+&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;But I hate that kind of unit test!  It's just duplicating your code with a bunch of mocks.  It's not that it has &lt;em&gt;no&lt;/em&gt; value -- it's a bit like double-entry accounting, so it might help Nick or I catch the occasional typo -- but it doesn't really feel like testing, you know?  It's so tightly coupled to the implementation as to be almost identical, and we'd definitely be testing implementation rather than behaviour.&lt;/p&gt;
+&lt;p&gt;I mean, would you really test-drive writing your fabric scripts using these kinds of tests?&lt;/p&gt;
+&lt;h3&gt;2. Monkeypatch fabric to work in /tmp&lt;/h3&gt;
+&lt;p&gt;You could write a sort of hacked-up integration test, which redirects all the fabric calls to a temp folder on the machine you're using for testing, something like this:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span class="c"&gt;# assumes we have some recognisable prefix for path given&lt;/span&gt;
+&lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;mock_run&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;cmd_given&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
+    &lt;span class="n"&gt;cmd_redirected&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;cmd_given&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;replace&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;
+        &lt;span class="n"&gt;path_prefix&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;tmp_path&lt;/span&gt; &lt;span class="o"&gt;+&lt;/span&gt; &lt;span class="n"&gt;path_prefix&lt;/span&gt;
+    &lt;span class="p"&gt;)&lt;/span&gt;
+    &lt;span class="c"&gt;# use fabric local() function to run command locally instead&lt;/span&gt;
+    &lt;span class="n"&gt;local&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;cmd_redirected&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;span class="c"&gt;#...&lt;/span&gt;
+&lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;assertTrue&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;os&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;path&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;exists&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;
+    &lt;span class="n"&gt;tmp_path&lt;/span&gt; &lt;span class="o"&gt;+&lt;/span&gt; &lt;span class="n"&gt;given_path&lt;/span&gt; &lt;span class="o"&gt;+&lt;/span&gt; &lt;span class="s"&gt;&amp;#39;../virtualenv&amp;#39;&lt;/span&gt;
+&lt;span class="p"&gt;))&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;So we can check the effects of that function on the temp folder - more of an integration test than a unit test, but at least we're now testing behaviour rather than testing the implementation.  But it'll involve a lot of logic to correctly mock out the fabric API... &lt;code&gt;run&lt;/code&gt; may not be too hard, but I'm also using &lt;code&gt;append&lt;/code&gt; and &lt;code&gt;sed&lt;/code&gt;...  I'm worried I'll spend as much time debuggin test code as the real code!&lt;/p&gt;
+&lt;h3&gt;3. Run the actual commands against a test VM&lt;/h3&gt;
+&lt;p&gt;You could spin up some kind of lightweight VM / linux container (docker?) and let the fabric script run against that, checking the effects using fabric too.&lt;/p&gt;
+&lt;p&gt;That might be kinda cool, but it definitely feels very heavyweight -- it's certainly more than I want to tell my readers to set up on their machines (what about Windows users!), and it ends up being a lot like what I'm doing with Selenium, running the acceptance tests against the staging server...&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;So what to do? One possibility would be to consign all this stuff to an appendix, in which I demonstrate all three approaches, and then tell the reader that it's up to them to choose which they like... But can I do better? And should I even bother?&lt;/p&gt;
+&lt;p&gt;So folks, what do you think?  Is it worth writing unit tests for fabric scripts?  If so, how?&lt;/p&gt;</summary><category term="unit tests"></category><category term="fabric"></category><category term="deployment"></category><category term="mocking"></category></entry><entry><title>Fast tests are useless, hot lava be damned</title><link href="http://www.obeythetestinggoat.com/fast-tests-useless-hot-lava-be-damned.html" rel="alternate"></link><updated>2013-09-11T04:00:00+01:00</updated><author><name>Harry</name></author><id>tag:www.obeythetestinggoat.com,2013-09-11:fast-tests-useless-hot-lava-be-damned.html</id><summary type="html">&lt;p&gt;tl;dr: I think there's a real danger that striving for an ultrafast test suite,
+will lead you to overly mocky, disjointed tests which don't help you
+catch bugs and don't help you code well.&lt;/p&gt;
+&lt;p&gt;At this year's DjangoCon, Casey Kinsey gave a talk in which he (at least
+ostensibly) advocated striving for faster test suites.  As we'll find out, I've
+often thought that striving for fast tests suites can be a bit misguided, so I
+went along preparing to disagree loudly -- as anyone who knows me can attest,
+disagreeing loudly is just about my favourite thing to do, and a major
+character flaw.&lt;/p&gt;
+&lt;p&gt;As it turns out I found very little to disagree with, aside from &lt;a href="http://www.slideshare.net/cordiskinsey/djangocon-2013-how-to-write-fast-and-efficient-unit-tests-in-django/22"&gt;one
+particularly tortured use of a Mock object&lt;/a&gt;
+which definitely made baby test sanity Jesus cry.  It was an excellent talk, 
+and full of good advice, as well as the memorable quote &lt;em&gt;"The Database is Hot
+Lava"&lt;/em&gt;&lt;/p&gt;
+&lt;p&gt;But, is it?&lt;/p&gt;
+&lt;h2&gt;The traditional argument: slow tests are bad&lt;/h2&gt;
+&lt;p&gt;Here's the traditional argument for fast tests:&lt;/p&gt;
+&lt;p&gt;Tests that take ages to run won't get run, which will break your development
+process in several ways, and reduce the benefits you get from testing.  You
+won't pick up defects early, because no-one is running the full test suite
+before committing, and you won't be able to get the secondary benefit which 
+you hope to gain from TDD, which is better designed code, because you can't
+do TDD with slow tests.&lt;/p&gt;
+&lt;p&gt;The reference for this point of view is Gary Bernhardt's talk from Pycon
+2013, entitled &lt;a href="https://www.youtube.com/watch?v=RAxiiRPHS9k"&gt;Fast Tests, Slow test&lt;/a&gt;
+If you haven't already, I &lt;strong&gt;strongly&lt;/strong&gt; encourage you to watch that talk, Gary 
+knows what he's talking about, whereas I suspect I don't.&lt;/p&gt;
+&lt;p&gt;&lt;em&gt;update 2013-09-17&lt;/em&gt; -- everyone should also watch Gary's follow-up talk, 
+&lt;a href="https://www.youtube.com/watch?v=eOYal8elnZk"&gt;Boundaries&lt;/a&gt; in which he 
+expands on the concepts of test isolation, and how it fits with trying to adopt
+a more functional paradigm in the core business logic of your application.&lt;/p&gt;
+&lt;h2&gt;Why I think this is wrong: fast tests don't help you code, and they don't help you find bugs&lt;/h2&gt;
+&lt;p&gt;I'm being deliberately provocative here, and this is a bit of a strawman, but
+I think the problem with turning slow tests into fast tests is that you end
+up with worse tests.  Why is that?&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;faster tests mean more "unittey" tests -- tests with less dependencies&lt;/li&gt;
+&lt;li&gt;that means using more mocks&lt;/li&gt;
+&lt;li&gt;that leads to a very granular tests, which are highly decoupled from each
+other&lt;/li&gt;
+&lt;li&gt;and that, ultimately, doesn't help you find unexpected bugs&lt;/li&gt;
+&lt;li&gt;and it doesn't help you find regressions when you're refactoring either&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;So let's look at an example. Imagine our site does a bit of setup for each
+user: it makes a temp folder for them, and then sets a flag on their user
+profile:&lt;/p&gt;
+&lt;p&gt;Imagine this:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;setup_user_environment&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;user&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
+    &lt;span class="n"&gt;setup_temp_storage&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;user&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+    &lt;span class="n"&gt;profile&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;user&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;get_profile&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;
+    &lt;span class="n"&gt;profile&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;environment_setup&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="bp"&gt;True&lt;/span&gt;
+    &lt;span class="n"&gt;profile&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;save&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;Here's the kind of test I'm inclined to write:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;test_sets_up_temp_storage_and_sets_flag_on_profile&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
+    &lt;span class="n"&gt;user&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;User&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;objects&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;create&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;username&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;jim&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+    &lt;span class="n"&gt;setup_user_environment&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;user&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+    &lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;assertTrue&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;os&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;path&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;exists&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;/tmp/jim&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+    &lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;assertTrue&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;user&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;get_profile&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;environment_setup&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;Arg!  That's not a unit test at all!  It touches the database, which is hot
+lava! Worse still, it touches the filesystem!  It'll be really slow!  And it
+has too many dependencies!&lt;/p&gt;
+&lt;p&gt;That, at least, is what the purists would say.  They would prefer a "fast",
+test that looks like this - a "real" unit test:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;test_calls_setup_temp_storage_and_sets_flag_on_profile&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
+    &lt;span class="n"&gt;mock_user&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;Mock&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;
+    &lt;span class="k"&gt;with&lt;/span&gt; &lt;span class="n"&gt;patch&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;myapp.setup_temp_storage&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="k"&gt;as&lt;/span&gt; &lt;span class="n"&gt;mock_setup_temp_storage&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;
+        &lt;span class="n"&gt;setup_user_environment&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;mock_user&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+    &lt;span class="n"&gt;mock_setup_temp_storage&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;assert_called_once_with&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;mock_user&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+    &lt;span class="n"&gt;mock_profile&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;mock_user&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;get_profile&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;return_value&lt;/span&gt;
+    &lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;assertEqual&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;mock_profile&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;environment_setup&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="bp"&gt;True&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;Well, I would argue that you have a much less readable test there, and it's
+also a test that's very closely coupled to the implementation.  It discourages
+refactoring, because something as simple as changing the name of the helper
+method &lt;code&gt;setup_temp_storage&lt;/code&gt; involves changing the test code in 4 places --
+three of which (eg &lt;code&gt;mock_setup_temp_storage&lt;/code&gt;) won't be found by automated
+refactoring tools.&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;IMO, there's no point in a test that duplicates the implementation, line
+for line, with a series of mocks&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;Imagine I change &lt;code&gt;setup_temp_storage&lt;/code&gt; to take a username instead of a user.
+I go and find its unit tests and change it, then change its implementation.
+What will happen next is that &lt;em&gt;my&lt;/em&gt; unit test for &lt;code&gt;setup_user_environment&lt;/code&gt; would
+break, because it uses the real function, and so that's my reminder to change
+the place it gets used. &lt;/p&gt;
+&lt;p&gt;In contrast, in the "fast" test, &lt;code&gt;setup_user_environment&lt;/code&gt; is mocked, so that
+test will still pass, even though my code is broken.&lt;/p&gt;
+&lt;p&gt;Sure you could argue that my &lt;code&gt;os.path.exists&lt;/code&gt; call is tightly coupled to the
+implementation of &lt;code&gt;setup_temp_storage&lt;/code&gt;, and that if I end up using it in lots
+of tests, they'll be annoying to change, if I ever change the location of temp
+storage, for example.  But I could factor it out into a test helper method, if
+I notice myself duplicating test code a lot.&lt;/p&gt;
+&lt;h2&gt;What is the correct balance of unit to integration tests?&lt;/h2&gt;
+&lt;p&gt;Now unit test purists and I would probably agree that this example doesn't
+prove you should &lt;em&gt;never&lt;/em&gt; mock anything, or that "proper" unit tests are
+useless.  Clearly, both are useful, and as my example clearly shows, you
+definitely need some level of integration tests to check that all your pieces
+fit together.&lt;/p&gt;
+&lt;p&gt;What I am saying is that, in a case where you can test a piece of code with
+either a mocky or a non-mocky test, I prefer non-mocky tests.  Gary Bernhardt
+says you should aim for 90% unit tests vs 10% "integration" tests (which is
+what you'd call the kind of test I write), and I tend to think the ratio is
+more like 50/50.&lt;/p&gt;
+&lt;p&gt;Unit tests are definitely better for nailing down code which has lots of edge
+cases and possible logical pitfalls -- like the classic example of a roman
+numeral converter.  But my assertion is: in web development, that kind of code
+is rare:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;helper methods on models tend to be quite simple&lt;/li&gt;
+&lt;li&gt;view functions tend to be simple:  get a post request, instantiate a form,
+  save a database item if the form validates and redirect, return a template
+  with errors if not&lt;/li&gt;
+&lt;li&gt;code tends to be hard to unit test without mocking -- the database, the
+  Django request/response stack, or the template layer, or whatever.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;I've just tended to find that there aren't many places where I find myself
+spelling out more than 2 or 3 tests for any given function -- in which case, I
+tend to find, unit tests don't offer any substantial advantage.  In the example
+above, there's probably only one two cases, maybe a second one for the case
+where &lt;code&gt;setup_temp_storage&lt;/code&gt; raises an exception.&lt;/p&gt;
+&lt;p&gt;But what about the fact that integration tests are slow?  The database is hot
+lava!  Isn't it?&lt;/p&gt;
+&lt;h2&gt;The database is, at worst, lukewarm lava&lt;/h2&gt;
+&lt;blockquote&gt;
+&lt;p&gt;NB - this is Django-specific&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;Remember, Django uses an &lt;em&gt;in-memory&lt;/em&gt; Sqlite database when you're running its
+unit tests. It's pretty fast.  Here's a test suite which hits the DB for some
+tests and not for others, with 1,000 tests of each:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span class="kn"&gt;from&lt;/span&gt; &lt;span class="nn"&gt;django.db&lt;/span&gt; &lt;span class="kn"&gt;import&lt;/span&gt; &lt;span class="n"&gt;models&lt;/span&gt;
+&lt;span class="k"&gt;class&lt;/span&gt; &lt;span class="nc"&gt;Car&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;models&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;Model&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
+    &lt;span class="n"&gt;colour&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;models&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;TextField&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;
+    &lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;get_colour&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
+        &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;colour&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;capitalize&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;
+
+&lt;span class="kn"&gt;import&lt;/span&gt; &lt;span class="nn"&gt;unittest&lt;/span&gt;
+&lt;span class="kn"&gt;from&lt;/span&gt; &lt;span class="nn"&gt;django.test&lt;/span&gt; &lt;span class="kn"&gt;import&lt;/span&gt; &lt;span class="n"&gt;TestCase&lt;/span&gt;
+&lt;span class="kn"&gt;from&lt;/span&gt; &lt;span class="nn"&gt;myapp.models&lt;/span&gt; &lt;span class="kn"&gt;import&lt;/span&gt; &lt;span class="n"&gt;Car&lt;/span&gt;
+
+&lt;span class="k"&gt;class&lt;/span&gt; &lt;span class="nc"&gt;FastTest&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;unittest&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;TestCase&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
+    &lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;create_car&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
+        &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="n"&gt;Car&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;colour&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;blue&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+
+&lt;span class="k"&gt;class&lt;/span&gt; &lt;span class="nc"&gt;SlowTest&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;TestCase&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
+    &lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;create_car&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
+        &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="n"&gt;Car&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;objects&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;create&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;colour&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;blue&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+
+&lt;span class="k"&gt;for&lt;/span&gt; &lt;span class="n"&gt;i&lt;/span&gt; &lt;span class="ow"&gt;in&lt;/span&gt; &lt;span class="nb"&gt;range&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mi"&gt;1000&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
+    &lt;span class="n"&gt;method_name&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="s"&gt;&amp;#39;test_car_{0}&amp;#39;&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;format&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;i&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+    &lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;testfn&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
+        &lt;span class="n"&gt;car&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;create_car&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;
+        &lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;assertEqual&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;car&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;get_colour&lt;/span&gt;&lt;span class="p"&gt;(),&lt;/span&gt; &lt;span class="s"&gt;&amp;#39;Blue&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+    &lt;span class="nb"&gt;setattr&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;FastTest&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;method_name&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;testfn&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+    &lt;span class="nb"&gt;setattr&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;SlowTest&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;method_name&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;testfn&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;So what's the difference in speed between the two?&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span class="err"&gt;$&lt;/span&gt; &lt;span class="n"&gt;python&lt;/span&gt; &lt;span class="n"&gt;manage&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;py&lt;/span&gt; &lt;span class="n"&gt;test&lt;/span&gt; &lt;span class="n"&gt;myapp&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;FastTest&lt;/span&gt;
+&lt;span class="n"&gt;Ran&lt;/span&gt; &lt;span class="mi"&gt;1000&lt;/span&gt; &lt;span class="n"&gt;tests&lt;/span&gt; &lt;span class="n"&gt;in&lt;/span&gt; &lt;span class="mf"&gt;0.108&lt;/span&gt;&lt;span class="n"&gt;s&lt;/span&gt;
+
+&lt;span class="err"&gt;$&lt;/span&gt; &lt;span class="n"&gt;python&lt;/span&gt; &lt;span class="n"&gt;manage&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;py&lt;/span&gt; &lt;span class="n"&gt;test&lt;/span&gt; &lt;span class="n"&gt;myapp&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;SlowTest&lt;/span&gt;
+&lt;span class="n"&gt;Ran&lt;/span&gt; &lt;span class="mi"&gt;1000&lt;/span&gt; &lt;span class="n"&gt;tests&lt;/span&gt; &lt;span class="n"&gt;in&lt;/span&gt; &lt;span class="mf"&gt;0.311&lt;/span&gt;&lt;span class="n"&gt;s&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;A factor of 3.  YMMV. At most one order of magnitude, but certainly not two
+orders of magnitude. And notice that's 1000 tests, still running in less than a
+second. So, is shifting from tests that run in microseconds to tests that run
+in tens of microseconds &lt;em&gt;really worth&lt;/em&gt; all the losses in terms of readability
+and ease of refactoring?&lt;/p&gt;
+&lt;h2&gt;Unsurprisingly, it's all down to your own circumstances&lt;/h2&gt;
+&lt;p&gt;I think we all have a tendency to take the solutions we've applied to our own
+particular circumanstances, and want to generalise them to universal rules,
+saying they should apply to everybody.&lt;/p&gt;
+&lt;p&gt;Casey's team didn't have a CI setup, so their only way of preventing
+regressions was for the individual developer to run the full suite before
+checking in code. Their test suite was taking 45 minutes to run, leading to
+developers skipping the test run and checking in broken code. You might argue
+that their real problem was a problem of process, but they couldn't fix that,
+so instead they put effort into making their tests faster, and in the process
+made them more efficient and better, so it was a win for them.&lt;/p&gt;
+&lt;p&gt;At work, we have also have a unit test suite that takes 45 minutes to run (many
+of the tests aren't very unittey, and are in fact very integrationey).  So
+there's no way that we run all the unit tests as we do TDD (which we do for
+everything).  Instead, we run a subset of the tests (usually the Django app
+we're working on), and we leave the CI system to run the full unit test suite
+overnight.&lt;/p&gt;
+&lt;p&gt;And you know what? &lt;em&gt;The full unit test suite almost never picks up any bugs&lt;/em&gt;.&lt;/p&gt;
+&lt;p&gt;That's because our code is well compartmentalised, and, even though they're not
+very unit-ey unit tests, they are still quite granular and independent from
+each other.&lt;/p&gt;
+&lt;p&gt;Instead, we have a suite of 400-odd &lt;em&gt;functional&lt;/em&gt; tests that run with Selenium;
+these are definitely integration/system tests, or what some people would 
+call acceptance tests. They check every part of the application -- and they
+&lt;em&gt;do&lt;/em&gt; find unexpected bugs. They take about 8 hours for a full run, so you bet
+we only run one or two individual FTs during day-to-day TDD.&lt;/p&gt;
+&lt;p&gt;Now, we're building a PaaS, so we have a lot of what Gary B. would call
+"boundaries" - a lot of dependencies on external systems: the filesystem, the
+database (we run a shared-hosting database-as-a-service too), Tornado +
+websockets, Paypal, Dropbox, github, pypi, linux chroots and cgroups, CRON,
+Nginx and uWSGI, and many more.  There's a lot of moving parts, and ultimately
+the only thing that's going to reassure us that everything really works is a
+full-stack test.&lt;/p&gt;
+&lt;p&gt;So that's what works for us.  We are pretty much forced to have a lot of slow
+tests, so maybe I'm just trying to justify our own specific circumstances and
+try and force a generalisation onto the world.&lt;/p&gt;
+&lt;h2&gt;My turn to generalise from my own circumstances!&lt;/h2&gt;
+&lt;p&gt;But I'm not so sure.  I really think there's something to it.  I think you
+really do lose a lot from using mocks everywhere, and I think that the price
+you pay in terms of test speed is sometimes worth paying if you want more
+"realistic" tests.&lt;/p&gt;
+&lt;p&gt;I would say this:  don't optimise prematurely.  Start by writing tests in the
+way that seems most obvious to you, tests that are as readable as possible, 
+and don't couple themselves too tightly to the implementation with a lot of
+mocks.  If test speed becomes a problem at some point down the road, there
+are plenty of smart people out there that will give you tips on how to speed
+them up -- just remember that mocky unit tests don't really test your
+application, so you'll need to keep a few end-to-end tests in there no matter
+what.&lt;/p&gt;
+&lt;p&gt;Over to you folks!  I'm far from an expert, have only been writing tests for
+about 3 years, and all for the same company.  Have you ever been bitten by
+a bug because your tests were too mocky?  What ratio of unit tests to
+integration tests works for you?&lt;/p&gt;</summary><category term="unit tests"></category><category term="speed"></category><category term="mocking"></category></entry><entry><title>TDD videos from EuroPython 2013, mine and others</title><link href="http://www.obeythetestinggoat.com/tdd-videos-from-europython-2013-mine-and-others.html" rel="alternate"></link><updated>2013-07-03T10:43:00+01:00</updated><author><name>Harry</name></author><id>tag:www.obeythetestinggoat.com,2013-07-03:tdd-videos-from-europython-2013-mine-and-others.html</id><summary type="html">&lt;p&gt;I can't believe the videos are already up!  Here's a few links:&lt;/p&gt;
+&lt;p&gt;My usual &lt;a href="https://www.youtube.com/watch?v=Pz-DIkpk7PM"&gt;TDD/Django Tutorial&lt;/a&gt; now featuring the example from the book!
+People's favourite bit seemed to be when I stand on the chair...&lt;/p&gt;
+&lt;iframe width="560" height="315" src="//www.youtube.com/embed/Pz-DIkpk7PM" frameborder="0" allowfullscreen&gt;&lt;/iframe&gt;
+
+&lt;p&gt;Me in a faster &lt;a href="https://www.youtube.com/watch?v=u0L3DuAPOVw"&gt;TDD/Python talk in Italiano&lt;/a&gt;.  Still can't believe the organisers
+put me on as the first Italian talk of the whole week. I think it was some kind of evil joke.&lt;/p&gt;
+&lt;iframe width="560" height="315" src="//www.youtube.com/embed/u0L3DuAPOVw" frameborder="0" allowfullscreen&gt;&lt;/iframe&gt;
+
+&lt;p&gt;Rob Collins' &lt;a href="https://www.youtube.com/watch?v=Nj4nwh_VrPM"&gt;Test-Driven-Madness &lt;/a&gt; which I couldn't see 
+because it was on at the same time as my tutorial, but from what he told me about it while we were
+sitting at the same desk doing prep around 1AM the previous day, it was pretty entertaining. I have
+had independent confirmation of this too.&lt;/p&gt;
+&lt;iframe width="560" height="315" src="//www.youtube.com/embed/Nj4nwh_VrPM" frameborder="0" allowfullscreen&gt;&lt;/iframe&gt;
+
+&lt;p&gt;&lt;a href="https://www.youtube.com/watch?v=k6Z2JHUmZXM"&gt;Holger Krekel on pytest&lt;/a&gt; again, haven't seen this, but 
+any man that can speak that passionately about the politics of P2P cannot possibly ever go wrong.&lt;/p&gt;
+&lt;iframe width="560" height="315" src="//www.youtube.com/embed/k6Z2JHUmZXM" frameborder="0" allowfullscreen&gt;&lt;/iframe&gt;
+
+&lt;p&gt;Great conference so far! Any more out there?&lt;/p&gt;</summary><category term="tdd"></category><category term="conference"></category><category term="video"></category></entry><entry><title>How to unit test tornado ioloop callbacks</title><link href="http://www.obeythetestinggoat.com/how-to-unit-test-tornado-ioloop-callbacks.html" rel="alternate"></link><updated>2013-06-10T19:11:00+01:00</updated><author><name>Harry</name></author><id>tag:www.obeythetestinggoat.com,2013-06-10:how-to-unit-test-tornado-ioloop-callbacks.html</id><summary type="html">&lt;p&gt;&lt;em&gt;WARNING: this is not battle-tested wisdom of a massively experienced tornado
+tester. Today was the first time we ever tried to test something that actually
+uses the ioloop, and we've probably got it all totally backwards.  Still, in
+case it helps...&lt;/em&gt;&lt;/p&gt;
+&lt;p&gt;Async. It's always hard to wrap your head around, so perhaps it's not
+surprising that it took us a few goes at &lt;a href="http://www.pythonanywhere.com"&gt;work&lt;/a&gt;
+today before we got the hang of it.&lt;/p&gt;
+&lt;p&gt;Here's a bit of code that adds a callback to the tornado ioloop:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;sort_that_out&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;mess&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
+    &lt;span class="n"&gt;IOLoop&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;instance&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;add_callback&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;mess&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;sort&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;How might one naively write a test for it?&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span class="k"&gt;class&lt;/span&gt; &lt;span class="nc"&gt;TestSortingStuffOut&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;unittest&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;TestCase&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
+
+    &lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;test_stuff_get_sorted&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
+        &lt;span class="n"&gt;stuff&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="mi"&gt;3&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;&lt;span class="mi"&gt;2&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;&lt;span class="mi"&gt;1&lt;/span&gt;&lt;span class="p"&gt;]&lt;/span&gt;
+        &lt;span class="n"&gt;sort_that_out&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;mess&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+        &lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;assertEqual&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;mess&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="mi"&gt;1&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="mi"&gt;2&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="mi"&gt;3&lt;/span&gt;&lt;span class="p"&gt;])&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;Well, that doesn't work: &lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span class="n"&gt;AssertionError&lt;/span&gt;&lt;span class="o"&gt;:&lt;/span&gt; &lt;span class="n"&gt;Lists&lt;/span&gt; &lt;span class="n"&gt;differ&lt;/span&gt;&lt;span class="o"&gt;:&lt;/span&gt; &lt;span class="o"&gt;[&lt;/span&gt;&lt;span class="mi"&gt;3&lt;/span&gt;&lt;span class="o"&gt;,&lt;/span&gt; &lt;span class="mi"&gt;2&lt;/span&gt;&lt;span class="o"&gt;,&lt;/span&gt; &lt;span class="mi"&gt;1&lt;/span&gt;&lt;span class="o"&gt;]&lt;/span&gt; &lt;span class="o"&gt;!=&lt;/span&gt; &lt;span class="o"&gt;[&lt;/span&gt;&lt;span class="mi"&gt;1&lt;/span&gt;&lt;span class="o"&gt;,&lt;/span&gt; &lt;span class="mi"&gt;2&lt;/span&gt;&lt;span class="o"&gt;,&lt;/span&gt; &lt;span class="mi"&gt;3&lt;/span&gt;&lt;span class="o"&gt;]&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;A little head-scratching will get you to the fact that it's because the tornado
+IOLoop hasn't actually been started, so our callback never gets run.  So, let's fix that:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;test_stuff_get_sorted&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
+    &lt;span class="n"&gt;stuff&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="mi"&gt;3&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;&lt;span class="mi"&gt;2&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;&lt;span class="mi"&gt;1&lt;/span&gt;&lt;span class="p"&gt;]&lt;/span&gt;
+    &lt;span class="n"&gt;sort_that_out&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;stuff&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+    &lt;span class="n"&gt;IOLoop&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;instance&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;start&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;
+    &lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;assertEqual&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;stuff&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="mi"&gt;1&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="mi"&gt;2&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="mi"&gt;3&lt;/span&gt;&lt;span class="p"&gt;])&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;What about now?  The test hangs, and a little Ctrl-C based profiling tells us where the
+busy loop is:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;  &lt;span class="n"&gt;File&lt;/span&gt; &lt;span class="s"&gt;&amp;quot;/tmp/t.py&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;line&lt;/span&gt; &lt;span class="mi"&gt;13&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;in&lt;/span&gt; &lt;span class="n"&gt;test_stuff_get_sorted&lt;/span&gt;     
+    &lt;span class="n"&gt;IOLoop&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;instance&lt;/span&gt;&lt;span class="p"&gt;().&lt;/span&gt;&lt;span class="n"&gt;start&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;
+  &lt;span class="n"&gt;File&lt;/span&gt; &lt;span class="s"&gt;&amp;quot;/usr/local/lib/python2.7/site-packages/tornado/ioloop.py&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;line&lt;/span&gt; &lt;span class="mi"&gt;627&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;in&lt;/span&gt; &lt;span class="n"&gt;start&lt;/span&gt;
+     &lt;span class="n"&gt;event_pairs&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;self&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;_impl&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;poll&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;poll_timeout&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; 
+&lt;span class="n"&gt;KeyboardInterrupt&lt;/span&gt; 
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;Right.  &lt;code&gt;start()&lt;/code&gt; on the IOLoop is a blocking call, and just assumes the loop should 
+be run forever.  At this point we ventured over to the &lt;a href="http://www.tornadoweb.org/en/stable/testing.html"&gt;official tornado
+testing docs&lt;/a&gt; but they seem
+to suggest a lot of overcomplicated things: using a &lt;code&gt;self.wait&lt;/code&gt;, overriding
+&lt;code&gt;get_new_ioloop&lt;/code&gt; to return the singleton...&lt;/p&gt;
+&lt;p&gt;Actually, all you really need to do is this:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;test_stuff_get_sorted&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
+    &lt;span class="n"&gt;stuff&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="mi"&gt;3&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;&lt;span class="mi"&gt;2&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;&lt;span class="mi"&gt;1&lt;/span&gt;&lt;span class="p"&gt;]&lt;/span&gt;
+
+    &lt;span class="n"&gt;sort_that_out&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;stuff&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+
+    &lt;span class="n"&gt;IOLoop&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;instance&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;add_callback&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;IOLoop&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;instance&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;stop&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+    &lt;span class="n"&gt;IOLoop&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;instance&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;start&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;
+
+    &lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;assertEqual&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;stuff&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="mi"&gt;1&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="mi"&gt;2&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="mi"&gt;3&lt;/span&gt;&lt;span class="p"&gt;])&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;We just add our own callback, telling the loop to shut itself down, making sure
+that it's the last callback added before we start the loop.  Voila!&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span class="p"&gt;.&lt;/span&gt;
+ &lt;span class="o"&gt;----------------------------------------------------------------------&lt;/span&gt; 
+&lt;span class="n"&gt;Ran&lt;/span&gt; &lt;span class="mi"&gt;1&lt;/span&gt; &lt;span class="n"&gt;test&lt;/span&gt; &lt;span class="n"&gt;in&lt;/span&gt; &lt;span class="mf"&gt;0.001&lt;/span&gt;&lt;span class="n"&gt;s&lt;/span&gt;
+
+&lt;span class="n"&gt;OK&lt;/span&gt; 
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;Well, that was our first foray into writing a test for tornado that actually used the IOLoop 
+(all our other tests have just mocked everything).  No doubt the tornado tools come in useful
+for other use cases.  And you'd probably want to use a &lt;code&gt;tearDown&lt;/code&gt; or &lt;code&gt;addCleanup&lt;/code&gt; that made 
+sure the IOLoop got shut down even when your test doesn't behave as expected....&lt;/p&gt;
+&lt;p&gt;But I though I'd post this in case anybody else has a simple requirement to
+test a tornado async callback, and finds the docs a little hard-going. Hope it helps!&lt;/p&gt;</summary><category term="tornado"></category><category term="async"></category></entry><entry><title>Using the built-in views and forms for new user registration in Django</title><link href="http://www.obeythetestinggoat.com/using-the-built-in-views-and-forms-for-new-user-registration-in-django.html" rel="alternate"></link><updated>2013-06-09T01:10:00+01:00</updated><author><name>Harry</name></author><id>tag:www.obeythetestinggoat.com,2013-06-09:using-the-built-in-views-and-forms-for-new-user-registration-in-django.html</id><summary type="html">&lt;p&gt;Have been digging into the built-in forms and views from
+django.contrib.auth.  I always knew you could get generic views for login,
+logout, even password reset, but I didn't know you could actually handle
+new user creation as well!&lt;/p&gt;
+&lt;p&gt;There's a form in &lt;code&gt;django.contrib.auth.forms&lt;/code&gt;, and a class-based view for
+creating new objects called &lt;code&gt;CreateView&lt;/code&gt;, and I believe this is all you
+need for a working registration form/view:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span class="kn"&gt;from&lt;/span&gt; &lt;span class="nn"&gt;django.views.generic.edit&lt;/span&gt; &lt;span class="kn"&gt;import&lt;/span&gt; &lt;span class="n"&gt;CreateView&lt;/span&gt;
+&lt;span class="kn"&gt;from&lt;/span&gt; &lt;span class="nn"&gt;django.contrib.auth.forms&lt;/span&gt; &lt;span class="kn"&gt;import&lt;/span&gt; &lt;span class="n"&gt;UserCreationForm&lt;/span&gt;
+
+&lt;span class="n"&gt;urlpatterns&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;patterns&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+    &lt;span class="n"&gt;url&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;^register/&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;CreateView&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;as_view&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;
+            &lt;span class="n"&gt;template_name&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;register.html&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+            &lt;span class="n"&gt;form_class&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="n"&gt;UserCreationForm&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+            &lt;span class="n"&gt;success_url&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;/&amp;#39;&lt;/span&gt;
+    &lt;span class="p"&gt;)),&lt;/span&gt;
+    &lt;span class="n"&gt;url&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;^accounts/&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;include&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;django.contrib.auth.urls&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;)),&lt;/span&gt;
+
+    &lt;span class="c"&gt;# rest of your URLs as normal&lt;/span&gt;
+&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;Then, in &lt;em&gt;register.html&lt;/em&gt; (which you do have to create yourself), you get a 
+&lt;code&gt;{{ form }}&lt;/code&gt; you can use, including a username, password and password
+confirmation, and it handles validation errors and EVERYTHING.&lt;/p&gt;
+&lt;p&gt;Obviously it doesn't include registering (and validating) an email address 
+for the user, but still, I'm pretty excited.  Did everyone else already
+know about this?&lt;/p&gt;</summary><category term="django"></category><category term="authentication"></category></entry><entry><title>What to say about deployment?</title><link href="http://www.obeythetestinggoat.com/what-to-say-about-deployment.html" rel="alternate"></link><updated>2013-05-15T07:37:00+01:00</updated><author><name>Harry</name></author><id>tag:www.obeythetestinggoat.com,2013-05-15:what-to-say-about-deployment.html</id><summary type="html">&lt;p&gt;My book has got to the stage of a minimum viable site.  I want the next chapter
+to be about actually deploying the site, even though it's ridiculously early --
+to encourage the habit of "deploy early, deploy often".&lt;/p&gt;
+&lt;p&gt;But how to introduce deployment in a beginner-friendly way?  It's a very simple
+site, so we don't need to cover all the complexities of deployment, but what's 
+the minimum? Here's what I've got so far..&lt;/p&gt;
+&lt;hr /&gt;
+&lt;p&gt;Deploying a site to a live web server can be a tricky topic.  Oft heard in 
+office corridors, IRC and tech forums is the forlorn cry -- &lt;em&gt;"but it works on my machine"&lt;/em&gt;&lt;/p&gt;
+&lt;p&gt;Some of the danger areas of deployment include:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;static files&lt;/strong&gt; (CSS, javascript, images etc): web servers usually need special
+  configuration for serving these&lt;/li&gt;
+&lt;li&gt;the &lt;strong&gt;database&lt;/strong&gt;: there can be permissions and path issues, and we need to be
+  careful about preserving data between deploys&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;dependencies&lt;/strong&gt;: we need to make sure that the packages are software relies on
+  are installed on the server, and have the correct versions&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;But there are solutions to all of these.  In order:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Using a &lt;strong&gt;staging site&lt;/strong&gt;, on the same infrastructure as the production site, can
+  help us test out our deployments and get things right before we go to the
+  "real" site&lt;/li&gt;
+&lt;li&gt;We can also &lt;strong&gt;run our functional tests against the staging site&lt;/strong&gt;. They could
+  include some smoke tests that, eg, CSS is loaded correctly.&lt;/li&gt;
+&lt;li&gt;We can write a special functional &lt;strong&gt;test that checks the deploy process&lt;/strong&gt;, for
+  example making sure database data is preserved (later, we can talk about South &lt;/li&gt;
+&lt;li&gt;data migrations...)&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Virtualenvs&lt;/strong&gt; are a useful tool for managing packages and dependencies on a
+  server that's not entirely under your own control&lt;/li&gt;
+&lt;li&gt;And finally, automation, automation, automation.  By using an &lt;strong&gt;automated
+  script&lt;/strong&gt; to deploy new versions, and by using the same script to deploy to
+  staging and production, we can reassure ourselves that staging is as much
+  like live as possible.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;So far, so good (at least, I think.  feel free to pick holes!)&lt;/p&gt;
+&lt;p&gt;But the question is: now what?  What platform to choose to deploy to?  What
+should be in my automated deploy script?&lt;/p&gt;
+&lt;p&gt;Platform:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Obviousy I think &lt;a href="http://www.pythonanywhere.com"&gt;PythonAnywhere&lt;/a&gt; is the
+  natural choice and the easiest and the best and stuff. But I would say that.
+  So I can't say that&lt;/li&gt;
+&lt;li&gt;Heroku / Dotcloud et al are an option, but they involve quite a lot of
+  specific config.  The precise tools used to deploy are all different, and
+  might change by the time the book comes out&lt;/li&gt;
+&lt;li&gt;How about "a generic VPS"?  Assuming the user has SSH access, I could use
+  fabric to deploy...  That would let people use AWS, Digital Ocean, Linode or
+  whoever. But then I get into the mess of apache / nginx / uwsgi config... and
+  the trend these days seems to be to try and let users avoid that sort of
+  hassle... Also, I really want to make sure people &lt;em&gt;actually&lt;/em&gt; do this, and
+  deploy their site, and I'd rather they were able to do it somewhere free...&lt;/li&gt;
+&lt;li&gt;Can I make some instructions generic enough that they apply to all platforms?
+  I'm not sure...&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;So, your suggestions much appreciated! How do you do your deploys?  Fabric?
+FTP?  Git hooks?  Something else?  What do you think would work as a simple
+solution for beginners?&lt;/p&gt;
+&lt;p&gt;&lt;em&gt;[update 2013-06-09] I've had a first bash at it, and the solution involves the
+reader starting up their own server, provisioning nginx + gunicorn + upstart,
+and deploying using fabric, git and virtualenvs.  comments welcomed!  You
+can find the &lt;a href="http://chimera.labs.oreilly.com/books/1234000000754/ch08.html"&gt;current draft here&lt;/a&gt;]&lt;/em&gt;&lt;/p&gt;</summary><category term="deploy"></category><category term="django"></category><category term="production"></category><category term="heroku"></category><category term="fabric"></category><category term="staging"></category></entry><entry><title>A lovely review! "like sitting down to pair-program with the author"</title><link href="http://www.obeythetestinggoat.com/review-like-sitting-down-to-pair-program-with-the-author.html" rel="alternate"></link><updated>2013-05-13T08:35:00+01:00</updated><author><name>Harry</name></author><id>tag:www.obeythetestinggoat.com,2013-05-13:review-like-sitting-down-to-pair-program-with-the-author.html</id><summary type="html">&lt;p&gt;Jason, whom I met at PyCon this year, wrote a lovely review of my book &lt;a href="http://shop.oreilly.com/product/0636920029533.do"&gt;on the
+O'Reily site&lt;/a&gt;. I'm very grateful because I think
+he actually helped me to see some things I didn't realise myself about the book.  I'll reproduce
+it here, for which I hope my publisher will forgive me:&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;Programming books often fall into a few, easy to define categories. There are beginner's books, advanced books, reference books, books on specific libraries/frameworks, cookbooks, etc. "Test-Driven Web Development with Python" is none of the above; it's best described as a conversation with a developer.&lt;/p&gt;
+&lt;p&gt;Reading the book is like sitting down to pair-program with the author, starting from scratch and building a basic web app. Along the way you'll obviously use Django, unit tests, and Selenium but you'll also use Git and other tools.&lt;/p&gt;
+&lt;p&gt;I find far too many programming books compartmentalize the material, each section is separate and abstract. Rather, this book's strength is in the broad use and application of these tools. By the end of this book you won't be a master with these tools but you will have used them enough to build a good foundation for starting your own projects and into the habit of test, code, refactor, commit.&lt;/p&gt;
+&lt;p&gt;For example, if you are new to open source development you'll hear about writing unit tests or using Git and want to use them yourself. But what's the next step, read a the unit test documentation or ProGit cover to cover? I don't need to be an expert, I just need someone to show me enough to get up and running. At that point I'll have completed a project and have the confidence and skills to tackle problems on my own.&lt;/p&gt;
+&lt;p&gt;Like the answer to a job interview question, the book's biggest strength is also it's biggest weakness. Writing a book that covers so many tools the author must, by necessity, make assumptions about what the reader knows, and that's very, very hard.&lt;/p&gt;
+&lt;p&gt;I came to the book without ever touching Django before. It wasn't always obvious how things worked nor why were doing them, particularly later in the book where there's more magic going on. I had to sit back and blindly follow along. At one point I got hung up because I mis-typed my URL, omitting a a forward-slash ("/") at the beginning, and my tests kept failing but I couldn't figure out why.&lt;/p&gt;
+&lt;p&gt;Do URLs start with a forward slash? As a beginner, I don't know, and it's not obvious because Django does a lot of stuff for you. The code in the book was right, but I mis-typed it. I think had I come to the table with more Django experience I wouldn't have made that mistake.&lt;/p&gt;
+&lt;p&gt;So while that's a particularly nasty typo, which really frustrated me, I can't say that a beginner should go off and read a Django book before attempting this one. In fact, quite the opposite. Because I got a survey of how everything works, covering so many tools so quickly, I'm in a much better position to troubleshoot and solve the problem myself. For example, "we've been writing a lot of unit tests, how can I write a unit test to help debug this unexpected failure?"&lt;/p&gt;
+&lt;p&gt;Lastly, as I mentioned, the book is written like a conversation with a fellow developer at your side. There are numerous jokes and cultural references (e.g. refactoring cat, testing goat, etc.). This really lightens the tone (who doesn't joke with a co-worker?) as well as introduce the reader into the culture of open source development so that when you are walking around PyCon and someone has a stuffed goat or makes a "baaah" goat noise you'll fit right in! &lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;Writing the book in the style of a pair-programming conversation came naturally, since it's what
+I do every day.  It's also the way that I learnt pretty much everything I'm writing about, so
+it's natural that I should use it as a teaching style. Where Jason really has a point is that my
+book isn't enough -- it's not a reference book, so you won't be able to use it as a reference
+book.  It won't teach you everything about Django, or even everything about unit testing -- on
+several occasions in the book I say "you should go and read the Django documentation", or "you
+should take a look at the other assertion methods from the unittest module", and I think some
+readers have found that frustrating.  "Why should I go elsewhere to learn?"...&lt;/p&gt;
+&lt;p&gt;So I think this is something I need to set expectations about better, perhaps in the intro.
+"This isn't a reference book".&lt;/p&gt;
+&lt;p&gt;Any thoughts? From current readers, do you agree with Jason?  Do you think the current style and
+content of the book are working?&lt;/p&gt;</summary><category term="review"></category><category term="pair programming"></category><category term="goat"></category></entry><entry><title>Day against DRM and this book's copyright</title><link href="http://www.obeythetestinggoat.com/day-against-drm-copyright.html" rel="alternate"></link><updated>2013-05-03T18:35:00+01:00</updated><author><name>Harry</name></author><id>tag:www.obeythetestinggoat.com,2013-05-03:day-against-drm-copyright.html</id><summary type="html">&lt;p&gt;Hooray for O'Reilly, who are giving away ebooks half-price in celebration of the FSF's "Day against DRM"!&lt;/p&gt;
+&lt;p&gt;&lt;a href="http://www.kqzyfj.com/click-7089628-11364391" target="_top"&gt;
+&lt;img src="http://www.ftjcfx.com/image-7089628-11364391" width="200" height="200" alt="Save 50% on all Ebooks and Videos to celebrate Day Against DRM" border="0"/&gt;&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;When I was first speaking to publishers about this book, I was a bit nervous.
+I'm very intersed in digital rights and copyright reform, and in fact I'm
+a reasonably active member of Pirate Party UK (or I was until this little 
+project sucked up all my spare time!)... Could I find a publishing deal that
+would be compatible with my views?  One of my colleagues in the German Pirate
+Party came in for a lot of criticism when she wrote a book and discovered her
+publisher sending out DMCA notices to filesharing sites...&lt;/p&gt;
+&lt;p&gt;I support a manifesto that asks for a 10-year limit on copyright, and for all
+non-commercial filesharing to be legal.  Could I find a publishing deal that
+was at all consistent with that?  The first publisher I spoke to was having
+none of it...&lt;/p&gt;
+&lt;p&gt;That's why I was so glad when O'Reilly said they had absolutely no problem
+with me distributing the book under a CC license...  After a bit of haggling,
+they even agree to a clause in the contract that would say that the book would
+revert to a CC-0 Public Domain license after 10 years.  Even if you think
+the policy of 10 years is too short for many domains, it's certainly enough
+for commercial exploitation of a technical book.&lt;/p&gt;
+&lt;p&gt;So, hooray for my beloved publisher, hooray for Creative Commons, and hooray 
+for the FSF!&lt;/p&gt;</summary><category term="book"></category><category term="O'Reilly"></category><category term="copyright"></category></entry><entry><title>"Test Driven Development of Web Applications" -- the book exists, and is available on Early Release</title><link href="http://www.obeythetestinggoat.com/tdd-web-programming-book-on-oreilly-early-release.html" rel="alternate"></link><updated>2013-03-26T18:35:00+00:00</updated><author><name>Harry</name></author><id>tag:www.obeythetestinggoat.com,2013-03-26:tdd-web-programming-book-on-oreilly-early-release.html</id><summary type="html">&lt;p&gt;&lt;img alt="Front cover of book" src="/static/images/new_goat_cover_lrg.jpg" /&gt;&lt;/p&gt;
+&lt;p&gt;I can't quite believe this is actually happening, but I have not only signed a contract with O'Reilly, but i have actually written the first four chapters, or at least a first draft of the first four chapters!&lt;/p&gt;
+&lt;p&gt;For anyone new, the idea is to provide an introduction to TDD for web app development, for beginners -- whether it's people who've never done web development and Django before, or just people who've never done TDD.&lt;/p&gt;
+&lt;p&gt;I'm releasing the book as early as possible to try and gather feedback, so please, please do get yourself a copy, and tell me what I'm doing right and wrong!  What would you change?  Am I pitching it at the right level?  Is the pace right or wrong? Should I spend more or less time on explaining the basics of Django, more or less time on the basics of TDD, more or less time with detailed examples?&lt;/p&gt;
+&lt;p&gt;Here's the book on the O'Reilly Early Release program:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;a href="http://www.kqzyfj.com/click-7079286-11260198?url=http%3A%2F%2Fshop.oreilly.com%2Fproduct%2F0636920029533.do%3Fcmp%3Daf-code-book-product_cj_9781449367794_%7BPID%7D&amp;cjsku=0636920029533" target="_top"&gt;
+Test-Driven Development with Python&lt;/a&gt;&lt;img src="http://www.awltovhc.com/image-7079286-11260198" width="1" height="1" border="0"/&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Buying direct from O'Reilly is probably the best option, they have DRM-free versions you can download in all sorts of formats (MOBI/epub/pdf)...&lt;/p&gt;
+&lt;p&gt;Alternatively, if you have an account on Safari, you can &lt;a href="http://my.safaribooksonline.com/9781449365141"&gt;get it there too&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;Remember, this is an early draft, so expect the occasional rough edges... But I really, really want your feedback folks, so do let me know what you think -- here in the comments, in the comments on either site, or just by email to &lt;a href="mailto:hjwp2@cantab.net"&gt;hjwp2@cantab.net&lt;/a&gt;.  &lt;/p&gt;
+&lt;p&gt;Thanks to everyone for your kind words of support, and thanks in advance for your help!&lt;/p&gt;
+&lt;p&gt;[update] -- in case it's not clear:  if you buy this book now, either via O'Reilly or via Safari, you'll get updates from now on, as each new chapter is released, until the final version is released and you get the full copy.  Anyone that provides feedback is totes getting a credit in the final book!&lt;/p&gt;
+&lt;p&gt;[update 2] -- &lt;em&gt;naturally&lt;/em&gt; I assume you're all more than keen to &lt;strong&gt;pay&lt;/strong&gt; for this book, but just as a matter of principle, there will be a Creative Commons, "try-before-you-buy", free version of the early drafts, released sometime in the near future.  The final version of the book will also have a Creative Commons (NC-ND) digital version released on publication.  And after 10 years, it will automatically revert to CC-0 Public Domain. But I (and my publishers) very much appreciate every single early sale!&lt;/p&gt;
+&lt;p&gt;[update 3] -- follow me on twitter &lt;a href="https://twitter.com/hjwp"&gt;@hjwp&lt;/a&gt; or sign up for this blog's updates to find out more about progress with the book, including when the CC version comes out... And, just let me know you're interested!&lt;/p&gt;</summary><category term="book"></category><category term="O'Reilly"></category><category term="Early Release"></category></entry><entry><title>"TDD / Django tutorial: The Book!"</title><link href="http://www.obeythetestinggoat.com/writing-a-book-preview.html" rel="alternate"></link><updated>2013-03-03T00:00:00+00:00</updated><author><name>Harry</name></author><id>tag:www.obeythetestinggoat.com,2013-03-03:writing-a-book-preview.html</id><summary type="html">&lt;p&gt;&lt;em&gt;[update April 2012] : The book is now coming out on O'Reilly!  more info here:&lt;/em&gt;&lt;/p&gt;
+&lt;p&gt;&lt;a class="reference external" href="http://www.tdd-django-tutorial.com/blog/articles/2013/test-driven-development-web-applications-book-exis/"&gt;http://www.tdd-django-tutorial.com/blog/articles/2013/test-driven-development-web-applications-book-exis/&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;Thanks so much for following on this far! I'm afraid that's all there is for
+now, but I am about to start on the next stage -- a proper book on TDD for
+web apps.&lt;/p&gt;
+&lt;p&gt;If you've found the tutorial useful so far, I wonder whether I can solicit
+some feeback regarding a book version?&lt;/p&gt;
+&lt;p&gt;Here's the chapter outline I've got so far.  Now, remember, this is a very rough draft,
+and it's very much bound to change, but I'd love to hear your thoughts... Especially
+about some quite general questions, like:&lt;/p&gt;
+&lt;ul class="simple"&gt;
+&lt;li&gt;Am I broadly covering the right sort of stuff?&lt;/li&gt;
+&lt;li&gt;Am I right to spend plenty of time talking about JavaScript, as well as Python?&lt;/li&gt;
+&lt;li&gt;What should I choose as my example app?  I've written the outline as if it
+were a forums app, but I'm starting to see the appeal of one of the other classic
+examples, the &amp;quot;to-do list&amp;quot; (very simple at base, can be extended easily, opportunities
+for sharing/social bits, plenty of stuff to do on the client-side too...).  What
+would you choose as an example?&lt;/li&gt;
+&lt;/ul&gt;
+&lt;div class="section" id="part-1-beginning-web-app-development-with-tdd"&gt;
+&lt;h2&gt;PART 1 - Beginning web app development with TDD&lt;/h2&gt;
+&lt;p&gt;The idea is to dive straight in with a practical example, rather than talking
+a lot of theory up-front.   I had originally thought to start with a toy example
+(cf these 3 abandoned chapters: &lt;a class="reference external" href="http://www.tdd-django-tutorial.com/tutorial/6/"&gt;http://www.tdd-django-tutorial.com/tutorial/6/&lt;/a&gt; ),
+but I decided that people prefer real practical stuff to toy examples...&lt;/p&gt;
+&lt;p&gt;I also want the first few chapters to be very short + bit-sized, so that the
+reader feels like they're really making progress quickly... (the inspiration
+comes from Kent Beck's TDD by Example, an awesome book)&lt;/p&gt;
+&lt;p&gt;Essentially part 1 is a re-hash of this online tutorial, using a differnt example
+app...&lt;/p&gt;
+&lt;div class="section" id="our-first-functional-test-with-selenium"&gt;
+&lt;h3&gt;1: Our first functional test with Selenium&lt;/h3&gt;
+&lt;ul class="simple"&gt;
+&lt;li&gt;Briefly discuss difference between functional testing (AKA acceptance
+testing, integration testing, whatever) and unit testing&lt;/li&gt;
+&lt;li&gt;Write first test - Introduce Selenium, &lt;cite&gt;setUp&lt;/cite&gt;, &lt;cite&gt;tearDown&lt;/cite&gt;&lt;/li&gt;
+&lt;li&gt;Demonstrate we can get it to open a web browser, and navigate to a web page
+eg - google.com&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/div&gt;
+&lt;div class="section" id="getting-django-set-up-and-running"&gt;
+&lt;h3&gt;2: Getting Django set-up and running&lt;/h3&gt;
+&lt;ul class="simple"&gt;
+&lt;li&gt;Change our test to look for the test server&lt;/li&gt;
+&lt;li&gt;Switch to Django LiveServerTestCase. Explain&lt;/li&gt;
+&lt;li&gt;Get the first test running and failing for a sensible reason&lt;/li&gt;
+&lt;li&gt;Create django project &lt;cite&gt;django-admin.py startproject&lt;/cite&gt;&lt;/li&gt;
+&lt;li&gt;It worked!&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/div&gt;
+&lt;div class="section" id="a-static-front-page"&gt;
+&lt;h3&gt;3: A static front page&lt;/h3&gt;
+&lt;ul class="simple"&gt;
+&lt;li&gt;Look for &amp;quot;Welcome to the Forums&amp;quot;, or similar&lt;/li&gt;
+&lt;li&gt;&lt;cite&gt;urls.py&lt;/cite&gt;, &lt;cite&gt;direct_to_template&lt;/cite&gt; ?&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/div&gt;
+&lt;div class="section" id="super-users-and-the-django-admin-site"&gt;
+&lt;h3&gt;4: Super-users and the Django admin site&lt;/h3&gt;
+&lt;ul class="simple"&gt;
+&lt;li&gt;Extend FT to try and log in&lt;/li&gt;
+&lt;li&gt;Explain the admin site&lt;/li&gt;
+&lt;li&gt;Database setup, &lt;cite&gt;settings.py&lt;/cite&gt;, &lt;cite&gt;syncdb&lt;/cite&gt;, &lt;cite&gt;admin.py&lt;/cite&gt;&lt;/li&gt;
+&lt;li&gt;&lt;cite&gt;runserver&lt;/cite&gt; to show login code&lt;/li&gt;
+&lt;li&gt;Explain difference between test database and real database&lt;/li&gt;
+&lt;li&gt;Fixtures&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/div&gt;
+&lt;div class="section" id="first-unit-tests-and-database-model"&gt;
+&lt;h3&gt;5: First unit tests and Database model&lt;/h3&gt;
+&lt;ul class="simple"&gt;
+&lt;li&gt;Distinction between unit tests and functional tests&lt;/li&gt;
+&lt;li&gt;Extend FT to try and create a new topic&lt;/li&gt;
+&lt;li&gt;new app&lt;/li&gt;
+&lt;li&gt;&lt;cite&gt;models.py&lt;/cite&gt;&lt;/li&gt;
+&lt;li&gt;test/code cycle&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/div&gt;
+&lt;div class="section" id="testing-a-view"&gt;
+&lt;h3&gt;6: Testing a view&lt;/h3&gt;
+&lt;ul class="simple"&gt;
+&lt;li&gt;urls.py again&lt;/li&gt;
+&lt;li&gt;Test view as a function&lt;/li&gt;
+&lt;li&gt;assert on string contents&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/div&gt;
+&lt;div class="section" id="django-s-template-system"&gt;
+&lt;h3&gt;7: Django's template system&lt;/h3&gt;
+&lt;ul class="simple"&gt;
+&lt;li&gt;Introduce template syntax&lt;/li&gt;
+&lt;li&gt;Keep testing as a function&lt;/li&gt;
+&lt;li&gt;The, introduce the Django Test Client&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/div&gt;
+&lt;div class="section" id="reflections-what-to-test-what-not-to-test"&gt;
+&lt;h3&gt;8: Reflections: what to test, what not to test&lt;/h3&gt;
+&lt;ul class="simple"&gt;
+&lt;li&gt;time for a bit of theory/philosophy&lt;/li&gt;
+&lt;li&gt;&amp;quot;Don't test constants&amp;quot;&lt;/li&gt;
+&lt;li&gt;Test logic&lt;/li&gt;
+&lt;li&gt;Tests for simple stuff should be simple, so not much effort&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/div&gt;
+&lt;div class="section" id="simple-forms"&gt;
+&lt;h3&gt;9: Simple Forms&lt;/h3&gt;
+&lt;ul class="simple"&gt;
+&lt;li&gt;Manually coded HTML&lt;/li&gt;
+&lt;li&gt;Refactor test classes&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/div&gt;
+&lt;div class="section" id="user-authentication"&gt;
+&lt;h3&gt;10: User Authentication&lt;/h3&gt;
+&lt;ul class="simple"&gt;
+&lt;li&gt;Sign up, login/logout&lt;/li&gt;
+&lt;li&gt;Email?&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/div&gt;
+&lt;div class="section" id="more-advanced-forms"&gt;
+&lt;h3&gt;11: More advanced forms&lt;/h3&gt;
+&lt;ul class="simple"&gt;
+&lt;li&gt;Use Django Forms classes&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/div&gt;
+&lt;div class="section" id="on-refactoring"&gt;
+&lt;h3&gt;12: On Refactoring&lt;/h3&gt;
+&lt;ul class="simple"&gt;
+&lt;li&gt;Martin Fowler&lt;/li&gt;
+&lt;li&gt;Tests critical&lt;/li&gt;
+&lt;li&gt;Methodical process - explain step by step&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/div&gt;
+&lt;div class="section" id="pagination"&gt;
+&lt;h3&gt;13: Pagination&lt;/h3&gt;
+&lt;ul class="simple"&gt;
+&lt;li&gt;Extend various old unit tests and FTs&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;div class="section" id="part-2-more-advanced-testing-for-a-more-advanced-site"&gt;
+&lt;h2&gt;PART 2: More advanced testing for a more advanced site&lt;/h2&gt;
+&lt;div class="section" id="notifications"&gt;
+&lt;h3&gt;14: Notifications&lt;/h3&gt;
+&lt;ul class="simple"&gt;
+&lt;li&gt;Django Notifications, for post edits&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/div&gt;
+&lt;div class="section" id="adding-style-with-markdown"&gt;
+&lt;h3&gt;15: Adding style with MarkDown&lt;/h3&gt;
+&lt;ul class="simple"&gt;
+&lt;li&gt;Using an external library&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/div&gt;
+&lt;div class="section" id="switching-to-oauth-mocking"&gt;
+&lt;h3&gt;16: Switching to OAuth: Mocking&lt;/h3&gt;
+&lt;ul class="simple"&gt;
+&lt;li&gt;&amp;quot;Don't store passwords&amp;quot;&lt;/li&gt;
+&lt;li&gt;Discuss challenges of external dependencies&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/div&gt;
+&lt;div class="section" id="getting-dynamic-testing-javascript-part-1"&gt;
+&lt;h3&gt;17: Getting Dynamic: Testing Javascript part 1&lt;/h3&gt;
+&lt;ul class="simple"&gt;
+&lt;li&gt;Simple input validation&lt;/li&gt;
+&lt;li&gt;Choose JS unit testing framework (probably Qunit, or YUI)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/div&gt;
+&lt;div class="section" id="testing-javascript-part-2-ajax"&gt;
+&lt;h3&gt;18: Testing Javascript part 2 - Ajax&lt;/h3&gt;
+&lt;ul class="simple"&gt;
+&lt;li&gt;Dynamic previews of post input&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/div&gt;
+&lt;div class="section" id="getting-pretty-bootstrap"&gt;
+&lt;h3&gt;19: Getting pretty: Bootstrap&lt;/h3&gt;
+&lt;ul class="simple"&gt;
+&lt;li&gt;Bring in nicer UI elements&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/div&gt;
+&lt;div class="section" id="getting-pretty-gravatar"&gt;
+&lt;h3&gt;20: Getting pretty: Gravatar&lt;/h3&gt;
+&lt;ul class="simple"&gt;
+&lt;li&gt;pictures for users&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;div class="section" id="part-3-getting-seriously-sexy"&gt;
+&lt;h2&gt;PART 3: Getting seriously sexy&lt;/h2&gt;
+&lt;div class="section" id="getting-serious-about-the-client-side-single-page-website"&gt;
+&lt;h3&gt;21: Getting serious about the client-side + single-page website?&lt;/h3&gt;
+&lt;ul class="simple"&gt;
+&lt;li&gt;Introduce one of the client-side js frameworks -- backbone.js / ember.js / angular&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/div&gt;
+&lt;div class="section" id="switching-databases-1-postgresql"&gt;
+&lt;h3&gt;22: Switching Databases 1: PostgreSQL&lt;/h3&gt;
+&lt;ul class="simple"&gt;
+&lt;li&gt;show how Django makes this easy&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/div&gt;
+&lt;div class="section" id="websockets-and-async-on-the-server-side"&gt;
+&lt;h3&gt;23: Websockets and Async on the server-side&lt;/h3&gt;
+&lt;ul class="simple"&gt;
+&lt;li&gt;we want dynamic notifications of when new posts appear on a thread we're
+looking at&lt;/li&gt;
+&lt;li&gt;Need to spin up, Tornado/Twisted/Gevent as well as Django LiveServerTestCase&lt;/li&gt;
+&lt;li&gt;FT opens multiple browser tabs in parallel&lt;/li&gt;
+&lt;li&gt;Big change!&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/div&gt;
+&lt;div class="section" id="switching-databases-2-nosql-and-mongodb"&gt;
+&lt;h3&gt;24: Switching Databases 2: NoSQL and MongoDB&lt;/h3&gt;
+&lt;ul class="simple"&gt;
+&lt;li&gt;obligatory discussion of NoSQL and MongoDB&lt;/li&gt;
+&lt;li&gt;descrine installation, particularities of testing&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/div&gt;
+&lt;div class="section" id="continuous-integration"&gt;
+&lt;h3&gt;26: Continuous Integration&lt;/h3&gt;
+&lt;ul class="simple"&gt;
+&lt;li&gt;Need to build 3 server types&lt;/li&gt;
+&lt;li&gt;Jenkins (or maybe buildbot)&lt;/li&gt;
+&lt;li&gt;Need to adapt Fts, maybe rely less on LiveServerTestCase&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/div&gt;
+&lt;div class="section" id="caching-for-screamingly-fast-performance"&gt;
+&lt;h3&gt;27: Caching for screamingly fast performance&lt;/h3&gt;
+&lt;ul class="simple"&gt;
+&lt;li&gt;unit testing &lt;cite&gt;memcached&lt;/cite&gt;&lt;/li&gt;
+&lt;li&gt;Functionally testing performance&lt;/li&gt;
+&lt;li&gt;Apache &lt;cite&gt;ab&lt;/cite&gt; testing&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Well, that's what I have so far.  What do you think?  Have I missed anything
+out?  Does anything seem superfluous?  Most importantly, would you buy it?&lt;/p&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+</summary><category term="tdd"></category><category term="book"></category></entry><entry><title>The next stage: writing a book</title><link href="http://www.obeythetestinggoat.com/writing-a-book-announcement.html" rel="alternate"></link><updated>2013-01-08T00:00:00+00:00</updated><author><name>Harry</name></author><id>tag:www.obeythetestinggoat.com,2013-01-08:writing-a-book-announcement.html</id><summary type="html">&lt;p&gt;I've decided to try and develop this tutorial into an actual book on test-driven development for web apps.  Have a look at the chapter outline I've posted as part 6:&lt;/p&gt;
+&lt;p&gt;&lt;a class="reference external" href="http://www.tdd-django-tutorial.com/tutorial/6/"&gt;http://www.tdd-django-tutorial.com/tutorial/6/&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;I'd love to hear what you think!  Am I completely mad?&lt;/p&gt;
+</summary><category term="tdd"></category><category term="book"></category></entry></feed>

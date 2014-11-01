@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<!--[if IE 8]>    <html class="no-js lt-ie9" lang="en"> <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en"> <!--<![endif]-->
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+        <!-- Set the viewport width to device width for mobile -->
+        <meta name="viewport" content="width=device-width" />
+        <title>Obey the Testing Goat!</title>
+        <meta charset="utf-8" />
+        <link rel="stylesheet" href="/static/css/normalize.css">
+        <link rel="stylesheet" href="/static/css/pygments.css">
+        <link rel="stylesheet" href="/static/css/extra.css">
+        <link rel="stylesheet" href="/static/css/foundation.css">
+        <link href='http://fonts.googleapis.com/css?family=Life+Savers:400,700|Sanchez:400,400italic|Ovo' rel='stylesheet' type='text/css'>
+
+
+        <link rel="stylesheet" href="/static/css/social_foundicons.css">
+        <!--[if lt IE 8]>
+            <link rel="stylesheet" href="stylesheets/social_foundicons_ie7.css">
+        <![endif]-->
+
+
+        <link href="http://www.obeythetestinggoat.com/feeds/all.atom.xml" type="application/atom+xml" rel="alternate" title="Obey the Testing Goat! Full Atom Feed" />
+        <link href="http://www.obeythetestinggoat.com/feeds/misc.atom.xml" type="application/atom+xml" rel="alternate" title="Obey the Testing Goat! Categories Atom Feed" />
+</head>
+
+<body>
+    <header class="row">
+        <div class="large-12 columns">
+            <div class="row">
+                <span class="right"><a href="http://www.obeythetestinggoat.com/feeds/all.atom.xml" type="application/rss+xml"><i class="social foundicon-rss"></i> RSS</a></span>
+                <div class="large-2 columns">
+                    <a href="http://www.obeythetestinggoat.com"><img src="/static/images/kid_goat.png" alt="The Testing Goat" title="The Testing Goat" /></a>
+                </div>
+                <div class="large-10 columns">
+                    <h1>Obey the Testing Goat!</h1>
+                    <h2><small><em>TDD for the Web, with Python, Selenium, Django, JavaScript and pals...</em></small></h2>
+                </div>
+            </div>
+        </div>
+    </header> <!-- end top banner -->
+
+<div class="row">
+    <div class="large-9 small-12 columns"> <!-- blog post div -->
+        <header>
+            <h2><a href="unit-testing-fabric-deployment-scripts.html" rel="bookmark" title="Permalink to Unit testing fabric scripts for deployment">Unit testing fabric scripts for deployment</a></h2>
+
+             
+
+        </header>
+        <footer class="post-info">
+            <abbr class="published" title="2013-09-19T07:30:00">
+              Thu 19 September 2013
+            </abbr>
+                <address class="vcard author">
+                  By <a class="url fn" href="http://www.obeythetestinggoat.com/author/harry.html">Harry</a>
+                </address>
+        </footer><!-- /.post-info -->
+
+        <div>
+            <p>In chapter 8 of my <a href="http://www.obeythetestinggoat.com/pages/book.html">book</a> I introduce a fabric script as a way of automating the deployment of our example app.  You can see the section where I do so <a href="http://chimera.labs.oreilly.com/books/1234000000754/ch08.html#_automating_deployment_with_fabric">here</a>.</p>
+<p>After 7 chapters of building everything step-by-step with TDD and detailed unit tests, this fairly large script leaps out fully-formed, It prompted one of my readers to write in (Thanks Nick):</p>
+<blockquote>
+<p>It didn't work the first time I used it (I retype, rather than copy-paste, to better understand the code. Occasional typos are inevitable, and unit testing is a great way to catch these small errors). With the rest of the project, there was substantial testing that went into the creation of each source file, meaning small errors were swiftly located and corrected. However, running the fabfile often caused errors in code that wasn't tested, which took me much longer to find a fix.</p>
+<p>There should be a way to test the deployment script as thoroughly as the rest of the project code. Especially considering how critical deployment is to a web app, and how often it will likely need to be done, maintaining error-free consistency in this process seems like a critical part of the workflow, and worth writing tests for.</p>
+</blockquote>
+<p>Nick is right isn't he? There's a bit of a disjoint here. Surely we need some kind of testing for our deployment scripts? </p>
+<p>Admittedly in this chapter I'm explaining how to run Selenium tests against a staging site to make sure that our deployment procedure works, so our deployment script <em>is</em> tested indirectly, but everywhere else in the book I've <em>also</em> written unit tests for all my code.</p>
+<p>At PythonAnywhere, we decided not to write tests for our fabric scripts, and we now regret it.  There's about 3000 lines of messy code in there, which we're scared of refactoring.</p>
+<p>But how to write some kind of low-level tests for a fabric script? Here's a sample function:</p>
+<div class="highlight"><pre><span class="k">def</span> <span class="nf">_update_virtualenv</span><span class="p">(</span><span class="n">source_folder</span><span class="p">):</span>
+    <span class="n">virtualenv_folder</span> <span class="o">=</span> <span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">source_folder</span><span class="p">,</span> <span class="s">&#39;../virtualenv&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">exists</span><span class="p">(</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">virtualenv_folder</span><span class="p">,</span> <span class="s">&#39;bin&#39;</span><span class="p">,</span> <span class="s">&#39;pip&#39;</span><span class="p">)):</span> <span class="c">#&lt;11&gt;</span>
+        <span class="n">run</span><span class="p">(</span><span class="s">&#39;virtualenv --python=python3.3 </span><span class="si">%s</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">virtualenv_folder</span><span class="p">,))</span>
+    <span class="n">run</span><span class="p">(</span><span class="s">&#39;</span><span class="si">%s</span><span class="s">/bin/pip install -r </span><span class="si">%s</span><span class="s">/requirements.txt&#39;</span> <span class="o">%</span> <span class="p">(</span>
+            <span class="n">virtualenv_folder</span><span class="p">,</span> <span class="n">source_folder</span>
+    <span class="p">))</span>
+</pre></div>
+
+
+<p>It seems to me there's no great ways of testing this sort of stuff?  Here's three I can think of:</p>
+<h3>1. Mock out Fabric</h3>
+<p>You could mock out the Fabric API, and write a bunch of tests that say things like:</p>
+<div class="highlight"><pre><span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span>
+    <span class="n">mock_run</span><span class="o">.</span><span class="n">method_calls</span><span class="p">,</span>
+    <span class="p">[</span>
+        <span class="n">call</span><span class="p">(</span><span class="s">&#39;virtualenv --python=python3.3 /path/to/virtualenv&#39;</span><span class="p">),</span>
+        <span class="n">call</span><span class="p">(</span><span class="s">&#39;/path/to/virtualenv/bin/pip install -r /path/to/my/folder/requirements.txt&#39;</span><span class="p">),</span>
+    <span class="p">]</span>
+<span class="p">)</span>
+</pre></div>
+
+
+<p>But I hate that kind of unit test!  It's just duplicating your code with a bunch of mocks.  It's not that it has <em>no</em> value -- it's a bit like double-entry accounting, so it might help Nick or I catch the occasional typo -- but it doesn't really feel like testing, you know?  It's so tightly coupled to the implementation as to be almost identical, and we'd definitely be testing implementation rather than behaviour.</p>
+<p>I mean, would you really test-drive writing your fabric scripts using these kinds of tests?</p>
+<h3>2. Monkeypatch fabric to work in /tmp</h3>
+<p>You could write a sort of hacked-up integration test, which redirects all the fabric calls to a temp folder on the machine you're using for testing, something like this:</p>
+<div class="highlight"><pre><span class="c"># assumes we have some recognisable prefix for path given</span>
+<span class="k">def</span> <span class="nf">mock_run</span><span class="p">(</span><span class="n">cmd_given</span><span class="p">):</span>
+    <span class="n">cmd_redirected</span> <span class="o">=</span> <span class="n">cmd_given</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span>
+        <span class="n">path_prefix</span><span class="p">,</span> <span class="n">tmp_path</span> <span class="o">+</span> <span class="n">path_prefix</span>
+    <span class="p">)</span>
+    <span class="c"># use fabric local() function to run command locally instead</span>
+    <span class="n">local</span><span class="p">(</span><span class="n">cmd_redirected</span><span class="p">)</span>
+<span class="c">#...</span>
+<span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span>
+    <span class="n">tmp_path</span> <span class="o">+</span> <span class="n">given_path</span> <span class="o">+</span> <span class="s">&#39;../virtualenv&#39;</span>
+<span class="p">))</span>
+</pre></div>
+
+
+<p>So we can check the effects of that function on the temp folder - more of an integration test than a unit test, but at least we're now testing behaviour rather than testing the implementation.  But it'll involve a lot of logic to correctly mock out the fabric API... <code>run</code> may not be too hard, but I'm also using <code>append</code> and <code>sed</code>...  I'm worried I'll spend as much time debuggin test code as the real code!</p>
+<h3>3. Run the actual commands against a test VM</h3>
+<p>You could spin up some kind of lightweight VM / linux container (docker?) and let the fabric script run against that, checking the effects using fabric too.</p>
+<p>That might be kinda cool, but it definitely feels very heavyweight -- it's certainly more than I want to tell my readers to set up on their machines (what about Windows users!), and it ends up being a lot like what I'm doing with Selenium, running the acceptance tests against the staging server...</p>
+<hr />
+<p>So what to do? One possibility would be to consign all this stuff to an appendix, in which I demonstrate all three approaches, and then tell the reader that it's up to them to choose which they like... But can I do better? And should I even bother?</p>
+<p>So folks, what do you think?  Is it worth writing unit tests for fabric scripts?  If so, how?</p>
+        </div><!-- /.entry-content -->
+
+    <div class="comments">
+        <h3>Comments</h3>
+        <div id="disqus_thread"></div>
+        <script type="text/javascript">
+                var disqus_shortname = 'obeythetestinggoat';
+
+            /* * * DON'T EDIT BELOW THIS LINE * * */
+            (function() {
+                var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+                dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+                (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+            })();
+        </script>
+        <noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+        <a href="http://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+    </div>
+
+
+
+    </div>
+<div class="large-3 small-6 columns">
+    <h6><a href="/pages/book.html">Read the book</a></h6>
+    <p>
+        I'm writing a book all about TDD and Web programming.
+        <a href="/pages/book.html">Read the draft</a> and let me
+        know what you think!
+    </p>
+</div>
+
+<div class="large-3 small-6 columns">
+    <h6><a href="/pages/reviews-and-testimonials.html">Reviews & Testimonials</a></h6>
+   
+    <p>
+        <i>"Hands down the best teaching book I've ever read"</i> &mdash;
+        <i>"Even the first 4 chapters were worth the money"</i> &mdash;
+        <i>"Oh my gosh! This book is outstanding"</i> &mdash;
+        <i>"The testing goat is my new friend"</i> &mdash;
+        <a href="/pages/reviews-and-testimonials.html">Read more...</a>
+    </p>
+
+</div>
+
+
+<div class="large-3 small-6 columns">
+    <h6><a href="/pages/tdd-resources.html">Resources</a></h6>
+    <p>A selection of links and videos about TDD, not necessarily all mine, eg <a href="http://pyvideo.org/video/1657/fully-test-driven-web-development-with-django-and">this tutorial
+        at PyCon 2013</a>, how to <a href="http://arstechnica.com/information-technology/2013/03/how-can-i-motivate-coworkers-to-write-unit-tests/">motivate coworkers to write unit tests</a>, thoughts on <a href="http://pyvideo.org/video/699/testing-and-django">Django's test tools</a>, <a href="https://www.youtube.com/watch?v=tdNnN5yTIeM">London-style TDD</a> and <a href="/pages/tdd-resources.html">more</a>.
+</div>
+
+
+<div class="large-3 small-6 columns">
+    <h6><a href="http://www.tdd-django-tutorial.com">Old TDD / Django Tutorial</a></h6>
+    <p>
+    This is my <a href="http://www.tdd-django-tutorial.com">old TDD tutorial</a>,
+    which follows along with the official Django tutorial, but with full TDD.  It
+    badly needs updating. Read the book instead!
+    </p>
+</div>
+
+<div class="large-3 small-6 columns">
+    <h6><a href="/pages/save-the-testing-goat-campaign.html">Save the Testing Goat Campaign</a></h6>
+    <p>
+    The campaign page, preserved for history, which led to the glorious presence
+    of the Testing Goat on the front of the book.
+    </p>
+</div></div>
+
+  <footer class="row">
+    <div class="large-12 columns">
+      <hr>
+      <div class="row">
+        <div class="large-8 columns">
+            <p>
+                <a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/3.0/"><img alt="Creative Commons License" style="border-width:0" src="http://i.creativecommons.org/l/by-nc-sa/3.0/88x31.png" /></a>
+                &nbsp
+                <span xmlns:dct="http://purl.org/dc/terms/" href="http://purl.org/dc/dcmitype/Text" property="dct:title" rel="dct:type">Obey the Testing Goat website</span> 
+                by <a xmlns:cc="http://creativecommons.org/ns#" href="http://www.obeythetestinggoat.com" property="cc:attributionName" rel="cc:attributionURL">Harry J.W. Percival</a> 
+                is licensed under a 
+                <a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/3.0/">Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License</a>.
+                Site powered by <a href="http://getpelican.com/">Pelican</a>, and
+                hosted on <a href="http://www.pythonanywhere.com">PythonAnywhere</a>
+            </p>
+       </div>
+
+        <div class="large-4 columns">
+          <ul class="inline-list right">
+            <li><a href="/pages/book.html">Book</a></li>
+            <li><a href="/pages/tdd-resources.html">Resources</a></li>
+            <li>
+                <a href="http://www.obeythetestinggoat.com/feeds/all.atom.xml" type="application/rss+xml"><i class="social foundicon-rss"></i> RSS</a></span>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <script src="/static/js/vendor/custom.modernizr.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+
+  <script>
+  document.write('<script src=js/vendor/' +
+  ('__proto__' in {} ? 'zepto' : 'jquery') +
+  '.js><\/script>')
+  </script>
+  <script src="js/foundation.min.js"></script>
+  <script>
+    $(document).foundation();
+  </script>
+  <script type="text/javascript">
+    $(window).load(function() {
+      $('#featured').orbit({ fluid: '2x1' });
+    });
+  </script>
+
+
+  <script>   (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){   (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),   m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)   })(window,document,'script','//www.google-analytics.com/analytics.js','ga');    ga('create', 'UA-40928035-1', 'obeythetestinggoat.com');   ga('send', 'pageview');  </script> 
+  <!-- End Footer -->
+
+</body>
+</html>
