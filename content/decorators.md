@@ -102,8 +102,13 @@ def foo(x):
 assert foo(3) == 2  # this will fail, get is passing!
 ```
 
+Try it out:
+
     git clone https://gist.github.com/2cc523b66d9c0fe41c4b.git deccy
     python3 deccy/deccy.py
 
 Enjoy!
+
+
+*[update 2014-10-23 at 3pm, see also [@baroque, the decorating decorator decorator](https://www.youtube.com/watch?v=Jmf48MJpLEM)]*
 
