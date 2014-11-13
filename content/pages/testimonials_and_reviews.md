@@ -5,6 +5,21 @@ Tags: reviews, readers, testimonials
 
 Here's a few nice things people have said to me about the book, either directly or via online reviews:
 
+### Iain Houston, November 2014: "combines a large a number of really important ideas and, at the same time, pays justice to them with just the right amount of detail."
+
+> Hi Harry,
+
+> I really appreciate your attention to detail. Just the right balance, so as not to lose the view from above whilst being very clear about (to me) very important disclosures about your thought process. At random: “But we won’t do them [refactoring] right away, because right now our application is in a broken state.” Again: Your thinking out loud about why you’d tend to Model Layer validation rather towards a plethora of form validation. Good to think about; good to hear your reasoning.
+
+> I think you’ve been very clever to combine so large a number of really important ideas and, at the same time, pay justice to them with just the right amount of detail.
+
+> It’s so important, this detail. The hundreds of little micro-decisions a programmer decides during each hour of programming: what to call this variable? should I commit now? should I refactor yet? Is it worth writing a test for this? I should break this file / function into smaller pieces as I’m losing control of the idea...
+
+> So, to be able to read along with your thought processes as we explore new ways of doing things: making micro-decisions about new things we’re just getting to grips with and that still feel a little unfamiliar under our fingers... I very much and appreciate your book. It’s certainly been an eye-opener for me.
+
+Thanks Iain :)
+
+
 ### Edward Cheadle, September 2014:  "well written, easy to understand and pulls together all the concepts of modern software development"
 
 > I saw the book at Barnes and Noble, looked through it and bought it.  I did see I could read the book for free and then make a decision whether or not to buy it,  but I looked it over and realized I wanted it in print so I could make notes, mark pages and keep it as a reference. I am now on page 22 and I am very glad I just bought it.
