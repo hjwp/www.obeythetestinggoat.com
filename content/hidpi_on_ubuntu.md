@@ -15,6 +15,7 @@ I have a character flaw as regards overly shiny laptops, and when my golden Sony
 
 ```
 gsettings set org.gnome.settings-daemon.plugins.xsettings overrides "{'Gdk/WindowScalingFactor': <2>}"
+
 gsettings set org.gnome.desktop.interface scaling-factor 2
 ```
 
@@ -63,8 +64,10 @@ Next challenge is getting reasonably good touchscreen support!
 I leave you with a screenshot...
 
 <a href="/static/images/hidpi_desktop_screenshot.png">
-    <img src="/static/images/hidpi_desktop_screenshot.png" alt="screenshot" />
+    <figure>
+        <img src="/static/images/hidpi_desktop_screenshot.png" alt="screenshot" />
+        <figcaption>So. Many. Pixels.</figcaption>
+    </figure>
 </a>
-
 
 
