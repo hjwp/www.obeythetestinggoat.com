@@ -5,6 +5,12 @@ Tags: reviews, readers, testimonials
 
 Here's a few nice things people have said to me about the book, either directly or via online reviews:
 
+
+### Dylan Fox, February 2015: "Being able to form an opinion on integrated vs isolated tests is important"
+
+> As for feedback, overall I really enjoyed the book. The last chapters were tough, but important to cover. And I see that clearly now after having read them! Being able to form an opinion on integrated vs isolated tests is important, and without having read the final chapters I wouldn't have been able to begin to form an opinion. I feel like I know enough now to break the best practices rules when I need to. If that makes sense.
+
+
 ### Merouane Atig, November 2014: "I think that your book is the most interesting approach to TDD I've ever read"
 
 > I'm currently reading your excellent book "Test-Driven Web Development with Python" and I really love it! I'm new to Python and Django but I already read many books on TDD in other languages (C# and Ruby mainly) and I practice TDD for 3 years. I think that your book has the most interesting approach to TDD I've ever read. Thank you for this!
