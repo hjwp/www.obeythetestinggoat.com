@@ -164,26 +164,39 @@ And I think that might just be bulletproof!
 
 ## And for bonus points...
 
+(credit to Tommy Beadle for this solution)
 
-Use the contextmanager decorator and the magical-but-slightly-scary yield keyword!
+It turns out selenium has a built-in condition called `staleness_of`, as well
+as its own wait-for implementation.  Use them, alongside the `@contextmanager`
+decorator and the magical-but-slightly-scary `yield` keyword, and you get:
 
 ```python
 from contextlib import contextmanager
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support.expected_conditions import \
+    staleness_of
 
-@contextmanager
-def wait_for_page_load(browser):
-    old_page = browser.find_element_by_tag_name('html')
+class MySeleniumTest(SomeFunctionalTestClass):
+    # assumes self.browser is a selenium webdriver
 
-    yield
+    @contextmanager
+    def wait_for_page_load(self, timeout=30):
+        old_page = self.browser.find_element_by_tag_name('html')
+        yield
+        WebDriverWait(self.browser, timeout).until(
+            staleness_of(old_page)
+        )
 
-    def page_has_loaded():
-        new_page = browser.find_element_by_tag_name('html')
-        return new_page.id != old_page.id
-
-    wait_for(page_has_loaded)
+    def test_stuff(self):
+        # example use
+        with self.wait_for_page_load(timeout=10):
+            self.browser.find_element_by_link_text('a link')
+            # nice!
 ```
 
 
-Note that this solution only works for "non-javascript" clicks, ie clicks that will cause the browser to load a brand new page, and thus load a brand new HTML element.
+Note that this solution only works for "non-javascript" clicks, ie clicks that
+will cause the browser to load a brand new page, and thus load a brand new HTML
+body element.
 
 Let me know what you think!
