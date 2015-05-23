@@ -188,24 +188,37 @@
 
 <p>And I think that might just be bulletproof!</p>
 <h2>And for bonus points...</h2>
-<p>Use the contextmanager decorator and the magical-but-slightly-scary yield keyword!</p>
+<p>(credit to Tommy Beadle for this solution)</p>
+<p>It turns out selenium has a built-in condition called <code>staleness_of</code>, as well
+as its own wait-for implementation.  Use them, alongside the <code>@contextmanager</code>
+decorator and the magical-but-slightly-scary <code>yield</code> keyword, and you get:</p>
 <div class="highlight"><pre><span class="kn">from</span> <span class="nn">contextlib</span> <span class="kn">import</span> <span class="n">contextmanager</span>
+<span class="kn">from</span> <span class="nn">selenium.webdriver.support.ui</span> <span class="kn">import</span> <span class="n">WebDriverWait</span>
+<span class="kn">from</span> <span class="nn">selenium.webdriver.support.expected_conditions</span> <span class="kn">import</span> \
+    <span class="n">staleness_of</span>
 
-<span class="nd">@contextmanager</span>
-<span class="k">def</span> <span class="nf">wait_for_page_load</span><span class="p">(</span><span class="n">browser</span><span class="p">):</span>
-    <span class="n">old_page</span> <span class="o">=</span> <span class="n">browser</span><span class="o">.</span><span class="n">find_element_by_tag_name</span><span class="p">(</span><span class="s">&#39;html&#39;</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">MySeleniumTest</span><span class="p">(</span><span class="n">SomeFunctionalTestClass</span><span class="p">):</span>
+    <span class="c"># assumes self.browser is a selenium webdriver</span>
 
-    <span class="k">yield</span>
+    <span class="nd">@contextmanager</span>
+    <span class="k">def</span> <span class="nf">wait_for_page_load</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mi">30</span><span class="p">):</span>
+        <span class="n">old_page</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">browser</span><span class="o">.</span><span class="n">find_element_by_tag_name</span><span class="p">(</span><span class="s">&#39;html&#39;</span><span class="p">)</span>
+        <span class="k">yield</span>
+        <span class="n">WebDriverWait</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">browser</span><span class="p">,</span> <span class="n">timeout</span><span class="p">)</span><span class="o">.</span><span class="n">until</span><span class="p">(</span>
+            <span class="n">staleness_of</span><span class="p">(</span><span class="n">old_page</span><span class="p">)</span>
+        <span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">page_has_loaded</span><span class="p">():</span>
-        <span class="n">new_page</span> <span class="o">=</span> <span class="n">browser</span><span class="o">.</span><span class="n">find_element_by_tag_name</span><span class="p">(</span><span class="s">&#39;html&#39;</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">new_page</span><span class="o">.</span><span class="n">id</span> <span class="o">!=</span> <span class="n">old_page</span><span class="o">.</span><span class="n">id</span>
-
-    <span class="n">wait_for</span><span class="p">(</span><span class="n">page_has_loaded</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">test_stuff</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c"># example use</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">wait_for_page_load</span><span class="p">(</span><span class="n">timeout</span><span class="o">=</span><span class="mi">10</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">browser</span><span class="o">.</span><span class="n">find_element_by_link_text</span><span class="p">(</span><span class="s">&#39;a link&#39;</span><span class="p">)</span>
+            <span class="c"># nice!</span>
 </pre></div>
 
 
-<p>Note that this solution only works for "non-javascript" clicks, ie clicks that will cause the browser to load a brand new page, and thus load a brand new HTML element.</p>
+<p>Note that this solution only works for "non-javascript" clicks, ie clicks that
+will cause the browser to load a brand new page, and thus load a brand new HTML
+body element.</p>
 <p>Let me know what you think!</p>
         </div><!-- /.entry-content -->
 
@@ -289,7 +302,10 @@
                 is licensed under a 
                 <a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/3.0/">Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License</a>.
                 Site powered by <a href="http://getpelican.com/">Pelican</a>, and
-                hosted on <a href="http://www.pythonanywhere.com">PythonAnywhere</a>
+                hosted on <a href="http://www.pythonanywhere.com">PythonAnywhere</a>.
+                If you came here via one of the awesome "Year of the Testing Goat" stickers,
+                you should know credit for the sweet cartoon goat goes to 
+                <a href="http://www.squirrelmuffins.com/">Kat i on</a>
             </p>
        </div>
 
