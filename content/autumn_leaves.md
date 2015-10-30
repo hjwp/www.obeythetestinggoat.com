@@ -16,27 +16,27 @@ listening to it, in different forms, for much longer than I thought.  Here are
 the three that stand out, in reverse chronological order of my life encounters
 with them.
 
-- Youtube playlist: https://www.youtube.com/playlist?list=PLbYn653YTQ0IXlTXEOjNiyuXaUwz8nuAh
+- [Youtube playlist](https://www.youtube.com/playlist?list=PLbYn653YTQ0IXlTXEOjNiyuXaUwz8nuAh)
 
-- Spotify playlist: http://open.spotify.com/user/hjwp/playlist/77bEn7Lyta1GWdPTFbRUEq
+- [Spotify playlist](http://open.spotify.com/user/hjwp/playlist/77bEn7Lyta1GWdPTFbRUEq)
 
 The first version is Eva Cassidy's.  The fact that I'm listening to folk
 singers is not something I would ever have guessed when I was twenty, call it
 my wife's bad influence, but I think this version is incredibly beautiful,
 almost perfect.
 
-https://www.youtube.com/watch?v=xXBNlApwh0c&list=PLbYn653YTQ0IXlTXEOjNiyuXaUwz8nuAh&index=1
+<iframe width="560" height="315" src="https://www.youtube.com/embed/xXBNlApwh0c?list=PLbYn653YTQ0IXlTXEOjNiyuXaUwz8nuAh" frameborder="0" allowfullscreen></iframe>
+
 
 (if you like the sounds of that, be sure to check out Eva Cassidy's rendition
 of ["somewhere over the rainbow"](https://www.youtube.com/watch?v=2rd8VktT8xY),
-which is absolutely heartbreaking, particularly if you know she was dying of
-cancer when she recorded it)
+which is absolutely heartbreaking, particularly if you know how she died)
 
 
 That was the version of the song I encountered in my 30s.  Here's the version from my
 20s:
 
-https://www.youtube.com/watch?v=fXypvAr0QrQ&list=PLbYn653YTQ0IXlTXEOjNiyuXaUwz8nuAh&index=2
+<iframe width="560" height="315" src="https://www.youtube.com/embed/fXypvAr0QrQ?list=PLbYn653YTQ0IXlTXEOjNiyuXaUwz8nuAh" frameborder="0" allowfullscreen></iframe>
 
 Quite different!  The 
 [original Coldcut mix](https://www.youtube.com/watch?v=4qoTzDPDvE8) is well
@@ -49,16 +49,16 @@ around yesterday I realised why.
 Autumn Leaves has been around for
 [ages](https://en.wikipedia.org/wiki/Autumn_Leaves_%281945_song%29), but it's
 actually originally a French song, the canonical rendition of which is by classic
-crooner Yves Montand, and this is the one I remember from my youth.
+French crooner Yves Montand, and this is the one I remember from my youth.
 
-https://www.youtube.com/watch?v=Ur9XthDjkq0&index=3&list=PLbYn653YTQ0IXlTXEOjNiyuXaUwz8nuAh
+<iframe width="560" height="315" src="https://www.youtube.com/embed/_gZZbUrs6rU?list=PLbYn653YTQ0IXlTXEOjNiyuXaUwz8nuAh" frameborder="0" allowfullscreen></iframe>
 
 Now we're back to my childhood in France, and apologies to non-French speakers, I'm not
 sure if this will connect with y'all, but I find this one almost unbearable.
 It's actually based on a poem by Jacques Prevert, one famous enough that we
 studied it in school.  
 
-http://genius.com/Jacques-prevert-les-feuilles-mortes-annotated
+* [Les feuilles mortes, Jacques Prévert](http://genius.com/Jacques-prevert-les-feuilles-mortes-annotated)
 
 In French, it's not "Autumn Leaves" though, it's "Dead Leaves" -- "Les Feuilles
 Mortes". Already that sets a different tone, but it's the final stanza that I
@@ -91,6 +91,6 @@ world.
 Enjoy!
 
 
-*P.S. Everything's fine between me and my wife by the way! Don't worry.  Just inspired 
-by the season...*
+P.S. Everything's fine between me and my wife by the way! Don't worry.  Just inspired 
+by the season...
 
