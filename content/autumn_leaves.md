@@ -7,6 +7,8 @@ Summary: Another OT post, this one a short playlist of three autumnal songs.
 To my usual readers that come hear for TDD, apologies, this is off-topic,
 normal service will resume shortly.
 
+<img src="/static/images/goatmastersvoice2.jpeg" width="200px"></img>
+
 I was in an autumnal mood yesterday, and found myself listening to 3 different
 versions of the jazz standard "Autumn Leaves", and since it's that sort of
 season, I thought I'd share them with you.
@@ -94,3 +96,4 @@ Enjoy!
 P.S. Everything's fine between me and my wife by the way! Don't worry.  Just inspired 
 by the season...
 
+*Image credit: [kat squirrelmuffins](https://twitter.com/squirrelmuffins)*
