@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<!--[if IE 8]>    <html class="no-js lt-ie9" lang="en"> <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en"> <!--<![endif]-->
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+        <!-- Set the viewport width to device width for mobile -->
+        <meta name="viewport" content="width=device-width" />
+        <title>Obey the Testing Goat!</title>
+        <meta charset="utf-8" />
+        <link rel="stylesheet" href="/static/css/normalize.css">
+        <link rel="stylesheet" href="/static/css/pygments.css">
+        <link rel="stylesheet" href="/static/css/extra.css">
+        <link rel="stylesheet" href="/static/css/foundation.css">
+        <link href='http://fonts.googleapis.com/css?family=Life+Savers:400,700|Sanchez:400,400italic|Ovo' rel='stylesheet' type='text/css'>
+
+
+        <link rel="stylesheet" href="/static/css/social_foundicons.css">
+        <!--[if lt IE 8]>
+            <link rel="stylesheet" href="stylesheets/social_foundicons_ie7.css">
+        <![endif]-->
+
+
+        <link href="http://www.obeythetestinggoat.com/feeds/all.atom.xml" type="application/atom+xml" rel="alternate" title="Obey the Testing Goat! Full Atom Feed" />
+        <link href="http://www.obeythetestinggoat.com/feeds/misc.atom.xml" type="application/atom+xml" rel="alternate" title="Obey the Testing Goat! Categories Atom Feed" />
+</head>
+
+<body>
+    <header class="row">
+        <div class="large-12 columns">
+            <div class="row">
+                <span class="right"><a href="http://www.obeythetestinggoat.com/feeds/all.atom.xml" type="application/rss+xml"><i class="social foundicon-rss"></i> RSS</a></span>
+                <div class="large-2 columns">
+                    <a href="http://www.obeythetestinggoat.com"><img src="/static/images/kid_goat.png" alt="The Testing Goat" title="The Testing Goat" /></a>
+                </div>
+                <div class="large-10 columns">
+                    <h1>Obey the Testing Goat!</h1>
+                    <h2><small><em>TDD for the Web, with Python, Selenium, Django, JavaScript and pals...</em></small></h2>
+                </div>
+            </div>
+        </div>
+    </header> <!-- end top banner -->
+
+<div class="row">
+    <div class="large-9 small-12 columns"> <!-- blog post div -->
+        <header>
+            <h2><a href="better-tests-for-redis-integrations-with-redislite.html" rel="bookmark" title="Permalink to Better tests for Redis integrations with redislite">Better tests for Redis integrations with redislite</a></h2>
+
+             
+
+        </header>
+        <footer class="post-info">
+            <abbr class="published" title="2015-12-01T08:29:00">
+              Tue 01 December 2015
+            </abbr>
+                <address class="vcard author">
+                  By <a class="url fn" href="http://www.obeythetestinggoat.com/author/harry.html">Harry</a>
+                </address>
+        </footer><!-- /.post-info -->
+
+        <div>
+            <p>A colleague and I were staring at some ugly, mocky tests for our redis integration the other day, when I remembered someone at Pycon last year showing me a cool library called <a href="https://github.com/yahoo/redislite">redislite</a> -- basically, a lightweight, self-contained, pip installable version of redis, that can be installed almost anywhere and run totally separately from the system redis.  (That was <a href="https://twitter.com/dwighthubbard">Dwight</a>, who I now realise is the main author of redislite.  Yay Pycon.)</p>
+<p>He'd said "it's great for testing", so we thought we'd give it a go.</p>
+<p><img src="/static/images/pip_install_redislite.png" alt="console output from pip installing redislite"></img>
+<caption><i>pip installs and compiles in 20 seconds</i></caption></p>
+<p>Here's the sample usage from the docs:</p>
+<div class="highlight"><pre><span class="o">&gt;&gt;&gt;</span> <span class="kn">import</span> <span class="nn">redislite</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">r</span> <span class="o">=</span> <span class="n">redislite</span><span class="o">.</span><span class="n">StrictRedis</span><span class="p">()</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">r</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="s">&#39;foo&#39;</span><span class="p">,</span> <span class="s">&#39;bar&#39;</span><span class="p">)</span>
+<span class="bp">True</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">r</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;foo&#39;</span><span class="p">)</span>
+<span class="s">&#39;bar&#39;</span>
+</pre></div>
+
+
+<p>Couldn't be simpler!  You can initiate a lightweight version of redis just like that, have one for each test even, and throw it away at the end, without having to worry about ports, passwords, or any interaction with the system redis.</p>
+<p>The code under test is meant to parse a web server log line, and then update some hit counts in redis.  Here's how our tests looked before:</p>
+<div class="highlight"><pre><span class="nd">@patch</span><span class="p">(</span><span class="s">&#39;hit_counter.redis&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">test_write_to_redis_updates_appropriate_keys</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mock_redis</span><span class="p">):</span>
+    <span class="n">write_to_redis</span><span class="p">(</span><span class="s">&#39;www.nowhere.com&#39;</span><span class="p">,</span> <span class="n">datetime</span><span class="p">(</span><span class="mi">2013</span><span class="p">,</span> <span class="mi">11</span><span class="p">,</span> <span class="mi">14</span><span class="p">,</span> <span class="mi">16</span><span class="p">,</span> <span class="mi">54</span><span class="p">,</span> <span class="mi">21</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="mi">2323</span><span class="p">)</span>
+
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertItemsEqual</span><span class="p">(</span>
+        <span class="n">mock_redis</span><span class="o">.</span><span class="n">method_calls</span><span class="p">,</span>
+        <span class="p">[</span>
+            <span class="n">call</span><span class="o">.</span><span class="n">incr</span><span class="p">(</span><span class="s">&#39;count|www.nowhere.com&#39;</span><span class="p">),</span>
+            <span class="n">call</span><span class="o">.</span><span class="n">incr</span><span class="p">(</span><span class="s">&#39;count|www.nowhere.com|2013&#39;</span><span class="p">),</span>
+            <span class="n">call</span><span class="o">.</span><span class="n">incr</span><span class="p">(</span><span class="s">&#39;count|www.nowhere.com|2013-11&#39;</span><span class="p">),</span>
+            <span class="n">call</span><span class="o">.</span><span class="n">incr</span><span class="p">(</span><span class="s">&#39;count|www.nowhere.com|2013-11-14&#39;</span><span class="p">),</span>
+            <span class="n">call</span><span class="o">.</span><span class="n">incr</span><span class="p">(</span><span class="s">&#39;count|www.nowhere.com|2013-11-14 16&#39;</span><span class="p">),</span>
+            <span class="n">call</span><span class="o">.</span><span class="n">incr</span><span class="p">(</span><span class="s">&#39;count|www.nowhere.com|2013-11-14 16:54&#39;</span><span class="p">),</span>
+            <span class="n">call</span><span class="o">.</span><span class="n">incrby</span><span class="p">(</span><span class="s">&#39;bytes|www.nowhere.com&#39;</span><span class="p">,</span> <span class="mi">2323</span><span class="p">),</span>
+            <span class="n">call</span><span class="o">.</span><span class="n">incrby</span><span class="p">(</span><span class="s">&#39;bytes|www.nowhere.com|2013&#39;</span><span class="p">,</span> <span class="mi">2323</span><span class="p">),</span>
+            <span class="n">call</span><span class="o">.</span><span class="n">incrby</span><span class="p">(</span><span class="s">&#39;bytes|www.nowhere.com|2013-11&#39;</span><span class="p">,</span> <span class="mi">2323</span><span class="p">),</span>
+            <span class="n">call</span><span class="o">.</span><span class="n">incrby</span><span class="p">(</span><span class="s">&#39;bytes|www.nowhere.com|2013-11-14&#39;</span><span class="p">,</span> <span class="mi">2323</span><span class="p">),</span>
+            <span class="n">call</span><span class="o">.</span><span class="n">incrby</span><span class="p">(</span><span class="s">&#39;bytes|www.nowhere.com|2013-11-14 16&#39;</span><span class="p">,</span> <span class="mi">2323</span><span class="p">),</span>
+            <span class="n">call</span><span class="o">.</span><span class="n">incrby</span><span class="p">(</span><span class="s">&#39;bytes|www.nowhere.com|2013-11-14 16:54&#39;</span><span class="p">,</span> <span class="mi">2323</span><span class="p">),</span>
+        <span class="p">]</span>
+    <span class="p">)</span>
+</pre></div>
+
+
+<p>And here's how they look after:</p>
+<div class="highlight"><pre><span class="k">class</span> <span class="nc">WriteToRedisTest</span><span class="p">(</span><span class="n">unittest</span><span class="o">.</span><span class="n">TestCase</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="nf">setUp</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fake_redis</span> <span class="o">=</span> <span class="n">redislite</span><span class="o">.</span><span class="n">StrictRedis</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">patcher</span> <span class="o">=</span> <span class="n">patch</span><span class="p">(</span><span class="s">&#39;hit_counter.redis&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">fake_redis</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">patcher</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">tearDown</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">patcher</span><span class="o">.</span><span class="n">stop</span><span class="p">()</span>
+
+
+    <span class="k">def</span> <span class="nf">test_increments_all_counts</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">timestamp</span> <span class="o">=</span> <span class="n">datetime</span><span class="p">(</span><span class="mi">2013</span><span class="p">,</span> <span class="mi">11</span><span class="p">,</span> <span class="mi">14</span><span class="p">,</span> <span class="mi">16</span><span class="p">,</span> <span class="mi">54</span><span class="p">,</span> <span class="mi">21</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="n">expected_counts</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="s">&#39;count|www.nowhere.com&#39;</span><span class="p">,</span>
+            <span class="s">&#39;count|www.nowhere.com|2013&#39;</span><span class="p">,</span>
+            <span class="s">&#39;count|www.nowhere.com|2013-11&#39;</span><span class="p">,</span>
+            <span class="s">&#39;count|www.nowhere.com|2013-11-14&#39;</span><span class="p">,</span>
+            <span class="s">&#39;count|www.nowhere.com|2013-11-14 16&#39;</span><span class="p">,</span>
+            <span class="s">&#39;count|www.nowhere.com|2013-11-14 16:54&#39;</span><span class="p">,</span>
+        <span class="p">]</span>
+        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">expected_counts</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">fake_redis</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="mi">11</span><span class="p">)</span>
+
+        <span class="n">write_to_redis</span><span class="p">(</span><span class="s">&#39;www.nowhere.com&#39;</span><span class="p">,</span> <span class="n">timestamp</span><span class="p">,</span> <span class="mi">2323</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">expected_counts</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fake_redis</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">),</span> <span class="s">&#39;12&#39;</span><span class="p">)</span>
+
+
+    <span class="k">def</span> <span class="nf">test_increments_all_bytes</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">timestamp</span> <span class="o">=</span> <span class="n">datetime</span><span class="p">(</span><span class="mi">2013</span><span class="p">,</span> <span class="mi">11</span><span class="p">,</span> <span class="mi">14</span><span class="p">,</span> <span class="mi">16</span><span class="p">,</span> <span class="mi">54</span><span class="p">,</span> <span class="mi">21</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="n">expected_bytes</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="s">&#39;bytes|www.nowhere.com&#39;</span><span class="p">,</span>
+        <span class="c"># etc</span>
+</pre></div>
+
+
+<p>Look at that!</p>
+<ul>
+<li>
+<p>Instead of mocking the library, I'm mocking out a particular Redis instance, with a real, functioning redis that I have full control over</p>
+</li>
+<li>
+<p>I now no longer need to care about exactly how I use the redis API in my code -- no need to check whether I'm calling <code>incr</code> or <code>incrby</code>, I can just set an actual value before, and check the actual value after. It allows me to obey one of the key rules of testing, "test behaviour, don't test implementation".</p>
+</li>
+</ul>
+<p>The approach only continued to deliver benefits.  The reason we were looking at this code was because we wanted to start setting some expiry times on keys.  As a result of using redislite, the tests for expiry came out really sane and readable:</p>
+<div class="highlight"><pre><span class="k">def</span> <span class="nf">test_hourly_data_expires_after_one_week</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">timestamp</span> <span class="o">=</span> <span class="n">datetime</span><span class="p">(</span><span class="mi">2013</span><span class="p">,</span> <span class="mi">11</span><span class="p">,</span> <span class="mi">14</span><span class="p">,</span> <span class="mi">16</span><span class="p">,</span> <span class="mi">54</span><span class="p">,</span> <span class="mi">21</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="n">write_to_redis</span><span class="p">(</span><span class="s">&#39;www.thing.com&#39;</span><span class="p">,</span> <span class="n">timestamp</span><span class="p">,</span> <span class="mi">123</span><span class="p">)</span>
+    <span class="n">ttl</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fake_redis</span><span class="o">.</span><span class="n">ttl</span><span class="p">(</span><span class="s">&#39;count|www.thing.com|2013-11-14 16&#39;</span><span class="p">))</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertAlmostEqual</span><span class="p">(</span>
+        <span class="n">ttl</span><span class="p">,</span>
+        <span class="mi">7</span> <span class="o">*</span> <span class="mi">24</span> <span class="o">*</span> <span class="mi">60</span> <span class="o">*</span> <span class="mi">60</span><span class="p">,</span>
+        <span class="n">delta</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+    <span class="p">)</span>
+</pre></div>
+
+
+<p>Imagine that test with mocks! </p>
+<div class="highlight"><pre>    <span class="bp">self</span><span class="o">.</span><span class="n">assertItemsEqual</span><span class="p">(</span>
+        <span class="n">mock_redis</span><span class="o">.</span><span class="n">method_calls</span><span class="p">,</span>
+        <span class="p">[</span>
+            <span class="n">call</span><span class="o">.</span><span class="n">incr</span><span class="p">(</span><span class="s">&#39;count|www.thing.com&#39;</span><span class="p">),</span>
+            <span class="n">call</span><span class="o">.</span><span class="n">incr</span><span class="p">(</span><span class="s">&#39;count|www.thing.com|2013&#39;</span><span class="p">),</span>
+            <span class="c"># ... </span>
+            <span class="n">call</span><span class="o">.</span><span class="n">incr</span><span class="p">(</span><span class="s">&#39;count|www.thing.com|2013-11-14 16&#39;</span><span class="p">),</span>
+            <span class="n">call</span><span class="o">.</span><span class="n">expire</span><span class="p">(</span><span class="s">&#39;count|www.thing.com|2013-11-14 16&#39;</span><span class="p">,</span> <span class="n">expected_expiry</span><span class="p">),</span>
+            <span class="c"># and so on</span>
+</pre></div>
+
+
+<p>Ugh. And that's glossing over the complexities of timestamping -- the <code>assertAlmostEqual</code> works nicely in the redislite tests, but here I'd have to either mock out <code>datetime</code>, or pull all of the <code>call</code> instances out of <code>.method_calls</code> one by one...  Oh I just don't even want to think about it.</p>
+<p>So, remember kids, friends don't let friends use mocks when there's a better alternative around.  Definitely check out redislite if you ever find yourself writing some tests for a redis integration in your own codebase.</p>
+<p><em>[thanks to <a href="https://twitter.com/nlhkabu">Nicole</a> for prompting me to write this post]</em></p>
+        </div><!-- /.entry-content -->
+
+    <div class="comments">
+        <h3>Comments</h3>
+        <div id="disqus_thread"></div>
+        <script type="text/javascript">
+                var disqus_shortname = 'obeythetestinggoat';
+
+            /* * * DON'T EDIT BELOW THIS LINE * * */
+            (function() {
+                var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+                dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+                (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+            })();
+        </script>
+        <noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+        <a href="http://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+    </div>
+
+
+
+    </div>
+<div class="large-3 small-6 columns">
+    <h6><a href="/pages/book.html">Read the book</a></h6>
+    <p>
+        I'm writing a book all about TDD and Web programming.
+        <a href="/pages/book.html">Read the draft</a> and let me
+        know what you think!
+    </p>
+</div>
+
+<div class="large-3 small-6 columns">
+    <h6><a href="/pages/reviews-and-testimonials.html">Reviews & Testimonials</a></h6>
+   
+    <p>
+        <i>"Hands down the best teaching book I've ever read"</i> &mdash;
+        <i>"Even the first 4 chapters were worth the money"</i> &mdash;
+        <i>"Oh my gosh! This book is outstanding"</i> &mdash;
+        <i>"The testing goat is my new friend"</i> &mdash;
+        <a href="/pages/reviews-and-testimonials.html">Read more...</a>
+    </p>
+
+</div>
+
+
+<div class="large-3 small-6 columns">
+    <h6><a href="/pages/tdd-resources.html">Resources</a></h6>
+    <p>A selection of links and videos about TDD, not necessarily all mine, eg <a href="http://pyvideo.org/video/1657/fully-test-driven-web-development-with-django-and">this tutorial
+        at PyCon 2013</a>, how to <a href="http://arstechnica.com/information-technology/2013/03/how-can-i-motivate-coworkers-to-write-unit-tests/">motivate coworkers to write unit tests</a>, thoughts on <a href="http://pyvideo.org/video/699/testing-and-django">Django's test tools</a>, <a href="https://www.youtube.com/watch?v=tdNnN5yTIeM">London-style TDD</a> and <a href="/pages/tdd-resources.html">more</a>.
+</div>
+
+
+<div class="large-3 small-6 columns">
+    <h6><a href="http://www.tdd-django-tutorial.com">Old TDD / Django Tutorial</a></h6>
+    <p>
+    This is my <a href="http://www.tdd-django-tutorial.com">old TDD tutorial</a>,
+    which follows along with the official Django tutorial, but with full TDD.  It
+    badly needs updating. Read the book instead!
+    </p>
+</div>
+
+<div class="large-3 small-6 columns">
+    <h6><a href="/pages/save-the-testing-goat-campaign.html">Save the Testing Goat Campaign</a></h6>
+    <p>
+    The campaign page, preserved for history, which led to the glorious presence
+    of the Testing Goat on the front of the book.
+    </p>
+</div></div>
+
+  <footer class="row">
+    <div class="large-12 columns">
+      <hr>
+      <div class="row">
+        <div class="large-8 columns">
+            <p>
+                <a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/3.0/"><img alt="Creative Commons License" style="border-width:0" src="http://i.creativecommons.org/l/by-nc-sa/3.0/88x31.png" /></a>
+                &nbsp
+                <span xmlns:dct="http://purl.org/dc/terms/" href="http://purl.org/dc/dcmitype/Text" property="dct:title" rel="dct:type">Obey the Testing Goat website</span> 
+                by <a xmlns:cc="http://creativecommons.org/ns#" href="http://www.obeythetestinggoat.com" property="cc:attributionName" rel="cc:attributionURL">Harry J.W. Percival</a> 
+                is licensed under a 
+                <a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/3.0/">Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License</a>.
+                Site powered by <a href="http://getpelican.com/">Pelican</a>, and
+                hosted on <a href="http://www.pythonanywhere.com">PythonAnywhere</a>.
+                If you came here via one of the awesome "Year of the Testing Goat" stickers,
+                you should know credit for the sweet cartoon goat goes to 
+                <a href="http://www.squirrelmuffins.com/">Kat i on</a>
+            </p>
+       </div>
+
+        <div class="large-4 columns">
+          <ul class="inline-list right">
+            <li><a href="/pages/book.html">Book</a></li>
+            <li><a href="/pages/tdd-resources.html">Resources</a></li>
+            <li>
+                <a href="http://www.obeythetestinggoat.com/feeds/all.atom.xml" type="application/rss+xml"><i class="social foundicon-rss"></i> RSS</a></span>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <script src="/static/js/vendor/custom.modernizr.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+
+  <script>
+  document.write('<script src=js/vendor/' +
+  ('__proto__' in {} ? 'zepto' : 'jquery') +
+  '.js><\/script>')
+  </script>
+  <script src="js/foundation.min.js"></script>
+  <script>
+    $(document).foundation();
+  </script>
+  <script type="text/javascript">
+    $(window).load(function() {
+      $('#featured').orbit({ fluid: '2x1' });
+    });
+  </script>
+
+
+  <script>   (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){   (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),   m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)   })(window,document,'script','//www.google-analytics.com/analytics.js','ga');    ga('create', 'UA-40928035-1', 'obeythetestinggoat.com');   ga('send', 'pageview');  </script> 
+  <!-- End Footer -->
+
+</body>
+</html>
