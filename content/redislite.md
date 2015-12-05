@@ -2,10 +2,9 @@ Title: Better tests for Redis integrations with redislite
 Date: 2015-12-01 08:29
 Tags: Redis, Mocks, integration tests
 Author: Harry
-Status: draft
 Summary: How we replaced a bunch of ugly, mocky tests for our redis integration with redislite, and made them much better.
 
-A colleague and I were staring at some ugly, mocky tests for our redis integration the other day, when I remembered someone at Pycon last year showing me a cool library called "redislite" -- basically, a lightweight, self-contained, pip installable version of redis, that can be installed almost anywhere and run totally separately from the system redis.  (That was Dwight, who I now realise is the main author of redislite.  Yay Pycon.)
+A colleague and I were staring at some ugly, mocky tests for our redis integration the other day, when I remembered someone at Pycon last year showing me a cool library called [redislite](https://github.com/yahoo/redislite) -- basically, a lightweight, self-contained, pip installable version of redis, that can be installed almost anywhere and run totally separately from the system redis.  (That was [Dwight](https://twitter.com/dwighthubbard), who I now realise is the main author of redislite.  Yay Pycon.)
 
 He'd said "it's great for testing", so we thought we'd give it a go.
 
@@ -135,4 +134,5 @@ Ugh. And that's glossing over the complexities of timestamping -- the `assertAlm
 
 So, remember kids, friends don't let friends use mocks when there's a better alternative around.  Definitely check out redislite if you ever find yourself writing some tests for a redis integration in your own codebase.
 
+*[thanks to [Nicole](https://twitter.com/nlhkabu) for prompting me to write this post]*
 
