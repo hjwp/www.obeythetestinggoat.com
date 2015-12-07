@@ -114,5 +114,62 @@ Once I'd more or less wrapped my head around that, and built a prototype that
 works, I started to think about testing. Or, how to turn my manual testing into
 automated testing
 
-> Some wag recently said "
+> Some wag recently said "when people tell me they don't do TDD, I usually see
+> them driving development with a bunch of manual tests which they're just not
+> automating"
+
+It felt like some "real" tests were in order, tests that would actually start
+some real processes, so that's what I went for.  Here was my first cut:
+
+```python
+def test_hobbled_process_is_slow(tarpit_pids_file, start_main_in_subprocess):
+    timer =  (
+        "import time; time.sleep(2.1);"
+        " start = time.time();"
+        " list(range(int(1e6)));"
+        " print(time.time() - start)"
+    )
+    normal = subprocess.check_output(['python', '-c', timer])
+
+    add_self_to_tarpit = (
+        "import os;"
+        " open({pidsfile}, 'w').write(str(os.getpid()));"
+    ).format(pidsfile=tarpit_pids_file)
+    slow = subprocess.check_output(
+        [ 'python', '-c', add_self_to_tarpit + " "  + timer],
+    )
+
+    normal = float(normal)
+    slow = float(slow)
+    assert normal < slow
+    assert normal * 10 < slow
+    assert normal * 20 < slow
+    assert normal * 100 > slow
+```
+
+The test depends on two fixtures, one to create a file containing process ids
+(pids) that we want to hobble, and one to actually launch the hobbler.py process
+
+
+```python
+@pytest.yield_fixture
+def tarpit_pids_file():
+    yield tempfile.NamedTemporaryFile()
+
+
+@pytest.yield_fixture
+def start_hobbler_in_subprocess(tarpit_pids_file):
+    process = subprocess.Popen(
+        ['python3', 'hobbler.py', tarpit_pids_file],
+        stdout=subprocess.PIPE, stdin=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True
+    )
+    first_line = process.stdout.readline()
+    if 'Traceback' in first_line:
+        raise Exception(process.stdout.read())
+    yield process
+    process.kill()
+    print('full hobbler process output:')
+    print(process.stdout.read())
+```
+
 
