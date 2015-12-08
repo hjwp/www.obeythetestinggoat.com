@@ -115,14 +115,14 @@ works, I started to think about testing. Or, how to turn my manual testing into
 automated testing
 
 > Some wag recently said "when people tell me they don't do TDD, I usually see
-> them driving development with a bunch of manual tests which they're just not
-> automating"
+> them driving development with a bunch of manual tests which they're going to
+> throw away, instead of automating them.
 
 It felt like some "real" tests were in order, tests that would actually start
 some real processes, so that's what I went for.  Here was my first cut:
 
 ```python
-def test_hobbled_process_is_slow(tarpit_pids_file, start_main_in_subprocess):
+def test_hobbled_process_is_slow(tarpit_pids_file, start_hobbler_in_subprocess):
     timer =  (
         "import time; time.sleep(2.1);"
         " start = time.time();"
@@ -166,10 +166,88 @@ def start_hobbler_in_subprocess(tarpit_pids_file):
     first_line = process.stdout.readline()
     if 'Traceback' in first_line:
         raise Exception(process.stdout.read())
+
     yield process
+
     process.kill()
     print('full hobbler process output:')
     print(process.stdout.read())
 ```
+
+Running the code under test as a totally separate Python process has two
+benefits -- first, it lets me test the program as it will actually be used,
+and secondly, it neatly sidesteps one of the difficulties of testing async code,
+which is how to deal with the event loop itself, which has to be launched as a
+blocking call..
+
+From that point onwards, I found it was relatively easy to use similar tests
+to drive my development, alongside a few manual checks. Here's my final list
+of tests:
+
+```python
+def test_tarpit_process_is_slow(fake_tarpit, hobbler_process):
+def test_spots_process(fake_tarpit, hobbler_process):
+def test_spots_multiple_processes(fake_tarpit, hobbler_process):
+def test_doesnt_hobble_any_old_process(fake_tarpit, hobbler_process):
+def test_stops_hobbling_dead_processes(fake_tarpit, hobbler_process):
+def test_hobbles_children(fake_tarpit, hobbler_process):
+def test_lots_of_processes(fake_tarpit, nontesting_hobbler_process):
+def test_get_top_level_processes_returns_list_of_parents_and_with_chidren():
+```
+
+You can explore these, and the implementation, in the [repo on GitHub](https://github.com/hjwp/process-hobbler-experiment)
+
+Maybe the most interesting test was the "lots of processes" test, which is a
+performance test -- since the hobbler is meant to reduce the load on our
+servers, by reducing the resource usage of user processes, it's important that
+the hobbler itself shouldn't chew up all the CPU!  So I wanted to see how it
+performs with lots of processes to hobble:
+
+
+```python
+def test_lots_of_processes(fake_tarpit, nontesting_hobbler_process):
+    start_times = psutil.Process(nontesting_hobbler_process.pid).cpu_times()
+    print('start times', start_times)
+    procs = []
+    for i in range(200):
+        p = subprocess.Popen(['sleep', '100'], universal_newlines=True)
+        _add_to_tarpit(p.pid, fake_tarpit)
+        procs.append(p)
+
+    time.sleep(7) # time for 3 iterations
+
+    end_times = psutil.Process(nontesting_hobbler_process.pid).cpu_times()
+    print('end times', end_times)
+
+    assert end_times.user > start_times.user
+    assert end_times.system > start_times.system
+
+    psutil.Process(nontesting_hobbler_process.pid).cpu_percent(interval=0.1)  # warm-up
+    assert psutil.Process(nontesting_hobbler_process.pid).cpu_percent(interval=2) < 10
+```
+
+All that boils down to starting 100 processes, telling the hobbler to hobble all of them, and then measuring the CPU usage of the hobbler -- I wanted it to be less than 10% of CPU.
+
+You
+
+Unfor
+
+https://github.com/hjwp/process-hobbler-experiment/commit/gevent
+https://github.com/hjwp/process-hobbler-experiment/commit/threads
+
+Test results:
+
+<table>
+<tr><td> asyncio: </td><td> 65.4  </td></tr>
+<tr><td> gevent:  </td><td> 100.4 </td></tr>
+<tr><td> Threads: </td><td> 172.8 </td></tr>
+</table>
+
+
+* Any experience with async?  what should i change?
+* I use e2e tests out of laziness, or maybe ignorance.  Are you a unit test enthusiast?  How would you rewrite this test suite to be more unit-ey?
+
+
+
 
 
