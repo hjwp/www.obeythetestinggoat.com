@@ -359,16 +359,20 @@ On the other hand, of course, I get the benefit you always get from a functional
 which is that I'm sure my system really does work.
 
 So, I'd be interested -- would you write this test suite differently?  Can you see any
-candidates for more "unitey" tests?  
+candidates for more "unitey" tests?
 
-I'm thinking the `get_top_level_processes` function could probably do with a
-more isolated test of its own, as could the `hobble_process_tree` function
-(specifically, it's important that the process tree should be hobbled in the
+You'll see I already made a start on a slightly more isolated test that aims at just
+the `get_top_level_processes` function.  The other main candidate that seems like it
+could do with a better, more granular test is `hobble_process_tree` function.
+Specifically, it's important that the process tree should be hobbled in the
 correct order, starting with the top level, then down to children, then
 children's children, and so on, and then re-started in the reverse order,
 starting from the bottom-level processes and going back up to the top.
 (otherwise, if you're hobbling a users' interactive console session, which has
-a nested tree of, say, bash and ipython, the user sees really weird things if you
-pause the ipython before the bash.)
- 
+a nested tree of, say, bash and ipython, the user sees really weird things if
+you pause the ipython before the bash.)
 
+That's not well tested at the moment.  Can you think of a way of doing so which can handle
+the interspered asyncio `yield from`s, and that still feels like testing
+behaviour, not implementation?
+ 
