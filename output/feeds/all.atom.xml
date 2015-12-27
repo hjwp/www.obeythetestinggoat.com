@@ -1,5 +1,335 @@
 <?xml version="1.0" encoding="utf-8"?>
-<feed xmlns="http://www.w3.org/2005/Atom"><title>Obey the Testing Goat!</title><link href="http://www.obeythetestinggoat.com/" rel="alternate"></link><link href="http://www.obeythetestinggoat.com/feeds/all.atom.xml" rel="self"></link><id>http://www.obeythetestinggoat.com/</id><updated>2015-12-01T08:29:00+00:00</updated><entry><title>Better tests for Redis integrations with redislite</title><link href="http://www.obeythetestinggoat.com/better-tests-for-redis-integrations-with-redislite.html" rel="alternate"></link><updated>2015-12-01T08:29:00+00:00</updated><author><name>Harry</name></author><id>tag:www.obeythetestinggoat.com,2015-12-01:better-tests-for-redis-integrations-with-redislite.html</id><summary type="html">&lt;p&gt;A colleague and I were staring at some ugly, mocky tests for our redis integration the other day, when I remembered someone at Pycon last year showing me a cool library called &lt;a href="https://github.com/yahoo/redislite"&gt;redislite&lt;/a&gt; -- basically, a lightweight, self-contained, pip installable version of redis, that can be installed almost anywhere and run totally separately from the system redis.  (That was &lt;a href="https://twitter.com/dwighthubbard"&gt;Dwight&lt;/a&gt;, who I now realise is the main author of redislite.  Yay Pycon.)&lt;/p&gt;
+<feed xmlns="http://www.w3.org/2005/Atom"><title>Obey the Testing Goat!</title><link href="http://www.obeythetestinggoat.com/" rel="alternate"></link><link href="http://www.obeythetestinggoat.com/feeds/all.atom.xml" rel="self"></link><id>http://www.obeythetestinggoat.com/</id><updated>2015-12-27T13:29:00+00:00</updated><entry><title>Testing, async, asyncio, and performance</title><link href="http://www.obeythetestinggoat.com/testing-async-asyncio-and-performance.html" rel="alternate"></link><updated>2015-12-27T13:29:00+00:00</updated><author><name>Harry</name></author><id>tag:www.obeythetestinggoat.com,2015-12-27:testing-async-asyncio-and-performance.html</id><summary type="html">&lt;p&gt;I recently did some experimenting with &lt;code&gt;asyncio&lt;/code&gt;, and wanted to report back on
+how I got on with writing tests for it.  While I was at it I was also able to
+compare its performance with a couple of other approaches to mutlitasking in
+Python, namely threads and gevent, so I'll report on that here too.  (tl;dr:
+it's much of a muchness).&lt;/p&gt;
+&lt;h3&gt;"hobbling" naughty user processes&lt;/h3&gt;
+&lt;p&gt;At &lt;a href="https://www.pythonanywhere/"&gt;PythonAnywhere&lt;/a&gt; we have a "tarpit" where we
+put users who exceed their usage limits.  Their processes still run, but
+slower.  We use cgroups for this, and it works pretty well, but I was in a mean
+mood and I wanted to see whether I could make our tarpit even more mean --
+essentially "hobbling" naughty users's processes using OS stop and restart
+signals.&lt;/p&gt;
+&lt;p&gt;In synchronous/pseudo code, something like this:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;main&lt;/span&gt;&lt;span class="p"&gt;():&lt;/span&gt;
+    &lt;span class="k"&gt;while&lt;/span&gt; &lt;span class="bp"&gt;True&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;
+        &lt;span class="n"&gt;naughty_processes&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;find_new_naughty_processes&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;
+        &lt;span class="k"&gt;for&lt;/span&gt; &lt;span class="n"&gt;process&lt;/span&gt; &lt;span class="ow"&gt;in&lt;/span&gt; &lt;span class="n"&gt;naughty_processes&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;
+            &lt;span class="n"&gt;hobble_process&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;process&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;  &lt;span class="c"&gt;# parallelised somehow&lt;/span&gt;
+        &lt;span class="n"&gt;time&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;sleep&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mi"&gt;10&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+
+&lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;hobble_process&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;process&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
+    &lt;span class="k"&gt;while&lt;/span&gt; &lt;span class="bp"&gt;True&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;
+        &lt;span class="k"&gt;try&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;
+            &lt;span class="n"&gt;os&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;kill&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;process&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;pid&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;signal&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;SIGSTOP&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+            &lt;span class="n"&gt;time&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;sleep&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mf"&gt;0.25&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+            &lt;span class="n"&gt;os&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;kill&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;process&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;pid&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;signal&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;SIGCONT&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+            &lt;span class="n"&gt;time&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;sleep&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mf"&gt;0.01&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;Every 10 seconds, go fetch a list of "naughty" processes, and then "hobble"
+each one of them, by using OS signals to stop and start the process at short
+intervals.  The naughty program still runs, but its execution is suspended for
+95% of the time.&lt;/p&gt;
+&lt;h3&gt;A first cut using asyncio&lt;/h3&gt;
+&lt;p&gt;The only question was: how to do the "parallelise somehow" part.  Asyncio is
+the hot new thing in the world of Python async stuff, and this seemed like a
+good potential candidate -- I have a fairly simple algorithms, and there are
+lots of places where I use "time.sleep", which are good places to give back
+control to some sort of event loop or task manager.&lt;/p&gt;
+&lt;p&gt;And sure enough, my first cut of the same code with asyncio was pleasingly
+similar to the normal procedural code -- I just add a few "yield froms" to
+signify where each function can yield control back to the event loop, ready to
+be woken up again when there's something for it to do:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;main&lt;/span&gt;&lt;span class="p"&gt;():&lt;/span&gt;
+    &lt;span class="n"&gt;loop&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;asyncio&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;get_event_loop&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;
+    &lt;span class="n"&gt;loop&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;create_task&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;hobble_processes_forever&lt;/span&gt;&lt;span class="p"&gt;())&lt;/span&gt;
+    &lt;span class="n"&gt;loop&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;run_forever&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;
+
+
+&lt;span class="nd"&gt;@asyncio.coroutine&lt;/span&gt;
+&lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;hobble_processes_forever&lt;/span&gt;&lt;span class="p"&gt;():&lt;/span&gt;
+    &lt;span class="n"&gt;already_hobbled&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="nb"&gt;set&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;
+    &lt;span class="k"&gt;while&lt;/span&gt; &lt;span class="bp"&gt;True&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;
+        &lt;span class="k"&gt;yield from&lt;/span&gt; &lt;span class="n"&gt;hobble_current_processes&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;already_hobbled&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+        &lt;span class="k"&gt;yield from&lt;/span&gt; &lt;span class="n"&gt;asyncio&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;sleep&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mi"&gt;2&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+
+
+&lt;span class="nd"&gt;@asyncio.coroutine&lt;/span&gt;
+&lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;hobble_current_processes&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;already_hobbled&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
+    &lt;span class="n"&gt;pids&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="k"&gt;yield from&lt;/span&gt; &lt;span class="n"&gt;get_naughty_pids&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;
+    &lt;span class="k"&gt;for&lt;/span&gt; &lt;span class="n"&gt;pid&lt;/span&gt; &lt;span class="ow"&gt;in&lt;/span&gt; &lt;span class="n"&gt;pids&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;
+        &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="n"&gt;pid&lt;/span&gt; &lt;span class="ow"&gt;in&lt;/span&gt; &lt;span class="n"&gt;already_hobbled&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;
+            &lt;span class="k"&gt;continue&lt;/span&gt;
+        &lt;span class="n"&gt;already_hobbled&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;add&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;pid&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+        &lt;span class="n"&gt;asyncio&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;get_event_loop&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;create_task&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;
+            &lt;span class="n"&gt;hobble_process&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;pid&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+        &lt;span class="p"&gt;)&lt;/span&gt;
+
+
+&lt;span class="nd"&gt;@asyncio.coroutine&lt;/span&gt;
+&lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;hobble_process&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;pid&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
+    &lt;span class="k"&gt;while&lt;/span&gt; &lt;span class="bp"&gt;True&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;
+        &lt;span class="n"&gt;os&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;kill&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;pid&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;signal&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;SIGSTOP&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+        &lt;span class="k"&gt;yield from&lt;/span&gt; &lt;span class="n"&gt;asyncio&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;sleep&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mf"&gt;0.2&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+        &lt;span class="n"&gt;os&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;kill&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;pid&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;signal&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;SIGCONT&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+        &lt;span class="k"&gt;yield from&lt;/span&gt; &lt;span class="n"&gt;asyncio&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;sleep&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mf"&gt;0.01&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;blockquote&gt;
+&lt;p&gt;feel free to skip this next section if you already know asyncio&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;What is a coroutine, I hear you ask?  Or, at least, I hear some of you ask.
+I'm relying on the ones who don't ask to improve the amateurish definition that
+follows. Ahem.  A coroutine is a function that defines some points at which
+it's happy to suspend and resume execution, or wait until some data or device
+becomes available. &lt;a href="https://en.wikipedia.org/wiki/Coroutine"&gt;wikipedia&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;In asyncio, those places are marked by the &lt;code&gt;yield from&lt;/code&gt; keywords, where the
+function says: I know this next thing will take some time, I'm happy to wait
+and let the rest of the program (as controlled by the event loop) get on with
+something else.&lt;/p&gt;
+&lt;p&gt;As I learned while trying to build this thing, &lt;code&gt;yield from&lt;/code&gt; on its own won't
+make your code asynchronous (check out &lt;a href="https://gist.github.com/hjwp/727c932ce3e20c6367e5"&gt;this
+gist&lt;/a&gt; for an illustration).
+You also need a special way of invoking functions that you want to start off
+asynchronously, and that's the purpose of &lt;code&gt;create_task&lt;/code&gt;.  &lt;code&gt;create_task&lt;/code&gt; tells
+the event loop to start a function "in the background".&lt;/p&gt;
+&lt;h3&gt;testing async code with a functional test&lt;/h3&gt;
+&lt;p&gt;Once I'd more or less wrapped my head around that, and built a prototype that
+works, I started to think about testing. Or, how to turn my manual testing into
+automated testing&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;Some wag recently said "When people tell me they don't do TDD, I usually see
+them driving development with a bunch of manual tests which they're going to
+throw away, instead of automating them.&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;It felt like some "real" tests were in order, tests that would actually start
+some real processes and see if they really did get slowed down -- an end-to-end
+test, if you will -- so that's what I went for.  Here was my first cut:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;test_hobbled_process_is_slow&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;tarpit_pids_file&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;start_hobbler_in_subprocess&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
+    &lt;span class="n"&gt;timer&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="s"&gt;&amp;quot;; &amp;quot;&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;join&lt;/span&gt;&lt;span class="p"&gt;([&lt;/span&gt;
+        &lt;span class="s"&gt;&amp;quot;import time&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+        &lt;span class="s"&gt;&amp;quot;time.sleep(0.4)&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;  &lt;span class="c"&gt;# give hobbler a chance to spot us&lt;/span&gt;
+        &lt;span class="s"&gt;&amp;quot;start = time.time()&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+        &lt;span class="s"&gt;&amp;quot;list(range(int(1e6)))&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;  &lt;span class="c"&gt;# do some work&lt;/span&gt;
+        &lt;span class="s"&gt;&amp;quot;print(time.time() - start)&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+    &lt;span class="p"&gt;]&lt;/span&gt;
+    &lt;span class="n"&gt;normal&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;subprocess&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;check_output&lt;/span&gt;&lt;span class="p"&gt;([&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;python&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s"&gt;&amp;#39;-c&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;timer&lt;/span&gt;&lt;span class="p"&gt;])&lt;/span&gt;
+
+    &lt;span class="n"&gt;add_self_to_tarpit&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;
+        &lt;span class="s"&gt;&amp;quot;import os;&amp;quot;&lt;/span&gt;
+        &lt;span class="s"&gt;&amp;quot; open({pidsfile}, &amp;#39;w&amp;#39;).write(str(os.getpid()));&amp;quot;&lt;/span&gt;
+    &lt;span class="p"&gt;)&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;format&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;pidsfile&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="n"&gt;tarpit_pids_file&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+    &lt;span class="n"&gt;slow&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;subprocess&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;check_output&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;
+        &lt;span class="p"&gt;[&lt;/span&gt; &lt;span class="s"&gt;&amp;#39;python&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s"&gt;&amp;#39;-c&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;add_self_to_tarpit&lt;/span&gt; &lt;span class="o"&gt;+&lt;/span&gt; &lt;span class="s"&gt;&amp;quot; &amp;quot;&lt;/span&gt;  &lt;span class="o"&gt;+&lt;/span&gt; &lt;span class="n"&gt;timer&lt;/span&gt;&lt;span class="p"&gt;],&lt;/span&gt;
+    &lt;span class="p"&gt;)&lt;/span&gt;
+
+    &lt;span class="n"&gt;normal&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="nb"&gt;float&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;normal&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+    &lt;span class="n"&gt;slow&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="nb"&gt;float&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;slow&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+    &lt;span class="k"&gt;assert&lt;/span&gt; &lt;span class="n"&gt;normal&lt;/span&gt; &lt;span class="o"&gt;&amp;lt;&lt;/span&gt; &lt;span class="n"&gt;slow&lt;/span&gt;
+    &lt;span class="k"&gt;assert&lt;/span&gt; &lt;span class="n"&gt;normal&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt; &lt;span class="mi"&gt;10&lt;/span&gt; &lt;span class="o"&gt;&amp;lt;&lt;/span&gt; &lt;span class="n"&gt;slow&lt;/span&gt;
+    &lt;span class="k"&gt;assert&lt;/span&gt; &lt;span class="n"&gt;normal&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt; &lt;span class="mi"&gt;100&lt;/span&gt; &lt;span class="o"&gt;&amp;gt;&lt;/span&gt; &lt;span class="n"&gt;slow&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;The test depends on two fixtures, one to create a file containing process ids
+(pids) that we want to hobble, and one to actually launch the hobbler.py process&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span class="nd"&gt;@pytest.yield_fixture&lt;/span&gt;
+&lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;tarpit_pids_file&lt;/span&gt;&lt;span class="p"&gt;():&lt;/span&gt;
+    &lt;span class="k"&gt;yield&lt;/span&gt; &lt;span class="n"&gt;tempfile&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;NamedTemporaryFile&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;
+
+
+&lt;span class="nd"&gt;@pytest.yield_fixture&lt;/span&gt;
+&lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;start_hobbler_in_subprocess&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;tarpit_pids_file&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
+    &lt;span class="n"&gt;process&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;subprocess&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;Popen&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;
+        &lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;python3&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s"&gt;&amp;#39;hobbler.py&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;tarpit_pids_file&lt;/span&gt;&lt;span class="p"&gt;],&lt;/span&gt;
+        &lt;span class="n"&gt;stdout&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="n"&gt;subprocess&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;PIPE&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;stdin&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="n"&gt;subprocess&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;PIPE&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; 
+        &lt;span class="n"&gt;stderr&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="n"&gt;subprocess&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;STDOUT&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;universal_newlines&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="bp"&gt;True&lt;/span&gt;
+    &lt;span class="p"&gt;)&lt;/span&gt;
+    &lt;span class="n"&gt;first_line&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;process&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;stdout&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;readline&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;
+    &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="s"&gt;&amp;#39;Traceback&amp;#39;&lt;/span&gt; &lt;span class="ow"&gt;in&lt;/span&gt; &lt;span class="n"&gt;first_line&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;
+        &lt;span class="k"&gt;raise&lt;/span&gt; &lt;span class="ne"&gt;Exception&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;process&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;stdout&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;read&lt;/span&gt;&lt;span class="p"&gt;())&lt;/span&gt;
+
+    &lt;span class="k"&gt;yield&lt;/span&gt; &lt;span class="n"&gt;process&lt;/span&gt;
+
+    &lt;span class="n"&gt;process&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;kill&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;
+    &lt;span class="k"&gt;print&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;full hobbler process output:&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+    &lt;span class="k"&gt;print&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;process&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;stdout&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;read&lt;/span&gt;&lt;span class="p"&gt;())&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;blockquote&gt;
+&lt;p&gt;If you're not familiar with py.test fixtures, they're like things you might put
+in a unittest setUp / tearDown; special functions that get called with each test
+that names them as an argument.  The &lt;code&gt;yield&lt;/code&gt; pattern I'm using here allows me to
+inject a resource into the test.&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;Running the code under test as a totally separate Python process has two
+benefits -- first, it lets me test the program as it will actually be used,
+and secondly, it neatly sidesteps one of the difficulties of testing async code,
+which is how to deal with the event loop itself, which has to be launched as a
+blocking call..&lt;/p&gt;
+&lt;p&gt;From that point onwards, I found it was relatively easy to use similar tests
+to drive my development, alongside a few manual checks. Here's my final list
+of tests:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;test_tarpit_process_is_slow&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;fake_tarpit&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;hobbler_process&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
+&lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;test_spots_process&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;fake_tarpit&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;hobbler_process&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
+&lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;test_spots_multiple_processes&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;fake_tarpit&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;hobbler_process&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
+&lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;test_doesnt_hobble_any_old_process&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;fake_tarpit&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;hobbler_process&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
+&lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;test_stops_hobbling_dead_processes&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;fake_tarpit&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;hobbler_process&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
+&lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;test_hobbles_children&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;fake_tarpit&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;hobbler_process&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
+&lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;test_lots_of_processes&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;fake_tarpit&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;hobbler_process&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
+&lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;test_get_top_level_processes_returns_list_of_parents_and_with_chidren&lt;/span&gt;&lt;span class="p"&gt;():&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;You can explore these, and the implementation, in the 
+&lt;a href="https://github.com/hjwp/process-hobbler-experiment"&gt;repo on GitHub&lt;/a&gt;&lt;/p&gt;
+&lt;h3&gt;Performance comparison:  aysncio vs gevent vs threads&lt;/h3&gt;
+&lt;p&gt;Maybe the most interesting test was the "lots of processes" test, which is a
+performance test -- since the hobbler is meant to reduce the load on our
+servers, by reducing the resource usage of user processes, it's important that
+the hobbler itself shouldn't chew up all the CPU!  So I wanted to see how it
+performs with lots of processes to hobble:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;test_lots_of_processes&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;fake_tarpit&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;hobbler_process&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
+    &lt;span class="n"&gt;start_times&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;Process&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;hobbler_process&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;pid&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;cpu_times&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;
+    &lt;span class="k"&gt;print&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;start times&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;start_times&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+    &lt;span class="n"&gt;procs&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="p"&gt;[]&lt;/span&gt;
+    &lt;span class="k"&gt;for&lt;/span&gt; &lt;span class="n"&gt;i&lt;/span&gt; &lt;span class="ow"&gt;in&lt;/span&gt; &lt;span class="nb"&gt;range&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mi"&gt;200&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
+        &lt;span class="n"&gt;p&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;subprocess&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;Popen&lt;/span&gt;&lt;span class="p"&gt;([&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;sleep&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s"&gt;&amp;#39;100&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;],&lt;/span&gt; &lt;span class="n"&gt;universal_newlines&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="bp"&gt;True&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+        &lt;span class="n"&gt;_add_to_tarpit&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;p&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;pid&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;fake_tarpit&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+        &lt;span class="n"&gt;procs&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;append&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;p&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+
+    &lt;span class="n"&gt;time&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;sleep&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mi"&gt;7&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="c"&gt;# time for 3 iterations&lt;/span&gt;
+
+    &lt;span class="n"&gt;end_times&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;Process&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;hobbler_process&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;pid&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;cpu_times&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;
+    &lt;span class="k"&gt;print&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;end times&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;end_times&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+
+    &lt;span class="k"&gt;assert&lt;/span&gt; &lt;span class="n"&gt;end_times&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;user&lt;/span&gt; &lt;span class="o"&gt;&amp;gt;&lt;/span&gt; &lt;span class="n"&gt;start_times&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;user&lt;/span&gt;
+    &lt;span class="k"&gt;assert&lt;/span&gt; &lt;span class="n"&gt;end_times&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;system&lt;/span&gt; &lt;span class="o"&gt;&amp;gt;&lt;/span&gt; &lt;span class="n"&gt;start_times&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;system&lt;/span&gt;
+
+    &lt;span class="n"&gt;Process&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;hobbler_process&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;pid&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;cpu_percent&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;interval&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="mf"&gt;0.1&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;  &lt;span class="c"&gt;# warm-up&lt;/span&gt;
+    &lt;span class="k"&gt;assert&lt;/span&gt; &lt;span class="n"&gt;Process&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;hobbler_process&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;pid&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;cpu_percent&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;interval&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="mi"&gt;2&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="o"&gt;&amp;lt;&lt;/span&gt; &lt;span class="mi"&gt;10&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;All that boils down to starting 100 processes, telling the hobbler to hobble
+all of them, and then measuring the CPU usage of the hobbler -- I wanted it to
+be less than 10% of CPU. Unfortunately, it was far from that, taking up over
+100% CPU in my first test.&lt;/p&gt;
+&lt;p&gt;So I thought I'd compare asyncio with a couple of other popular Python
+multitasking solutions: 
+&lt;a href="http://www.gevent.org/"&gt;gevent&lt;/a&gt; and plain old
+&lt;a href="https://docs.python.org/3/library/threading.html"&gt;threads&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;Switching from asyncio to gevent was actually very simple -- their programming patterns are
+quite similar -- a matter of changing a few &lt;code&gt;aysncio.sleep&lt;/code&gt;s to &lt;code&gt;gevent.sleep&lt;/code&gt;s,
+and &lt;code&gt;loop.create_task&lt;/code&gt;s to &lt;code&gt;gevent.spawn&lt;/code&gt;s:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span class="gd"&gt;-            yield from asyncio.sleep(0.01)&lt;/span&gt;
+&lt;span class="gi"&gt;+            gevent.sleep(0.01)&lt;/span&gt;
+
+&lt;span class="gd"&gt;-        loop.create_task(&lt;/span&gt;
+&lt;span class="gd"&gt;-            hobble_process_tree(parent)&lt;/span&gt;
+&lt;span class="gd"&gt;-        )&lt;/span&gt;
+&lt;span class="gi"&gt;+        gevent.spawn(hobble_process_tree, parent)&lt;/span&gt;
+
+&lt;span class="gd"&gt;-        yield from hobble_current_processes(loop, already_hobbled, cgroup_dir)&lt;/span&gt;
+&lt;span class="gi"&gt;+        gevent.spawn(hobble_current_processes, already_hobbled, cgroup_dir)&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;Check out the full diff here, if you're curious:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;a href="https://github.com/hjwp/process-hobbler-experiment/commit/gevent"&gt;https://github.com/hjwp/process-hobbler-experiment/commit/gevent&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;It turns out that didn't buy me any real performance improvement though.  So I
+thought I'd try good ol' fashioned threads&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span class="gd"&gt;-            yield from asyncio.sleep(0.01)&lt;/span&gt;
+&lt;span class="gi"&gt;+            time.sleep(0.01)&lt;/span&gt;
+
+&lt;span class="gd"&gt;-        loop.create_task(&lt;/span&gt;
+&lt;span class="gd"&gt;-            hobble_process_tree(parent)&lt;/span&gt;
+&lt;span class="gd"&gt;-        )&lt;/span&gt;
+&lt;span class="gi"&gt;+        threading.Thread(&lt;/span&gt;
+&lt;span class="gi"&gt;+            target=lambda: hobble_process_tree(parent)&lt;/span&gt;
+&lt;span class="gi"&gt;+        ).start() &lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;Again, not a massive change to the programming model -- a &lt;code&gt;loop.create_task&lt;/code&gt; becomes
+a &lt;code&gt;Thread().start()&lt;/code&gt;, and the &lt;code&gt;asyncio.sleep()&lt;/code&gt; can just be a normal &lt;code&gt;time.sleep()&lt;/code&gt;,
+since we're off the main thread.&lt;/p&gt;
+&lt;p&gt;Check out the full diff here if you're curious&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;a href="https://github.com/hjwp/process-hobbler-experiment/commit/threads"&gt;https://github.com/hjwp/process-hobbler-experiment/commit/threads&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;But, performance-wise, it was no better.  Worse, in fact!&lt;/p&gt;
+&lt;h3&gt;Final test results:  asyncio vs gevent vs threads&lt;/h3&gt;
+&lt;blockquote&gt;
+&lt;p&gt;WARNING: NO SCIENCE HERE!&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;This is the results of just a single run on a single machine, not to be taken
+as a general indication of the true, intrinsic performance characteristics of
+any of these libraries, etc etc.&lt;/p&gt;
+&lt;table&gt;
+&lt;tr&gt;&lt;th&gt; Library &lt;/th&gt;    &lt;th&gt; CPU usage  &lt;/th&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td&gt; asyncio: &lt;/td&gt;   &lt;td&gt; 85.4  &lt;/td&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td&gt; gevent:  &lt;/td&gt;   &lt;td&gt; 100.4 &lt;/td&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td&gt; threading: &lt;/td&gt; &lt;td&gt; 172.8 &lt;/td&gt;&lt;/tr&gt;
+&lt;/table&gt;
+
+&lt;p&gt;Feel free to try and replicate these tests yourself, using the code &lt;a href="https://github.com/hjwp/process-hobbler-experiment/commits/master"&gt;here&lt;/a&gt;&lt;/p&gt;
+&lt;h3&gt;Call to action (1): can this be made more efficient?&lt;/h3&gt;
+&lt;p&gt;I'm inclined to think that this whole process hobbler was just a bad idea, but
+maybe you know more about multitasking stuff, and you can see some obvious
+improvements for my code, or have some suggestions for different approaches?
+Any thoughts on the theoretical reasons for why asyncio should seem so much 
+quicker than threads in this instance? Answers on a postcard please...&lt;/p&gt;
+&lt;h3&gt;Call to action (2): better ways of testing async code and/or process behaviour?&lt;/h3&gt;
+&lt;p&gt;I use functional tests here for a few reasons:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;The code under test crosses a lot of system boundaries -- it affects other
+  processes, it relies on operating system signals, and it reads from a file.
+  At least one end-to-end / integrationey test felt necessary.  (this feels
+  like a good reason)&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;Once I'd started, it was easier to just continue in that model, rather than
+  figure out the subtleties of factoring out my code for testability, dealing
+  with testing the event loop, and mocking all the different layers involved.
+  This, maybe, is a bad reason.&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;The price I paid was a fairly slow test suite -- the basic test of process hobbling
+takes 8 or 9 seconds, and any of the other tests still take on the order of a second,
+since they involve writing to a temp file, starting a hobbler process and a test process,
+waiting for the hobbler to do something, and cleaning up.  The performance test takes a
+a good 30 seconds on its own.&lt;/p&gt;
+&lt;p&gt;The tests are also a little more flakey than I'd like -- the exact amount that
+a process gets hobbled is subject to quite a lot of random noise, so just
+checking that it's "between 10 and 100 times slower" is a bit more vague than
+you might want, and it took me a while to set up the test in such a way that it
+reliably passed and failed as appropriate.&lt;/p&gt;
+&lt;p&gt;On the other hand, of course, I get the benefit you always get from a functional test,
+which is that I'm sure my system really does work.&lt;/p&gt;
+&lt;p&gt;So, I'd be interested -- would you write this test suite differently?  Can you see any
+candidates for more "unitey" tests?&lt;/p&gt;
+&lt;p&gt;You'll see I already made a start on a slightly more isolated test that aims at just
+the &lt;code&gt;get_top_level_processes&lt;/code&gt; function.  The other main candidate that seems like it
+could do with a better, more granular test is &lt;code&gt;hobble_process_tree&lt;/code&gt; function.
+Specifically, it's important that the process tree should be hobbled in the
+correct order, starting with the top level, then down to children, then
+children's children, and so on, and then re-started in the reverse order,
+starting from the bottom-level processes and going back up to the top.
+(otherwise, if you're hobbling a users' interactive console session, which has
+a nested tree of, say, bash and ipython, the user sees really weird things if
+you pause the ipython before the bash.)&lt;/p&gt;
+&lt;p&gt;That's not well tested at the moment.  Can you think of a way of doing so which can handle
+the interspered asyncio &lt;code&gt;yield from&lt;/code&gt;s, and that still feels like testing
+behaviour, not implementation?&lt;/p&gt;</summary><category term="Async"></category><category term="asyncio"></category><category term="peformance"></category></entry><entry><title>Better tests for Redis integrations with redislite</title><link href="http://www.obeythetestinggoat.com/better-tests-for-redis-integrations-with-redislite.html" rel="alternate"></link><updated>2015-12-01T08:29:00+00:00</updated><author><name>Harry</name></author><id>tag:www.obeythetestinggoat.com,2015-12-01:better-tests-for-redis-integrations-with-redislite.html</id><summary type="html">&lt;p&gt;A colleague and I were staring at some ugly, mocky tests for our redis integration the other day, when I remembered someone at Pycon last year showing me a cool library called &lt;a href="https://github.com/yahoo/redislite"&gt;redislite&lt;/a&gt; -- basically, a lightweight, self-contained, pip installable version of redis, that can be installed almost anywhere and run totally separately from the system redis.  (That was &lt;a href="https://twitter.com/dwighthubbard"&gt;Dwight&lt;/a&gt;, who I now realise is the main author of redislite.  Yay Pycon.)&lt;/p&gt;
 &lt;p&gt;He'd said "it's great for testing", so we thought we'd give it a go.&lt;/p&gt;
 &lt;p&gt;&lt;img src="/static/images/pip_install_redislite.png" alt="console output from pip installing redislite"&gt;&lt;/img&gt;
 &lt;caption&gt;&lt;i&gt;pip installs and compiles in 20 seconds&lt;/i&gt;&lt;/caption&gt;&lt;/p&gt;

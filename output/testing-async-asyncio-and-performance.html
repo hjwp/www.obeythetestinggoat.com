@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<!--[if IE 8]>    <html class="no-js lt-ie9" lang="en"> <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en"> <!--<![endif]-->
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+        <!-- Set the viewport width to device width for mobile -->
+        <meta name="viewport" content="width=device-width" />
+        <title>Obey the Testing Goat!</title>
+        <meta charset="utf-8" />
+        <link rel="stylesheet" href="/static/css/normalize.css">
+        <link rel="stylesheet" href="/static/css/pygments.css">
+        <link rel="stylesheet" href="/static/css/extra.css">
+        <link rel="stylesheet" href="/static/css/foundation.css">
+        <link href='http://fonts.googleapis.com/css?family=Life+Savers:400,700|Sanchez:400,400italic|Ovo' rel='stylesheet' type='text/css'>
+
+
+        <link rel="stylesheet" href="/static/css/social_foundicons.css">
+        <!--[if lt IE 8]>
+            <link rel="stylesheet" href="stylesheets/social_foundicons_ie7.css">
+        <![endif]-->
+
+
+        <link href="http://www.obeythetestinggoat.com/feeds/all.atom.xml" type="application/atom+xml" rel="alternate" title="Obey the Testing Goat! Full Atom Feed" />
+        <link href="http://www.obeythetestinggoat.com/feeds/misc.atom.xml" type="application/atom+xml" rel="alternate" title="Obey the Testing Goat! Categories Atom Feed" />
+</head>
+
+<body>
+    <header class="row">
+        <div class="large-12 columns">
+            <div class="row">
+                <span class="right"><a href="http://www.obeythetestinggoat.com/feeds/all.atom.xml" type="application/rss+xml"><i class="social foundicon-rss"></i> RSS</a></span>
+                <div class="large-2 columns">
+                    <a href="http://www.obeythetestinggoat.com"><img src="/static/images/kid_goat.png" alt="The Testing Goat" title="The Testing Goat" /></a>
+                </div>
+                <div class="large-10 columns">
+                    <h1>Obey the Testing Goat!</h1>
+                    <h2><small><em>TDD for the Web, with Python, Selenium, Django, JavaScript and pals...</em></small></h2>
+                </div>
+            </div>
+        </div>
+    </header> <!-- end top banner -->
+
+<div class="row">
+    <div class="large-9 small-12 columns"> <!-- blog post div -->
+        <header>
+            <h2><a href="testing-async-asyncio-and-performance.html" rel="bookmark" title="Permalink to Testing, async, asyncio, and performance">Testing, async, asyncio, and performance</a></h2>
+
+             
+
+        </header>
+        <footer class="post-info">
+            <abbr class="published" title="2015-12-27T13:29:00">
+              Sun 27 December 2015
+            </abbr>
+                <address class="vcard author">
+                  By <a class="url fn" href="http://www.obeythetestinggoat.com/author/harry.html">Harry</a>
+                </address>
+        </footer><!-- /.post-info -->
+
+        <div>
+            <p>I recently did some experimenting with <code>asyncio</code>, and wanted to report back on
+how I got on with writing tests for it.  While I was at it I was also able to
+compare its performance with a couple of other approaches to mutlitasking in
+Python, namely threads and gevent, so I'll report on that here too.  (tl;dr:
+it's much of a muchness).</p>
+<h3>"hobbling" naughty user processes</h3>
+<p>At <a href="https://www.pythonanywhere/">PythonAnywhere</a> we have a "tarpit" where we
+put users who exceed their usage limits.  Their processes still run, but
+slower.  We use cgroups for this, and it works pretty well, but I was in a mean
+mood and I wanted to see whether I could make our tarpit even more mean --
+essentially "hobbling" naughty users's processes using OS stop and restart
+signals.</p>
+<p>In synchronous/pseudo code, something like this:</p>
+<div class="highlight"><pre><span class="k">def</span> <span class="nf">main</span><span class="p">():</span>
+    <span class="k">while</span> <span class="bp">True</span><span class="p">:</span>
+        <span class="n">naughty_processes</span> <span class="o">=</span> <span class="n">find_new_naughty_processes</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">process</span> <span class="ow">in</span> <span class="n">naughty_processes</span><span class="p">:</span>
+            <span class="n">hobble_process</span><span class="p">(</span><span class="n">process</span><span class="p">)</span>  <span class="c"># parallelised somehow</span>
+        <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span>
+
+<span class="k">def</span> <span class="nf">hobble_process</span><span class="p">(</span><span class="n">process</span><span class="p">):</span>
+    <span class="k">while</span> <span class="bp">True</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">kill</span><span class="p">(</span><span class="n">process</span><span class="o">.</span><span class="n">pid</span><span class="p">,</span> <span class="n">signal</span><span class="o">.</span><span class="n">SIGSTOP</span><span class="p">)</span>
+            <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mf">0.25</span><span class="p">)</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">kill</span><span class="p">(</span><span class="n">process</span><span class="o">.</span><span class="n">pid</span><span class="p">,</span> <span class="n">signal</span><span class="o">.</span><span class="n">SIGCONT</span><span class="p">)</span>
+            <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mf">0.01</span><span class="p">)</span>
+</pre></div>
+
+
+<p>Every 10 seconds, go fetch a list of "naughty" processes, and then "hobble"
+each one of them, by using OS signals to stop and start the process at short
+intervals.  The naughty program still runs, but its execution is suspended for
+95% of the time.</p>
+<h3>A first cut using asyncio</h3>
+<p>The only question was: how to do the "parallelise somehow" part.  Asyncio is
+the hot new thing in the world of Python async stuff, and this seemed like a
+good potential candidate -- I have a fairly simple algorithms, and there are
+lots of places where I use "time.sleep", which are good places to give back
+control to some sort of event loop or task manager.</p>
+<p>And sure enough, my first cut of the same code with asyncio was pleasingly
+similar to the normal procedural code -- I just add a few "yield froms" to
+signify where each function can yield control back to the event loop, ready to
+be woken up again when there's something for it to do:</p>
+<div class="highlight"><pre><span class="k">def</span> <span class="nf">main</span><span class="p">():</span>
+    <span class="n">loop</span> <span class="o">=</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">get_event_loop</span><span class="p">()</span>
+    <span class="n">loop</span><span class="o">.</span><span class="n">create_task</span><span class="p">(</span><span class="n">hobble_processes_forever</span><span class="p">())</span>
+    <span class="n">loop</span><span class="o">.</span><span class="n">run_forever</span><span class="p">()</span>
+
+
+<span class="nd">@asyncio.coroutine</span>
+<span class="k">def</span> <span class="nf">hobble_processes_forever</span><span class="p">():</span>
+    <span class="n">already_hobbled</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+    <span class="k">while</span> <span class="bp">True</span><span class="p">:</span>
+        <span class="k">yield from</span> <span class="n">hobble_current_processes</span><span class="p">(</span><span class="n">already_hobbled</span><span class="p">)</span>
+        <span class="k">yield from</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+
+
+<span class="nd">@asyncio.coroutine</span>
+<span class="k">def</span> <span class="nf">hobble_current_processes</span><span class="p">(</span><span class="n">already_hobbled</span><span class="p">):</span>
+    <span class="n">pids</span> <span class="o">=</span> <span class="k">yield from</span> <span class="n">get_naughty_pids</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">pid</span> <span class="ow">in</span> <span class="n">pids</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">pid</span> <span class="ow">in</span> <span class="n">already_hobbled</span><span class="p">:</span>
+            <span class="k">continue</span>
+        <span class="n">already_hobbled</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">pid</span><span class="p">)</span>
+        <span class="n">asyncio</span><span class="o">.</span><span class="n">get_event_loop</span><span class="p">()</span><span class="o">.</span><span class="n">create_task</span><span class="p">(</span>
+            <span class="n">hobble_process</span><span class="p">(</span><span class="n">pid</span><span class="p">)</span>
+        <span class="p">)</span>
+
+
+<span class="nd">@asyncio.coroutine</span>
+<span class="k">def</span> <span class="nf">hobble_process</span><span class="p">(</span><span class="n">pid</span><span class="p">):</span>
+    <span class="k">while</span> <span class="bp">True</span><span class="p">:</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">kill</span><span class="p">(</span><span class="n">pid</span><span class="p">,</span> <span class="n">signal</span><span class="o">.</span><span class="n">SIGSTOP</span><span class="p">)</span>
+        <span class="k">yield from</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mf">0.2</span><span class="p">)</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">kill</span><span class="p">(</span><span class="n">pid</span><span class="p">,</span> <span class="n">signal</span><span class="o">.</span><span class="n">SIGCONT</span><span class="p">)</span>
+        <span class="k">yield from</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mf">0.01</span><span class="p">)</span>
+</pre></div>
+
+
+<blockquote>
+<p>feel free to skip this next section if you already know asyncio</p>
+</blockquote>
+<p>What is a coroutine, I hear you ask?  Or, at least, I hear some of you ask.
+I'm relying on the ones who don't ask to improve the amateurish definition that
+follows. Ahem.  A coroutine is a function that defines some points at which
+it's happy to suspend and resume execution, or wait until some data or device
+becomes available. <a href="https://en.wikipedia.org/wiki/Coroutine">wikipedia</a></p>
+<p>In asyncio, those places are marked by the <code>yield from</code> keywords, where the
+function says: I know this next thing will take some time, I'm happy to wait
+and let the rest of the program (as controlled by the event loop) get on with
+something else.</p>
+<p>As I learned while trying to build this thing, <code>yield from</code> on its own won't
+make your code asynchronous (check out <a href="https://gist.github.com/hjwp/727c932ce3e20c6367e5">this
+gist</a> for an illustration).
+You also need a special way of invoking functions that you want to start off
+asynchronously, and that's the purpose of <code>create_task</code>.  <code>create_task</code> tells
+the event loop to start a function "in the background".</p>
+<h3>testing async code with a functional test</h3>
+<p>Once I'd more or less wrapped my head around that, and built a prototype that
+works, I started to think about testing. Or, how to turn my manual testing into
+automated testing</p>
+<blockquote>
+<p>Some wag recently said "When people tell me they don't do TDD, I usually see
+them driving development with a bunch of manual tests which they're going to
+throw away, instead of automating them.</p>
+</blockquote>
+<p>It felt like some "real" tests were in order, tests that would actually start
+some real processes and see if they really did get slowed down -- an end-to-end
+test, if you will -- so that's what I went for.  Here was my first cut:</p>
+<div class="highlight"><pre><span class="k">def</span> <span class="nf">test_hobbled_process_is_slow</span><span class="p">(</span><span class="n">tarpit_pids_file</span><span class="p">,</span> <span class="n">start_hobbler_in_subprocess</span><span class="p">):</span>
+    <span class="n">timer</span> <span class="o">=</span> <span class="s">&quot;; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span>
+        <span class="s">&quot;import time&quot;</span><span class="p">,</span>
+        <span class="s">&quot;time.sleep(0.4)&quot;</span><span class="p">,</span>  <span class="c"># give hobbler a chance to spot us</span>
+        <span class="s">&quot;start = time.time()&quot;</span><span class="p">,</span>
+        <span class="s">&quot;list(range(int(1e6)))&quot;</span><span class="p">,</span>  <span class="c"># do some work</span>
+        <span class="s">&quot;print(time.time() - start)&quot;</span><span class="p">,</span>
+    <span class="p">]</span>
+    <span class="n">normal</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">check_output</span><span class="p">([</span><span class="s">&#39;python&#39;</span><span class="p">,</span> <span class="s">&#39;-c&#39;</span><span class="p">,</span> <span class="n">timer</span><span class="p">])</span>
+
+    <span class="n">add_self_to_tarpit</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="s">&quot;import os;&quot;</span>
+        <span class="s">&quot; open({pidsfile}, &#39;w&#39;).write(str(os.getpid()));&quot;</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">pidsfile</span><span class="o">=</span><span class="n">tarpit_pids_file</span><span class="p">)</span>
+    <span class="n">slow</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">check_output</span><span class="p">(</span>
+        <span class="p">[</span> <span class="s">&#39;python&#39;</span><span class="p">,</span> <span class="s">&#39;-c&#39;</span><span class="p">,</span> <span class="n">add_self_to_tarpit</span> <span class="o">+</span> <span class="s">&quot; &quot;</span>  <span class="o">+</span> <span class="n">timer</span><span class="p">],</span>
+    <span class="p">)</span>
+
+    <span class="n">normal</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">normal</span><span class="p">)</span>
+    <span class="n">slow</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">slow</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="n">normal</span> <span class="o">&lt;</span> <span class="n">slow</span>
+    <span class="k">assert</span> <span class="n">normal</span> <span class="o">*</span> <span class="mi">10</span> <span class="o">&lt;</span> <span class="n">slow</span>
+    <span class="k">assert</span> <span class="n">normal</span> <span class="o">*</span> <span class="mi">100</span> <span class="o">&gt;</span> <span class="n">slow</span>
+</pre></div>
+
+
+<p>The test depends on two fixtures, one to create a file containing process ids
+(pids) that we want to hobble, and one to actually launch the hobbler.py process</p>
+<div class="highlight"><pre><span class="nd">@pytest.yield_fixture</span>
+<span class="k">def</span> <span class="nf">tarpit_pids_file</span><span class="p">():</span>
+    <span class="k">yield</span> <span class="n">tempfile</span><span class="o">.</span><span class="n">NamedTemporaryFile</span><span class="p">()</span>
+
+
+<span class="nd">@pytest.yield_fixture</span>
+<span class="k">def</span> <span class="nf">start_hobbler_in_subprocess</span><span class="p">(</span><span class="n">tarpit_pids_file</span><span class="p">):</span>
+    <span class="n">process</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">Popen</span><span class="p">(</span>
+        <span class="p">[</span><span class="s">&#39;python3&#39;</span><span class="p">,</span> <span class="s">&#39;hobbler.py&#39;</span><span class="p">,</span> <span class="n">tarpit_pids_file</span><span class="p">],</span>
+        <span class="n">stdout</span><span class="o">=</span><span class="n">subprocess</span><span class="o">.</span><span class="n">PIPE</span><span class="p">,</span> <span class="n">stdin</span><span class="o">=</span><span class="n">subprocess</span><span class="o">.</span><span class="n">PIPE</span><span class="p">,</span> 
+        <span class="n">stderr</span><span class="o">=</span><span class="n">subprocess</span><span class="o">.</span><span class="n">STDOUT</span><span class="p">,</span> <span class="n">universal_newlines</span><span class="o">=</span><span class="bp">True</span>
+    <span class="p">)</span>
+    <span class="n">first_line</span> <span class="o">=</span> <span class="n">process</span><span class="o">.</span><span class="n">stdout</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+    <span class="k">if</span> <span class="s">&#39;Traceback&#39;</span> <span class="ow">in</span> <span class="n">first_line</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">process</span><span class="o">.</span><span class="n">stdout</span><span class="o">.</span><span class="n">read</span><span class="p">())</span>
+
+    <span class="k">yield</span> <span class="n">process</span>
+
+    <span class="n">process</span><span class="o">.</span><span class="n">kill</span><span class="p">()</span>
+    <span class="k">print</span><span class="p">(</span><span class="s">&#39;full hobbler process output:&#39;</span><span class="p">)</span>
+    <span class="k">print</span><span class="p">(</span><span class="n">process</span><span class="o">.</span><span class="n">stdout</span><span class="o">.</span><span class="n">read</span><span class="p">())</span>
+</pre></div>
+
+
+<blockquote>
+<p>If you're not familiar with py.test fixtures, they're like things you might put
+in a unittest setUp / tearDown; special functions that get called with each test
+that names them as an argument.  The <code>yield</code> pattern I'm using here allows me to
+inject a resource into the test.</p>
+</blockquote>
+<p>Running the code under test as a totally separate Python process has two
+benefits -- first, it lets me test the program as it will actually be used,
+and secondly, it neatly sidesteps one of the difficulties of testing async code,
+which is how to deal with the event loop itself, which has to be launched as a
+blocking call..</p>
+<p>From that point onwards, I found it was relatively easy to use similar tests
+to drive my development, alongside a few manual checks. Here's my final list
+of tests:</p>
+<div class="highlight"><pre><span class="k">def</span> <span class="nf">test_tarpit_process_is_slow</span><span class="p">(</span><span class="n">fake_tarpit</span><span class="p">,</span> <span class="n">hobbler_process</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">test_spots_process</span><span class="p">(</span><span class="n">fake_tarpit</span><span class="p">,</span> <span class="n">hobbler_process</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">test_spots_multiple_processes</span><span class="p">(</span><span class="n">fake_tarpit</span><span class="p">,</span> <span class="n">hobbler_process</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">test_doesnt_hobble_any_old_process</span><span class="p">(</span><span class="n">fake_tarpit</span><span class="p">,</span> <span class="n">hobbler_process</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">test_stops_hobbling_dead_processes</span><span class="p">(</span><span class="n">fake_tarpit</span><span class="p">,</span> <span class="n">hobbler_process</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">test_hobbles_children</span><span class="p">(</span><span class="n">fake_tarpit</span><span class="p">,</span> <span class="n">hobbler_process</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">test_lots_of_processes</span><span class="p">(</span><span class="n">fake_tarpit</span><span class="p">,</span> <span class="n">hobbler_process</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">test_get_top_level_processes_returns_list_of_parents_and_with_chidren</span><span class="p">():</span>
+</pre></div>
+
+
+<p>You can explore these, and the implementation, in the 
+<a href="https://github.com/hjwp/process-hobbler-experiment">repo on GitHub</a></p>
+<h3>Performance comparison:  aysncio vs gevent vs threads</h3>
+<p>Maybe the most interesting test was the "lots of processes" test, which is a
+performance test -- since the hobbler is meant to reduce the load on our
+servers, by reducing the resource usage of user processes, it's important that
+the hobbler itself shouldn't chew up all the CPU!  So I wanted to see how it
+performs with lots of processes to hobble:</p>
+<div class="highlight"><pre><span class="k">def</span> <span class="nf">test_lots_of_processes</span><span class="p">(</span><span class="n">fake_tarpit</span><span class="p">,</span> <span class="n">hobbler_process</span><span class="p">):</span>
+    <span class="n">start_times</span> <span class="o">=</span> <span class="n">Process</span><span class="p">(</span><span class="n">hobbler_process</span><span class="o">.</span><span class="n">pid</span><span class="p">)</span><span class="o">.</span><span class="n">cpu_times</span><span class="p">()</span>
+    <span class="k">print</span><span class="p">(</span><span class="s">&#39;start times&#39;</span><span class="p">,</span> <span class="n">start_times</span><span class="p">)</span>
+    <span class="n">procs</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">200</span><span class="p">):</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">Popen</span><span class="p">([</span><span class="s">&#39;sleep&#39;</span><span class="p">,</span> <span class="s">&#39;100&#39;</span><span class="p">],</span> <span class="n">universal_newlines</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+        <span class="n">_add_to_tarpit</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">pid</span><span class="p">,</span> <span class="n">fake_tarpit</span><span class="p">)</span>
+        <span class="n">procs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+
+    <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">7</span><span class="p">)</span> <span class="c"># time for 3 iterations</span>
+
+    <span class="n">end_times</span> <span class="o">=</span> <span class="n">Process</span><span class="p">(</span><span class="n">hobbler_process</span><span class="o">.</span><span class="n">pid</span><span class="p">)</span><span class="o">.</span><span class="n">cpu_times</span><span class="p">()</span>
+    <span class="k">print</span><span class="p">(</span><span class="s">&#39;end times&#39;</span><span class="p">,</span> <span class="n">end_times</span><span class="p">)</span>
+
+    <span class="k">assert</span> <span class="n">end_times</span><span class="o">.</span><span class="n">user</span> <span class="o">&gt;</span> <span class="n">start_times</span><span class="o">.</span><span class="n">user</span>
+    <span class="k">assert</span> <span class="n">end_times</span><span class="o">.</span><span class="n">system</span> <span class="o">&gt;</span> <span class="n">start_times</span><span class="o">.</span><span class="n">system</span>
+
+    <span class="n">Process</span><span class="p">(</span><span class="n">hobbler_process</span><span class="o">.</span><span class="n">pid</span><span class="p">)</span><span class="o">.</span><span class="n">cpu_percent</span><span class="p">(</span><span class="n">interval</span><span class="o">=</span><span class="mf">0.1</span><span class="p">)</span>  <span class="c"># warm-up</span>
+    <span class="k">assert</span> <span class="n">Process</span><span class="p">(</span><span class="n">hobbler_process</span><span class="o">.</span><span class="n">pid</span><span class="p">)</span><span class="o">.</span><span class="n">cpu_percent</span><span class="p">(</span><span class="n">interval</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">10</span>
+</pre></div>
+
+
+<p>All that boils down to starting 100 processes, telling the hobbler to hobble
+all of them, and then measuring the CPU usage of the hobbler -- I wanted it to
+be less than 10% of CPU. Unfortunately, it was far from that, taking up over
+100% CPU in my first test.</p>
+<p>So I thought I'd compare asyncio with a couple of other popular Python
+multitasking solutions: 
+<a href="http://www.gevent.org/">gevent</a> and plain old
+<a href="https://docs.python.org/3/library/threading.html">threads</a></p>
+<p>Switching from asyncio to gevent was actually very simple -- their programming patterns are
+quite similar -- a matter of changing a few <code>aysncio.sleep</code>s to <code>gevent.sleep</code>s,
+and <code>loop.create_task</code>s to <code>gevent.spawn</code>s:</p>
+<div class="highlight"><pre><span class="gd">-            yield from asyncio.sleep(0.01)</span>
+<span class="gi">+            gevent.sleep(0.01)</span>
+
+<span class="gd">-        loop.create_task(</span>
+<span class="gd">-            hobble_process_tree(parent)</span>
+<span class="gd">-        )</span>
+<span class="gi">+        gevent.spawn(hobble_process_tree, parent)</span>
+
+<span class="gd">-        yield from hobble_current_processes(loop, already_hobbled, cgroup_dir)</span>
+<span class="gi">+        gevent.spawn(hobble_current_processes, already_hobbled, cgroup_dir)</span>
+</pre></div>
+
+
+<p>Check out the full diff here, if you're curious:</p>
+<ul>
+<li><a href="https://github.com/hjwp/process-hobbler-experiment/commit/gevent">https://github.com/hjwp/process-hobbler-experiment/commit/gevent</a></li>
+</ul>
+<p>It turns out that didn't buy me any real performance improvement though.  So I
+thought I'd try good ol' fashioned threads</p>
+<div class="highlight"><pre><span class="gd">-            yield from asyncio.sleep(0.01)</span>
+<span class="gi">+            time.sleep(0.01)</span>
+
+<span class="gd">-        loop.create_task(</span>
+<span class="gd">-            hobble_process_tree(parent)</span>
+<span class="gd">-        )</span>
+<span class="gi">+        threading.Thread(</span>
+<span class="gi">+            target=lambda: hobble_process_tree(parent)</span>
+<span class="gi">+        ).start() </span>
+</pre></div>
+
+
+<p>Again, not a massive change to the programming model -- a <code>loop.create_task</code> becomes
+a <code>Thread().start()</code>, and the <code>asyncio.sleep()</code> can just be a normal <code>time.sleep()</code>,
+since we're off the main thread.</p>
+<p>Check out the full diff here if you're curious</p>
+<ul>
+<li><a href="https://github.com/hjwp/process-hobbler-experiment/commit/threads">https://github.com/hjwp/process-hobbler-experiment/commit/threads</a></li>
+</ul>
+<p>But, performance-wise, it was no better.  Worse, in fact!</p>
+<h3>Final test results:  asyncio vs gevent vs threads</h3>
+<blockquote>
+<p>WARNING: NO SCIENCE HERE!</p>
+</blockquote>
+<p>This is the results of just a single run on a single machine, not to be taken
+as a general indication of the true, intrinsic performance characteristics of
+any of these libraries, etc etc.</p>
+<table>
+<tr><th> Library </th>    <th> CPU usage  </th></tr>
+<tr><td> asyncio: </td>   <td> 85.4  </td></tr>
+<tr><td> gevent:  </td>   <td> 100.4 </td></tr>
+<tr><td> threading: </td> <td> 172.8 </td></tr>
+</table>
+
+<p>Feel free to try and replicate these tests yourself, using the code <a href="https://github.com/hjwp/process-hobbler-experiment/commits/master">here</a></p>
+<h3>Call to action (1): can this be made more efficient?</h3>
+<p>I'm inclined to think that this whole process hobbler was just a bad idea, but
+maybe you know more about multitasking stuff, and you can see some obvious
+improvements for my code, or have some suggestions for different approaches?
+Any thoughts on the theoretical reasons for why asyncio should seem so much 
+quicker than threads in this instance? Answers on a postcard please...</p>
+<h3>Call to action (2): better ways of testing async code and/or process behaviour?</h3>
+<p>I use functional tests here for a few reasons:</p>
+<ul>
+<li>
+<p>The code under test crosses a lot of system boundaries -- it affects other
+  processes, it relies on operating system signals, and it reads from a file.
+  At least one end-to-end / integrationey test felt necessary.  (this feels
+  like a good reason)</p>
+</li>
+<li>
+<p>Once I'd started, it was easier to just continue in that model, rather than
+  figure out the subtleties of factoring out my code for testability, dealing
+  with testing the event loop, and mocking all the different layers involved.
+  This, maybe, is a bad reason.</p>
+</li>
+</ul>
+<p>The price I paid was a fairly slow test suite -- the basic test of process hobbling
+takes 8 or 9 seconds, and any of the other tests still take on the order of a second,
+since they involve writing to a temp file, starting a hobbler process and a test process,
+waiting for the hobbler to do something, and cleaning up.  The performance test takes a
+a good 30 seconds on its own.</p>
+<p>The tests are also a little more flakey than I'd like -- the exact amount that
+a process gets hobbled is subject to quite a lot of random noise, so just
+checking that it's "between 10 and 100 times slower" is a bit more vague than
+you might want, and it took me a while to set up the test in such a way that it
+reliably passed and failed as appropriate.</p>
+<p>On the other hand, of course, I get the benefit you always get from a functional test,
+which is that I'm sure my system really does work.</p>
+<p>So, I'd be interested -- would you write this test suite differently?  Can you see any
+candidates for more "unitey" tests?</p>
+<p>You'll see I already made a start on a slightly more isolated test that aims at just
+the <code>get_top_level_processes</code> function.  The other main candidate that seems like it
+could do with a better, more granular test is <code>hobble_process_tree</code> function.
+Specifically, it's important that the process tree should be hobbled in the
+correct order, starting with the top level, then down to children, then
+children's children, and so on, and then re-started in the reverse order,
+starting from the bottom-level processes and going back up to the top.
+(otherwise, if you're hobbling a users' interactive console session, which has
+a nested tree of, say, bash and ipython, the user sees really weird things if
+you pause the ipython before the bash.)</p>
+<p>That's not well tested at the moment.  Can you think of a way of doing so which can handle
+the interspered asyncio <code>yield from</code>s, and that still feels like testing
+behaviour, not implementation?</p>
+        </div><!-- /.entry-content -->
+
+    <div class="comments">
+        <h3>Comments</h3>
+        <div id="disqus_thread"></div>
+        <script type="text/javascript">
+                var disqus_shortname = 'obeythetestinggoat';
+
+            /* * * DON'T EDIT BELOW THIS LINE * * */
+            (function() {
+                var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+                dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+                (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+            })();
+        </script>
+        <noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+        <a href="http://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+    </div>
+
+
+
+    </div>
+<div class="large-3 small-6 columns">
+    <h6><a href="/pages/book.html">Read the book</a></h6>
+    <p>
+        I'm writing a book all about TDD and Web programming.
+        <a href="/pages/book.html">Read the draft</a> and let me
+        know what you think!
+    </p>
+</div>
+
+<div class="large-3 small-6 columns">
+    <h6><a href="/pages/reviews-and-testimonials.html">Reviews & Testimonials</a></h6>
+   
+    <p>
+        <i>"Hands down the best teaching book I've ever read"</i> &mdash;
+        <i>"Even the first 4 chapters were worth the money"</i> &mdash;
+        <i>"Oh my gosh! This book is outstanding"</i> &mdash;
+        <i>"The testing goat is my new friend"</i> &mdash;
+        <a href="/pages/reviews-and-testimonials.html">Read more...</a>
+    </p>
+
+</div>
+
+
+<div class="large-3 small-6 columns">
+    <h6><a href="/pages/tdd-resources.html">Resources</a></h6>
+    <p>A selection of links and videos about TDD, not necessarily all mine, eg <a href="http://pyvideo.org/video/1657/fully-test-driven-web-development-with-django-and">this tutorial
+        at PyCon 2013</a>, how to <a href="http://arstechnica.com/information-technology/2013/03/how-can-i-motivate-coworkers-to-write-unit-tests/">motivate coworkers to write unit tests</a>, thoughts on <a href="http://pyvideo.org/video/699/testing-and-django">Django's test tools</a>, <a href="https://www.youtube.com/watch?v=tdNnN5yTIeM">London-style TDD</a> and <a href="/pages/tdd-resources.html">more</a>.
+</div>
+
+
+<div class="large-3 small-6 columns">
+    <h6><a href="http://www.tdd-django-tutorial.com">Old TDD / Django Tutorial</a></h6>
+    <p>
+    This is my <a href="http://www.tdd-django-tutorial.com">old TDD tutorial</a>,
+    which follows along with the official Django tutorial, but with full TDD.  It
+    badly needs updating. Read the book instead!
+    </p>
+</div>
+
+<div class="large-3 small-6 columns">
+    <h6><a href="/pages/save-the-testing-goat-campaign.html">Save the Testing Goat Campaign</a></h6>
+    <p>
+    The campaign page, preserved for history, which led to the glorious presence
+    of the Testing Goat on the front of the book.
+    </p>
+</div></div>
+
+  <footer class="row">
+    <div class="large-12 columns">
+      <hr>
+      <div class="row">
+        <div class="large-8 columns">
+            <p>
+                <a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/3.0/"><img alt="Creative Commons License" style="border-width:0" src="http://i.creativecommons.org/l/by-nc-sa/3.0/88x31.png" /></a>
+                &nbsp
+                <span xmlns:dct="http://purl.org/dc/terms/" href="http://purl.org/dc/dcmitype/Text" property="dct:title" rel="dct:type">Obey the Testing Goat website</span> 
+                by <a xmlns:cc="http://creativecommons.org/ns#" href="http://www.obeythetestinggoat.com" property="cc:attributionName" rel="cc:attributionURL">Harry J.W. Percival</a> 
+                is licensed under a 
+                <a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/3.0/">Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License</a>.
+                Site powered by <a href="http://getpelican.com/">Pelican</a>, and
+                hosted on <a href="http://www.pythonanywhere.com">PythonAnywhere</a>.
+                If you came here via one of the awesome "Year of the Testing Goat" stickers,
+                you should know credit for the sweet cartoon goat goes to 
+                <a href="http://www.squirrelmuffins.com/">Kat i on</a>
+            </p>
+       </div>
+
+        <div class="large-4 columns">
+          <ul class="inline-list right">
+            <li><a href="/pages/book.html">Book</a></li>
+            <li><a href="/pages/tdd-resources.html">Resources</a></li>
+            <li>
+                <a href="http://www.obeythetestinggoat.com/feeds/all.atom.xml" type="application/rss+xml"><i class="social foundicon-rss"></i> RSS</a></span>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <script src="/static/js/vendor/custom.modernizr.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+
+  <script>
+  document.write('<script src=js/vendor/' +
+  ('__proto__' in {} ? 'zepto' : 'jquery') +
+  '.js><\/script>')
+  </script>
+  <script src="js/foundation.min.js"></script>
+  <script>
+    $(document).foundation();
+  </script>
+  <script type="text/javascript">
+    $(window).load(function() {
+      $('#featured').orbit({ fluid: '2x1' });
+    });
+  </script>
+
+
+  <script>   (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){   (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),   m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)   })(window,document,'script','//www.google-analytics.com/analytics.js','ga');    ga('create', 'UA-40928035-1', 'obeythetestinggoat.com');   ga('send', 'pageview');  </script> 
+  <!-- End Footer -->
+
+</body>
+</html>
