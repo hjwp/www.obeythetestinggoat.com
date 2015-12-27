@@ -1,11 +1,10 @@
 Title: Testing, async, asyncio, and performance
-Date: 2015-12-05 14:29
+Date: 2015-12-27 13:29
 Tags: Async, asyncio, peformance
 Author: Harry
-Status: draft
 Summary: An ill-advised experiment in process management ends up with interesting comparisons of different Python async frameworks, and some tests that work for all of them.
 
-I recently did some experimenting with asyncio, and wanted to report back on
+I recently did some experimenting with `asyncio`, and wanted to report back on
 how I got on with writing tests for it.  While I was at it I was also able to
 compare its performance with a couple of other approaches to mutlitasking in
 Python, namely threads and gevent, so I'll report on that here too.  (tl;dr:
@@ -77,7 +76,7 @@ def hobble_processes_forever():
 
 @asyncio.coroutine
 def hobble_current_processes(already_hobbled):
-    pids = yield from get_pids()
+    pids = yield from get_naughty_pids()
     for pid in pids:
         if pid in already_hobbled:
             continue
@@ -98,7 +97,7 @@ def hobble_process(pid):
 
 > feel free to skip this next section if you already know asyncio
 
-What is a coroutine, I hear you ask.  Or, at least, I hear some of you ask.
+What is a coroutine, I hear you ask?  Or, at least, I hear some of you ask.
 I'm relying on the ones who don't ask to improve the amateurish definition that
 follows. Ahem.  A coroutine is a function that defines some points at which
 it's happy to suspend and resume execution, or wait until some data or device
@@ -110,7 +109,7 @@ and let the rest of the program (as controlled by the event loop) get on with
 something else.
 
 As I learned while trying to build this thing, `yield from` on its own won't
-make your code asynchronous however (check out [this
+make your code asynchronous (check out [this
 gist](https://gist.github.com/hjwp/727c932ce3e20c6367e5) for an illustration).
 You also need a special way of invoking functions that you want to start off
 asynchronously, and that's the purpose of `create_task`.  `create_task` tells
@@ -122,7 +121,7 @@ Once I'd more or less wrapped my head around that, and built a prototype that
 works, I started to think about testing. Or, how to turn my manual testing into
 automated testing
 
-> Some wag recently said "when people tell me they don't do TDD, I usually see
+> Some wag recently said "When people tell me they don't do TDD, I usually see
 > them driving development with a bunch of manual tests which they're going to
 > throw away, instead of automating them.
 
@@ -132,12 +131,13 @@ test, if you will -- so that's what I went for.  Here was my first cut:
 
 ```python
 def test_hobbled_process_is_slow(tarpit_pids_file, start_hobbler_in_subprocess):
-    timer =  (
-        "import time; time.sleep(2.1);"
-        " start = time.time();"
-        " list(range(int(1e6)));"
-        " print(time.time() - start)"
-    )
+    timer = "; ".join([
+        "import time",
+        "time.sleep(0.4)",  # give hobbler a chance to spot us
+        "start = time.time()",
+        "list(range(int(1e6)))",  # do some work
+        "print(time.time() - start)",
+    ]
     normal = subprocess.check_output(['python', '-c', timer])
 
     add_self_to_tarpit = (
@@ -169,7 +169,8 @@ def tarpit_pids_file():
 def start_hobbler_in_subprocess(tarpit_pids_file):
     process = subprocess.Popen(
         ['python3', 'hobbler.py', tarpit_pids_file],
-        stdout=subprocess.PIPE, stdin=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True
+        stdout=subprocess.PIPE, stdin=subprocess.PIPE, 
+        stderr=subprocess.STDOUT, universal_newlines=True
     )
     first_line = process.stdout.readline()
     if 'Traceback' in first_line:
@@ -224,7 +225,7 @@ performs with lots of processes to hobble:
 
 ```python
 def test_lots_of_processes(fake_tarpit, hobbler_process):
-    start_times = psutil.Process(hobbler_process.pid).cpu_times()
+    start_times = Process(hobbler_process.pid).cpu_times()
     print('start times', start_times)
     procs = []
     for i in range(200):
@@ -234,14 +235,14 @@ def test_lots_of_processes(fake_tarpit, hobbler_process):
 
     time.sleep(7) # time for 3 iterations
 
-    end_times = psutil.Process(hobbler_process.pid).cpu_times()
+    end_times = Process(hobbler_process.pid).cpu_times()
     print('end times', end_times)
 
     assert end_times.user > start_times.user
     assert end_times.system > start_times.system
 
-    psutil.Process(hobbler_process.pid).cpu_percent(interval=0.1)  # warm-up
-    assert psutil.Process(hobbler_process.pid).cpu_percent(interval=2) < 10
+    Process(hobbler_process.pid).cpu_percent(interval=0.1)  # warm-up
+    assert Process(hobbler_process.pid).cpu_percent(interval=2) < 10
 ```
 
 All that boils down to starting 100 processes, telling the hobbler to hobble
@@ -287,7 +288,9 @@ thought I'd try good ol' fashioned threads
 -        loop.create_task(
 -            hobble_process_tree(parent)
 -        )
-+        threading.Thread(target=lambda: hobble_process_tree(parent)).start() 
++        threading.Thread(
++            target=lambda: hobble_process_tree(parent)
++        ).start() 
 ```
 
 Again, not a massive change to the programming model -- a `loop.create_task` becomes
@@ -311,16 +314,16 @@ as a general indication of the true, intrinsic performance characteristics of
 any of these libraries, etc etc.
 
 <table>
-<tr><th> Library </td><td> CPU usage  </td></tr>
-<tr><td> asyncio: </td><td> 85.4  </td></tr>
-<tr><td> gevent:  </td><td> 100.4 </td></tr>
-<tr><td> threading: </td><td> 172.8 </td></tr>
+<tr><th> Library </th>    <th> CPU usage  </th></tr>
+<tr><td> asyncio: </td>   <td> 85.4  </td></tr>
+<tr><td> gevent:  </td>   <td> 100.4 </td></tr>
+<tr><td> threading: </td> <td> 172.8 </td></tr>
 </table>
 
 Feel free to try and replicate these tests yourself, using the code [here](https://github.com/hjwp/process-hobbler-experiment/commits/master)
 
 
-### Call to action 1: can this be made more efficient?
+### Call to action (1): can this be made more efficient?
 
 I'm inclined to think that this whole process hobbler was just a bad idea, but
 maybe you know more about multitasking stuff, and you can see some obvious
@@ -329,7 +332,7 @@ Any thoughts on the theoretical reasons for why asyncio should seem so much
 quicker than threads in this instance? Answers on a postcard please...
 
 
-### Call to action 2: better ways of testing async code and/or process behaviour?
+### Call to action (2): better ways of testing async code and/or process behaviour?
 
 I use functional tests here for a few reasons:
 
