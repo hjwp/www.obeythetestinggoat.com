@@ -13,7 +13,7 @@ it's much of a muchness).
 
 ### "hobbling" naughty user processes
 
-At [PythonAnywhere](https://www.pythonanywhere/) we have a "tarpit" where we
+At [PythonAnywhere](https://www.pythonanywhere.com/) we have a "tarpit" where we
 put users who exceed their usage limits.  Their processes still run, but
 slower.  We use cgroups for this, and it works pretty well, but I was in a mean
 mood and I wanted to see whether I could make our tarpit even more mean --
