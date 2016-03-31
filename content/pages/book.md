@@ -6,7 +6,7 @@ Tags: book, o''reilly, read online, buy, ebook, pdf
 <div class="right">
     <blockquote>
         <a href="http://www.anrdoezrs.net/click-7079286-11260198?url=http%3A%2F%2Fshop.oreilly.com%2Fproduct%2F0636920029533.do%3Fcmp%3Daf-code-book-product_cj_9781449367794_%7BPID%7D&cjsku=0636920029533" target="_top">
-        <img src="http://akamaicovers.oreilly.com/images/0636920029533/rc_lrg.jpg" border="0" width="350" alt="Test-Driven Development with Python"/>
+            <img src="https://akamaicovers.oreilly.com/images/0636920029533/cat.gif" border="0" alt="Test-Driven Development with Python"/>
         </a>
         <img src="http://www.ftjcfx.com/image-7079286-11260198" width="1" height="1" border="0"/>
     </blockquote>
