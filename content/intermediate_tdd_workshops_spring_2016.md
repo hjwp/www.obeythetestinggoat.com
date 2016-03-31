@@ -1,11 +1,10 @@
 Title: Intermediate TDD workshops in London and Portland
-Status: draft
-Date: 2016-03-27 21:11
-Tags: Worskshop, Outside-In, Mocks
+Date: 2016-03-31 13:22
+Tags: Workshop, Outside-In, Mocks
 Author: Harry
 Summary: I'm running some new workshops loosely based on some of the later chapters in the book, aimed at discussing some intermediate TDD issues: the outside-in approach, and the pros and cons of mocks and test isolation.
 
-After many successful years of running my beginners' TDD/django tutorial, I
+After many successful years of running my beginners' TDD/Django tutorial, I
 thought it might be time to have a crack at some more intermediate-level
 topics, so I'm announcing a couple of workshops.
 
@@ -13,9 +12,14 @@ topics, so I'm announcing a couple of workshops.
 
 - the second is in [Portland, Oregon, on Sunday the 29th of May, at Pycon](https://us.pycon.org/2016/schedule/presentation/1713/)
 
+
+> The aim will be to cover some intermediate-level topics.  It assumes you've already started doing a bit of TDD, you've wrapped your head around unit testing, and some basic mocking, but you're starting to ask questions like: What order should I write tests in?  When should I mock, and when should I not?  What are the pros and cons of isolated unit tests vs integration tests?  What do people mean when they say "let the tests drive the design"?
+
+I'm not claiming that I'll come up with perfect answer to these questions, or solve all your problems, but we will go through a worked example that will help to illustrate some of the tradeoffs, and hopefully help you to think about how to apply this for your own projects.   It's based on chapters 17 and 18 in [my book](/pages/book.html).
+
 That London one is next Monday, so book up quick!
 
-Come prepared!  You'll need:
+And come prepared!  You'll need:
 
 ```bash
 git clone https://github.com/hjwp/book-example/ tdd-workshop
