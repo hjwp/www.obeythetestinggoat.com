@@ -2,7 +2,6 @@ Title: Your feedback required re: a new edition
 Date: 2016-04-18 10:22
 Tags: Book, Authentication, Javascript MVCs, new edition
 Author: Harry
-Status: Draft
 Summary: Since Persona is being retired later this year, I'm planning a new edition.  What changes and improvements would you like to see?
 
 [Mozilla has announced](https://mail.mozilla.org/pipermail/persona-notices/2016/000005.html)
@@ -16,7 +15,7 @@ It's not meant to be a wholesale rewrite, mainly just find a replacement for
 Persona, and then address a few improvements if I have time.   So my questions
 to you are:
 
-- What would you replace persona with?
+- What would you replace Persona with?
 - What other changes or improvements would you like to see in the book?
 - Are there any totally new topics you'd love to see covered? (and I'm not making any promises here!)
 
