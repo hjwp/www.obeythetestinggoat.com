@@ -26,9 +26,21 @@ git clone https://github.com/hjwp/book-example/ tdd-workshop
 cd tdd-workshop
 git fetch --tags
 git checkout chapter_17
-mkvirtualenv --python=python3 tdd-workshop
+mkvirtualenv --python=python3 tdd-workshop  # or however you like to create virtualenvs
 pip install -r requirements.txt
+pip install selenium
 python manage.py test  # these should all pass
 ```
 
 Ask me if you have any problems!  [obeythetestinggoat@gmail.com](mailto:obeythetestinggoat@gmail.com)
+
+*[update monday PM]*
+
+If the functional tests are being strange, try switching from firefox to chrome.
+
+* Download chromedriver from here: https://sites.google.com/a/chromium.org/chromedriver/downloads
+
+* Extract it and add it to your path
+
+* Switch `webdriver.Firefox()` to `webdriver.Chrome()` in *functional_tests/base.py*
+
