@@ -14,7 +14,7 @@ Having observed the surprising number of beginners to be found at Python
 conferences, I organised a "beginners' day" at last year's EuroPython in
 Bilbao.  We had about 30 beginners attend (from a crowd of 1200 at the
 conference) -- quite a few science types, some people who already knew another
-language but wanted to learn python, and a few total beginners. Everyone seemed
+language but wanted to learn Python, and a few total beginners. Everyone seemed
 to leave with lots of nice things to say about it.
 
 Here's a couple of clips:
@@ -40,7 +40,7 @@ structured around:
 * **coached** by friendly Python developers sitting near each attendee
 
 * supplemented by **a few short lectures** on the Python "ecosystem" (what is
-  the cheese shop / the bdfl / a pep / pip / requests / Ipython notebook / etc
+  the cheese shop / the bdfl / a pep / pip / requests / IPython notebook / etc
   etc)
 
 There's more info in the
@@ -55,7 +55,7 @@ I want you!
 
 Check out the [DjangoGirls coach manual](http://coach.djangogirls.org/) for
 a flavour of the kind of attitude I'm trying to cultivate.  And don't forget
-you'll have to swear the Oath of the Mentor, as per the link above.
+you'll have to swear the "Oath of the Mentor", as per the link above.
 
 Helping beginners is a great feeling, I hope you'll join me!  Emails to 
 [obeythetestinggoat@gmail.com](mailto:obeythetestinggoat@gmail.com) please :)
