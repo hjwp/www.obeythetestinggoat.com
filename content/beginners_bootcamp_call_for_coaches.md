@@ -1,6 +1,5 @@
 Title: Coaches needed for Python Bootcamp @ Pycon US in Portland next week.
 Date: 2016-05-18 14:33
-Status: draft
 Tags: Workshop, Pycon, Beginners
 Author: Harry
 Summary: Following the success of the "beginners' day" at EuroPython 2015, I'm running a "Python Bootcamp" for beginners at Pycon US this year, and I need your help!
