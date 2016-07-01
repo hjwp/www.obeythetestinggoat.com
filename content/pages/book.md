@@ -76,7 +76,7 @@ Table of contents follows:
 
 ### Introduction:
 
-* [Praise for Test-Driven Development with Python](/book/praise.html)
+* [Praise for Test-Driven Development with Python](/book/praise.harry.html)
 * [Preface](/book/preface.html)
 * [Prerequisites and Assumptions](/book/pre-requisite-installations.html)
 * [Companion Video](/book/video_plug.html)
