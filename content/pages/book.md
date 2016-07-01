@@ -69,7 +69,8 @@ There are two ways you can read this book:
     </div>
 </div>
 
-## Or read it here for free
+
+<h2 id="toc">Or read it here for free</h2>
 
 Table of contents follows:
 
