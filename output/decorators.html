@@ -50,7 +50,7 @@
 
         </header>
         <footer class="post-info">
-            <abbr class="published" title="2014-10-23T00:00:00">
+            <abbr class="published" title="2014-10-23T00:00:00+01:00">
               Thu 23 October 2014
             </abbr>
                 <address class="vcard author">
@@ -63,30 +63,30 @@
 <p>The best way to understand decorators is to build a couple of them, so here are two examples for you to try out.  The first is in the Django world, the second is actually a simpler, pure-python one.</p>
 <h2>Challenge: build a decorator in a simple Django app</h2>
 <p>We've built a very basic todo lists app using Django.  It has views to deal with viewing lists, creating new lists, and adding to existing lists.  Two of these views end up doing some similar work, which is to retrieve a list object from the database based on its list ID:</p>
-<div class="highlight"><pre><span class="k">def</span> <span class="nf">add_item</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="n">list_id</span><span class="p">):</span>
+<div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">add_item</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="n">list_id</span><span class="p">):</span>
     <span class="n">list_</span> <span class="o">=</span> <span class="n">List</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="n">list_id</span><span class="p">)</span>
-    <span class="n">Item</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="n">text</span><span class="o">=</span><span class="n">request</span><span class="o">.</span><span class="n">POST</span><span class="p">[</span><span class="s">&#39;item_text&#39;</span><span class="p">],</span> <span class="nb">list</span><span class="o">=</span><span class="n">list_</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">redirect</span><span class="p">(</span><span class="s">&#39;/lists/</span><span class="si">%d</span><span class="s">/&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">list_</span><span class="o">.</span><span class="n">id</span><span class="p">,))</span>
+    <span class="n">Item</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="n">text</span><span class="o">=</span><span class="n">request</span><span class="o">.</span><span class="n">POST</span><span class="p">[</span><span class="s1">&#39;item_text&#39;</span><span class="p">],</span> <span class="nb">list</span><span class="o">=</span><span class="n">list_</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">redirect</span><span class="p">(</span><span class="s1">&#39;/lists/</span><span class="si">%d</span><span class="s1">/&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">list_</span><span class="o">.</span><span class="n">id</span><span class="p">,))</span>
 
 
 <span class="k">def</span> <span class="nf">view_list</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="n">list_id</span><span class="p">):</span>
     <span class="n">list_</span> <span class="o">=</span> <span class="n">List</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="n">list_id</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">render</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="s">&#39;list.html&#39;</span><span class="p">,</span> <span class="p">{</span><span class="s">&#39;list&#39;</span><span class="p">:</span> <span class="n">list_</span><span class="p">})</span>
+    <span class="k">return</span> <span class="n">render</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="s1">&#39;list.html&#39;</span><span class="p">,</span> <span class="p">{</span><span class="s1">&#39;list&#39;</span><span class="p">:</span> <span class="n">list_</span><span class="p">})</span>
 </pre></div>
 
 
 <p>(Full code <a href="https://github.com/hjwp/book-example/blob/chapter_06/lists/views.py">here</a>)</p>
 <p>This is a good use case for a decorator.</p>
 <p>A decorator can be used to extract duplicated work, and also to change the arguments to a function.  So we should be able to build a decorator that does the list-getting for us.  Here's the target:</p>
-<div class="highlight"><pre><span class="nd">@get_list</span>
+<div class="highlight"><pre><span></span><span class="nd">@get_list</span>
 <span class="k">def</span> <span class="nf">add_item</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="n">list_</span><span class="p">):</span>
-    <span class="n">Item</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="n">text</span><span class="o">=</span><span class="n">request</span><span class="o">.</span><span class="n">POST</span><span class="p">[</span><span class="s">&#39;item_text&#39;</span><span class="p">],</span> <span class="nb">list</span><span class="o">=</span><span class="n">list_</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">redirect</span><span class="p">(</span><span class="s">&#39;/lists/</span><span class="si">%d</span><span class="s">/&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">list_</span><span class="o">.</span><span class="n">id</span><span class="p">,))</span>
+    <span class="n">Item</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="n">text</span><span class="o">=</span><span class="n">request</span><span class="o">.</span><span class="n">POST</span><span class="p">[</span><span class="s1">&#39;item_text&#39;</span><span class="p">],</span> <span class="nb">list</span><span class="o">=</span><span class="n">list_</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">redirect</span><span class="p">(</span><span class="s1">&#39;/lists/</span><span class="si">%d</span><span class="s1">/&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">list_</span><span class="o">.</span><span class="n">id</span><span class="p">,))</span>
 
 
 <span class="nd">@get_list</span>
 <span class="k">def</span> <span class="nf">view_list</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="n">list_</span><span class="p">):</span>
-    <span class="k">return</span> <span class="n">render</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="s">&#39;list.html&#39;</span><span class="p">,</span> <span class="p">{</span><span class="s">&#39;list&#39;</span><span class="p">:</span> <span class="n">list_</span><span class="p">})</span>
+    <span class="k">return</span> <span class="n">render</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="s1">&#39;list.html&#39;</span><span class="p">,</span> <span class="p">{</span><span class="s1">&#39;list&#39;</span><span class="p">:</span> <span class="n">list_</span><span class="p">})</span>
 </pre></div>
 
 
@@ -95,7 +95,7 @@
 <p>(you end up saying "function" a lot in any explanation of decorators...)</p>
 </blockquote>
 <p>Here's a template:</p>
-<div class="highlight"><pre><span class="k">def</span> <span class="nf">get_list</span><span class="p">(</span><span class="n">view_fn</span><span class="p">):</span>
+<div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">get_list</span><span class="p">(</span><span class="n">view_fn</span><span class="p">):</span>
 
     <span class="k">def</span> <span class="nf">decorated_view</span><span class="p">(</span><span class="o">...</span><span class="err">?</span><span class="p">):</span>
         <span class="err">???</span>
@@ -106,8 +106,8 @@
 
 
 <p>Can you get it working?  Thankfully, our code has tests, so they'll tell you when you get it right...</p>
-<div class="highlight"><pre><span class="n">git</span> <span class="n">clone</span> <span class="o">-</span><span class="n">b</span> <span class="n">chapter_06</span> <span class="n">https</span><span class="o">:</span><span class="c1">//github.com/hjwp/book-example</span>
-<span class="n">python3</span> <span class="n">manage</span><span class="p">.</span><span class="n">py</span> <span class="n">test</span> <span class="n">lists</span> <span class="err">#</span> <span class="n">dependencies</span><span class="o">:</span> <span class="n">django</span> <span class="mf">1.7</span>
+<div class="highlight"><pre><span></span>git clone -b chapter_06 https://github.com/hjwp/book-example
+python3 manage.py test lists # dependencies: django 1.7
 </pre></div>
 
 
@@ -120,8 +120,8 @@
 <p>Decorators definitely are a bit brain-melting, so it may take a bit of effort to wrap your head around it.  Once you get the hang of them, they're dead useful though,</p>
 <h2>A simpler decorator challenge:</h2>
 <p>If you're finding it impossible, you could start with a simpler challenge...  say, building a decorator to make functions return an absolute value:</p>
-<div class="highlight"><pre><span class="k">def</span> <span class="nf">absolute</span><span class="p">(</span><span class="n">fn</span><span class="p">):</span>
-    <span class="c"># this decorator currently does nothing</span>
+<div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">absolute</span><span class="p">(</span><span class="n">fn</span><span class="p">):</span>
+    <span class="c1"># this decorator currently does nothing</span>
     <span class="k">def</span> <span class="nf">modified_fn</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">fn</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">modified_fn</span>
@@ -137,13 +137,13 @@
 <span class="k">def</span> <span class="nf">foo</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
     <span class="k">return</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">x</span>
 
-<span class="k">assert</span> <span class="n">foo</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span>  <span class="c"># this will fail, get is passing!</span>
+<span class="k">assert</span> <span class="n">foo</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span>  <span class="c1"># this will fail, get is passing!</span>
 </pre></div>
 
 
 <p>Try it out:</p>
-<div class="highlight"><pre><span class="n">git</span> <span class="n">clone</span> <span class="n">https</span><span class="o">:</span><span class="c1">//gist.github.com/2cc523b66d9c0fe41c4b.git deccy</span>
-<span class="n">python3</span> <span class="n">deccy</span><span class="o">/</span><span class="n">deccy</span><span class="p">.</span><span class="n">py</span>
+<div class="highlight"><pre><span></span>git clone https://gist.github.com/2cc523b66d9c0fe41c4b.git deccy
+python3 deccy/deccy.py
 </pre></div>
 
 

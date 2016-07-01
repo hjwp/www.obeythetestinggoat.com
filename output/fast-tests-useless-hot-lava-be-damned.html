@@ -50,7 +50,7 @@
 
         </header>
         <footer class="post-info">
-            <abbr class="published" title="2013-09-11T04:00:00">
+            <abbr class="published" title="2013-09-11T04:00:00+01:00">
               Wed 11 September 2013
             </abbr>
                 <address class="vcard author">
@@ -106,7 +106,7 @@ other</li>
 user: it makes a temp folder for them, and then sets a flag on their user
 profile:</p>
 <p>Imagine this:</p>
-<div class="highlight"><pre><span class="k">def</span> <span class="nf">setup_user_environment</span><span class="p">(</span><span class="n">user</span><span class="p">):</span>
+<div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">setup_user_environment</span><span class="p">(</span><span class="n">user</span><span class="p">):</span>
     <span class="n">setup_temp_storage</span><span class="p">(</span><span class="n">user</span><span class="p">)</span>
     <span class="n">profile</span> <span class="o">=</span> <span class="n">user</span><span class="o">.</span><span class="n">get_profile</span><span class="p">()</span>
     <span class="n">profile</span><span class="o">.</span><span class="n">environment_setup</span> <span class="o">=</span> <span class="bp">True</span>
@@ -115,10 +115,10 @@ profile:</p>
 
 
 <p>Here's the kind of test I'm inclined to write:</p>
-<div class="highlight"><pre><span class="k">def</span> <span class="nf">test_sets_up_temp_storage_and_sets_flag_on_profile</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="n">user</span> <span class="o">=</span> <span class="n">User</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="n">username</span><span class="o">=</span><span class="s">&#39;jim&#39;</span><span class="p">)</span>
+<div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">test_sets_up_temp_storage_and_sets_flag_on_profile</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">user</span> <span class="o">=</span> <span class="n">User</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="n">username</span><span class="o">=</span><span class="s1">&#39;jim&#39;</span><span class="p">)</span>
     <span class="n">setup_user_environment</span><span class="p">(</span><span class="n">user</span><span class="p">)</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="s">&#39;/tmp/jim&#39;</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="s1">&#39;/tmp/jim&#39;</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="n">user</span><span class="o">.</span><span class="n">get_profile</span><span class="p">()</span><span class="o">.</span><span class="n">environment_setup</span><span class="p">)</span>
 </pre></div>
 
@@ -128,9 +128,9 @@ lava! Worse still, it touches the filesystem!  It'll be really slow!  And it
 has too many dependencies!</p>
 <p>That, at least, is what the purists would say.  They would prefer a "fast",
 test that looks like this - a "real" unit test:</p>
-<div class="highlight"><pre><span class="k">def</span> <span class="nf">test_calls_setup_temp_storage_and_sets_flag_on_profile</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">test_calls_setup_temp_storage_and_sets_flag_on_profile</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="n">mock_user</span> <span class="o">=</span> <span class="n">Mock</span><span class="p">()</span>
-    <span class="k">with</span> <span class="n">patch</span><span class="p">(</span><span class="s">&#39;myapp.setup_temp_storage&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">mock_setup_temp_storage</span><span class="p">:</span>
+    <span class="k">with</span> <span class="n">patch</span><span class="p">(</span><span class="s1">&#39;myapp.setup_temp_storage&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">mock_setup_temp_storage</span><span class="p">:</span>
         <span class="n">setup_user_environment</span><span class="p">(</span><span class="n">mock_user</span><span class="p">)</span>
     <span class="n">mock_setup_temp_storage</span><span class="o">.</span><span class="n">assert_called_once_with</span><span class="p">(</span><span class="n">mock_user</span><span class="p">)</span>
     <span class="n">mock_profile</span> <span class="o">=</span> <span class="n">mock_user</span><span class="o">.</span><span class="n">get_profile</span><span class="o">.</span><span class="n">return_value</span>
@@ -197,7 +197,7 @@ lava!  Isn't it?</p>
 <p>Remember, Django uses an <em>in-memory</em> Sqlite database when you're running its
 unit tests. It's pretty fast.  Here's a test suite which hits the DB for some
 tests and not for others, with 1,000 tests of each:</p>
-<div class="highlight"><pre><span class="kn">from</span> <span class="nn">django.db</span> <span class="kn">import</span> <span class="n">models</span>
+<div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">django.db</span> <span class="kn">import</span> <span class="n">models</span>
 <span class="k">class</span> <span class="nc">Car</span><span class="p">(</span><span class="n">models</span><span class="o">.</span><span class="n">Model</span><span class="p">):</span>
     <span class="n">colour</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">TextField</span><span class="p">()</span>
     <span class="k">def</span> <span class="nf">get_colour</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -209,28 +209,28 @@ tests and not for others, with 1,000 tests of each:</p>
 
 <span class="k">class</span> <span class="nc">FastTest</span><span class="p">(</span><span class="n">unittest</span><span class="o">.</span><span class="n">TestCase</span><span class="p">):</span>
     <span class="k">def</span> <span class="nf">create_car</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">Car</span><span class="p">(</span><span class="n">colour</span><span class="o">=</span><span class="s">&#39;blue&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">Car</span><span class="p">(</span><span class="n">colour</span><span class="o">=</span><span class="s1">&#39;blue&#39;</span><span class="p">)</span>
 
 <span class="k">class</span> <span class="nc">SlowTest</span><span class="p">(</span><span class="n">TestCase</span><span class="p">):</span>
     <span class="k">def</span> <span class="nf">create_car</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">Car</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="n">colour</span><span class="o">=</span><span class="s">&#39;blue&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">Car</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="n">colour</span><span class="o">=</span><span class="s1">&#39;blue&#39;</span><span class="p">)</span>
 
 <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1000</span><span class="p">):</span>
-    <span class="n">method_name</span> <span class="o">=</span> <span class="s">&#39;test_car_{0}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+    <span class="n">method_name</span> <span class="o">=</span> <span class="s1">&#39;test_car_{0}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
     <span class="k">def</span> <span class="nf">testfn</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="n">car</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">create_car</span><span class="p">()</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">car</span><span class="o">.</span><span class="n">get_colour</span><span class="p">(),</span> <span class="s">&#39;Blue&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">car</span><span class="o">.</span><span class="n">get_colour</span><span class="p">(),</span> <span class="s1">&#39;Blue&#39;</span><span class="p">)</span>
     <span class="nb">setattr</span><span class="p">(</span><span class="n">FastTest</span><span class="p">,</span> <span class="n">method_name</span><span class="p">,</span> <span class="n">testfn</span><span class="p">)</span>
     <span class="nb">setattr</span><span class="p">(</span><span class="n">SlowTest</span><span class="p">,</span> <span class="n">method_name</span><span class="p">,</span> <span class="n">testfn</span><span class="p">)</span>
 </pre></div>
 
 
 <p>So what's the difference in speed between the two?</p>
-<div class="highlight"><pre><span class="err">$</span> <span class="n">python</span> <span class="n">manage</span><span class="p">.</span><span class="n">py</span> <span class="n">test</span> <span class="n">myapp</span><span class="p">.</span><span class="n">FastTest</span>
-<span class="n">Ran</span> <span class="mi">1000</span> <span class="n">tests</span> <span class="n">in</span> <span class="mf">0.108</span><span class="n">s</span>
+<div class="highlight"><pre><span></span>$ python manage.py <span class="nb">test</span> myapp.FastTest
+Ran <span class="m">1000</span> tests in 0.108s
 
-<span class="err">$</span> <span class="n">python</span> <span class="n">manage</span><span class="p">.</span><span class="n">py</span> <span class="n">test</span> <span class="n">myapp</span><span class="p">.</span><span class="n">SlowTest</span>
-<span class="n">Ran</span> <span class="mi">1000</span> <span class="n">tests</span> <span class="n">in</span> <span class="mf">0.311</span><span class="n">s</span>
+$ python manage.py <span class="nb">test</span> myapp.SlowTest
+Ran <span class="m">1000</span> tests in 0.311s
 </pre></div>
 
 

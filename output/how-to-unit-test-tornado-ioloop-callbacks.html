@@ -50,7 +50,7 @@
 
         </header>
         <footer class="post-info">
-            <abbr class="published" title="2013-06-10T19:11:00">
+            <abbr class="published" title="2013-06-10T19:11:00+01:00">
               Mon 10 June 2013
             </abbr>
                 <address class="vcard author">
@@ -67,13 +67,13 @@ case it helps...</em></p>
 surprising that it took us a few goes at <a href="http://www.pythonanywhere.com">work</a>
 today before we got the hang of it.</p>
 <p>Here's a bit of code that adds a callback to the tornado ioloop:</p>
-<div class="highlight"><pre><span class="k">def</span> <span class="nf">sort_that_out</span><span class="p">(</span><span class="n">mess</span><span class="p">):</span>
+<div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">sort_that_out</span><span class="p">(</span><span class="n">mess</span><span class="p">):</span>
     <span class="n">IOLoop</span><span class="o">.</span><span class="n">instance</span><span class="p">()</span><span class="o">.</span><span class="n">add_callback</span><span class="p">(</span><span class="n">mess</span><span class="o">.</span><span class="n">sort</span><span class="p">)</span>
 </pre></div>
 
 
 <p>How might one naively write a test for it?</p>
-<div class="highlight"><pre><span class="k">class</span> <span class="nc">TestSortingStuffOut</span><span class="p">(</span><span class="n">unittest</span><span class="o">.</span><span class="n">TestCase</span><span class="p">):</span>
+<div class="highlight"><pre><span></span><span class="k">class</span> <span class="nc">TestSortingStuffOut</span><span class="p">(</span><span class="n">unittest</span><span class="o">.</span><span class="n">TestCase</span><span class="p">):</span>
 
     <span class="k">def</span> <span class="nf">test_stuff_get_sorted</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="n">stuff</span> <span class="o">=</span> <span class="p">[</span><span class="mi">3</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">1</span><span class="p">]</span>
@@ -83,13 +83,13 @@ today before we got the hang of it.</p>
 
 
 <p>Well, that doesn't work: </p>
-<div class="highlight"><pre><span class="n">AssertionError</span><span class="o">:</span> <span class="n">Lists</span> <span class="n">differ</span><span class="o">:</span> <span class="o">[</span><span class="mi">3</span><span class="o">,</span> <span class="mi">2</span><span class="o">,</span> <span class="mi">1</span><span class="o">]</span> <span class="o">!=</span> <span class="o">[</span><span class="mi">1</span><span class="o">,</span> <span class="mi">2</span><span class="o">,</span> <span class="mi">3</span><span class="o">]</span>
+<div class="highlight"><pre><span></span><span class="n">AssertionError</span><span class="o">:</span> <span class="n">Lists</span> <span class="n">differ</span><span class="o">:</span> <span class="o">[</span><span class="mi">3</span><span class="o">,</span> <span class="mi">2</span><span class="o">,</span> <span class="mi">1</span><span class="o">]</span> <span class="o">!=</span> <span class="o">[</span><span class="mi">1</span><span class="o">,</span> <span class="mi">2</span><span class="o">,</span> <span class="mi">3</span><span class="o">]</span>
 </pre></div>
 
 
 <p>A little head-scratching will get you to the fact that it's because the tornado
 IOLoop hasn't actually been started, so our callback never gets run.  So, let's fix that:</p>
-<div class="highlight"><pre><span class="k">def</span> <span class="nf">test_stuff_get_sorted</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">test_stuff_get_sorted</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="n">stuff</span> <span class="o">=</span> <span class="p">[</span><span class="mi">3</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">1</span><span class="p">]</span>
     <span class="n">sort_that_out</span><span class="p">(</span><span class="n">stuff</span><span class="p">)</span>
     <span class="n">IOLoop</span><span class="o">.</span><span class="n">instance</span><span class="p">()</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
@@ -99,11 +99,11 @@ IOLoop hasn't actually been started, so our callback never gets run.  So, let's 
 
 <p>What about now?  The test hangs, and a little Ctrl-C based profiling tells us where the
 busy loop is:</p>
-<div class="highlight"><pre>  <span class="n">File</span> <span class="s">&quot;/tmp/t.py&quot;</span><span class="p">,</span> <span class="n">line</span> <span class="mi">13</span><span class="p">,</span> <span class="n">in</span> <span class="n">test_stuff_get_sorted</span>     
-    <span class="n">IOLoop</span><span class="p">.</span><span class="n">instance</span><span class="p">().</span><span class="n">start</span><span class="p">()</span>
-  <span class="n">File</span> <span class="s">&quot;/usr/local/lib/python2.7/site-packages/tornado/ioloop.py&quot;</span><span class="p">,</span> <span class="n">line</span> <span class="mi">627</span><span class="p">,</span> <span class="n">in</span> <span class="n">start</span>
-     <span class="n">event_pairs</span> <span class="o">=</span> <span class="n">self</span><span class="p">.</span><span class="n">_impl</span><span class="p">.</span><span class="n">poll</span><span class="p">(</span><span class="n">poll_timeout</span><span class="p">)</span> 
-<span class="n">KeyboardInterrupt</span> 
+<div class="highlight"><pre><span></span>  File &quot;/tmp/t.py&quot;, line 13, in test_stuff_get_sorted     
+    IOLoop.instance().start()
+  File &quot;/usr/local/lib/python2.7/site-packages/tornado/ioloop.py&quot;, line 627, in start
+     event_pairs = self._impl.poll(poll_timeout) 
+KeyboardInterrupt 
 </pre></div>
 
 
@@ -113,7 +113,7 @@ testing docs</a> but they seem
 to suggest a lot of overcomplicated things: using a <code>self.wait</code>, overriding
 <code>get_new_ioloop</code> to return the singleton...</p>
 <p>Actually, all you really need to do is this:</p>
-<div class="highlight"><pre><span class="k">def</span> <span class="nf">test_stuff_get_sorted</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">test_stuff_get_sorted</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="n">stuff</span> <span class="o">=</span> <span class="p">[</span><span class="mi">3</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">1</span><span class="p">]</span>
 
     <span class="n">sort_that_out</span><span class="p">(</span><span class="n">stuff</span><span class="p">)</span>
@@ -127,11 +127,11 @@ to suggest a lot of overcomplicated things: using a <code>self.wait</code>, over
 
 <p>We just add our own callback, telling the loop to shut itself down, making sure
 that it's the last callback added before we start the loop.  Voila!</p>
-<div class="highlight"><pre><span class="p">.</span>
- <span class="o">----------------------------------------------------------------------</span> 
-<span class="n">Ran</span> <span class="mi">1</span> <span class="n">test</span> <span class="n">in</span> <span class="mf">0.001</span><span class="n">s</span>
+<div class="highlight"><pre><span></span>.
+ ---------------------------------------------------------------------- 
+Ran 1 test in 0.001s
 
-<span class="n">OK</span> 
+OK 
 </pre></div>
 
 

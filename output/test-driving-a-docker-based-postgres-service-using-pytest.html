@@ -50,7 +50,7 @@
 
         </header>
         <footer class="post-info">
-            <abbr class="published" title="2014-09-11T16:59:00">
+            <abbr class="published" title="2014-09-11T16:59:00+01:00">
               Thu 11 September 2014
             </abbr>
                 <address class="vcard author">
@@ -68,29 +68,29 @@
 <p>But for the inner loop we were in a green field -- this wasn't going to be another app in our monolithic Django project, we wanted it to be a standalone service, one that you could package up and use in another context.  It would provide all its services via an API, and need no knowledge of the rest of PythonAnywhere.  So how should we write the self-contained tests for this app?  Should it, in turn, have a double loop?  Relying on isolated unit tests only felt like a waste of time -- after all, the whole app was basically a thin wrapper that hooks up a web service to a series of Docker commands.  All boundaries.  Isolated unit tests would end up being all mocks.  And from a TDD-process point of view, because we'd never actually used docker-py before, we didn't know its API, so we wouldn't know what mocks to write before we'd actually decided what the code was going to look like, and tried it out.  And trying it out would involve either running one of the PythonAnywhere FTs (super-slow, so a tediously and onerous feedback loop), or with manual tests, with all the uncertainty that implies.</p>
 <p>So instead, it felt like starting with an intermediate-level layer of integrated tests might be best: we've already got our top-level UI layer full-stack tests in the form of functional tests.  The next level down was the API level -- does calling this particular URL on the API <em>actually</em> give us a working container?</p>
 <h2>An example test</h2>
-<div class="highlight"><pre><span class="k">def</span> <span class="nf">test_create_starts_container_with_postgres_connectable</span><span class="p">(</span><span class="n">docker_cleanup</span><span class="p">):</span>
+<div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">test_create_starts_container_with_postgres_connectable</span><span class="p">(</span><span class="n">docker_cleanup</span><span class="p">):</span>
     <span class="n">response</span> <span class="o">=</span> <span class="n">post_to_api_create</span><span class="p">()</span>
 
-    <span class="n">port</span> <span class="o">=</span> <span class="n">response</span><span class="o">.</span><span class="n">json</span><span class="p">()[</span><span class="s">&quot;port&quot;</span><span class="p">]</span>
+    <span class="n">port</span> <span class="o">=</span> <span class="n">response</span><span class="o">.</span><span class="n">json</span><span class="p">()[</span><span class="s2">&quot;port&quot;</span><span class="p">]</span>
     <span class="k">assert</span> <span class="n">port</span> <span class="o">&gt;</span> <span class="mi">1024</span>
 
     <span class="n">connection</span> <span class="o">=</span> <span class="n">psycopg2</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span>
-        <span class="n">database</span><span class="o">=</span><span class="s">&quot;postgres&quot;</span><span class="p">,</span>
-        <span class="n">user</span><span class="o">=</span><span class="s">&quot;pythonanywhere_helper&quot;</span><span class="p">,</span> <span class="n">password</span><span class="o">=</span><span class="s">&quot;papwd&quot;</span><span class="p">,</span>
-        <span class="n">host</span><span class="o">=</span><span class="s">&quot;localhost&quot;</span><span class="p">,</span> <span class="n">port</span><span class="o">=</span><span class="n">port</span><span class="p">,</span>
+        <span class="n">database</span><span class="o">=</span><span class="s2">&quot;postgres&quot;</span><span class="p">,</span>
+        <span class="n">user</span><span class="o">=</span><span class="s2">&quot;pythonanywhere_helper&quot;</span><span class="p">,</span> <span class="n">password</span><span class="o">=</span><span class="s2">&quot;papwd&quot;</span><span class="p">,</span>
+        <span class="n">host</span><span class="o">=</span><span class="s2">&quot;localhost&quot;</span><span class="p">,</span> <span class="n">port</span><span class="o">=</span><span class="n">port</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="n">connection</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
 </pre></div>
 
 
 <p>Where</p>
-<div class="highlight"><pre><span class="k">def</span> <span class="nf">post_to_api_create</span><span class="p">():</span>
+<div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">post_to_api_create</span><span class="p">():</span>
     <span class="n">response</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">post</span><span class="p">(</span>
-        <span class="s">&quot;http://localhost:5000/api/create&quot;</span><span class="p">,</span>
-        <span class="p">{</span><span class="s">&quot;admin_password&quot;</span><span class="p">:</span> <span class="s">&quot;papwd&quot;</span><span class="p">}</span>
+        <span class="s2">&quot;http://localhost:5000/api/create&quot;</span><span class="p">,</span>
+        <span class="p">{</span><span class="s2">&quot;admin_password&quot;</span><span class="p">:</span> <span class="s2">&quot;papwd&quot;</span><span class="p">}</span>
     <span class="p">)</span>
     <span class="k">assert</span> <span class="n">response</span><span class="o">.</span><span class="n">status_code</span> <span class="o">==</span> <span class="mi">200</span>
-    <span class="k">assert</span> <span class="n">response</span><span class="o">.</span><span class="n">json</span><span class="p">()[</span><span class="s">&quot;status&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s">&quot;OK&quot;</span>
+    <span class="k">assert</span> <span class="n">response</span><span class="o">.</span><span class="n">json</span><span class="p">()[</span><span class="s2">&quot;status&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;OK&quot;</span>
     <span class="k">return</span> <span class="n">response</span>
 </pre></div>
 
@@ -99,35 +99,35 @@
 <p>Now this test runs in about 10 seconds - not super-fast, like the milliseconds you might want a unit test to run in, but much faster than our FT, which takes 5 or 6 minutes. And, meanwhile, we can actually write this test first. To write an isolated, mocky test, we'd need to know the docker-py API already, and be sure that it was going to work, which we weren't.</p>
 <p>To illustrate this point, take a look at the difference between an early implementation and a later one:</p>
 <h3>A first implementation</h3>
-<div class="highlight"><pre><span class="n">USER_IMAGE_DOCKERFILE</span> <span class="o">=</span> <span class="s">&#39;&#39;&#39;</span>
-<span class="s">FROM postgres</span>
-<span class="s">USER postgres</span>
-<span class="s">RUN /etc/init.d/postgresql start &amp;&amp; </span><span class="se">\\</span><span class="s"></span>
-<span class="s">    psql -c &quot;CREATE USER pythonanywhere_helper WITH SUPERUSER PASSWORD &#39;{hashed}&#39;;&quot;</span>
-<span class="s">CMD [&quot;/usr/lib/postgresql/9.3/bin/postgres&quot;, &quot;-D&quot;, &quot;/var/lib/postgresql/9.3/main&quot;, &quot;-c&quot;, &quot;config_file=/etc/postgresql/9.3/main/postgresql.conf&quot;]</span>
-<span class="s">&#39;&#39;&#39;</span>
+<div class="highlight"><pre><span></span><span class="n">USER_IMAGE_DOCKERFILE</span> <span class="o">=</span> <span class="s1">&#39;&#39;&#39;</span>
+<span class="s1">FROM postgres</span>
+<span class="s1">USER postgres</span>
+<span class="s1">RUN /etc/init.d/postgresql start &amp;&amp; </span><span class="se">\\</span><span class="s1"></span>
+<span class="s1">    psql -c &quot;CREATE USER pythonanywhere_helper WITH SUPERUSER PASSWORD &#39;{hashed}&#39;;&quot;</span>
+<span class="s1">CMD [&quot;/usr/lib/postgresql/9.3/bin/postgres&quot;, &quot;-D&quot;, &quot;/var/lib/postgresql/9.3/main&quot;, &quot;-c&quot;, &quot;config_file=/etc/postgresql/9.3/main/postgresql.conf&quot;]</span>
+<span class="s1">&#39;&#39;&#39;</span>
 
 <span class="k">def</span> <span class="nf">get_user_dockerfile</span><span class="p">(</span><span class="n">admin_password</span><span class="p">):</span>
-    <span class="n">hashed</span> <span class="o">=</span> <span class="s">&#39;md5&#39;</span> <span class="o">+</span> <span class="n">md5</span><span class="p">(</span><span class="n">admin_password</span> <span class="o">+</span> <span class="s">&#39;pythonanywhere_helper&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()</span>
+    <span class="n">hashed</span> <span class="o">=</span> <span class="s1">&#39;md5&#39;</span> <span class="o">+</span> <span class="n">md5</span><span class="p">(</span><span class="n">admin_password</span> <span class="o">+</span> <span class="s1">&#39;pythonanywhere_helper&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()</span>
     <span class="k">return</span> <span class="n">USER_IMAGE_DOCKERFILE</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
         <span class="n">hashed</span><span class="o">=</span><span class="n">hashed</span><span class="p">,</span>
     <span class="p">)</span>
 
 <span class="k">def</span> <span class="nf">create_container_with_password</span><span class="p">(</span><span class="n">password</span><span class="p">):</span>
     <span class="n">tempdir</span> <span class="o">=</span> <span class="n">tempfile</span><span class="o">.</span><span class="n">mkdtemp</span><span class="p">()</span>
-    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">tempdir</span><span class="p">,</span> <span class="s">&#39;Dockerfile&#39;</span><span class="p">),</span> <span class="s">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">tempdir</span><span class="p">,</span> <span class="s1">&#39;Dockerfile&#39;</span><span class="p">),</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
         <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">get_user_dockerfile</span><span class="p">(</span><span class="n">password</span><span class="p">))</span>
 
     <span class="n">response</span> <span class="o">=</span> <span class="n">docker</span><span class="o">.</span><span class="n">build</span><span class="p">(</span><span class="n">path</span><span class="o">=</span><span class="n">tempdir</span><span class="p">)</span>
     <span class="n">response_lines</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">response</span><span class="p">)</span>
 
-    <span class="n">image_finder</span> <span class="o">=</span> <span class="s">r&#39;Successfully built ([0-9a-f]+)&#39;</span>
+    <span class="n">image_finder</span> <span class="o">=</span> <span class="s1">r&#39;Successfully built ([0-9a-f]+)&#39;</span>
     <span class="n">match</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">image_finder</span><span class="p">,</span> <span class="n">response_lines</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
     <span class="k">if</span> <span class="n">match</span><span class="p">:</span>
         <span class="n">image_id</span> <span class="o">=</span> <span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s">&#39;Image failed to build:</span><span class="se">\n</span><span class="s">{}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
-            <span class="s">&#39;</span><span class="se">\n</span><span class="s">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">response_lines</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;Image failed to build:</span><span class="se">\n</span><span class="s1">{}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">response_lines</span><span class="p">)</span>
         <span class="p">))</span>
 
     <span class="n">container</span> <span class="o">=</span> <span class="n">docker</span><span class="o">.</span><span class="n">create_container</span><span class="p">(</span>
@@ -141,24 +141,24 @@
 <p>This was one of our first attempts -- we needed to be able to customise the Postgres superuser password for each user, and our initial solution involved building a new image for each user, by generating and running a custom Dockerfile for them.</p>
 <p>We were never quite sure whether the Dockerfile voodoo was going to work, and we weren't really Postgres experts either, so having the high-level integration test, which actually tried to spin up a container and connect to the Postgres database that should be running inside it, was a really good way of getting to a solution that worked.</p>
 <p>Imagine what a more isolated test for this code might look like:</p>
-<div class="highlight"><pre><span class="nd">@patch</span><span class="p">(</span><span class="s">&#39;containers.docker&#39;</span><span class="p">)</span>
+<div class="highlight"><pre><span></span><span class="nd">@patch</span><span class="p">(</span><span class="s1">&#39;containers.docker&#39;</span><span class="p">)</span>
 <span class="k">def</span> <span class="nf">test_uses_dockerfile_to_build_new_image</span><span class="p">(</span><span class="n">mock_docker</span><span class="p">):</span>
     <span class="n">expected_dockerfile</span> <span class="o">=</span> <span class="n">USER_IMAGE_DOCKERFILE</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
-        <span class="s">&#39;md5sekritpythonanywhere_helper&#39;</span>
+        <span class="s1">&#39;md5sekritpythonanywhere_helper&#39;</span>
     <span class="p">)</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()</span>
     <span class="k">def</span> <span class="nf">check_dockerfile_contents</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
-        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s">&#39;Dockerfile&#39;</span><span class="p">))</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s1">&#39;Dockerfile&#39;</span><span class="p">))</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
             <span class="k">assert</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">()</span> <span class="o">==</span> <span class="n">expected_dockerfile</span>
 
     <span class="n">mock_docker</span><span class="o">.</span><span class="n">build</span><span class="o">.</span><span class="n">side_effect</span> <span class="o">=</span> <span class="n">check_dockerfile_contents</span>
 
-    <span class="n">create_container_with_password</span><span class="p">(</span><span class="s">&#39;sekrit&#39;</span><span class="p">)</span>
+    <span class="n">create_container_with_password</span><span class="p">(</span><span class="s1">&#39;sekrit&#39;</span><span class="p">)</span>
 
     <span class="k">assert</span> <span class="n">mock_docker</span><span class="o">.</span><span class="n">build</span><span class="o">.</span><span class="n">called</span> <span class="ow">is</span> <span class="bp">True</span>
 
- <span class="nd">@patch</span><span class="p">(</span><span class="s">&#39;containers.docker&#39;</span><span class="p">)</span>
+ <span class="nd">@patch</span><span class="p">(</span><span class="s1">&#39;containers.docker&#39;</span><span class="p">)</span>
 <span class="k">def</span> <span class="nf">test_creates_container_from_docker_image</span><span class="p">(</span><span class="n">mock_docker</span><span class="p">):</span>
-    <span class="n">create_container_with_password</span><span class="p">(</span><span class="s">&#39;sekrit&#39;</span><span class="p">)</span>
+    <span class="n">create_container_with_password</span><span class="p">(</span><span class="s1">&#39;sekrit&#39;</span><span class="p">)</span>
     <span class="n">mock_docker</span><span class="o">.</span><span class="n">create_container</span><span class="o">.</span><span class="n">assert_called_once_with</span><span class="p">(</span>
         <span class="n">mock_docker</span><span class="o">.</span><span class="n">build</span><span class="o">.</span><span class="n">return_value</span>
     <span class="p">)</span>
@@ -168,16 +168,16 @@
 <p>There's no way we could have written that test until we actually had a working solution.  And, on top of that, the test would have been totally useless when it came to evolving our requirements and our solution</p>
 <h3>A later implementation -- but minimal change to the main test</h3>
 <p>To give you an idea, here's what our current implementation looks like:</p>
-<div class="highlight"><pre><span class="k">def</span> <span class="nf">start_new_container</span><span class="p">(</span><span class="n">storage_dirname</span><span class="p">,</span> <span class="n">password</span><span class="p">,</span> <span class="n">requested_port</span><span class="p">):</span>
+<div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">start_new_container</span><span class="p">(</span><span class="n">storage_dirname</span><span class="p">,</span> <span class="n">password</span><span class="p">,</span> <span class="n">requested_port</span><span class="p">):</span>
     <span class="n">prep_storage_dir</span><span class="p">(</span><span class="n">storage_dirname</span><span class="p">)</span>
     <span class="n">run_command_on_temporary_container_with_mounts</span><span class="p">(</span>
-        <span class="n">command</span><span class="o">=</span><span class="p">[</span><span class="s">&#39;chown&#39;</span><span class="p">,</span> <span class="s">&#39;-R&#39;</span><span class="p">,</span> <span class="s">&#39;postgres:postgres&#39;</span><span class="p">,</span> <span class="n">POSTGRES_DIR</span><span class="p">],</span>
+        <span class="n">command</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;chown&#39;</span><span class="p">,</span> <span class="s1">&#39;-R&#39;</span><span class="p">,</span> <span class="s1">&#39;postgres:postgres&#39;</span><span class="p">,</span> <span class="n">POSTGRES_DIR</span><span class="p">],</span>
         <span class="n">storage_dirname</span><span class="o">=</span><span class="n">storage_dirname</span><span class="p">,</span>
-        <span class="n">user</span><span class="o">=</span><span class="s">&#39;root&#39;</span><span class="p">,</span>
+        <span class="n">user</span><span class="o">=</span><span class="s1">&#39;root&#39;</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="n">run_command_on_temporary_container_with_mounts</span><span class="p">(</span>
         <span class="n">command</span><span class="o">=</span><span class="p">[</span>
-            <span class="s">&#39;bash&#39;</span><span class="p">,</span> <span class="s">&#39;-c&#39;</span><span class="p">,</span> 
+            <span class="s1">&#39;bash&#39;</span><span class="p">,</span> <span class="s1">&#39;-c&#39;</span><span class="p">,</span> 
             <span class="n">INITIALISE_POSTGRES_AND_SET_PASSWORD</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">password</span><span class="p">)</span>
         <span class="p">],</span>
         <span class="n">storage_dirname</span><span class="o">=</span><span class="n">storage_dirname</span>
@@ -187,7 +187,7 @@
         <span class="n">user_container</span><span class="p">,</span> <span class="n">storage_dirname</span><span class="p">,</span> 
         <span class="n">ports</span><span class="o">=</span><span class="p">{</span><span class="n">POSTGRES_PORT</span><span class="p">:</span> <span class="n">requested_port</span><span class="p">},</span>
     <span class="p">)</span>
-    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">port_file_path</span><span class="p">(</span><span class="n">storage_dirname</span><span class="p">),</span> <span class="s">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">port_file_path</span><span class="p">(</span><span class="n">storage_dirname</span><span class="p">),</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
         <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">requested_port</span><span class="p">))</span>
     <span class="k">return</span> <span class="n">requested_port</span>
 </pre></div>
@@ -195,17 +195,17 @@
 
 <p>I won't bore you with the details of <code>run_command_on_temporary_container_with_mounts</code>, but one way or another we realised that building separate images for each user wasn't going to work, and that instead we were going to want to have some permanent storage mounted in from outside of Docker, which would contain the Postgres data directory, and which would effectively "save" customisations like the user's password.</p>
 <p>So a radically different implementation, but look how little the main test changed:</p>
-<div class="highlight"><pre><span class="k">def</span> <span class="nf">post_to_api_create</span><span class="p">(</span><span class="n">storage_dir</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">port</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+<div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">post_to_api_create</span><span class="p">(</span><span class="n">storage_dir</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">port</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
     <span class="k">if</span> <span class="n">storage_dir</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
         <span class="n">storage_dir</span> <span class="o">=</span> <span class="n">uuid</span><span class="o">.</span><span class="n">uuid4</span><span class="p">()</span>
     <span class="k">if</span> <span class="n">port</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
         <span class="n">port</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">6000</span><span class="p">,</span> <span class="mi">9999</span><span class="p">)</span>
     <span class="n">response</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">post</span><span class="p">(</span>
-        <span class="s">&quot;https://localhost/api/containers/&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;https://localhost/api/containers/&quot;</span><span class="p">,</span>
         <span class="p">{</span>
-            <span class="s">&quot;storage_dir&quot;</span><span class="p">:</span> <span class="n">storage_dir</span><span class="p">,</span>
-            <span class="s">&quot;admin_password&quot;</span><span class="p">:</span> <span class="n">OUR_PASSWORD</span><span class="p">,</span>
-            <span class="s">&quot;port&quot;</span><span class="p">:</span> <span class="n">port</span><span class="p">,</span>
+            <span class="s2">&quot;storage_dir&quot;</span><span class="p">:</span> <span class="n">storage_dir</span><span class="p">,</span>
+            <span class="s2">&quot;admin_password&quot;</span><span class="p">:</span> <span class="n">OUR_PASSWORD</span><span class="p">,</span>
+            <span class="s2">&quot;port&quot;</span><span class="p">:</span> <span class="n">port</span><span class="p">,</span>
         <span class="p">},</span>
         <span class="n">verify</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span>
     <span class="p">)</span>
@@ -213,7 +213,7 @@
 
 <span class="k">def</span> <span class="nf">test_create_starts_container_with_postgres_connectable</span><span class="p">(</span><span class="n">docker_cleanup</span><span class="p">):</span>
     <span class="n">response</span> <span class="o">=</span> <span class="n">post_to_api_create</span><span class="p">(</span><span class="n">port</span><span class="o">=</span><span class="mi">6123</span><span class="p">)</span>
-    <span class="c"># rest of test as before!</span>
+    <span class="c1"># rest of test as before!</span>
 </pre></div>
 
 
@@ -222,8 +222,8 @@
 <p>One py.test selling point is "less boilerplate". Notice that none of these tests are methods in a class, and there's no self variable.  On top of that, we just use <code>assert</code> keywords, no complicated remembering of <code>self.assertIn</code>, <code>self.assertIsNotNone</code>,  and so on.  Absolutely loving that.</p>
 <h3>py.test fixtures</h3>
 <p>Another thing you may be interested in is the <code>docker_cleanup</code> argument to the test.  py.test will magically look for a special fixture function named the same as that argument, and use it in the test.  Here's how it looks:</p>
-<div class="highlight"><pre><span class="kn">from</span> <span class="nn">docker</span> <span class="kn">import</span> <span class="n">Client</span>
-<span class="n">docker</span> <span class="o">=</span> <span class="n">Client</span><span class="p">(</span><span class="n">base_url</span><span class="o">=</span><span class="s">&#39;unix://var/run/docker.sock&#39;</span><span class="p">)</span>
+<div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">docker</span> <span class="kn">import</span> <span class="n">Client</span>
+<span class="n">docker</span> <span class="o">=</span> <span class="n">Client</span><span class="p">(</span><span class="n">base_url</span><span class="o">=</span><span class="s1">&#39;unix://var/run/docker.sock&#39;</span><span class="p">)</span>
 
 <span class="nd">@pytest.fixture</span><span class="p">()</span>
 <span class="k">def</span> <span class="nf">docker_cleanup</span><span class="p">(</span><span class="n">request</span><span class="p">):</span>
@@ -233,7 +233,7 @@
         <span class="n">current_containers</span> <span class="o">=</span> <span class="n">docker</span><span class="o">.</span><span class="n">containers</span><span class="p">()</span>
         <span class="k">for</span> <span class="n">container</span> <span class="ow">in</span> <span class="n">current_containers</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">container</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">containers_before</span><span class="p">:</span>
-                <span class="k">print</span><span class="p">(</span><span class="s">&#39;killing {}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">container</span><span class="p">[</span><span class="s">&#39;Names&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]))</span>
+                <span class="k">print</span><span class="p">(</span><span class="s1">&#39;killing {}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">container</span><span class="p">[</span><span class="s1">&#39;Names&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]))</span>
                 <span class="n">docker</span><span class="o">.</span><span class="n">kill</span><span class="p">(</span><span class="n">container</span><span class="p">)</span>
 
     <span class="n">request</span><span class="o">.</span><span class="n">addfinalizer</span><span class="p">(</span><span class="n">kill_new_containers</span><span class="p">)</span>

@@ -50,7 +50,7 @@
 
         </header>
         <footer class="post-info">
-            <abbr class="published" title="2015-12-27T13:29:00">
+            <abbr class="published" title="2015-12-27T13:29:00+00:00">
               Sun 27 December 2015
             </abbr>
                 <address class="vcard author">
@@ -72,11 +72,11 @@ mood and I wanted to see whether I could make our tarpit even more mean --
 essentially "hobbling" naughty users's processes using OS stop and restart
 signals.</p>
 <p>In synchronous/pseudo code, something like this:</p>
-<div class="highlight"><pre><span class="k">def</span> <span class="nf">main</span><span class="p">():</span>
+<div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">main</span><span class="p">():</span>
     <span class="k">while</span> <span class="bp">True</span><span class="p">:</span>
         <span class="n">naughty_processes</span> <span class="o">=</span> <span class="n">find_new_naughty_processes</span><span class="p">()</span>
         <span class="k">for</span> <span class="n">process</span> <span class="ow">in</span> <span class="n">naughty_processes</span><span class="p">:</span>
-            <span class="n">hobble_process</span><span class="p">(</span><span class="n">process</span><span class="p">)</span>  <span class="c"># parallelised somehow</span>
+            <span class="n">hobble_process</span><span class="p">(</span><span class="n">process</span><span class="p">)</span>  <span class="c1"># parallelised somehow</span>
         <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span>
 
 <span class="k">def</span> <span class="nf">hobble_process</span><span class="p">(</span><span class="n">process</span><span class="p">):</span>
@@ -103,7 +103,7 @@ control to some sort of event loop or task manager.</p>
 similar to the normal procedural code -- I just add a few "yield froms" to
 signify where each function can yield control back to the event loop, ready to
 be woken up again when there's something for it to do:</p>
-<div class="highlight"><pre><span class="k">def</span> <span class="nf">main</span><span class="p">():</span>
+<div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">main</span><span class="p">():</span>
     <span class="n">loop</span> <span class="o">=</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">get_event_loop</span><span class="p">()</span>
     <span class="n">loop</span><span class="o">.</span><span class="n">create_task</span><span class="p">(</span><span class="n">hobble_processes_forever</span><span class="p">())</span>
     <span class="n">loop</span><span class="o">.</span><span class="n">run_forever</span><span class="p">()</span>
@@ -169,22 +169,22 @@ throw away, instead of automating them.</p>
 <p>It felt like some "real" tests were in order, tests that would actually start
 some real processes and see if they really did get slowed down -- an end-to-end
 test, if you will -- so that's what I went for.  Here was my first cut:</p>
-<div class="highlight"><pre><span class="k">def</span> <span class="nf">test_hobbled_process_is_slow</span><span class="p">(</span><span class="n">tarpit_pids_file</span><span class="p">,</span> <span class="n">start_hobbler_in_subprocess</span><span class="p">):</span>
-    <span class="n">timer</span> <span class="o">=</span> <span class="s">&quot;; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span>
-        <span class="s">&quot;import time&quot;</span><span class="p">,</span>
-        <span class="s">&quot;time.sleep(0.4)&quot;</span><span class="p">,</span>  <span class="c"># give hobbler a chance to spot us</span>
-        <span class="s">&quot;start = time.time()&quot;</span><span class="p">,</span>
-        <span class="s">&quot;list(range(int(1e6)))&quot;</span><span class="p">,</span>  <span class="c"># do some work</span>
-        <span class="s">&quot;print(time.time() - start)&quot;</span><span class="p">,</span>
+<div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">test_hobbled_process_is_slow</span><span class="p">(</span><span class="n">tarpit_pids_file</span><span class="p">,</span> <span class="n">start_hobbler_in_subprocess</span><span class="p">):</span>
+    <span class="n">timer</span> <span class="o">=</span> <span class="s2">&quot;; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span>
+        <span class="s2">&quot;import time&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;time.sleep(0.4)&quot;</span><span class="p">,</span>  <span class="c1"># give hobbler a chance to spot us</span>
+        <span class="s2">&quot;start = time.time()&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;list(range(int(1e6)))&quot;</span><span class="p">,</span>  <span class="c1"># do some work</span>
+        <span class="s2">&quot;print(time.time() - start)&quot;</span><span class="p">,</span>
     <span class="p">]</span>
-    <span class="n">normal</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">check_output</span><span class="p">([</span><span class="s">&#39;python&#39;</span><span class="p">,</span> <span class="s">&#39;-c&#39;</span><span class="p">,</span> <span class="n">timer</span><span class="p">])</span>
+    <span class="n">normal</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">check_output</span><span class="p">([</span><span class="s1">&#39;python&#39;</span><span class="p">,</span> <span class="s1">&#39;-c&#39;</span><span class="p">,</span> <span class="n">timer</span><span class="p">])</span>
 
     <span class="n">add_self_to_tarpit</span> <span class="o">=</span> <span class="p">(</span>
-        <span class="s">&quot;import os;&quot;</span>
-        <span class="s">&quot; open({pidsfile}, &#39;w&#39;).write(str(os.getpid()));&quot;</span>
+        <span class="s2">&quot;import os;&quot;</span>
+        <span class="s2">&quot; open({pidsfile}, &#39;w&#39;).write(str(os.getpid()));&quot;</span>
     <span class="p">)</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">pidsfile</span><span class="o">=</span><span class="n">tarpit_pids_file</span><span class="p">)</span>
     <span class="n">slow</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">check_output</span><span class="p">(</span>
-        <span class="p">[</span> <span class="s">&#39;python&#39;</span><span class="p">,</span> <span class="s">&#39;-c&#39;</span><span class="p">,</span> <span class="n">add_self_to_tarpit</span> <span class="o">+</span> <span class="s">&quot; &quot;</span>  <span class="o">+</span> <span class="n">timer</span><span class="p">],</span>
+        <span class="p">[</span> <span class="s1">&#39;python&#39;</span><span class="p">,</span> <span class="s1">&#39;-c&#39;</span><span class="p">,</span> <span class="n">add_self_to_tarpit</span> <span class="o">+</span> <span class="s2">&quot; &quot;</span>  <span class="o">+</span> <span class="n">timer</span><span class="p">],</span>
     <span class="p">)</span>
 
     <span class="n">normal</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">normal</span><span class="p">)</span>
@@ -197,7 +197,7 @@ test, if you will -- so that's what I went for.  Here was my first cut:</p>
 
 <p>The test depends on two fixtures, one to create a file containing process ids
 (pids) that we want to hobble, and one to actually launch the hobbler.py process</p>
-<div class="highlight"><pre><span class="nd">@pytest.yield_fixture</span>
+<div class="highlight"><pre><span></span><span class="nd">@pytest.yield_fixture</span>
 <span class="k">def</span> <span class="nf">tarpit_pids_file</span><span class="p">():</span>
     <span class="k">yield</span> <span class="n">tempfile</span><span class="o">.</span><span class="n">NamedTemporaryFile</span><span class="p">()</span>
 
@@ -205,18 +205,18 @@ test, if you will -- so that's what I went for.  Here was my first cut:</p>
 <span class="nd">@pytest.yield_fixture</span>
 <span class="k">def</span> <span class="nf">start_hobbler_in_subprocess</span><span class="p">(</span><span class="n">tarpit_pids_file</span><span class="p">):</span>
     <span class="n">process</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">Popen</span><span class="p">(</span>
-        <span class="p">[</span><span class="s">&#39;python3&#39;</span><span class="p">,</span> <span class="s">&#39;hobbler.py&#39;</span><span class="p">,</span> <span class="n">tarpit_pids_file</span><span class="p">],</span>
+        <span class="p">[</span><span class="s1">&#39;python3&#39;</span><span class="p">,</span> <span class="s1">&#39;hobbler.py&#39;</span><span class="p">,</span> <span class="n">tarpit_pids_file</span><span class="p">],</span>
         <span class="n">stdout</span><span class="o">=</span><span class="n">subprocess</span><span class="o">.</span><span class="n">PIPE</span><span class="p">,</span> <span class="n">stdin</span><span class="o">=</span><span class="n">subprocess</span><span class="o">.</span><span class="n">PIPE</span><span class="p">,</span> 
         <span class="n">stderr</span><span class="o">=</span><span class="n">subprocess</span><span class="o">.</span><span class="n">STDOUT</span><span class="p">,</span> <span class="n">universal_newlines</span><span class="o">=</span><span class="bp">True</span>
     <span class="p">)</span>
     <span class="n">first_line</span> <span class="o">=</span> <span class="n">process</span><span class="o">.</span><span class="n">stdout</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
-    <span class="k">if</span> <span class="s">&#39;Traceback&#39;</span> <span class="ow">in</span> <span class="n">first_line</span><span class="p">:</span>
+    <span class="k">if</span> <span class="s1">&#39;Traceback&#39;</span> <span class="ow">in</span> <span class="n">first_line</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">process</span><span class="o">.</span><span class="n">stdout</span><span class="o">.</span><span class="n">read</span><span class="p">())</span>
 
     <span class="k">yield</span> <span class="n">process</span>
 
     <span class="n">process</span><span class="o">.</span><span class="n">kill</span><span class="p">()</span>
-    <span class="k">print</span><span class="p">(</span><span class="s">&#39;full hobbler process output:&#39;</span><span class="p">)</span>
+    <span class="k">print</span><span class="p">(</span><span class="s1">&#39;full hobbler process output:&#39;</span><span class="p">)</span>
     <span class="k">print</span><span class="p">(</span><span class="n">process</span><span class="o">.</span><span class="n">stdout</span><span class="o">.</span><span class="n">read</span><span class="p">())</span>
 </pre></div>
 
@@ -235,7 +235,7 @@ blocking call..</p>
 <p>From that point onwards, I found it was relatively easy to use similar tests
 to drive my development, alongside a few manual checks. Here's my final list
 of tests:</p>
-<div class="highlight"><pre><span class="k">def</span> <span class="nf">test_tarpit_process_is_slow</span><span class="p">(</span><span class="n">fake_tarpit</span><span class="p">,</span> <span class="n">hobbler_process</span><span class="p">):</span>
+<div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">test_tarpit_process_is_slow</span><span class="p">(</span><span class="n">fake_tarpit</span><span class="p">,</span> <span class="n">hobbler_process</span><span class="p">):</span>
 <span class="k">def</span> <span class="nf">test_spots_process</span><span class="p">(</span><span class="n">fake_tarpit</span><span class="p">,</span> <span class="n">hobbler_process</span><span class="p">):</span>
 <span class="k">def</span> <span class="nf">test_spots_multiple_processes</span><span class="p">(</span><span class="n">fake_tarpit</span><span class="p">,</span> <span class="n">hobbler_process</span><span class="p">):</span>
 <span class="k">def</span> <span class="nf">test_doesnt_hobble_any_old_process</span><span class="p">(</span><span class="n">fake_tarpit</span><span class="p">,</span> <span class="n">hobbler_process</span><span class="p">):</span>
@@ -254,24 +254,24 @@ performance test -- since the hobbler is meant to reduce the load on our
 servers, by reducing the resource usage of user processes, it's important that
 the hobbler itself shouldn't chew up all the CPU!  So I wanted to see how it
 performs with lots of processes to hobble:</p>
-<div class="highlight"><pre><span class="k">def</span> <span class="nf">test_lots_of_processes</span><span class="p">(</span><span class="n">fake_tarpit</span><span class="p">,</span> <span class="n">hobbler_process</span><span class="p">):</span>
+<div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">test_lots_of_processes</span><span class="p">(</span><span class="n">fake_tarpit</span><span class="p">,</span> <span class="n">hobbler_process</span><span class="p">):</span>
     <span class="n">start_times</span> <span class="o">=</span> <span class="n">Process</span><span class="p">(</span><span class="n">hobbler_process</span><span class="o">.</span><span class="n">pid</span><span class="p">)</span><span class="o">.</span><span class="n">cpu_times</span><span class="p">()</span>
-    <span class="k">print</span><span class="p">(</span><span class="s">&#39;start times&#39;</span><span class="p">,</span> <span class="n">start_times</span><span class="p">)</span>
+    <span class="k">print</span><span class="p">(</span><span class="s1">&#39;start times&#39;</span><span class="p">,</span> <span class="n">start_times</span><span class="p">)</span>
     <span class="n">procs</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">200</span><span class="p">):</span>
-        <span class="n">p</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">Popen</span><span class="p">([</span><span class="s">&#39;sleep&#39;</span><span class="p">,</span> <span class="s">&#39;100&#39;</span><span class="p">],</span> <span class="n">universal_newlines</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">Popen</span><span class="p">([</span><span class="s1">&#39;sleep&#39;</span><span class="p">,</span> <span class="s1">&#39;100&#39;</span><span class="p">],</span> <span class="n">universal_newlines</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
         <span class="n">_add_to_tarpit</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">pid</span><span class="p">,</span> <span class="n">fake_tarpit</span><span class="p">)</span>
         <span class="n">procs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
 
-    <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">7</span><span class="p">)</span> <span class="c"># time for 3 iterations</span>
+    <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">7</span><span class="p">)</span> <span class="c1"># time for 3 iterations</span>
 
     <span class="n">end_times</span> <span class="o">=</span> <span class="n">Process</span><span class="p">(</span><span class="n">hobbler_process</span><span class="o">.</span><span class="n">pid</span><span class="p">)</span><span class="o">.</span><span class="n">cpu_times</span><span class="p">()</span>
-    <span class="k">print</span><span class="p">(</span><span class="s">&#39;end times&#39;</span><span class="p">,</span> <span class="n">end_times</span><span class="p">)</span>
+    <span class="k">print</span><span class="p">(</span><span class="s1">&#39;end times&#39;</span><span class="p">,</span> <span class="n">end_times</span><span class="p">)</span>
 
     <span class="k">assert</span> <span class="n">end_times</span><span class="o">.</span><span class="n">user</span> <span class="o">&gt;</span> <span class="n">start_times</span><span class="o">.</span><span class="n">user</span>
     <span class="k">assert</span> <span class="n">end_times</span><span class="o">.</span><span class="n">system</span> <span class="o">&gt;</span> <span class="n">start_times</span><span class="o">.</span><span class="n">system</span>
 
-    <span class="n">Process</span><span class="p">(</span><span class="n">hobbler_process</span><span class="o">.</span><span class="n">pid</span><span class="p">)</span><span class="o">.</span><span class="n">cpu_percent</span><span class="p">(</span><span class="n">interval</span><span class="o">=</span><span class="mf">0.1</span><span class="p">)</span>  <span class="c"># warm-up</span>
+    <span class="n">Process</span><span class="p">(</span><span class="n">hobbler_process</span><span class="o">.</span><span class="n">pid</span><span class="p">)</span><span class="o">.</span><span class="n">cpu_percent</span><span class="p">(</span><span class="n">interval</span><span class="o">=</span><span class="mf">0.1</span><span class="p">)</span>  <span class="c1"># warm-up</span>
     <span class="k">assert</span> <span class="n">Process</span><span class="p">(</span><span class="n">hobbler_process</span><span class="o">.</span><span class="n">pid</span><span class="p">)</span><span class="o">.</span><span class="n">cpu_percent</span><span class="p">(</span><span class="n">interval</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">10</span>
 </pre></div>
 
@@ -287,7 +287,7 @@ multitasking solutions:
 <p>Switching from asyncio to gevent was actually very simple -- their programming patterns are
 quite similar -- a matter of changing a few <code>aysncio.sleep</code>s to <code>gevent.sleep</code>s,
 and <code>loop.create_task</code>s to <code>gevent.spawn</code>s:</p>
-<div class="highlight"><pre><span class="gd">-            yield from asyncio.sleep(0.01)</span>
+<div class="highlight"><pre><span></span><span class="gd">-            yield from asyncio.sleep(0.01)</span>
 <span class="gi">+            gevent.sleep(0.01)</span>
 
 <span class="gd">-        loop.create_task(</span>
@@ -306,7 +306,7 @@ and <code>loop.create_task</code>s to <code>gevent.spawn</code>s:</p>
 </ul>
 <p>It turns out that didn't buy me any real performance improvement though.  So I
 thought I'd try good ol' fashioned threads</p>
-<div class="highlight"><pre><span class="gd">-            yield from asyncio.sleep(0.01)</span>
+<div class="highlight"><pre><span></span><span class="gd">-            yield from asyncio.sleep(0.01)</span>
 <span class="gi">+            time.sleep(0.01)</span>
 
 <span class="gd">-        loop.create_task(</span>

@@ -50,7 +50,7 @@
 
         </header>
         <footer class="post-info">
-            <abbr class="published" title="2015-12-01T08:29:00">
+            <abbr class="published" title="2015-12-01T08:29:00+00:00">
               Tue 01 December 2015
             </abbr>
                 <address class="vcard author">
@@ -64,47 +64,47 @@
 <p><img src="/static/images/pip_install_redislite.png" alt="console output from pip installing redislite"></img>
 <caption><i>pip installs and compiles in 20 seconds</i></caption></p>
 <p>Here's the sample usage from the docs:</p>
-<div class="highlight"><pre><span class="o">&gt;&gt;&gt;</span> <span class="kn">import</span> <span class="nn">redislite</span>
+<div class="highlight"><pre><span></span><span class="o">&gt;&gt;&gt;</span> <span class="kn">import</span> <span class="nn">redislite</span>
 <span class="o">&gt;&gt;&gt;</span> <span class="n">r</span> <span class="o">=</span> <span class="n">redislite</span><span class="o">.</span><span class="n">StrictRedis</span><span class="p">()</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="n">r</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="s">&#39;foo&#39;</span><span class="p">,</span> <span class="s">&#39;bar&#39;</span><span class="p">)</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">r</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="s1">&#39;foo&#39;</span><span class="p">,</span> <span class="s1">&#39;bar&#39;</span><span class="p">)</span>
 <span class="bp">True</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="n">r</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;foo&#39;</span><span class="p">)</span>
-<span class="s">&#39;bar&#39;</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">r</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;foo&#39;</span><span class="p">)</span>
+<span class="s1">&#39;bar&#39;</span>
 </pre></div>
 
 
 <p>Couldn't be simpler!  You can initiate a lightweight version of redis just like that, have one for each test even, and throw it away at the end, without having to worry about ports, passwords, or any interaction with the system redis.</p>
 <p>The code under test is meant to parse a web server log line, and then update some hit counts in redis.  Here's how our tests looked before:</p>
-<div class="highlight"><pre><span class="nd">@patch</span><span class="p">(</span><span class="s">&#39;hit_counter.redis&#39;</span><span class="p">)</span>
+<div class="highlight"><pre><span></span><span class="nd">@patch</span><span class="p">(</span><span class="s1">&#39;hit_counter.redis&#39;</span><span class="p">)</span>
 <span class="k">def</span> <span class="nf">test_write_to_redis_updates_appropriate_keys</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mock_redis</span><span class="p">):</span>
-    <span class="n">write_to_redis</span><span class="p">(</span><span class="s">&#39;www.nowhere.com&#39;</span><span class="p">,</span> <span class="n">datetime</span><span class="p">(</span><span class="mi">2013</span><span class="p">,</span> <span class="mi">11</span><span class="p">,</span> <span class="mi">14</span><span class="p">,</span> <span class="mi">16</span><span class="p">,</span> <span class="mi">54</span><span class="p">,</span> <span class="mi">21</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="mi">2323</span><span class="p">)</span>
+    <span class="n">write_to_redis</span><span class="p">(</span><span class="s1">&#39;www.nowhere.com&#39;</span><span class="p">,</span> <span class="n">datetime</span><span class="p">(</span><span class="mi">2013</span><span class="p">,</span> <span class="mi">11</span><span class="p">,</span> <span class="mi">14</span><span class="p">,</span> <span class="mi">16</span><span class="p">,</span> <span class="mi">54</span><span class="p">,</span> <span class="mi">21</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="mi">2323</span><span class="p">)</span>
 
     <span class="bp">self</span><span class="o">.</span><span class="n">assertItemsEqual</span><span class="p">(</span>
         <span class="n">mock_redis</span><span class="o">.</span><span class="n">method_calls</span><span class="p">,</span>
         <span class="p">[</span>
-            <span class="n">call</span><span class="o">.</span><span class="n">incr</span><span class="p">(</span><span class="s">&#39;count|www.nowhere.com&#39;</span><span class="p">),</span>
-            <span class="n">call</span><span class="o">.</span><span class="n">incr</span><span class="p">(</span><span class="s">&#39;count|www.nowhere.com|2013&#39;</span><span class="p">),</span>
-            <span class="n">call</span><span class="o">.</span><span class="n">incr</span><span class="p">(</span><span class="s">&#39;count|www.nowhere.com|2013-11&#39;</span><span class="p">),</span>
-            <span class="n">call</span><span class="o">.</span><span class="n">incr</span><span class="p">(</span><span class="s">&#39;count|www.nowhere.com|2013-11-14&#39;</span><span class="p">),</span>
-            <span class="n">call</span><span class="o">.</span><span class="n">incr</span><span class="p">(</span><span class="s">&#39;count|www.nowhere.com|2013-11-14 16&#39;</span><span class="p">),</span>
-            <span class="n">call</span><span class="o">.</span><span class="n">incr</span><span class="p">(</span><span class="s">&#39;count|www.nowhere.com|2013-11-14 16:54&#39;</span><span class="p">),</span>
-            <span class="n">call</span><span class="o">.</span><span class="n">incrby</span><span class="p">(</span><span class="s">&#39;bytes|www.nowhere.com&#39;</span><span class="p">,</span> <span class="mi">2323</span><span class="p">),</span>
-            <span class="n">call</span><span class="o">.</span><span class="n">incrby</span><span class="p">(</span><span class="s">&#39;bytes|www.nowhere.com|2013&#39;</span><span class="p">,</span> <span class="mi">2323</span><span class="p">),</span>
-            <span class="n">call</span><span class="o">.</span><span class="n">incrby</span><span class="p">(</span><span class="s">&#39;bytes|www.nowhere.com|2013-11&#39;</span><span class="p">,</span> <span class="mi">2323</span><span class="p">),</span>
-            <span class="n">call</span><span class="o">.</span><span class="n">incrby</span><span class="p">(</span><span class="s">&#39;bytes|www.nowhere.com|2013-11-14&#39;</span><span class="p">,</span> <span class="mi">2323</span><span class="p">),</span>
-            <span class="n">call</span><span class="o">.</span><span class="n">incrby</span><span class="p">(</span><span class="s">&#39;bytes|www.nowhere.com|2013-11-14 16&#39;</span><span class="p">,</span> <span class="mi">2323</span><span class="p">),</span>
-            <span class="n">call</span><span class="o">.</span><span class="n">incrby</span><span class="p">(</span><span class="s">&#39;bytes|www.nowhere.com|2013-11-14 16:54&#39;</span><span class="p">,</span> <span class="mi">2323</span><span class="p">),</span>
+            <span class="n">call</span><span class="o">.</span><span class="n">incr</span><span class="p">(</span><span class="s1">&#39;count|www.nowhere.com&#39;</span><span class="p">),</span>
+            <span class="n">call</span><span class="o">.</span><span class="n">incr</span><span class="p">(</span><span class="s1">&#39;count|www.nowhere.com|2013&#39;</span><span class="p">),</span>
+            <span class="n">call</span><span class="o">.</span><span class="n">incr</span><span class="p">(</span><span class="s1">&#39;count|www.nowhere.com|2013-11&#39;</span><span class="p">),</span>
+            <span class="n">call</span><span class="o">.</span><span class="n">incr</span><span class="p">(</span><span class="s1">&#39;count|www.nowhere.com|2013-11-14&#39;</span><span class="p">),</span>
+            <span class="n">call</span><span class="o">.</span><span class="n">incr</span><span class="p">(</span><span class="s1">&#39;count|www.nowhere.com|2013-11-14 16&#39;</span><span class="p">),</span>
+            <span class="n">call</span><span class="o">.</span><span class="n">incr</span><span class="p">(</span><span class="s1">&#39;count|www.nowhere.com|2013-11-14 16:54&#39;</span><span class="p">),</span>
+            <span class="n">call</span><span class="o">.</span><span class="n">incrby</span><span class="p">(</span><span class="s1">&#39;bytes|www.nowhere.com&#39;</span><span class="p">,</span> <span class="mi">2323</span><span class="p">),</span>
+            <span class="n">call</span><span class="o">.</span><span class="n">incrby</span><span class="p">(</span><span class="s1">&#39;bytes|www.nowhere.com|2013&#39;</span><span class="p">,</span> <span class="mi">2323</span><span class="p">),</span>
+            <span class="n">call</span><span class="o">.</span><span class="n">incrby</span><span class="p">(</span><span class="s1">&#39;bytes|www.nowhere.com|2013-11&#39;</span><span class="p">,</span> <span class="mi">2323</span><span class="p">),</span>
+            <span class="n">call</span><span class="o">.</span><span class="n">incrby</span><span class="p">(</span><span class="s1">&#39;bytes|www.nowhere.com|2013-11-14&#39;</span><span class="p">,</span> <span class="mi">2323</span><span class="p">),</span>
+            <span class="n">call</span><span class="o">.</span><span class="n">incrby</span><span class="p">(</span><span class="s1">&#39;bytes|www.nowhere.com|2013-11-14 16&#39;</span><span class="p">,</span> <span class="mi">2323</span><span class="p">),</span>
+            <span class="n">call</span><span class="o">.</span><span class="n">incrby</span><span class="p">(</span><span class="s1">&#39;bytes|www.nowhere.com|2013-11-14 16:54&#39;</span><span class="p">,</span> <span class="mi">2323</span><span class="p">),</span>
         <span class="p">]</span>
     <span class="p">)</span>
 </pre></div>
 
 
 <p>And here's how they look after:</p>
-<div class="highlight"><pre><span class="k">class</span> <span class="nc">WriteToRedisTest</span><span class="p">(</span><span class="n">unittest</span><span class="o">.</span><span class="n">TestCase</span><span class="p">):</span>
+<div class="highlight"><pre><span></span><span class="k">class</span> <span class="nc">WriteToRedisTest</span><span class="p">(</span><span class="n">unittest</span><span class="o">.</span><span class="n">TestCase</span><span class="p">):</span>
 
     <span class="k">def</span> <span class="nf">setUp</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">fake_redis</span> <span class="o">=</span> <span class="n">redislite</span><span class="o">.</span><span class="n">StrictRedis</span><span class="p">()</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">patcher</span> <span class="o">=</span> <span class="n">patch</span><span class="p">(</span><span class="s">&#39;hit_counter.redis&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">fake_redis</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">patcher</span> <span class="o">=</span> <span class="n">patch</span><span class="p">(</span><span class="s1">&#39;hit_counter.redis&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">fake_redis</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">patcher</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
 
     <span class="k">def</span> <span class="nf">tearDown</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -114,27 +114,27 @@
     <span class="k">def</span> <span class="nf">test_increments_all_counts</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="n">timestamp</span> <span class="o">=</span> <span class="n">datetime</span><span class="p">(</span><span class="mi">2013</span><span class="p">,</span> <span class="mi">11</span><span class="p">,</span> <span class="mi">14</span><span class="p">,</span> <span class="mi">16</span><span class="p">,</span> <span class="mi">54</span><span class="p">,</span> <span class="mi">21</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
         <span class="n">expected_counts</span> <span class="o">=</span> <span class="p">[</span>
-            <span class="s">&#39;count|www.nowhere.com&#39;</span><span class="p">,</span>
-            <span class="s">&#39;count|www.nowhere.com|2013&#39;</span><span class="p">,</span>
-            <span class="s">&#39;count|www.nowhere.com|2013-11&#39;</span><span class="p">,</span>
-            <span class="s">&#39;count|www.nowhere.com|2013-11-14&#39;</span><span class="p">,</span>
-            <span class="s">&#39;count|www.nowhere.com|2013-11-14 16&#39;</span><span class="p">,</span>
-            <span class="s">&#39;count|www.nowhere.com|2013-11-14 16:54&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;count|www.nowhere.com&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;count|www.nowhere.com|2013&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;count|www.nowhere.com|2013-11&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;count|www.nowhere.com|2013-11-14&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;count|www.nowhere.com|2013-11-14 16&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;count|www.nowhere.com|2013-11-14 16:54&#39;</span><span class="p">,</span>
         <span class="p">]</span>
         <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">expected_counts</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">fake_redis</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="mi">11</span><span class="p">)</span>
 
-        <span class="n">write_to_redis</span><span class="p">(</span><span class="s">&#39;www.nowhere.com&#39;</span><span class="p">,</span> <span class="n">timestamp</span><span class="p">,</span> <span class="mi">2323</span><span class="p">)</span>
+        <span class="n">write_to_redis</span><span class="p">(</span><span class="s1">&#39;www.nowhere.com&#39;</span><span class="p">,</span> <span class="n">timestamp</span><span class="p">,</span> <span class="mi">2323</span><span class="p">)</span>
 
         <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">expected_counts</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fake_redis</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">),</span> <span class="s">&#39;12&#39;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fake_redis</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">),</span> <span class="s1">&#39;12&#39;</span><span class="p">)</span>
 
 
     <span class="k">def</span> <span class="nf">test_increments_all_bytes</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="n">timestamp</span> <span class="o">=</span> <span class="n">datetime</span><span class="p">(</span><span class="mi">2013</span><span class="p">,</span> <span class="mi">11</span><span class="p">,</span> <span class="mi">14</span><span class="p">,</span> <span class="mi">16</span><span class="p">,</span> <span class="mi">54</span><span class="p">,</span> <span class="mi">21</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
         <span class="n">expected_bytes</span> <span class="o">=</span> <span class="p">[</span>
-            <span class="s">&#39;bytes|www.nowhere.com&#39;</span><span class="p">,</span>
-        <span class="c"># etc</span>
+            <span class="s1">&#39;bytes|www.nowhere.com&#39;</span><span class="p">,</span>
+        <span class="c1"># etc</span>
 </pre></div>
 
 
@@ -148,10 +148,10 @@
 </li>
 </ul>
 <p>The approach only continued to deliver benefits.  The reason we were looking at this code was because we wanted to start setting some expiry times on keys.  As a result of using redislite, the tests for expiry came out really sane and readable:</p>
-<div class="highlight"><pre><span class="k">def</span> <span class="nf">test_hourly_data_expires_after_one_week</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">test_hourly_data_expires_after_one_week</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="n">timestamp</span> <span class="o">=</span> <span class="n">datetime</span><span class="p">(</span><span class="mi">2013</span><span class="p">,</span> <span class="mi">11</span><span class="p">,</span> <span class="mi">14</span><span class="p">,</span> <span class="mi">16</span><span class="p">,</span> <span class="mi">54</span><span class="p">,</span> <span class="mi">21</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
-    <span class="n">write_to_redis</span><span class="p">(</span><span class="s">&#39;www.thing.com&#39;</span><span class="p">,</span> <span class="n">timestamp</span><span class="p">,</span> <span class="mi">123</span><span class="p">)</span>
-    <span class="n">ttl</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fake_redis</span><span class="o">.</span><span class="n">ttl</span><span class="p">(</span><span class="s">&#39;count|www.thing.com|2013-11-14 16&#39;</span><span class="p">))</span>
+    <span class="n">write_to_redis</span><span class="p">(</span><span class="s1">&#39;www.thing.com&#39;</span><span class="p">,</span> <span class="n">timestamp</span><span class="p">,</span> <span class="mi">123</span><span class="p">)</span>
+    <span class="n">ttl</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fake_redis</span><span class="o">.</span><span class="n">ttl</span><span class="p">(</span><span class="s1">&#39;count|www.thing.com|2013-11-14 16&#39;</span><span class="p">))</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">assertAlmostEqual</span><span class="p">(</span>
         <span class="n">ttl</span><span class="p">,</span>
         <span class="mi">7</span> <span class="o">*</span> <span class="mi">24</span> <span class="o">*</span> <span class="mi">60</span> <span class="o">*</span> <span class="mi">60</span><span class="p">,</span>
@@ -161,15 +161,15 @@
 
 
 <p>Imagine that test with mocks! </p>
-<div class="highlight"><pre>    <span class="bp">self</span><span class="o">.</span><span class="n">assertItemsEqual</span><span class="p">(</span>
+<div class="highlight"><pre><span></span>    <span class="bp">self</span><span class="o">.</span><span class="n">assertItemsEqual</span><span class="p">(</span>
         <span class="n">mock_redis</span><span class="o">.</span><span class="n">method_calls</span><span class="p">,</span>
         <span class="p">[</span>
-            <span class="n">call</span><span class="o">.</span><span class="n">incr</span><span class="p">(</span><span class="s">&#39;count|www.thing.com&#39;</span><span class="p">),</span>
-            <span class="n">call</span><span class="o">.</span><span class="n">incr</span><span class="p">(</span><span class="s">&#39;count|www.thing.com|2013&#39;</span><span class="p">),</span>
-            <span class="c"># ... </span>
-            <span class="n">call</span><span class="o">.</span><span class="n">incr</span><span class="p">(</span><span class="s">&#39;count|www.thing.com|2013-11-14 16&#39;</span><span class="p">),</span>
-            <span class="n">call</span><span class="o">.</span><span class="n">expire</span><span class="p">(</span><span class="s">&#39;count|www.thing.com|2013-11-14 16&#39;</span><span class="p">,</span> <span class="n">expected_expiry</span><span class="p">),</span>
-            <span class="c"># and so on</span>
+            <span class="n">call</span><span class="o">.</span><span class="n">incr</span><span class="p">(</span><span class="s1">&#39;count|www.thing.com&#39;</span><span class="p">),</span>
+            <span class="n">call</span><span class="o">.</span><span class="n">incr</span><span class="p">(</span><span class="s1">&#39;count|www.thing.com|2013&#39;</span><span class="p">),</span>
+            <span class="c1"># ... </span>
+            <span class="n">call</span><span class="o">.</span><span class="n">incr</span><span class="p">(</span><span class="s1">&#39;count|www.thing.com|2013-11-14 16&#39;</span><span class="p">),</span>
+            <span class="n">call</span><span class="o">.</span><span class="n">expire</span><span class="p">(</span><span class="s1">&#39;count|www.thing.com|2013-11-14 16&#39;</span><span class="p">,</span> <span class="n">expected_expiry</span><span class="p">),</span>
+            <span class="c1"># and so on</span>
 </pre></div>
 
 
