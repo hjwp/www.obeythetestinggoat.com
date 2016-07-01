@@ -26,7 +26,13 @@ SOCIAL = (
 DEFAULT_PAGINATION = 10
 
 THEME = 'theme'
-STATIC_PATHS = ['static/js/', 'static/img/', 'static/images/', 'static/css/']
+STATIC_PATHS = [
+    'static', 'book',
+]
+READERS = {
+    'html': None
+}
+
 OUTPUT_PATH = 'output/'
 DISQUS_SITENAME = 'obeythetestinggoat'
 
