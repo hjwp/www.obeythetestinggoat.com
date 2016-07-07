@@ -1979,7 +1979,7 @@ or to return <code>None</code> if it can&#8217;t find one.</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>AttributeError: 'PersonaAuthenticationBackend' object has no attribute
+<pre>AttributeError: 'PasswordlessAuthenticationBackend' object has no attribute
 'get_user'</pre>
 </div>
 </div>
@@ -1989,9 +1989,9 @@ or to return <code>None</code> if it can&#8217;t find one.</p>
 <div class="listingblock sourcecode">
 <div class="title">accounts/authentication.py (ch16l031)</div>
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">class</span> <span class="class">PersonaAuthenticationBackend</span>(<span class="predefined">object</span>):
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">class</span> <span class="class">PasswordlessAuthenticationBackend</span>(<span class="predefined">object</span>):
 
-    <span class="keyword">def</span> <span class="function">authenticate</span>(<span class="predefined-constant">self</span>, assertion):
+    <span class="keyword">def</span> <span class="function">authenticate</span>(<span class="predefined-constant">self</span>, uid):
         [...]
 
     <span class="keyword">def</span> <span class="function">get_user</span>(<span class="predefined-constant">self</span>, email):
@@ -2041,9 +2041,9 @@ AssertionError: &lt;User: User object&gt; != &lt;User: User object&gt;</pre>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>ERROR: test_returns_none_if_no_user_with_that_email
+<pre>ERROR: test_returns_None_if_no_user_with_that_email
 [...]
-django.contrib.auth.models.DoesNotExist: User matching query does not exist.</pre>
+accounts.models.DoesNotExist: User matching query does not exist.</pre>
 </div>
 </div>
 <div class="paragraph">
@@ -2056,7 +2056,7 @@ django.contrib.auth.models.DoesNotExist: User matching query does not exist.</pr
         <span class="keyword">try</span>:
             <span class="keyword">return</span> User.objects.get(email=email)
         <span class="keyword">except</span> User.DoesNotExist:
-            <span class="keyword">return</span> <span class="predefined-constant">None</span> <i class="conum" data-value="1"></i><b>(1)</b></code></pre>
+            <span class="keyword">return</span> <span class="predefined-constant">None</span>  <i class="conum" data-value="1"></i><b>(1)</b></code></pre>
 </div>
 </div>
 <div class="colist arabic">
@@ -2140,7 +2140,7 @@ docs on authentication</a> at this point.
 be good for us to get more practice with them.  Here&#8217;s a first test:</p>
 </div>
 <div class="listingblock sourcecode small-code">
-<div class="title">accounts/tests/test_views.py (ch16l038)</div>
+<div class="title">accounts/tests/test_views.py (ch16l037)</div>
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> <span class="include">unittest.mock</span> <span class="keyword">import</span> <span class="include">patch</span>, <span class="include">call</span>
 [...]
@@ -2237,7 +2237,8 @@ call(<span class="integer">42</span>, <span class="integer">43</span>, <span cla
 <div class="content">
 <pre>$ <strong>python manage.py test accounts</strong>
 [...]
-AttributeError: &lt;module 'accounts.views' from '/home/harry/Dropbox/Book/source/chapter_16/superlists/accounts/views.py'&gt; does not have the attribute 'auth'</pre>
+AttributeError: &lt;module 'accounts.views' from
+'/workspace/superlists/accounts/views.py'&gt; does not have the attribute 'auth'</pre>
 </div>
 </div>
 <div class="admonitionblock tip">
@@ -2386,7 +2387,7 @@ console illustration might help here:</p>
 <pre>$ <strong>python manage.py test accounts</strong>
 [...]
     call(response.wsgi_request, mock_auth.authenticate.return_value)
-AssertionError: None != call(&lt;WSGIRequest: GET '/accounts/login?t[71 chars]92'&gt;)</pre>
+AssertionError: None != call(&lt;WSGIRequest: GET '/accounts/login?t[...]</pre>
 </div>
 </div>
 <div class="paragraph">
@@ -2409,7 +2410,8 @@ yet.  Let&#8217;s try doing that.  Deliberately wrong as usual first!</p>
 <div class="content">
 <pre>TypeError: login() missing 1 required positional argument: 'user'
 [...]
-AssertionError: call('ack!') != call(&lt;WSGIRequest: GET '/accounts/login?token=[66 chars]68'&gt;)</pre>
+AssertionError: call('ack!') != call(&lt;WSGIRequest: GET
+'/accounts/login?token=[...]</pre>
 </div>
 </div>
 <div class="paragraph">
@@ -2514,7 +2516,7 @@ AssertionError: True != False</pre>
 <p>And we get it passing like this:</p>
 </div>
 <div class="listingblock sourcecode">
-<div class="title">accounts/views.py</div>
+<div class="title">accounts/views.py (ch16l045)</div>
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">def</span> <span class="function">login</span>(request):
     user = auth.authenticate(uid=request.GET.get(<span class="string"><span class="delimiter">'</span><span class="content">token</span><span class="delimiter">'</span></span>))
@@ -2544,19 +2546,19 @@ and non-logged in users (which our FT relies on):</p>
 <div class="title">lists/templates/base.html (ch16l046)</div>
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="html"><span class="tag">&lt;nav</span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">"</span><span class="content">navbar navbar-default</span><span class="delimiter">"</span></span> <span class="attribute-name">role</span>=<span class="string"><span class="delimiter">"</span><span class="content">navigation</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>
-<span class="tag">&lt;a</span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">"</span><span class="content">navbar-brand</span><span class="delimiter">"</span></span> <span class="attribute-name">href</span>=<span class="string"><span class="delimiter">"</span><span class="content">/</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>Superlists<span class="tag">&lt;/a&gt;</span>
-{% if user.email %}
-  <span class="tag">&lt;p</span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">"</span><span class="content">navbar-text</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>Logged in as {{ user.email }}<span class="tag">&lt;/p&gt;</span>
-  <span class="tag">&lt;ul</span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">"</span><span class="content">nav navbar-nav navbar-right</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>
-    <span class="tag">&lt;li&gt;</span><span class="tag">&lt;a</span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">"</span><span class="content">navbar-link</span><span class="delimiter">"</span></span> <span class="attribute-name">href</span>=<span class="string"><span class="delimiter">"</span><span class="content">#</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>Log out<span class="tag">&lt;/a&gt;</span><span class="tag">&lt;/li&gt;</span>
-  <span class="tag">&lt;/ul&gt;</span>
-{% else %}
-  <span class="tag">&lt;form</span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">"</span><span class="content">navbar-form navbar-right</span><span class="delimiter">"</span></span> <span class="attribute-name">method</span>=<span class="string"><span class="delimiter">"</span><span class="content">POST</span><span class="delimiter">"</span></span> <span class="attribute-name">action</span>=<span class="string"><span class="delimiter">"</span><span class="content">{% url 'send_login_email' %}</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>
-    <span class="tag">&lt;span&gt;</span>Enter email to log in:<span class="tag">&lt;/span&gt;</span>
-    <span class="tag">&lt;input</span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">"</span><span class="content">form-control</span><span class="delimiter">"</span></span> <span class="attribute-name">name</span>=<span class="string"><span class="delimiter">"</span><span class="content">email</span><span class="delimiter">"</span></span> <span class="attribute-name">type</span>=<span class="string"><span class="delimiter">"</span><span class="content">text</span><span class="delimiter">"</span></span> <span class="tag">/&gt;</span>
-    {% csrf_token %}
-  <span class="tag">&lt;/form&gt;</span>
-{% endif %}
+  <span class="tag">&lt;a</span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">"</span><span class="content">navbar-brand</span><span class="delimiter">"</span></span> <span class="attribute-name">href</span>=<span class="string"><span class="delimiter">"</span><span class="content">/</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>Superlists<span class="tag">&lt;/a&gt;</span>
+  {% if user.email %}
+    <span class="tag">&lt;p</span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">"</span><span class="content">navbar-text</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>Logged in as {{ user.email }}<span class="tag">&lt;/p&gt;</span>
+    <span class="tag">&lt;ul</span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">"</span><span class="content">nav navbar-nav navbar-right</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>
+      <span class="tag">&lt;li&gt;</span><span class="tag">&lt;a</span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">"</span><span class="content">navbar-link</span><span class="delimiter">"</span></span> <span class="attribute-name">href</span>=<span class="string"><span class="delimiter">"</span><span class="content">#</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>Log out<span class="tag">&lt;/a&gt;</span><span class="tag">&lt;/li&gt;</span>
+    <span class="tag">&lt;/ul&gt;</span>
+  {% else %}
+    <span class="tag">&lt;form</span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">"</span><span class="content">navbar-form navbar-right</span><span class="delimiter">"</span></span> <span class="attribute-name">method</span>=<span class="string"><span class="delimiter">"</span><span class="content">POST</span><span class="delimiter">"</span></span> <span class="attribute-name">action</span>=<span class="string"><span class="delimiter">"</span><span class="content">{% url 'send_login_email' %}</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>
+      <span class="tag">&lt;span&gt;</span>Enter email to log in:<span class="tag">&lt;/span&gt;</span>
+      <span class="tag">&lt;input</span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">"</span><span class="content">form-control</span><span class="delimiter">"</span></span> <span class="attribute-name">name</span>=<span class="string"><span class="delimiter">"</span><span class="content">email</span><span class="delimiter">"</span></span> <span class="attribute-name">type</span>=<span class="string"><span class="delimiter">"</span><span class="content">text</span><span class="delimiter">"</span></span> <span class="tag">/&gt;</span>
+      {% csrf_token %}
+    <span class="tag">&lt;/form&gt;</span>
+  {% endif %}
 <span class="tag">&lt;/nav&gt;</span></code></pre>
 </div>
 </div>
@@ -2568,9 +2570,11 @@ Internal Server Error: /accounts/login
   File "/workspace/superlists/accounts/views.py", line 32, in login
     auth.login(request, user)
 [...]
-ValueError: The following fields do not exist in this model or are m2m fields: last_login
+ValueError: The following fields do not exist in this model or are m2m fields:
+last_login
 [...]
-selenium.common.exceptions.NoSuchElementException: Message: Unable to locate element: {"method":"link text","selector":"Log out"}</pre>
+selenium.common.exceptions.NoSuchElementException: Message: Unable to locate
+element: {"method":"link text","selector":"Log out"}</pre>
 </div>
 </div>
 <div class="paragraph">
@@ -2784,7 +2788,8 @@ to a page of our choice:</p>
 [...]
 
 urlpatterns = [
-    url(<span class="string"><span class="modifier">r</span><span class="delimiter">'</span><span class="content">^login$</span><span class="delimiter">'</span></span>, views.persona_login, name=<span class="string"><span class="delimiter">'</span><span class="content">persona_login</span><span class="delimiter">'</span></span>),
+    url(<span class="string"><span class="modifier">r</span><span class="delimiter">'</span><span class="content">^send_email$</span><span class="delimiter">'</span></span>, views.send_login_email, name=<span class="string"><span class="delimiter">'</span><span class="content">send_login_email</span><span class="delimiter">'</span></span>),
+    url(<span class="string"><span class="modifier">r</span><span class="delimiter">'</span><span class="content">^login$</span><span class="delimiter">'</span></span>, views.login, name=<span class="string"><span class="delimiter">'</span><span class="content">login</span><span class="delimiter">'</span></span>),
     url(<span class="string"><span class="modifier">r</span><span class="delimiter">'</span><span class="content">^logout$</span><span class="delimiter">'</span></span>, logout, {<span class="string"><span class="delimiter">'</span><span class="content">next_page</span><span class="delimiter">'</span></span>: <span class="string"><span class="delimiter">'</span><span class="content">/</span><span class="delimiter">'</span></span>}, name=<span class="string"><span class="delimiter">'</span><span class="content">logout</span><span class="delimiter">'</span></span>),
 ]</code></pre>
 </div>
@@ -2875,7 +2880,7 @@ of organising your code so that you don&#8217;t need too many mocks.
 <div class="sect3">
 <h4 id="_beware_of_mocks_in_boolean_comparisons">Beware of Mocks in Boolean Comparisons</h4>
 <div class="paragraph">
-<p>So how come our <code>test_returns_none_if_response_errors</code> isn&#8217;t failing?</p>
+<p>So how come our <code>test_returns_None_if_response_errors</code> isn&#8217;t failing?</p>
 </div>
 <div class="paragraph">
 <p>Because we&#8217;ve mocked out <code>requests.post</code>, the <code>response</code> is a Mock object,
@@ -3079,7 +3084,7 @@ cons: longer</p>
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2016-07-04 00:01:57 BST
+Last updated 2016-07-04 00:59:19 BST
 </div>
 </div>
 <div class="comments" style="padding: 20px">
@@ -3099,5 +3104,7 @@ var disqus_shortname = 'obeythetestinggoat';
   <noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
   <a href="http://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
 </div>
-</body>
+<html><head><script>   (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){   (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),   m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)   })(window,document,'script','//www.google-analytics.com/analytics.js','ga');    ga('create', 'UA-40928035-1', 'obeythetestinggoat.com');   ga('send', 'pageview');  </script> 
+
+</head></html></body>
 </html>
