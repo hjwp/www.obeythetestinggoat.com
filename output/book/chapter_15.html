@@ -4,7 +4,7 @@
 <!--[if IE]><meta http-equiv="X-UA-Compatible" content="IE=edge"><![endif]-->
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="generator" content="Asciidoctor 1.5.4">
-<title>User Authentication, Spiking and Mocking</title>
+<title>User Authentication, Spiking and De-Spiking</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:300,300italic,400,400italic,600,600italic%7CNoto+Serif:400,400italic,700,700italic%7CDroid+Sans+Mono:400,700">
 <style>
 /* Asciidoctor default stylesheet | MIT License | http://asciidoctor.org */
@@ -690,13 +690,13 @@ table.CodeRay td.code>pre{padding:0}
 </li>
 <li><a href="/book/part3.harry.html">More Advanced Topics</a>
 <ul class="sectlevel1">
-<li><a href="/book/chapter_15.html">15. User Authentication, Spiking and Mocking</a>
+<li><a href="/book/chapter_15.html">15. User Authentication, Spiking and De-Spiking</a>
 <ul class="sectlevel2">
 <li><a href="/book/chapter_15.html#_passwordless_auth">15.1. Passwordless Auth</a></li>
 <li><a href="/book/chapter_15.html#_exploratory_coding_aka_spiking">15.2. Exploratory Coding, aka "Spiking"</a></li>
 <li><a href="/book/chapter_15.html#_de_spiking">15.3. De-spiking</a></li>
 <li><a href="/book/chapter_15.html#_a_minimal_custom_user_model">15.4. A Minimal Custom User Model</a></li>
-<li><a href="/book/chapter_15.html#_a_token_model_to_link_emails_with_a_unqiue_id">15.5. A Token model to link emails with a unqiue id</a></li>
+<li><a href="/book/chapter_15.html#_a_token_model_to_link_emails_with_a_unique_id">15.5. A Token model to link emails with a unique id</a></li>
 </ul>
 </li>
 <li><a href="/book/chapter_16.html">16. Testing external dependencies using mocks</a>
@@ -874,7 +874,7 @@ table.CodeRay td.code>pre{padding:0}
 </div>
 <div id="content">
 <div class="sect1">
-<h2 id="Persona-clientside-chapter">User Authentication, Spiking and Mocking</h2>
+<h2 id="Persona-clientside-chapter">User Authentication, Spiking and De-Spiking</h2>
 <div class="sectionbody">
 <div class="paragraph">
 <p>
@@ -1759,12 +1759,13 @@ me!</p>
 remove <strong>tests.py</strong> and then add a <strong>test_models.py</strong> to say:</p>
 </div>
 <div class="listingblock sourcecode dofirst-ch15l022">
-<div class="title">accounts/tests/test_models.py</div>
+<div class="title">accounts/tests/test_models.py (ch15l024)</div>
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> <span class="include">django.test</span> <span class="keyword">import</span> <span class="include">TestCase</span>
 <span class="keyword">from</span> <span class="include">django.contrib.auth</span> <span class="keyword">import</span> <span class="include">get_user_model</span>
 
 User = get_user_model()
+
 
 <span class="keyword">class</span> <span class="class">UserModelTest</span>(TestCase):
 
@@ -1906,7 +1907,7 @@ Migrations for 'accounts':
 </div>
 </div>
 <div class="sect2">
-<h3 id="_a_token_model_to_link_emails_with_a_unqiue_id">A Token model to link emails with a unqiue id</h3>
+<h3 id="_a_token_model_to_link_emails_with_a_unique_id">A Token model to link emails with a unique id</h3>
 <div class="paragraph">
 <p>Next let&#8217;s build a token model.  Here&#8217;s a short unit test
 that captures the essence&#8201;&#8212;&#8201;you should be able to link an
@@ -1941,7 +1942,7 @@ recreate new migrations, another code change, and so on&#8230;&#8203;</p>
 Migrations for 'accounts':
   0002_token.py:
     - Create model Token
-$ *python manage.py test accounts*
+$ <strong>python manage.py test accounts</strong>
 [...]
 TypeError: 'email' is an invalid keyword argument for this function</pre>
 </div>
@@ -1952,12 +1953,12 @@ I may not be able to see you, but the Testing Goat can!</p>
 </div>
 <div class="listingblock dofirst-ch15l032">
 <div class="content">
-<pre>$ *rm accounts/migrations/0002_token.py*
-$ *python manage.py makemigrations*
+<pre>$ <strong>rm accounts/migrations/0002_token.py</strong>
+$ <strong>python manage.py makemigrations</strong>
 Migrations for 'accounts':
   0002_token.py:
     - Create model Token
-$ *python manage.py test accounts*
+$ <strong>python manage.py test accounts</strong>
 AttributeError: 'Token' object has no attribute 'uid'</pre>
 </div>
 </div>
@@ -1994,7 +1995,7 @@ unique id").</p>
 <p>We can use that like this:</p>
 </div>
 <div class="listingblock sourcecode">
-<div class="title">accounts/model.py (ch15l045)</div>
+<div class="title">accounts/models.py (ch15l035)</div>
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">import</span> <span class="include">uuid</span>
 [...]
@@ -2012,29 +2013,15 @@ tests:</p>
 <div class="content">
 <pre>$ <strong>python manage.py test accounts</strong>
 [...]
-Ran 1 test in 0.015s
+Ran 2 tests in 0.015s
 
 OK</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>Well,  that gets us on our way.</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p>models done</p>
-</li>
-<li>
-<p>notice how despiked code is much nicer than spiked code</p>
-</li>
-<li>
-<p>ft passing was not necessary</p>
-</li>
-</ul>
-</div>
-<div class="paragraph">
-<p>TODO: finish chapter properly</p>
+<p>Well,  that gets us on our way!  The models layer is done, at least.
+In the next chapter, we&#8217;ll get into mocking, a key technique for testing
+external dependencies like email.</p>
 </div>
 <div class="sidebarblock">
 <div class="content">
@@ -2049,9 +2036,21 @@ a good idea to do your spike on a new branch, and go back to master when
 de-spiking.
 </p>
 </dd>
-<dt class="hdlist1">Despiking</dt>
+<dt class="hdlist1">De-spiking</dt>
 <dd>
-<p>bla</p>
+<p>Taking the work from a spike and making it part of the production codebase.
+The idea is to throw away the old spike code altogether, and start again
+from scratch, using TDD once again. De-spiked code can often come out
+looking quite different from the original spike, and usually much nicer.</p>
+</dd>
+<dt class="hdlist1">Writing your FT against spiked code</dt>
+<dd>
+<p>Whether or not this is a good idea depends on your circumstances.  The
+reason it can be useful is because it can help you write the FT
+correctly&#8212;&#8203;figuring out how to test your spike can be just as challenging
+as the spike itself.  On the other hand, it might constrain you towards
+reimplementing a very similar solution to your spiked one; something to
+watch out for.</p>
 </dd>
 </dl>
 </div>
@@ -2069,7 +2068,7 @@ de-spiking.
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2016-07-02 01:26:31 BST
+Last updated 2016-08-15 10:54:57 BST
 </div>
 </div>
 <div class="comments" style="padding: 20px">
@@ -2089,7 +2088,6 @@ var disqus_shortname = 'obeythetestinggoat';
   <noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
   <a href="http://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
 </div>
-<html><head><script>   (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){   (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),   m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)   })(window,document,'script','//www.google-analytics.com/analytics.js','ga');    ga('create', 'UA-40928035-1', 'obeythetestinggoat.com');   ga('send', 'pageview');  </script> 
-
+<html><head><script>   (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){   (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),   m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)   })(window,document,'script','//www.google-analytics.com/analytics.js','ga');    ga('create', 'UA-40928035-1', 'obeythetestinggoat.com');   ga('send', 'pageview');  </script>
 </head></html></body>
 </html>
