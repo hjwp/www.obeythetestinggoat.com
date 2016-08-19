@@ -13,8 +13,8 @@ Here's a common set of questions about Django:
 * How to print debug messages in Django?
 
 I know they're common because I've often found asking myself some kind of variant
-on these questions, at some point or other.  Then I saw that, in Django 1.6, the
-[default logging configuration](https://docs.djangoproject.com/en/1.6/topics/logging/#django-s-default-logging-configuration) actually does send logging messages to the console
+on these questions, at some point or other.  Then I saw that, in Django 1.6/1.7, the
+[default logging configuration](https://docs.djangoproject.com/en/1.7/topics/logging/#django-s-default-logging-configuration) actually does send logging messages to the console
 
 So does this mean that exceptions in Django are going to start appearing in the console
 then?  No.
@@ -23,7 +23,7 @@ then?  No.
 
 I think my own difficulties with this issue stemmed from the fact that,
 *obviously*, in my mind, the thing you'd want to log would be exceptions, and
-that, since Django will show us a clever debug page (if DEBUG iTrue), or a 
+that, since Django will show us a clever debug page (if DEBUG is True), or a 
 standard server 500 page, then I sort of assumed it would log that exception
 as well. But it doesn't
 
