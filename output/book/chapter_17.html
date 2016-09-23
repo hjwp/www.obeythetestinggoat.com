@@ -936,10 +936,9 @@ Here&#8217;s how you can set it up:</p>
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> <span class="include">django.conf</span> <span class="keyword">import</span> <span class="include">settings</span>
 <span class="keyword">from</span> <span class="include">django.contrib.auth</span> <span class="keyword">import</span> <span class="include">BACKEND_SESSION_KEY</span>, <span class="include">SESSION_KEY</span>, <span class="include">get_user_model</span>
-User = get_user_model()
 <span class="keyword">from</span> <span class="include">django.contrib.sessions.backends.db</span> <span class="keyword">import</span> <span class="include">SessionStore</span>
-
 <span class="keyword">from</span> .base <span class="keyword">import</span> <span class="include">FunctionalTest</span>
+User = get_user_model()
 
 
 <span class="keyword">class</span> <span class="class">MyListsTest</span>(FunctionalTest):
@@ -991,8 +990,8 @@ works against the database on the staging server too.
 <div class="title">JSON Test Fixtures Considered Harmful</div>
 <div class="paragraph">
 <p>When we pre-populate the database with test data, as we&#8217;ve done here with the
-<code>User</code> object and its associated <code>Session</code> object, what we&#8217;re doing is setting up
-a "test fixture".</p>
+<code>User</code> object and its associated <code>Session</code> object, what we&#8217;re doing is setting
+up a "test fixture".</p>
 </div>
 <div class="paragraph">
 <p>Django comes with built-in support for saving database objects as JSON (using
@@ -1001,43 +1000,37 @@ using the <code>fixtures</code> class attribute on <code>TestCase</code>.</p>
 </div>
 <div class="paragraph">
 <p>More and more people are starting to say:
-<a href="http://bit.ly/1kSTyrb">don&#8217;t
-use JSON fixtures</a>.  They&#8217;re a nightmare to maintain when your model
-changes.  Instead, if you can, load data directly using the Django ORM, or look
-into a tool like <a href="https://factoryboy.readthedocs.org/"><code>factory_boy</code></a>.</p>
+<a href="http://bit.ly/1kSTyrb">don&#8217;t use JSON fixtures</a>.
+They&#8217;re a nightmare to maintain when your model changes.  Instead, if you can,
+load data directly using the Django ORM, or look into a tool like
+<a href="https://factoryboy.readthedocs.org/"><code>factory_boy</code></a>.</p>
 </div>
 </div>
 </div>
 <div class="sect3">
 <h4 id="_checking_it_works">Checking It Works</h4>
 <div class="paragraph">
-<p>To check it works, it would be good to use the <code>wait_to_be_logged_in</code> function
-we defined in our last test.  To access it from a different test, we&#8217;ll need
+<p>To check it works, it would be good to use some of the code from our previous
+test.  Let&#8217;s make a couple of functions called <code>assert_logged_in</code> and
+<code>assert_logged_out</code>. To access them from a different test, we&#8217;ll need
 to pull it up into <code>FunctionalTest</code>, as well as a couple of other methods.
 We&#8217;ll also tweak them slightly so that they can take an arbitrary email address
 as a parameter:</p>
 </div>
-<div class="listingblock sourcecode dofirst=ch17l002-1">
-<div class="title">functional_tests/base.py (ch17l002-2)</div>
+<div class="listingblock sourcecode">
+<div class="title">functional_tests/base.py (ch17l002)</div>
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> <span class="include">selenium.webdriver.support.ui</span> <span class="keyword">import</span> <span class="include">WebDriverWait</span>
-[...]
-
-<span class="keyword">class</span> <span class="class">FunctionalTest</span>(StaticLiveServerTestCase):
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">class</span> <span class="class">FunctionalTest</span>(StaticLiveServerTestCase):
     [...]
 
-    <span class="keyword">def</span> <span class="function">wait_for_element_with_id</span>(<span class="predefined-constant">self</span>, element_id):
-        [...]
-
-
-    <span class="keyword">def</span> <span class="function">wait_to_be_logged_in</span>(<span class="predefined-constant">self</span>, email):
-        <span class="predefined-constant">self</span>.wait_for_element_with_id(<span class="string"><span class="delimiter">'</span><span class="content">id_logout</span><span class="delimiter">'</span></span>)
+    <span class="keyword">def</span> <span class="function">assert_logged_in</span>(<span class="predefined-constant">self</span>, email):
+        <span class="predefined-constant">self</span>.browser.find_element_by_link_text(<span class="string"><span class="delimiter">'</span><span class="content">Log out</span><span class="delimiter">'</span></span>)
         navbar = <span class="predefined-constant">self</span>.browser.find_element_by_css_selector(<span class="string"><span class="delimiter">'</span><span class="content">.navbar</span><span class="delimiter">'</span></span>)
         <span class="predefined-constant">self</span>.assertIn(email, navbar.text)
 
 
-    <span class="keyword">def</span> <span class="function">wait_to_be_logged_out</span>(<span class="predefined-constant">self</span>, email):
-        <span class="predefined-constant">self</span>.wait_for_element_with_id(<span class="string"><span class="delimiter">'</span><span class="content">id_login</span><span class="delimiter">'</span></span>)
+    <span class="keyword">def</span> <span class="function">assert_logged_out</span>(<span class="predefined-constant">self</span>, email):
+        <span class="predefined-constant">self</span>.browser.find_element_by_name(<span class="string"><span class="delimiter">'</span><span class="content">email</span><span class="delimiter">'</span></span>)
         navbar = <span class="predefined-constant">self</span>.browser.find_element_by_css_selector(<span class="string"><span class="delimiter">'</span><span class="content">.navbar</span><span class="delimiter">'</span></span>)
         <span class="predefined-constant">self</span>.assertNotIn(email, navbar.text)</code></pre>
 </div>
@@ -1048,27 +1041,16 @@ as a parameter:</p>
 <div class="listingblock sourcecode">
 <div class="title">functional_tests/test_login.py (ch17l003)</div>
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python">TEST_EMAIL = <span class="string"><span class="delimiter">'</span><span class="content">edith@mockmyid.com</span><span class="delimiter">'</span></span>
-[...]
+<pre class="CodeRay highlight"><code data-lang="python">    <span class="keyword">def</span> <span class="function">test_can_get_email_link_to_log_in</span>(<span class="predefined-constant">self</span>):
+        [...]
+        <span class="comment"># she is logged in!</span>
+        <span class="predefined-constant">self</span>.assert_logged_in(email=TEST_EMAIL)
 
-    <span class="keyword">def</span> <span class="function">test_login_with_persona</span>(<span class="predefined-constant">self</span>):
-        [...]
+        <span class="comment"># Now she logs out</span>
+        <span class="predefined-constant">self</span>.browser.find_element_by_link_text(<span class="string"><span class="delimiter">'</span><span class="content">Log out</span><span class="delimiter">'</span></span>).click()
 
-        <span class="predefined-constant">self</span>.browser.find_element_by_id(
-            <span class="string"><span class="delimiter">'</span><span class="content">authentication_email</span><span class="delimiter">'</span></span>
-        ).send_keys(TEST_EMAIL)
-        <span class="predefined-constant">self</span>.browser.find_element_by_tag_name(<span class="string"><span class="delimiter">'</span><span class="content">button</span><span class="delimiter">'</span></span>).click()
-
-        [...]
-
-        <span class="comment"># She can see that she is logged in</span>
-        <span class="predefined-constant">self</span>.wait_to_be_logged_in(email=TEST_EMAIL)
-        [...]
-        <span class="predefined-constant">self</span>.wait_to_be_logged_in(email=TEST_EMAIL)
-        [...]
-        <span class="predefined-constant">self</span>.wait_to_be_logged_out(email=TEST_EMAIL)
-        [...]
-        <span class="predefined-constant">self</span>.wait_to_be_logged_out(email=TEST_EMAIL)</code></pre>
+        <span class="comment"># She is logged out</span>
+        <span class="predefined-constant">self</span>.assert_logged_out(email=TEST_EMAIL)</code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -1076,7 +1058,7 @@ as a parameter:</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>$ <strong>python3 manage.py test functional_tests.test_login</strong>
+<pre>$ <strong>python manage.py test functional_tests.test_login</strong>
 [...]
 OK</pre>
 </div>
@@ -1092,13 +1074,13 @@ our pre-authenticated session creator really does work:</p>
         email = <span class="string"><span class="delimiter">'</span><span class="content">edith@example.com</span><span class="delimiter">'</span></span>
 
         <span class="predefined-constant">self</span>.browser.get(<span class="predefined-constant">self</span>.server_url)
-        <span class="predefined-constant">self</span>.wait_to_be_logged_out(email)
+        <span class="predefined-constant">self</span>.assert_logged_in(email)
 
         <span class="comment"># Edith is a logged-in user</span>
         <span class="predefined-constant">self</span>.create_pre_authenticated_session(email)
 
         <span class="predefined-constant">self</span>.browser.get(<span class="predefined-constant">self</span>.server_url)
-        <span class="predefined-constant">self</span>.wait_to_be_logged_in(email)</code></pre>
+        <span class="predefined-constant">self</span>.assert_logged_out(email)</code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -1106,7 +1088,7 @@ our pre-authenticated session creator really does work:</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>$ <strong>python3 manage.py test functional_tests.test_my_lists</strong>
+<pre>$ <strong>python manage.py test functional_tests.test_my_lists</strong>
 [...]
 OK</pre>
 </div>
@@ -1156,49 +1138,44 @@ $ <strong>fab deploy --host=elspeth@superlists-staging.ottg.eu</strong>
 </div>
 <div class="listingblock skipme">
 <div class="content">
-<pre>$ <strong>python3 manage.py test functional_tests \
+<pre>$ <strong>python manage.py test functional_tests \
 --liveserver=superlists-staging.ottg.eu</strong>
-
-======================================================================
-ERROR: test_login_with_persona (functional_tests.test_login.LoginTest)
- ---------------------------------------------------------------------
-Traceback (most recent call last):
-  File "/worskpace/functional_tests/test_login.py", line 50, in
-test_login_with_persona
-[...]
-    self.wait_for_element_with_id('id_logout')
-[...]
-selenium.common.exceptions.TimeoutException: Message: Could not find element
-with id id_logout. Page text was:
-Superlists
-Sign in
-Start a new To-Do list
 
 ======================================================================
 ERROR: test_logged_in_users_lists_are_saved_as_my_lists
 (functional_tests.test_my_lists.MyListsTest)
  ---------------------------------------------------------------------
 Traceback (most recent call last):
-  File "/worskpace/functional_tests/test_my_lists.py", line 34, in
+  File "/workspace/superlists/functional_tests/test_my_lists.py", line 34, in
 test_logged_in_users_lists_are_saved_as_my_lists
-    self.wait_to_be_logged_in(email)
+    self.assert_logged_in(email)
+  File "/workspace/superlists/functional_tests/base.py", line 42, in
+assert_logged_in
+    self.browser.find_element_by_link_text('Log out')
 [...]
-selenium.common.exceptions.TimeoutException: Message: Could not find element
-with id id_logout. Page text was:
-Superlists
-Sign in
-Start a new To-Do list</pre>
+selenium.common.exceptions.NoSuchElementException: Message: Unable to locate
+element: {"method":"link text","selector":"Log out"}
+
+======================================================================
+FAIL: test_can_get_email_link_to_log_in (functional_tests.test_login.LoginTest)
+ ---------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/superlists/functional_tests/test_login.py", line 22, in
+test_can_get_email_link_to_log_in
+    self.assertIn('Check your email', body.text)
+AssertionError: 'Check your email' not found in 'Server Error (500)'</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>We can&#8217;t log in&#8212;&#8203;either with the real Persona or with our pre-authenticated
-session.  There&#8217;s some kind of bug.</p>
+<p>We can&#8217;t log in&#8212;&#8203;either with the real email system or with our
+pre-authenticated session.  There&#8217;s some kind of bug.</p>
 </div>
 <div class="paragraph">
-<p>I had considered just going back and fixing this in the previous chapter,
-and pretending it never happened, but I think leaving it illustrates the point
-of running tests against a staging environment.  It would have been pretty
-embarrassing if we&#8217;d deployed this bug straight to our live site.</p>
+<p>When I ran into this bug, I did consider just going back and fixing it in the
+previous chapter, and pretending it never happened, but I think leaving it
+illustrates the point of running tests against a staging environment.  It would
+have been pretty embarrassing if we&#8217;d deployed this bug straight to our live
+site.</p>
 </div>
 <div class="paragraph">
 <p>Aside from that, we&#8217;ll get to practice a bit of server-side debugging.</p>
@@ -1223,40 +1200,7 @@ exec ../virtualenv/bin/gunicorn \
 </div>
 </div>
 <div class="paragraph">
-<p>That will put an access log and error log into the <em>~/sites/$SITENAME</em> folder.
-Then we add some debug calls in our <code>authenticate</code> function (again, we can do
-this directly on the server):</p>
-</div>
-<div class="listingblock sourcecode skipme">
-<div class="title">accounts/authentication.py</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">import</span> <span class="include">logging</span>
-[...]
-
-    <span class="keyword">def</span> <span class="function">authenticate</span>(<span class="predefined-constant">self</span>, assertion):
-        logging.warning(<span class="string"><span class="delimiter">'</span><span class="content">entering authenticate function</span><span class="delimiter">'</span></span>)
-        response = requests.post(
-            PERSONA_VERIFY_URL,
-            data={<span class="string"><span class="delimiter">'</span><span class="content">assertion</span><span class="delimiter">'</span></span>: assertion, <span class="string"><span class="delimiter">'</span><span class="content">audience</span><span class="delimiter">'</span></span>: settings.DOMAIN}
-        )
-        logging.warning(<span class="string"><span class="delimiter">'</span><span class="content">got response from persona</span><span class="delimiter">'</span></span>)
-        logging.warning(response.content.decode())
-        [...]</code></pre>
-</div>
-</div>
-<div class="admonitionblock tip">
-<table>
-<tr>
-<td class="icon">
-<i class="fa icon-tip" title="Tip"></i>
-</td>
-<td class="content">
-Using the "root" logger like this (<code>logging.warning</code>) isn&#8217;t generally
-a good idea.  We&#8217;ll set up a more robust logging configuration at the end of
-the chapter.
-</td>
-</tr>
-</table>
+<p>That will put an access log and error log into the <em>~/sites/$SITENAME</em> folder.</p>
 </div>
 <div class="paragraph">
 <p>You should also make sure your <em>settings.py</em> still contains the <code>LOGGING</code>
@@ -1288,17 +1232,68 @@ settings which will actually send stuff to the console:</p>
 to log in manually.  While that happens, we can watch the logs on
 the server with a:</p>
 </div>
-<div class="listingblock skipme">
+<div class="listingblock skipme smallcode">
 <div class="content">
-<pre>elspeth@server: $ <strong>tail -f error.log</strong>  # assumes we are in ~/sites/$SITENAME folder
-[...]
-WARNING:root:{"status":"failure","reason":"audience mismatch: domain mismatch"}</pre>
+<pre>elspeth@server: $ <strong>service gunicorn-superlists-staging.ottg.eu restart</strong>
+elspeth@server: $ <strong>tail -f error.log</strong>  # assumes we are in ~/sites/$SITENAME folder</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>
-You may even find the page gets stuck in a "redirect loop", as Persona tries to
-resubmit the assertion again and again.</p>
+<p>You should see an error like this:</p>
+</div>
+<div class="listingblock skipme smallcode">
+<div class="content">
+<pre>Internal Server Error: /accounts/send_login_email
+Traceback (most recent call last):
+  File "/home/elspeth/sites/superlists-staging.ottg.eu/virtualenv/lib/python3.5/[...]
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File
+"/home/elspeth/sites/superlists-staging.ottg.eu/source/accounts/views.py", line
+20, in send_login_email
+    [email]
+[...]
+    self.connection.sendmail(from_email, recipients, message.as_bytes(linesep=<em>\r\n</em>))
+  File "/usr/lib/python3.5/smtplib.py", line 862, in sendmail
+    raise SMTPSenderRefused(code, resp, from_addr)
+smtplib.SMTPSenderRefused: (530, b'5.5.1 Authentication Required. Learn more
+at\n5.5.1  https://support.google.com/mail/answer/14257 [...]
+gsmtp', <em>noreply@superlists</em>)</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Hm, gmail is refusing to send our emails is it?  Now why might that be?  Ah
+yes, we haven&#8217;t told the server what our password is!</p>
+</div>
+<div class="paragraph">
+<p>TODO: finish rewriting this chapter</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>add EMAIL_PASSWORD to gunicorn service config</p>
+</li>
+<li>
+<p>? discuss difference with secret_key</p>
+</li>
+<li>
+<p>still won&#8217;t work, implement testing of email in FT</p>
+</li>
+<li>
+<p>discuss pros+cons of same.</p>
+</li>
+</ul>
+</div>
+<div class="admonitionblock warning">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-warning" title="Warning"></i>
+</td>
+<td class="content">
+the rest of this chapter still references the old login system.
+</td>
+</tr>
+</table>
 </div>
 <div class="paragraph">
 <p>It turns out it&#8217;s because I overlooked an important part of the
@@ -1406,7 +1401,7 @@ ALLOWED_HOSTS = [DOMAIN]</code></pre>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>$ <strong>python3 manage.py test accounts</strong>
+<pre>$ <strong>python manage.py test accounts</strong>
 [...]
 Ran 14 tests in 0.053s
 OK</pre>
@@ -1458,7 +1453,7 @@ pre-authenticated sessions doesn&#8217;t work, so the "My Lists" test fails:</p>
 </div>
 <div class="listingblock skipme">
 <div class="content">
-<pre>$ <strong>python3 manage.py test functional_tests \
+<pre>$ <strong>python manage.py test functional_tests \
 --liveserver=superlists-staging.ottg.eu</strong>
 
 ERROR: test_logged_in_users_lists_are_saved_as_my_lists
@@ -1546,7 +1541,7 @@ and the management command prints it out at the command line. Try it out:</p>
 </div>
 <div class="listingblock skipme">
 <div class="content">
-<pre>$ <strong>python3 manage.py create_session a@b.com</strong>
+<pre>$ <strong>python manage.py create_session a@b.com</strong>
 Unknown command: 'create_session'</pre>
 </div>
 </div>
@@ -1571,7 +1566,7 @@ well as tests:</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>$ <strong>python3 manage.py create_session a@b.com</strong>
+<pre>$ <strong>python manage.py create_session a@b.com</strong>
 qnslckvp2aga7tm6xuivyb0ob1akzzwl</pre>
 </div>
 </div>
@@ -1835,7 +1830,7 @@ anything:</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>$ <strong>python3 manage.py test functional_tests.test_my_lists</strong>
+<pre>$ <strong>python manage.py test functional_tests.test_my_lists</strong>
 [...]
 OK</pre>
 </div>
@@ -1856,7 +1851,7 @@ specification of the <code>liveserver</code> argument now:</p>
 </div>
 <div class="listingblock skipme">
 <div class="content">
-<pre>$ <strong>python3 manage.py test functional_tests.test_my_lists \
+<pre>$ <strong>python manage.py test functional_tests.test_my_lists \
 --liveserver=elspeth@superlists-staging.ottg.eu</strong>
 Creating test database for alias 'default'...
 [superlists-staging.ottg.eu] Executing task 'reset_database'
@@ -1876,7 +1871,7 @@ OK</pre>
 </div>
 <div class="listingblock skipme">
 <div class="content">
-<pre>$ <strong>python3 manage.py test functional_tests \
+<pre>$ <strong>python manage.py test functional_tests \
 --liveserver=elspeth@superlists-staging.ottg.eu</strong>
 Creating test database for alias 'default'...
 [superlists-staging.ottg.eu] Executing task 'reset_database'
@@ -2114,7 +2109,7 @@ Actual call: warning('foo')</pre>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>$ <strong>python3 manage.py test accounts</strong>
+<pre>$ <strong>python manage.py test accounts</strong>
 [...]
 Ran 15 tests in 0.033s
 
@@ -2210,7 +2205,7 @@ convenient way of unit testing it.</p>
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2016-07-01 18:00:37 BST
+Last updated 2016-08-20 15:27:44 CEST
 </div>
 </div>
 <div class="comments" style="padding: 20px">
