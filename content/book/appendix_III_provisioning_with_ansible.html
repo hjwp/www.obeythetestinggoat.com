@@ -894,7 +894,7 @@ can get it working with just two files:</p>
 </div>
 <div class="literalblock">
 <div class="content">
-<pre>pip install ansible  # Python 2 sadly</pre>
+<pre>pip2 install --user ansible  # Python 2 sadly</pre>
 </div>
 </div>
 <div class="paragraph">
@@ -905,13 +905,13 @@ can run against:</p>
 <div class="title">deploy_tools/inventory.ansible</div>
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="ini">[live]
-superlists.ottg.eu
+superlists.ottg.eu ansible_user=root
 
 [staging]
-superlists-staging.ottg.eu
+superlists-staging.ottg.eu ansible_user=root
 
 [local]
-localhost ansible_ssh_port=6666 ansible_host=127.0.0.1</code></pre>
+localhost ansible_user=root ansible_ssh_port=6666 ansible_host=127.0.0.1</code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -931,13 +931,14 @@ uses a syntax called YAML:</p>
 
 - <span class="string"><span class="content">hosts: all</span></span>
 
-  <span class="key">sudo</span>: <span class="string"><span class="content">yes</span></span>
+  <span class="key">vars</span>:
+      <span class="key">host</span>: <span class="string"><span class="delimiter">"</span><span class="content">{{ inventory_hostname }}</span><span class="delimiter">"</span></span>
 
   <span class="key">tasks</span>:
     - <span class="string"><span class="content">name: make sure required packages are installed</span></span>
       <span class="key">apt</span>: <span class="string"><span class="content">pkg=nginx,git,python3,python3-pip state=present</span></span>
     - <span class="string"><span class="content">name: make sure virtualenv is installed</span></span>
-      <span class="key">command</span>: <span class="string"><span class="content">pip3 install virtualenv</span></span>
+      <span class="key">shell</span>: <span class="string"><span class="content">pip3 install virtualenv</span></span>
 
     - <span class="string"><span class="content">name: allow long hostnames in nginx</span></span>
       <span class="key">lineinfile</span>:
@@ -947,21 +948,25 @@ uses a syntax called YAML:</p>
         <span class="error">line='\1server_names_hash_bucket_size 64;'</span>
 
     - <span class="string"><span class="content">name: add nginx config to sites-available</span></span>
-      <span class="key">template</span>: <span class="string"><span class="content">src=./nginx.conf.j2</span><span class="content">
-                dest=/etc/nginx/sites-available/{{ inventory_hostname }}</span></span>
+      <span class="key">template</span>: <span class="string"><span class="content">src=./nginx.conf.j2 dest=/etc/nginx/sites-available/{{ host }}</span></span>
       <span class="key">notify</span>:
           - <span class="string"><span class="content">restart nginx</span></span>
 
     - <span class="string"><span class="content">name: add symlink in nginx sites-enabled</span></span>
-      <span class="key">file</span>: <span class="string"><span class="content">src=/etc/nginx/sites-available/{{ inventory_hostname }}</span><span class="content">
-            dest=/etc/nginx/sites-enabled/{{ inventory_hostname }} state=link</span></span>
+      <span class="key">file</span>:
+          <span class="error">src=/etc/nginx/sites-available/{{ host }}</span>
+          <span class="error">dest=/etc/nginx/sites-enabled/{{ host }}</span>
+          <span class="error">state=link</span>
       <span class="key">notify</span>:
           - <span class="string"><span class="content">restart nginx</span></span></code></pre>
 </div>
 </div>
 <div class="paragraph">
+<p>The <code>inventory_hostname</code> variable is the domain name of the server we&#8217;re running against.
+I&#8217;m using the <code>vars</code> section to rename it to "host", just for convenience.</p>
+</div>
+<div class="paragraph">
 <p>
-The <code>inventory_hostname</code> variable is the domain name of the server we&#8217;re running against.
 In this section, we install our required software using <code>apt</code>, tweak the Nginx
 config to allow long hostnames using a regular expression replacer, and then
 we write the Nginx config file using a template.  This is a modified version
@@ -974,15 +979,15 @@ actually a lot like the Django template syntax:</p>
 <div class="content">
 <pre>server {
     listen 80;
-    server_name {{ inventory_hostname }};
+    server_name {{ host }};
 
     location /static {
-        alias /home/harry/sites/{{ inventory_hostname }}/static;
+        alias /home/{{ user }}/sites/{{ host }}/static;
     }
 
     location / {
-        proxy_set_header Host {{ inventory_hostname }};
-        proxy_pass http://unix:/tmp/{{ inventory_hostname }}.socket;
+        proxy_set_header Host {{ host }};
+        proxy_pass http://unix:/tmp/{{ host }}.socket;
     }
 }</pre>
 </div>
@@ -996,23 +1001,24 @@ actually a lot like the Django template syntax:</p>
 <div class="listingblock sourcecode">
 <div class="title">deploy_tools/provision.ansible.yaml</div>
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="yaml">    - <span class="string"><span class="content">name: write gunicorn init script</span></span>
-      <span class="key">template</span>: <span class="string"><span class="content">src=./gunicorn-upstart.conf.j2</span><span class="content">
-                dest=/etc/init/gunicorn-{{ inventory_hostname }}.conf</span></span>
+<pre class="CodeRay highlight"><code data-lang="yaml">    - <span class="string"><span class="content">name: write gunicorn service script</span></span>
+      <span class="key">template</span>:
+          <span class="error">src=./gunicorn.service.j2</span>
+          <span class="error">dest=/etc/systemd/system/gunicorn-{{ host }}.service</span>
       <span class="key">notify</span>:
           - <span class="string"><span class="content">restart gunicorn</span></span>
 
     - <span class="string"><span class="content">name: make sure nginx is running</span></span>
       <span class="key">service</span>: <span class="string"><span class="content">name=nginx state=running</span></span>
     - <span class="string"><span class="content">name: make sure gunicorn is running</span></span>
-      <span class="key">service</span>: <span class="string"><span class="content">name=gunicorn-{{ inventory_hostname }} state=running</span></span>
+      <span class="key">service</span>: <span class="string"><span class="content">name=gunicorn-{{ host }} state=running</span></span>
 
   <span class="key">handlers</span>:
     - <span class="string"><span class="content">name: restart nginx</span></span>
       <span class="key">service</span>:  <span class="string"><span class="content">name=nginx state=restarted</span></span>
 
     - <span class="string"><span class="content">name: restart gunicorn</span></span>
-      <span class="key">service</span>:  <span class="string"><span class="content">name=gunicorn-{{ inventory_hostname }} state=restarted</span></span></code></pre>
+      <span class="key">service</span>:  <span class="string"><span class="content">name=gunicorn-{{ host }} state=restarted</span></span></code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -1020,18 +1026,17 @@ actually a lot like the Django template syntax:</p>
 Once again we use a template for our Gunicorn config:</p>
 </div>
 <div class="listingblock sourcecode">
-<div class="title">deploy_tools/gunicorn-upstart.conf.j2</div>
+<div class="title">deploy_tools/gunicorn.service.j2</div>
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="bash">description "Gunicorn server for {{ inventory_hostname }}"
+<pre class="CodeRay highlight"><code data-lang="bash">[Unit]
+Description=Gunicorn server for {{ host }}
 
-start on net-device-up
-stop on shutdown
-
-respawn
-
-chdir /home/harry/sites/{{ inventory_hostname }}/source
-exec ../virtualenv/bin/gunicorn \
-    --bind unix:/tmp/{{ inventory_hostname }}.socket \
+[Service]
+User={{ user }}
+WorkingDirectory=/home/{{ user }}/sites/{{ host }}/source
+Restart=on-failure
+ExecStart=/home/{{ user }}/sites/{{ host }}/virtualenv/bin/gunicorn \
+    --bind unix:/tmp/{{ host }}.socket \
     --access-logfile ../access.log \
     --error-logfile ../error.log \
     superlists.wsgi:application</code></pre>
@@ -1099,7 +1104,7 @@ like yours.</p>
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2016-07-01 18:00:37 BST
+Last updated 2016-08-18 05:53:01 CEST
 </div>
 </div>
 <div class="comments" style="padding: 20px">
