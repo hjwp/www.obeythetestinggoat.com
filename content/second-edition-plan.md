@@ -2,7 +2,6 @@ Title: Plans for the second edition
 Date: 2016-09-25 18:52
 Tags: Book, second edition, Persona
 Author: Harry
-Status: draft
 Summary: I'm currently working on a 2nd edition for the book. Here's an outline of what I'm planning.
 
 The second edition was mostly prompted by the [announcement by
@@ -17,8 +16,8 @@ Here, in brief, is an outline of the plan:
 
 ## Chapter rewrites:
 
-* Rewrite chapters 15 + 16, replace persona with passwordless auth
-  ([first draft done](http://www.obeythetestinggoat.com/book/chapter_15.html))
+* Rewrite chapters 15 + 16, replace persona with passwordless auth:
+  [first draft done](http://www.obeythetestinggoat.com/book/chapter_15.html)
 
 * Update chapters 17+ for persona changes: in progress
 
@@ -26,7 +25,9 @@ Here, in brief, is an outline of the plan:
 
 * Update deployment chapters to use Systemd instead of Upstart: started  but only in [ansible appendix](http://www.obeythetestinggoat.com/book/appendix_III_provisioning_with_ansible.html#_configuring_gunicorn_and_using_handlers_to_restart_services).
 
-* Two new chapters on REST APIs and Ajax: [code spiked], but chapters not yet written
+* Two new chapters on REST APIs and Ajax: 
+  [code spiked](https://github.com/hjwp/book-example/commits/rest-api-spike), but
+  chapters not yet written
 
 
 ## Minor updates + changes:
@@ -37,7 +38,7 @@ Here, in brief, is an outline of the plan:
 * Use more early returns in FTs when refactoring partially finished user stories.
 
 
-That's it, in very brief!  You can read more
+That's it, in very brief.  You can read more
 [on the google group](https://groups.google.com/forum/#!topic/obey-the-testing-goat-book/fCENUr_NawM),
 and feel free to join in the discussion there too, or here.  Let me know what
 you think!
