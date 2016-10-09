@@ -1042,7 +1042,7 @@ not.</p>
 </li>
 <li>
 <p>Move from our quick &amp; dirty version to a production-ready configuration,
-using Gunicorn, Upstart, and domain sockets.</p>
+using Gunicorn, Systemd, and domain sockets.</p>
 </li>
 <li>
 <p>Once we have a working config, we&#8217;ll write a script to automate the process
@@ -1433,7 +1433,7 @@ then see the default Nginx "Hello World" screen:</p>
 <div class="listingblock server-commands">
 <div class="content">
 <pre>elspeth@server:$ <strong>sudo apt-get install nginx</strong>
-elspeth@server:$ <strong>sudo service nginx start</strong></pre>
+elspeth@server:$ <strong>sudo systemctl start nginx</strong></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -1937,7 +1937,7 @@ the idea is that it makes it easier to switch sites on or off.</p>
 </div>
 <div class="listingblock server-commands">
 <div class="content">
-<pre>elspeth@server:$ <strong>sudo service nginx reload</strong>
+<pre>elspeth@server:$ <strong>sudo systemctl reload nginx</strong>
 elspeth@server:$ <strong>../virtualenv/bin/python3 manage.py runserver</strong></pre>
 </div>
 </div>
@@ -2187,7 +2187,7 @@ can use the direct path to the virtualenv&#8217;s copy of Python instead.</p>
 </div>
 <div class="listingblock server-commands">
 <div class="content">
-<pre>elspeth@server:$ <strong>sudo service nginx reload</strong>
+<pre>elspeth@server:$ <strong>sudo systemctl reload nginx</strong>
 elspeth@server:$ <strong>../virtualenv/bin/gunicorn superlists.wsgi:application</strong></pre>
 </div>
 </div>
@@ -2244,7 +2244,7 @@ of on the default port:</p>
 </div>
 <div class="listingblock server-commands">
 <div class="content">
-<pre>elspeth@server:$ <strong>sudo service nginx reload</strong>
+<pre>elspeth@server:$ <strong>sudo systemctl reload nginx</strong>
 elspeth@server:$ <strong>../virtualenv/bin/gunicorn --bind \
     unix:/tmp/superlists-staging.ottg.eu.socket superlists.wsgi:application</strong></pre>
 </div>
@@ -2314,33 +2314,33 @@ PC, using <code>git push</code> and <code>git pull</code> when I need to sync th
 </div>
 </div>
 <div class="sect3">
-<h4 id="_using_upstart_to_make_sure_gunicorn_starts_on_boot">Using Upstart to Make Sure Gunicorn Starts on Boot</h4>
+<h4 id="_using_systemd_to_make_sure_gunicorn_starts_on_boot">Using Systemd to Make Sure Gunicorn Starts on Boot</h4>
 <div class="paragraph">
 <p>
 Our final step is to make sure that the server starts up Gunicorn automatically
 on boot, and reloads it automatically if it crashes.  On Ubuntu, the way to do
-this is using Upstart:</p>
+this is using Systemd:</p>
 </div>
 <div class="listingblock sourcecode">
-<div class="title">server: /etc/init/gunicorn-superlists-staging.ottg.eu.conf</div>
+<div class="title">server: /etc/systemd/system/gunicorn-superlists-staging.ottg.eu.service</div>
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="bash">description "Gunicorn server for superlists-staging.ottg.eu"
+<pre class="CodeRay highlight"><code data-lang="bash">[Unit]
+Description=Gunicorn server for superlists-staging.ottg.eu
 
-start on net-device-up  <i class="conum" data-value="1"></i><b>(1)</b>
-stop on shutdown
-
-respawn  <i class="conum" data-value="2"></i><b>(2)</b>
-
-setuid elspeth <i class="conum" data-value="3"></i><b>(3)</b>
-chdir /home/elspeth/sites/superlists-staging.ottg.eu/source  <i class="conum" data-value="4"></i><b>(4)</b>
-
-exec ../virtualenv/bin/gunicorn \  <i class="conum" data-value="5"></i><b>(5)</b>
+[Service]
+Restart=on-failure  <i class="conum" data-value="1"></i><b>(1)</b>
+User=elspeth  <i class="conum" data-value="2"></i><b>(2)</b>
+WorkingDirectory=/home/elspeth/sites/superlists-staging.ottg.eu/source  <i class="conum" data-value="3"></i><b>(3)</b>
+ExecStart=/home/elspeth/sites/superlists-staging.ottg.eu/virtualenv/bin/gunicorn \
     --bind unix:/tmp/superlists-staging.ottg.eu.socket \
-    superlists.wsgi:application</code></pre>
+    superlists.wsgi:application  <i class="conum" data-value="4"></i><b>(4)</b>
+
+[Install]
+WantedBy=multi-user.target <i class="conum" data-value="5"></i><b>(5)</b></code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>Upstart is joyously simple to configure (especially if you&#8217;ve ever had the
+<p>Systemd is joyously simple to configure (especially if you&#8217;ve ever had the
 dubious pleasure of writing an <code>init.d</code> script), and is fairly
 self-explanatory.</p>
 </div>
@@ -2348,40 +2348,52 @@ self-explanatory.</p>
 <table>
 <tr>
 <td><i class="conum" data-value="1"></i><b>1</b></td>
-<td><code>start on net-device-up</code> makes sure Gunicorn only runs once the server has
-connected up to the Internet.</td>
+<td><code>Restart=on-failure</code> will restart the process automatically if it crashes.</td>
 </tr>
 <tr>
 <td><i class="conum" data-value="2"></i><b>2</b></td>
-<td><code>respawn</code> will restart the process automatically if it crashes.</td>
+<td><code>User=elspeth</code> makes the process run as the "elspeth" user.</td>
 </tr>
 <tr>
 <td><i class="conum" data-value="3"></i><b>3</b></td>
-<td><code>setuid</code> makes the process run as the "elspeth" user.</td>
+<td><code>WorkingDirectory</code> sets the working directory.</td>
 </tr>
 <tr>
 <td><i class="conum" data-value="4"></i><b>4</b></td>
-<td><code>chdir</code> sets the working directory.</td>
+<td><code>ExecStart</code> is the actual process to execute.  We use the `\ ` line
+continuation characters to split the full command over multiple lines,
+for readability, but it could all go on one line.</td>
 </tr>
 <tr>
 <td><i class="conum" data-value="5"></i><b>5</b></td>
-<td><code>exec</code> is the actual process to execute.</td>
+<td><code>WantedBy</code> in the <code>[Install]</code> section is what tells Systemd we want this
+service to start on boot.</td>
 </tr>
 </table>
 </div>
 <div class="paragraph">
-<p>Upstart scripts live in <em>/etc/init</em>, and their names must end in <em>.conf</em>.</p>
+<p>Systemd scripts live in <em>/etc/systemd/system</em>, and their names must end in
+<em>.service</em>.</p>
 </div>
 <div class="paragraph">
-<p>Now we can start Gunicorn with the <code>start</code> command:</p>
+<p>Now we tell Systemd to start Gunicorn with the <code>systemctl</code> command:</p>
 </div>
 <div class="listingblock server-commands">
 <div class="content">
-<pre>elspeth@server:$ sudo start gunicorn-superlists-staging.ottg.eu</pre>
+<pre># this command is necessary to tell Systemd to load our new config file
+elspeth@server:$ <strong>sudo systemctl daemon-reload</strong>
+# this command tells Systemd to always load our service on boot
+elspeth@server:$ <strong>sudo systemctl enable gunicorn-superlists-staging.ottg.eu</strong>
+# this command actually starts our service
+elspeth@server:$ <strong>sudo systemctl start gunicorn-superlists-staging.ottg.eu</strong></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>And we can rerun the FTs to see that everything still works. You can even test
+<p>(you should find the <code>systemctl</code> command responds to tab-completion, including
+of the service name, by the way)</p>
+</div>
+<div class="paragraph">
+<p>Now we can rerun the FTs to see that everything still works. You can even test
 that the site comes back up if you reboot the server!</p>
 </div>
 <div class="sidebarblock">
@@ -2415,10 +2427,16 @@ all the difference.</p>
 <a href="http://manpages.ubuntu.com/manpages/precise/man8/init-checkconf.8.html">init-checkconf</a></p>
 </li>
 <li>
-<p>Check the <em>/var/log/upstart/</em> folder for logs from Upstart and Gunicorn.</p>
+<p>Check the Systemd logs for using
+<code>sudo journalctl -u gunicorn-superlists-staging.ottg.eu</code></p>
 </li>
 <li>
 <p>Remember to restart both services whenever you make changes.</p>
+</li>
+<li>
+<p>If you make changes to the Systemd config file, you need to
+run <code>daemon-reload</code> before <code>systemctl restart</code> to see the effect
+of your changes.</p>
 </li>
 <li>
 <p>Make sure your browser isn&#8217;t caching an out-of-date response.  Use
@@ -2504,7 +2522,7 @@ Let&#8217;s recap our provisioning and deployment procedures:</p>
 <p>Add Nginx config for virtual host</p>
 </li>
 <li>
-<p>Add Upstart job for Gunicorn</p>
+<p>Add Systemd job for Gunicorn</p>
 </li>
 </ol>
 </div>
@@ -2548,7 +2566,7 @@ Let&#8217;s recap our provisioning and deployment procedures:</p>
 <div class="paragraph">
 <p>Assuming we&#8217;re not ready to entirely automate our provisioning process, how
 should we save the results of our investigation so far?  I would say that
-the Nginx and Upstart config files should probably be saved somewhere, in
+the Nginx and Systemd config files should probably be saved somewhere, in
 a way that makes it easy to reuse them later.  Let&#8217;s save them in a new
 subfolder in our repo:</p>
 </div>
@@ -2576,21 +2594,21 @@ subfolder in our repo:</p>
 </div>
 </div>
 <div class="listingblock sourcecode">
-<div class="title">deploy_tools/gunicorn-upstart.template.conf</div>
+<div class="title">deploy_tools/gunicorn-systemd.template.service</div>
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="bash">description "Gunicorn server for SITENAME"
+<pre class="CodeRay highlight"><code data-lang="bash">[Unit]
+Description=Gunicorn server for SITENAME
 
-start on net-device-up
-stop on shutdown
-
-respawn
-
-setuid elspeth
-chdir /home/elspeth/sites/SITENAME/source
-
-exec ../virtualenv/bin/gunicorn \
+[Service]
+Restart=on-failure
+User=elspeth
+WorkingDirectory=/home/elspeth/sites/SITENAME/source
+ExecStart=/home/elspeth/sites/SITENAME/virtualenv/bin/gunicorn \
     --bind unix:/tmp/SITENAME.socket \
-    superlists.wsgi:application</code></pre>
+    superlists.wsgi:application
+
+[Install]
+WantedBy=multi-user.target</code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -2625,9 +2643,9 @@ e.g.,, on Ubuntu:
 * see nginx.template.conf
 * replace SITENAME with, e.g., staging.my-domain.com
 
-## Upstart Job
+## Systemd service
 
-* see gunicorn-upstart.template.conf
+* see gunicorn-systemd.template.service
 * replace SITENAME with, e.g., staging.my-domain.com
 
 ## Folder structure:
@@ -2662,7 +2680,7 @@ Our source tree will now look something like this:</p>
 <pre>$ tree -I __pycache__
 .
 &#9500;&#9472;&#9472; deploy_tools
-&#9474;&#160;&#160; &#9500;&#9472;&#9472; gunicorn-upstart.template.conf
+&#9474;&#160;&#160; &#9500;&#9472;&#9472; gunicorn-systemd.template.service
 &#9474;&#160;&#160; &#9500;&#9472;&#9472; nginx.template.conf
 &#9474;&#160;&#160; &#9492;&#9472;&#9472; provisioning_notes.md
 &#9500;&#9472;&#9472; functional_tests
@@ -2747,7 +2765,7 @@ process repeatable.</p>
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2016-08-11 17:19:52 BST
+Last updated 2016-10-09 22:30:50 BST
 </div>
 </div>
 <div class="comments" style="padding: 20px">

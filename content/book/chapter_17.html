@@ -4,7 +4,7 @@
 <!--[if IE]><meta http-equiv="X-UA-Compatible" content="IE=edge"><![endif]-->
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="generator" content="Asciidoctor 1.5.4">
-<title>Test Fixtures, Logging, and Server-Side Debugging</title>
+<title>Test Fixtures, and Server-Side Debugging</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:300,300italic,400,400italic,600,600italic%7CNoto+Serif:400,400italic,700,700italic%7CDroid+Sans+Mono:400,700">
 <style>
 /* Asciidoctor default stylesheet | MIT License | http://asciidoctor.org */
@@ -874,7 +874,7 @@ table.CodeRay td.code>pre{padding:0}
 </div>
 <div id="content">
 <div class="sect1">
-<h2 id="testfixtures-and-logging">Test Fixtures, Logging, and <span class="keep-together">Server-Side Debugging</span></h2>
+<h2 id="testfixtures-and-logging">Test Fixtures, and Server-Side Debugging</h2>
 <div class="sectionbody">
 <div class="admonitionblock note">
 <table>
@@ -896,7 +896,7 @@ identify users, and be able to show them all the lists they have created.</p>
 </div>
 <div class="paragraph">
 <p>To do that, we&#8217;re going to have to write FTs that have a logged-in user. Rather
-than making each test go through the (time-consuming) Persona dialog, we want
+than making each test go through the (time-consuming) login email dance, we want
 to be able to skip that part.</p>
 </div>
 <div class="paragraph">
@@ -1072,15 +1072,13 @@ our pre-authenticated session creator really does work:</p>
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="python">    <span class="keyword">def</span> <span class="function">test_logged_in_users_lists_are_saved_as_my_lists</span>(<span class="predefined-constant">self</span>):
         email = <span class="string"><span class="delimiter">'</span><span class="content">edith@example.com</span><span class="delimiter">'</span></span>
-
         <span class="predefined-constant">self</span>.browser.get(<span class="predefined-constant">self</span>.server_url)
-        <span class="predefined-constant">self</span>.assert_logged_in(email)
+        <span class="predefined-constant">self</span>.assert_logged_out(email)
 
         <span class="comment"># Edith is a logged-in user</span>
         <span class="predefined-constant">self</span>.create_pre_authenticated_session(email)
-
         <span class="predefined-constant">self</span>.browser.get(<span class="predefined-constant">self</span>.server_url)
-        <span class="predefined-constant">self</span>.assert_logged_out(email)</code></pre>
+        <span class="predefined-constant">self</span>.assert_logged_in(email)</code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -1130,7 +1128,7 @@ $ <strong>fab deploy --host=elspeth@superlists-staging.ottg.eu</strong>
 </div>
 <div class="listingblock skipme">
 <div class="content">
-<pre>elspeth@server: <strong>sudo restart gunicorn-superlists-staging.ottg.eu</strong></pre>
+<pre>elspeth@server: <strong>sudo systemctrl restart gunicorn-superlists-staging.ottg.eu</strong></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -1142,57 +1140,59 @@ $ <strong>fab deploy --host=elspeth@superlists-staging.ottg.eu</strong>
 --liveserver=superlists-staging.ottg.eu</strong>
 
 ======================================================================
+ERROR: test_can_get_email_link_to_log_in
+(functional_tests.test_login.LoginTest)
+ ---------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/functional_tests/test_login.py", line 22, in
+  test_can_get_email_link_to_log_in
+    self.assertIn('Check your email', body.text)
+AssertionError: 'Check your email' not found in 'Server Error (500)'
+
+
+======================================================================
 ERROR: test_logged_in_users_lists_are_saved_as_my_lists
 (functional_tests.test_my_lists.MyListsTest)
  ---------------------------------------------------------------------
 Traceback (most recent call last):
-  File "/workspace/superlists/functional_tests/test_my_lists.py", line 34, in
-test_logged_in_users_lists_are_saved_as_my_lists
+  File "/home/harry/workspace/book-example/functional_tests/test_my_lists.py",
+  line 34, in test_logged_in_users_lists_are_saved_as_my_lists
     self.assert_logged_in(email)
-  File "/workspace/superlists/functional_tests/base.py", line 42, in
-assert_logged_in
+  File "/worskpace/functional_tests/base.py", line 42, in assert_logged_in
     self.browser.find_element_by_link_text('Log out')
-[...]
+    [...]
 selenium.common.exceptions.NoSuchElementException: Message: Unable to locate
 element: {"method":"link text","selector":"Log out"}
+Stacktrace:
+[...]
 
-======================================================================
-FAIL: test_can_get_email_link_to_log_in (functional_tests.test_login.LoginTest)
  ---------------------------------------------------------------------
-Traceback (most recent call last):
-  File "/workspace/superlists/functional_tests/test_login.py", line 22, in
-test_can_get_email_link_to_log_in
-    self.assertIn('Check your email', body.text)
-AssertionError: 'Check your email' not found in 'Server Error (500)'</pre>
+Ran 7 tests in 27.933s
+
+FAILED (errors=2)</pre>
 </div>
 </div>
 <div class="paragraph">
 <p>We can&#8217;t log in&#8212;&#8203;either with the real email system or with our
-pre-authenticated session.  There&#8217;s some kind of bug.</p>
+pre-authenticated session.  Looks like our nice new authentication
+system is crashing the server.</p>
 </div>
 <div class="paragraph">
-<p>When I ran into this bug, I did consider just going back and fixing it in the
-previous chapter, and pretending it never happened, but I think leaving it
-illustrates the point of running tests against a staging environment.  It would
-have been pretty embarrassing if we&#8217;d deployed this bug straight to our live
-site.</p>
-</div>
-<div class="paragraph">
-<p>Aside from that, we&#8217;ll get to practice a bit of server-side debugging.</p>
+<p>Let&#8217;s practice a bit of server-side debugging!</p>
 </div>
 <div class="sect3">
 <h4 id="_setting_up_logging">Setting Up Logging</h4>
 <div class="paragraph">
 <p>
 
-In order to track this bug down, we have to set up Gunicorn to do some
+In order to track this problem down, we have to set up Gunicorn to do some
 logging.  Adjust the Gunicorn config on the server, using <code>vi</code> or <code>nano</code>:</p>
 </div>
-<div class="listingblock sourcecode skipme">
-<div class="title">server: /etc/init/gunicorn-superlists-staging.ottg.eu.conf</div>
+<div class="listingblock sourcecode small-code skipme">
+<div class="title">server: /etc/systemd/system/gunicorn-superlists-staging.ottg.eu.service</div>
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="bash">[...]
-exec ../virtualenv/bin/gunicorn \
+<pre class="CodeRay highlight"><code data-lang="ini">[...]
+ExecStart=/home/elspeth/sites/superlists-staging.ottg.eu/virtualenv/bin/gunicorn \
     --bind unix:/tmp/superlists-staging.ottg.eu.socket \
     --access-logfile ../access.log \
     --error-logfile ../error.log \
@@ -1234,8 +1234,9 @@ the server with a:</p>
 </div>
 <div class="listingblock skipme smallcode">
 <div class="content">
-<pre>elspeth@server: $ <strong>service gunicorn-superlists-staging.ottg.eu restart</strong>
-elspeth@server: $ <strong>tail -f error.log</strong>  # assumes we are in ~/sites/$SITENAME folder</pre>
+<pre>elspeth@server:$ <strong>sudo systemctl daemon-reload</strong>
+elspeth@server:$ <strong>sudo systemctrl restart gunicorn-superlists-staging.ottg.eu</strong>
+elspeth@server:$ <strong>tail -f error.log</strong>  # assumes we are in ~/sites/$SITENAME folder</pre>
 </div>
 </div>
 <div class="paragraph">
@@ -1256,191 +1257,234 @@ Traceback (most recent call last):
   File "/usr/lib/python3.5/smtplib.py", line 862, in sendmail
     raise SMTPSenderRefused(code, resp, from_addr)
 smtplib.SMTPSenderRefused: (530, b'5.5.1 Authentication Required. Learn more
-at\n5.5.1  https://support.google.com/mail/answer/14257 [...]
-gsmtp', <em>noreply@superlists</em>)</pre>
+at\n5.5.1  https://support.google.com/mail/?p=WantAuthError [...]
+- gsmtp', <em>noreply@superlists</em>)</pre>
 </div>
 </div>
 <div class="paragraph">
 <p>Hm, gmail is refusing to send our emails is it?  Now why might that be?  Ah
 yes, we haven&#8217;t told the server what our password is!</p>
 </div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_setting_secret_environment_variables_on_the_server">Setting secret environment variables on the server</h3>
 <div class="paragraph">
-<p>TODO: finish rewriting this chapter</p>
+<p>TODO: finish rewriting this section</p>
 </div>
 <div class="ulist">
 <ul>
 <li>
-<p>add EMAIL_PASSWORD to gunicorn service config</p>
+<p>add EMAIL_PASSWORD to gunicorn systemd service config</p>
 </li>
 <li>
 <p>? discuss difference with secret_key</p>
 </li>
-<li>
-<p>still won&#8217;t work, implement testing of email in FT</p>
-</li>
-<li>
-<p>discuss pros+cons of same.</p>
-</li>
 </ul>
 </div>
-<div class="admonitionblock warning">
-<table>
-<tr>
-<td class="icon">
-<i class="fa icon-warning" title="Warning"></i>
-</td>
-<td class="content">
-the rest of this chapter still references the old login system.
-</td>
-</tr>
-</table>
-</div>
-<div class="paragraph">
-<p>It turns out it&#8217;s because I overlooked an important part of the
-Persona system, which is that authentications are only valid for particular
-domains.  We&#8217;ve left the domain hardcoded as "localhost" in
-<em>accounts/authentication.py</em>:</p>
-</div>
-<div class="listingblock sourcecode currentcontents">
-<div class="title">accounts/authentication.py</div>
+<div class="listingblock sourcecode small-code skipme">
+<div class="title">server: /etc/systemd/system/gunicorn-superlists-staging.ottg.eu.service</div>
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python">PERSONA_VERIFY_URL = <span class="string"><span class="delimiter">'</span><span class="content">https://verifier.login.persona.org/verify</span><span class="delimiter">'</span></span>
-DOMAIN = <span class="string"><span class="delimiter">'</span><span class="content">localhost</span><span class="delimiter">'</span></span>
-User = get_user_model()</code></pre>
+<pre class="CodeRay highlight"><code data-lang="ini">[Service]
+User=elspeth
+Environment=EMAIL_PASSWORD=yoursekritpasswordhere
+WorkingDirectory=/home/elspeth/sites/superlists-staging.ottg.eu/source</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>We can try and hack in a fix on the server:</p>
-</div>
-<div class="listingblock sourcecode skipme">
-<div class="title">accounts/authentication.py</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="python">DOMAIN = <span class="string"><span class="delimiter">'</span><span class="content">superlists-staging.ottg.eu</span><span class="delimiter">'</span></span></code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>And check whether it works by doing a manual login. It does.</p>
-</div>
-</div>
-<div class="sect3">
-<h4 id="_fixing_the_persona_bug">Fixing the Persona Bug</h4>
-<div class="paragraph">
-<p>Here&#8217;s how we go about baking in a fix, switching back to coding on our local
-PC. We start by moving the definition for the <code>DOMAIN</code> variable into
-<em>settings.py</em>, where we can later use the deploy script to override it:</p>
-</div>
-<div class="listingblock sourcecode">
-<div class="title">superlists/settings.py (ch17l011)</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="comment"># This setting is changed by the deploy script</span>
-DOMAIN = <span class="string"><span class="delimiter">"</span><span class="content">localhost</span><span class="delimiter">"</span></span>
-
-ALLOWED_HOSTS = [DOMAIN]</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>We feed that change back through the tests:</p>
-</div>
-<div class="listingblock sourcecode">
-<div class="title">accounts/tests/test_authentication.py</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="diff"><span class="line change"><span class="change">@@</span> -1,12 +1,14 <span class="change">@@</span></span>
- from unittest.mock import patch
-<span class="line insert"><span class="insert">+</span>from django.conf import settings</span>
- from django.contrib.auth import get_user_model
- from django.test import TestCase
- User = get_user_model()
-
- from accounts.authentication import (
-<span class="line delete"><span class="delete">-</span>    PERSONA_VERIFY_URL, <span class="eyecatcher">DOMAIN, </span>PersonaAuthenticationBackend</span>
-<span class="line insert"><span class="insert">+</span>    PERSONA_VERIFY_URL, PersonaAuthenticationBackend</span>
- )
-
-<span class="line insert"><span class="insert">+</span></span>
- @patch('accounts.authentication.requests.post')
- class AuthenticateTest(TestCase):
-
-<span class="change"><span class="change">@@</span> -21,7 +23,7 <span class="change">@@</span></span> class AuthenticateTest(TestCase):
-         self.backend.authenticate('an assertion')
-         mock_post.assert_called_once_with(
-             PERSONA_VERIFY_URL,
-<span class="line delete"><span class="delete">-</span>            data={'assertion': 'an assertion', 'audience': DOMAIN}</span>
-<span class="line insert"><span class="insert">+</span>            data={'assertion': 'an assertion', 'audience': <span class="eyecatcher">settings.</span>DOMAIN}</span>
-         )</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>And then we change the implementation:</p>
-</div>
-<div class="listingblock sourcecode">
-<div class="title">accounts/authentication.py</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="diff"><span class="line change"><span class="change">@@</span> -1,8 +1,8 <span class="change">@@</span></span>
- import requests
-<span class="line insert"><span class="insert">+</span>from django.conf import settings</span>
- from django.contrib.auth import get_user_model
- User = get_user_model()
-
- PERSONA_VERIFY_URL = 'https://verifier.login.persona.org/verify'
-<span class="line delete"><span class="delete">-</span>DOMAIN = 'localhost'</span>
-
-
-<span class="change"><span class="change">@@</span> -11,7 +11,7 <span class="change">@@</span></span> class PersonaAuthenticationBackend(object):
-     def authenticate(self, assertion):
-         response = requests.post(
-             PERSONA_VERIFY_URL,
-<span class="line delete"><span class="delete">-</span>            data={'assertion': assertion, 'audience': DOMAIN}</span>
-<span class="line insert"><span class="insert">+</span>            data={'assertion': assertion, 'audience': <span class="eyecatcher">settings.</span>DOMAIN}</span>
-         )
-        if response.ok and response.json()['status'] == 'okay':
-            email = response.json()['email']</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Rerunning the tests just to be sure:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>$ <strong>python manage.py test accounts</strong>
-[...]
-Ran 14 tests in 0.053s
-OK</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Next we update our fabfile to make it adjust the domain in <em>settings.py</em>,
-removing the cumbersome two-line <code>sed</code> on <code>ALLOWED_HOSTS</code>:
-</p>
-</div>
-<div class="listingblock sourcecode">
-<div class="title">deploy_tools/fabfile.py</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">def</span> <span class="function">_update_settings</span>(source_folder, site_name):
-    settings_path = source_folder + <span class="string"><span class="delimiter">'</span><span class="content">/superlists/settings.py</span><span class="delimiter">'</span></span>
-    sed(settings_path, <span class="string"><span class="delimiter">"</span><span class="content">DEBUG = True</span><span class="delimiter">"</span></span>, <span class="string"><span class="delimiter">"</span><span class="content">DEBUG = False</span><span class="delimiter">"</span></span>)
-    sed(settings_path, <span class="string"><span class="delimiter">'</span><span class="content">DOMAIN = "localhost"</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">DOMAIN = "%s"</span><span class="delimiter">'</span></span> % (site_name,))
-    secret_key_file = source_folder + <span class="string"><span class="delimiter">'</span><span class="content">/superlists/secret_key.py</span><span class="delimiter">'</span></span>
-    <span class="keyword">if</span> <span class="keyword">not</span> exists(secret_key_file):
-        [...]</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>We redeploy, and spot the <code>sed</code> in the output:</p>
+<p>Rerun fts:</p>
 </div>
 <div class="listingblock skipme">
 <div class="content">
-<pre>$ <strong>fab deploy --host=superlists-staging.ottg.eu</strong>
+<pre>$ <strong>python manage.py test functional_tests \
+--liveserver=superlists-staging.ottg.eu</strong>
+
 [...]
-[superlists-staging.ottg.eu] run: sed -i.bak -r -e <em>s/DOMAIN =
-"localhost"/DOMAIN = "superlists-staging.ottg.eu"/g</em> "$(echo
-/home/harry/sites/superlists-staging.ottg.eu/source/superlists/settings.py)"
-[...]</pre>
+Traceback (most recent call last):
+  File "/workspace/superlists/functional_tests/test_login.py", line 25, in
+  test_can_get_email_link_to_log_in
+    email = mail.outbox[0]
+IndexError: list index out of range
+
+[...]
+
+selenium.common.exceptions.NoSuchElementException: Message: Unable to locate
+element: {"method":"link text","selector":"Log out"}</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>
-</p>
+<p>Now the server logs show no error.</p>
 </div>
+<div class="paragraph">
+<p>The my_lists failure is still the same, but we have more information in our
+login test: the FT gets further, the site now looks like it&#8217;s sending emails
+correctly, but we can&#8217;t check the email in the mail.outbox&#8230;&#8203;</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_adapting_our_ft_to_be_able_to_test_real_emails_via_pop3">Adapting our FT to be able to test real emails via POP3</h3>
+<div class="paragraph">
+<p>Ah. That explains it. Now that we&#8217;re running against a real server rather than
+the <code>LiveServerTestCase</code>, we can no longer inspect the local
+<code>django.mail.outbox</code> to see sent emails.</p>
+</div>
+<div class="paragraph">
+<p>First, we&#8217;ll need to know, in our FTs, whether we&#8217;re running against
+the staging server or not.  Let&#8217;s populate a variable <code>self.against_staging</code>
+in <em>base.py</em>:</p>
+</div>
+<div class="listingblock sourcecode">
+<div class="title">functional_tests/base.py (ch17l005)</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="diff"><span class="change"><span class="change">@@</span> -9,8 +9,10 <span class="change">@@</span></span> class FunctionalTest(StaticLiveServerTestCase):
+         for arg in sys.argv:
+             if 'liveserver' in arg:
+                 cls.server_url = 'http://' + arg.split('=')[1]
+<span class="line insert"><span class="insert">+</span>                cls.against_staging = True</span>
+                 return
+         super().setUpClass()
+<span class="line insert"><span class="insert">+</span>        cls.against_staging = False</span>
+         cls.server_url = cls.live_server_url</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Then we build a helper function that can retrieve a real
+email from a real POP3 email server, using the horifically
+tortuous Python standard library pop3 client:</p>
+</div>
+<div class="listingblock sourcecode">
+<div class="title">functional_tests/test_login.py (ch17l006)</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">import</span> <span class="include">os</span>
+<span class="keyword">import</span> <span class="include">poplib</span>
+<span class="keyword">import</span> <span class="include">re</span>
+<span class="keyword">import</span> <span class="include">time</span>
+[...]
+
+    <span class="keyword">def</span> <span class="function">wait_for_email</span>(<span class="predefined-constant">self</span>, test_email, subject):
+        <span class="keyword">if</span> <span class="keyword">not</span> <span class="predefined-constant">self</span>.against_staging:
+            email = mail.outbox[<span class="integer">0</span>]
+            <span class="predefined-constant">self</span>.assertIn(test_email, email.to)
+            <span class="predefined-constant">self</span>.assertEqual(email.subject, subject)
+            <span class="keyword">return</span> email.body
+
+        subject_line = <span class="string"><span class="delimiter">'</span><span class="content">Subject: {}</span><span class="delimiter">'</span></span>.format(subject)
+        email_id = <span class="predefined-constant">None</span>
+        start = time.time()
+        inbox = poplib.POP3_SSL(<span class="string"><span class="delimiter">'</span><span class="content">pop.mail.yahoo.com</span><span class="delimiter">'</span></span>)
+        <span class="keyword">try</span>:
+            inbox.user(test_email)
+            inbox.pass_(os.environ[<span class="string"><span class="delimiter">'</span><span class="content">YAHOO_PASSWORD</span><span class="delimiter">'</span></span>])
+            <span class="keyword">while</span> time.time() - start &lt; <span class="integer">60</span>:
+                count, _ = inbox.stat()
+                <span class="keyword">for</span> i <span class="keyword">in</span> <span class="predefined">reversed</span>(<span class="predefined">range</span>(<span class="predefined">max</span>(<span class="integer">1</span>, count - <span class="integer">10</span>), count + <span class="integer">1</span>)):
+                    print(<span class="string"><span class="delimiter">'</span><span class="content">getting msg</span><span class="delimiter">'</span></span>, i)
+                    _, lines, __ = inbox.retr(i)
+                    lines = [l.decode(<span class="string"><span class="delimiter">'</span><span class="content">utf8</span><span class="delimiter">'</span></span>) <span class="keyword">for</span> l <span class="keyword">in</span> lines]
+                    print(lines)
+                    <span class="keyword">if</span> subject_line <span class="keyword">in</span> lines:
+                        email_id = i
+                        body = <span class="string"><span class="delimiter">'</span><span class="char">\n</span><span class="delimiter">'</span></span>.join(lines)
+                        <span class="keyword">return</span> body
+                time.sleep(<span class="integer">5</span>)
+        <span class="keyword">finally</span>:
+            <span class="keyword">if</span> email_id:
+                inbox.dele(email_id)
+            inbox.quit()</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>And feed thru the rest of the changes to the FT that are required
+as a result:</p>
+</div>
+<div class="listingblock sourcecode">
+<div class="title">functional_tests/test_login.py (ch17l007)</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="diff"><span class="change"><span class="change">@@</span> -5,7 +5,7 <span class="change">@@</span></span> import time
+ from django.core import mail
+ from .base import FunctionalTest
+
+<span class="line delete"><span class="delete">-</span><span class="eyecatcher">TEST_EMAIL = 'edith@example.com'</span></span>
+<span class="line insert"><span class="insert">+</span></span>
+ SUBJECT = 'Your login link for Superlists'
+
+
+<span class="change"><span class="change">@@</span> -42,13 +42,19 <span class="change">@@</span></span> class LoginTest(FunctionalTest):
+                 inbox.dele(email_id)
+             inbox.quit()
+
+<span class="line insert"><span class="insert">+</span></span>
+     def test_can_get_email_link_to_log_in(self):
+         # Edith goes to the awesome superlists site
+         # and notices a "Log in" section in the navbar for the first time
+         # It's telling her to enter her email address, so she does
+<span class="line insert"><span class="insert">+</span>        if self.against_staging:</span>
+<span class="line insert"><span class="insert">+</span>            test_email = 'edith.testuser@yahoo.com'</span>
+<span class="line insert"><span class="insert">+</span>        else:</span>
+<span class="line insert"><span class="insert">+</span>            test_email = 'edith@example.com'</span>
+<span class="line insert"><span class="insert">+</span></span>
+         self.browser.get(self.server_url)
+         self.browser.find_element_by_name('email').send_keys(
+<span class="line delete"><span class="delete">-</span>            <span class="eyecatcher">TEST_EMAIL</span> + '\n'</span>
+<span class="line insert"><span class="insert">+</span>            <span class="eyecatcher">test_email</span> + '\n'</span>
+         )
+
+         # A message appears telling her an email has been sent
+<span class="change"><span class="change">@@</span> -56,16 +62,14 <span class="change">@@</span></span> class LoginTest(FunctionalTest):
+         self.assertIn('Check your email', body.text)
+
+         # She checks her email and finds a message
+<span class="line delete"><span class="delete">-</span>        email = mail.outbox[0]</span>
+<span class="line delete"><span class="delete">-</span>        self.assertIn(TEST_EMAIL, email.to)</span>
+<span class="line delete"><span class="delete">-</span>        self.assertEqual(email.subject, SUBJECT)</span>
+<span class="line insert"><span class="insert">+</span>        body = self.wait_for_email(test_email, SUBJECT)</span>
+
+         # It has a url link in it
+<span class="line delete"><span class="delete">-</span>        self.assertIn('Use this link to log in', <span class="eyecatcher">email.</span>body)</span>
+<span class="line delete"><span class="delete">-</span>        url_search = re.search(r'http://.+/.+$', <span class="eyecatcher">email.</span>body)</span>
+<span class="line insert"><span class="insert">+</span>        self.assertIn('Use this link to log in', body)</span>
+<span class="line insert"><span class="insert">+</span>        url_search = re.search(r'http://.+/.+$', body)</span>
+         if not url_search:
+             self.fail(
+<span class="line delete"><span class="delete">-</span>                'Could not find url in email body:\n{}'.format(<span class="eyecatcher">email.</span>body)</span>
+<span class="line insert"><span class="insert">+</span>                'Could not find url in email body:\n{}'.format(body)</span>
+             )
+         url = url_search.group(0)
+         self.assertIn(self.server_url, url)
+<span class="change"><span class="change">@@</span> -74,11 +78,11 <span class="change">@@</span></span> class LoginTest(FunctionalTest):
+         self.browser.get(url)
+
+         # she is logged in!
+<span class="line delete"><span class="delete">-</span>        self.assert_logged_in(email=<span class="eyecatcher">TEST_EMAIL</span>)</span>
+<span class="line insert"><span class="insert">+</span>        self.assert_logged_in(email=<span class="eyecatcher">test_email</span>)</span>
+
+         # Now she logs out
+         self.browser.find_element_by_link_text('Log out').click()
+
+         # She is logged out
+<span class="line delete"><span class="delete">-</span>        self.assert_logged_out(email=<span class="eyecatcher">TEST_EMAIL</span>)</span>
+<span class="line insert"><span class="insert">+</span>        self.assert_logged_out(email=<span class="eyecatcher">test_email</span>)</span></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>And, believe it or not, that&#8217;ll actually work, and give us an FT
+that can actually check for logins that work, involving real emails!</p>
+</div>
+<div class="admonitionblock tip">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-tip" title="Tip"></i>
+</td>
+<td class="content">
+I&#8217;ve just hacked this email-checking code together, and it&#8217;s currently
+    pretty ugly and brittle.  With a few more retry loops it could grow into
+    something more reliable. Alternatively, services like <em>mailinator.com</em> will
+    give you throwaway email addresses and an API to check them, for a small
+    fee.
+</td>
+</tr>
+</table>
 </div>
 </div>
 <div class="sect2">
@@ -1577,9 +1621,9 @@ qnslckvp2aga7tm6xuivyb0ob1akzzwl</pre>
 <i class="fa icon-note" title="Note"></i>
 </td>
 <td class="content">
-If you see an error saying the <code>auth_user</code> table is missing, you may need to
-run <code>manage.py migrate</code>.  In case that doesn&#8217;t work, delete the <code>db.sqlite3</code> file and
-run migrate again, to get a clean slate.
+If you see an error saying the <code>auth_user</code> table is missing, you may need
+to run <code>manage.py migrate</code>.  In case that doesn&#8217;t work, delete the <code>db.sqlite3</code>
+file and run migrate again, to get a clean slate.
 </td>
 </tr>
 </table>
@@ -1620,8 +1664,8 @@ on the staging server if we&#8217;re on that:</p>
 </div>
 </div>
 <div class="paragraph">
-<p>Let&#8217;s see how we know whether or not we&#8217;re working against the
-staging server. <code>self.against_staging</code> gets populated in <em>base.py</em>:</p>
+<p>Let&#8217;s also tweak <em>base.py</em>, to gather a bit more information
+when we populate <code>self.against_staging</code>:</p>
 </div>
 <div class="listingblock sourcecode">
 <div class="title">functional_tests/base.py (ch17l017)</div>
@@ -1636,7 +1680,7 @@ staging server. <code>self.against_staging</code> gets populated in <em>base.py<
             <span class="keyword">if</span> <span class="string"><span class="delimiter">'</span><span class="content">liveserver</span><span class="delimiter">'</span></span> <span class="keyword">in</span> arg:
                 cls.server_host = arg.split(<span class="string"><span class="delimiter">'</span><span class="content">=</span><span class="delimiter">'</span></span>)[<span class="integer">1</span>] <i class="conum" data-value="1"></i><b>(1)</b>
                 cls.server_url = <span class="string"><span class="delimiter">'</span><span class="content">http://</span><span class="delimiter">'</span></span> + cls.server_host
-                cls.against_staging = <span class="predefined-constant">True</span> <i class="conum" data-value="1"></i><b>(1)</b>
+                cls.against_staging = <span class="predefined-constant">True</span>
                 <span class="keyword">return</span>
         <span class="predefined">super</span>().setUpClass()
         cls.against_staging = <span class="predefined-constant">False</span>
@@ -1659,14 +1703,18 @@ staging server. <code>self.against_staging</code> gets populated in <em>base.py<
 <tr>
 <td><i class="conum" data-value="1"></i><b>1</b></td>
 <td>Instead of just storing <code>cls.server_url</code>, we also store the <code>server_host</code>
-and <code>against_staging</code> attributes if we detect the <code>liveserver</code> command-line
-argument.</td>
+attributes if we detect the <code>liveserver</code> command-line argument.</td>
 </tr>
 <tr>
 <td><i class="conum" data-value="2"></i><b>2</b></td>
 <td>We also need a way of resetting the server database in between each test.
-    I&#8217;ll explain the logic of the session-creation code, which should also
-    explain how this works.
+I&#8217;ll explain the logic of the session-creation code, which should also
+explain how this works.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="3"></i><b>3</b></td>
+<td>On a related note, if we&#8217;re against staging, we can skip the normal
+    tearDownClass, whose job is mainly to reset the local test database.
 </td>
 </tr>
 </table>
@@ -1692,17 +1740,17 @@ THIS_FOLDER = path.dirname(path.abspath(__file__))
     <span class="keyword">return</span> subprocess.check_output(
         [
             <span class="string"><span class="delimiter">'</span><span class="content">fab</span><span class="delimiter">'</span></span>,
-            <span class="string"><span class="delimiter">'</span><span class="content">create_session_on_server:email={}</span><span class="delimiter">'</span></span>.format(email), <i class="conum" data-value="1"></i><b>(1)</b> <i class="conum" data-value="2"></i><b>(2)</b>
-            <span class="string"><span class="delimiter">'</span><span class="content">--host={}</span><span class="delimiter">'</span></span>.format(host),
-            <span class="string"><span class="delimiter">'</span><span class="content">--hide=everything,status</span><span class="delimiter">'</span></span>, <i class="conum" data-value="3"></i><b>(3)</b>
+            <span class="string"><span class="delimiter">'</span><span class="content">create_session_on_server:email={}</span><span class="delimiter">'</span></span>.format(email),  <i class="conum" data-value="1"></i><b>(1)</b> <i class="conum" data-value="2"></i><b>(2)</b>
+            <span class="string"><span class="delimiter">'</span><span class="content">--host=elspeth@{}</span><span class="delimiter">'</span></span>.format(host),  <i class="conum" data-value="3"></i><b>(3)</b>
+            <span class="string"><span class="delimiter">'</span><span class="content">--hide=everything,status</span><span class="delimiter">'</span></span>,  <i class="conum" data-value="4"></i><b>(4)</b>
         ],
         cwd=THIS_FOLDER
-    ).decode().strip() <i class="conum" data-value="3"></i><b>(3)</b>
+    ).decode().strip()  <i class="conum" data-value="4"></i><b>(4)</b>
 
 
 <span class="keyword">def</span> <span class="function">reset_database</span>(host):
     subprocess.check_call(
-        [<span class="string"><span class="delimiter">'</span><span class="content">fab</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">reset_database</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">--host={}</span><span class="delimiter">'</span></span>.format(host)],
+        [<span class="string"><span class="delimiter">'</span><span class="content">fab</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">reset_database</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">--host=elspeth@{}</span><span class="delimiter">'</span></span>.format(host)],  <i class="conum" data-value="3"></i><b>(3)</b>
         cwd=THIS_FOLDER
     )</code></pre>
 </div>
@@ -1730,6 +1778,10 @@ to learn more.</td>
 </tr>
 <tr>
 <td><i class="conum" data-value="3"></i><b>3</b></td>
+<td>Replace "elspeth" with your own user account name on your server.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="4"></i><b>4</b></td>
 <td>Because of all the hopping around via Fabric and subprocesses, we&#8217;re forced
 to be quite careful about extracting the session key as a string from the
 output of the command as it gets run on the server.</td>
@@ -1793,7 +1845,7 @@ run server side, to reset the database or set up the session:</p>
 can create a session in the database.  If we detect we&#8217;re running locally,
 we call it directly.  If we&#8217;re against the server, there&#8217;s a couple of hops:
 we use <code>subprocess</code> to get to Fabric via <code>fab</code>, which lets us run a management
-command that calls that same function, on the server.</p>
+command that calls that same function, but on the server.</p>
 </div>
 <div class="paragraph">
 <p>How about an ASCII-art illustration?</p>
@@ -1802,26 +1854,23 @@ command that calls that same function, on the server.</p>
 <div class="title">Locally:</div>
 <div class="content">
 <pre>MyListsTest
-.create_pre_authenticated_session --&gt; .management.commands.create_session
-                                      .create_pre_authenticated_session</pre>
+.create_pre_authenticated_session  &#8594;   .management.commands.create_session
+                                       .create_pre_authenticated_session</pre>
 </div>
 </div>
 <div class="listingblock skipme">
 <div class="title">Against staging:</div>
 <div class="content">
 <pre>MyListsTest
-.create_pre_authenticated_session     .management.commands.create_session
-                                      .create_pre_authenticated_session
-     |
-    \|/                                             /|\
-                                                     |
+.create_pre_authenticated_session      .management.commands.create_session
+                                       .create_pre_authenticated_session
+     &#8595;
+                                                      &#8593;
 server_tools
-.create_session_on_server               run manage.py create_session
+.create_session_on_server                run manage.py create_session
 
-     |                                              /|\
-    \|/                                              |
-
-subprocess.check_output  --&gt;   fab  --&gt;  fabfile.create_session_on_server</pre>
+     &#8595;                                                &#8593;
+subprocess.check_output    &#8594;    fab   &#8594;   fabfile.create_session_on_server</pre>
 </div>
 </div>
 <div class="paragraph">
@@ -1938,187 +1987,14 @@ good, after all.</p>
 <p>Let&#8217;s start by saving the Gunicorn config to our template file in <em>deploy_tools</em>:</p>
 </div>
 <div class="listingblock sourcecode">
-<div class="title">deploy_tools/gunicorn-upstart.template.conf</div>
+<div class="title">deploy_tools/gunicorn-systemd.template.service</div>
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="bash">[...]
-chdir /home/elspeth/sites/SITENAME/source
-
-exec ../virtualenv/bin/gunicorn \
+<pre class="CodeRay highlight"><code data-lang="ini">[...]
+ExecStart=/home/elspeth/sites/SITENAME/virtualenv/bin/gunicorn \
     --bind unix:/tmp/SITENAME.socket \
     --access-logfile ../access.log \
     --error-logfile ../error.log \
     superlists.wsgi:application</code></pre>
-</div>
-</div>
-<div class="sect3">
-<h4 id="_using_hierarchical_logging_config">Using Hierarchical Logging Config</h4>
-<div class="paragraph">
-<p>
-When we hacked in the <code>logging.warning</code> earlier, we were using the root logger.
-That&#8217;s not normally a good idea, since any third-party package can mess with the
-root logger.  The normal pattern is to use a logger named after the file you&#8217;re
-in, by using:</p>
-</div>
-<div class="listingblock skipme">
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="python">logger = logging.getLogger(__name__)</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Logging configuration is hierarchical, so you can define "parent" loggers for
-top-level modules, and all the Python modules inside them will inherit that
-config.</p>
-</div>
-<div class="paragraph">
-<p>Here&#8217;s how we add a logger for both our apps into <em>settings.py</em>:</p>
-</div>
-<div class="listingblock sourcecode">
-<div class="title">superlists/settings.py</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="python">LOGGING = {
-   <span class="string"><span class="delimiter">'</span><span class="content">version</span><span class="delimiter">'</span></span>: <span class="integer">1</span>,
-   <span class="string"><span class="delimiter">'</span><span class="content">disable_existing_loggers</span><span class="delimiter">'</span></span>: <span class="predefined-constant">False</span>,
-   <span class="string"><span class="delimiter">'</span><span class="content">handlers</span><span class="delimiter">'</span></span>: {
-       <span class="string"><span class="delimiter">'</span><span class="content">console</span><span class="delimiter">'</span></span>: {
-           <span class="string"><span class="delimiter">'</span><span class="content">level</span><span class="delimiter">'</span></span>: <span class="string"><span class="delimiter">'</span><span class="content">DEBUG</span><span class="delimiter">'</span></span>,
-           <span class="string"><span class="delimiter">'</span><span class="content">class</span><span class="delimiter">'</span></span>: <span class="string"><span class="delimiter">'</span><span class="content">logging.StreamHandler</span><span class="delimiter">'</span></span>,
-       },
-   },
-   <span class="string"><span class="delimiter">'</span><span class="content">loggers</span><span class="delimiter">'</span></span>: {
-        <span class="string"><span class="delimiter">'</span><span class="content">django</span><span class="delimiter">'</span></span>: {
-            <span class="string"><span class="delimiter">'</span><span class="content">handlers</span><span class="delimiter">'</span></span>: [<span class="string"><span class="delimiter">'</span><span class="content">console</span><span class="delimiter">'</span></span>],
-        },
-        <span class="string"><span class="delimiter">'</span><span class="content">accounts</span><span class="delimiter">'</span></span>: {
-            <span class="string"><span class="delimiter">'</span><span class="content">handlers</span><span class="delimiter">'</span></span>: [<span class="string"><span class="delimiter">'</span><span class="content">console</span><span class="delimiter">'</span></span>],
-        },
-        <span class="string"><span class="delimiter">'</span><span class="content">lists</span><span class="delimiter">'</span></span>: {
-            <span class="string"><span class="delimiter">'</span><span class="content">handlers</span><span class="delimiter">'</span></span>: [<span class="string"><span class="delimiter">'</span><span class="content">console</span><span class="delimiter">'</span></span>],
-        },
-    },
-    <span class="string"><span class="delimiter">'</span><span class="content">root</span><span class="delimiter">'</span></span>: {<span class="string"><span class="delimiter">'</span><span class="content">level</span><span class="delimiter">'</span></span>: <span class="string"><span class="delimiter">'</span><span class="content">INFO</span><span class="delimiter">'</span></span>},
-}</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Now <em>accounts.models</em>, <em>accounts.views</em>, <em>accounts.authentication</em>, and all
-the others will inherit the <code>logging.StreamHandler</code> from the parent <em>accounts</em>
-logger.</p>
-</div>
-<div class="paragraph">
-<p>Unfortunately, because of Django&#8217;s project structure, there&#8217;s no
-way of defining a top-level logger for your whole project (aside from using
-the root logger), so you have to define one logger per app.</p>
-</div>
-<div class="paragraph">
-<p>Here&#8217;s how to write a test for logging behaviour:</p>
-</div>
-<div class="listingblock sourcecode">
-<div class="title">accounts/tests/test_authentication.py (ch17l023)</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">import</span> <span class="include">logging</span>
-[...]
-
-<span class="decorator">@patch</span>(<span class="string"><span class="delimiter">'</span><span class="content">accounts.authentication.requests.post</span><span class="delimiter">'</span></span>)
-<span class="keyword">class</span> <span class="class">AuthenticateTest</span>(TestCase):
-    [...]
-
-    <span class="keyword">def</span> <span class="function">test_logs_non_okay_responses_from_persona</span>(<span class="predefined-constant">self</span>, mock_post):
-        response_json = {
-            <span class="string"><span class="delimiter">'</span><span class="content">status</span><span class="delimiter">'</span></span>: <span class="string"><span class="delimiter">'</span><span class="content">not okay</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">reason</span><span class="delimiter">'</span></span>: <span class="string"><span class="delimiter">'</span><span class="content">eg, audience mismatch</span><span class="delimiter">'</span></span>
-        }
-        mock_post.return_value.ok = <span class="predefined-constant">True</span>
-        mock_post.return_value.json.return_value = response_json  <i class="conum" data-value="1"></i><b>(1)</b>
-
-        logger = logging.getLogger(<span class="string"><span class="delimiter">'</span><span class="content">accounts.authentication</span><span class="delimiter">'</span></span>)  <i class="conum" data-value="2"></i><b>(2)</b>
-        <span class="keyword">with</span> patch.object(logger, <span class="string"><span class="delimiter">'</span><span class="content">warning</span><span class="delimiter">'</span></span>) <span class="keyword">as</span> mock_log_warning:  <i class="conum" data-value="3"></i><b>(3)</b>
-            <span class="predefined-constant">self</span>.backend.authenticate(<span class="string"><span class="delimiter">'</span><span class="content">an assertion</span><span class="delimiter">'</span></span>)
-
-        mock_log_warning.assert_called_once_with(
-            <span class="string"><span class="delimiter">'</span><span class="content">Persona says no. Json was: {}</span><span class="delimiter">'</span></span>.format(response_json)  <i class="conum" data-value="4"></i><b>(4)</b>
-        )</code></pre>
-</div>
-</div>
-<div class="colist arabic">
-<table>
-<tr>
-<td><i class="conum" data-value="1"></i><b>1</b></td>
-<td>We set up our test with some data that should cause some logging.</td>
-</tr>
-<tr>
-<td><i class="conum" data-value="2"></i><b>2</b></td>
-<td>We retrieve the actual logger for the module we&#8217;re testing.</td>
-</tr>
-<tr>
-<td><i class="conum" data-value="3"></i><b>3</b></td>
-<td>We use <code>patch.object</code> to temporarily mock out its warning function,
-by using <code>with</code> to make it a <em>context manager</em> around the function we&#8217;re
-testing.</td>
-</tr>
-<tr>
-<td><i class="conum" data-value="4"></i><b>4</b></td>
-<td>And then it&#8217;s available for us to make assertions against.</td>
-</tr>
-</table>
-</div>
-<div class="paragraph">
-<p>That gives us:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>AssertionError: Expected 'warning' to be called once. Called 0 times.</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Let&#8217;s just try it out, to make sure we really are testing what we think
-we are:</p>
-</div>
-<div class="listingblock sourcecode">
-<div class="title">accounts/authentication.py (ch17l024)</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">import</span> <span class="include">logging</span>
-logger = logging.getLogger(__name__)
-[...]
-
-        <span class="keyword">if</span> response.ok <span class="keyword">and</span> response.json()[<span class="string"><span class="delimiter">'</span><span class="content">status</span><span class="delimiter">'</span></span>] == <span class="string"><span class="delimiter">'</span><span class="content">okay</span><span class="delimiter">'</span></span>:
-            [...]
-        <span class="keyword">else</span>:
-            logger.warning(<span class="string"><span class="delimiter">'</span><span class="content">foo</span><span class="delimiter">'</span></span>)</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>We get the expected failure:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>AssertionError: Expected call: warning("Persona says no. Json was: {'status':
-'not okay', 'reason': 'eg, audience mismatch'}")
-Actual call: warning('foo')</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>And so we settle in with our real implementation:</p>
-</div>
-<div class="listingblock sourcecode">
-<div class="title">accounts/authentication.py (ch17l025)</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="python">    <span class="keyword">else</span>:
-        logger.warning(
-            <span class="string"><span class="delimiter">'</span><span class="content">Persona says no. Json was: {}</span><span class="delimiter">'</span></span>.format(response.json())
-        )</code></pre>
-</div>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>$ <strong>python manage.py test accounts</strong>
-[...]
-Ran 15 tests in 0.033s
-
-OK</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>You can easily imagine how you could test more combinations at this point,
-if you wanted different error messages for <code>response.ok != True</code>, and so on.</p>
 </div>
 </div>
 </div>
@@ -2176,8 +2052,199 @@ ORM, or a tool like <a href="https://factoryboy.readthedocs.org/">factory_boy</a
 using the Django ORM for tests running locally.  Interacting with the
 database on the staging server is not so straightforward&#8212;&#8203;one solution
 is Django management commands, as I&#8217;ve shown, but you should explore what
-works for you, and be careful!</p>
+works for you.</p>
 </dd>
+<dt class="hdlist1">Be very careful when resetting data on your servers</dt>
+<dd>
+<p>A command that can remotely wipe the entire database on one of your
+servers is a dangerous weapon, and you want to be really, really sure
+it&#8217;s never accidentally going to hit your production data.</p>
+</dd>
+</dl>
+</div>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_stuff_from_the_old_edition_that_we_might_want_to_save">Stuff from the old edition that we might want to save</h3>
+<div class="sect3">
+<h4 id="_using_hierarchical_logging_config">Using Hierarchical Logging Config</h4>
+<div class="paragraph">
+<p>TODO: this section has not yet been adapted to the new version</p>
+</div>
+<div class="paragraph">
+<p>
+When we hacked in the <code>logging.warning</code> earlier, we were using the root logger.
+That&#8217;s not normally a good idea, since any third-party package can mess with the
+root logger.  The normal pattern is to use a logger named after the file you&#8217;re
+in, by using:</p>
+</div>
+<div class="listingblock skipme">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python">logger = logging.getLogger(__name__)</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Logging configuration is hierarchical, so you can define "parent" loggers for
+top-level modules, and all the Python modules inside them will inherit that
+config.</p>
+</div>
+<div class="paragraph">
+<p>Here&#8217;s how we add a logger for both our apps into <em>settings.py</em>:</p>
+</div>
+<div class="listingblock sourcecode skipme">
+<div class="title">superlists/settings.py</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python">LOGGING = {
+   <span class="string"><span class="delimiter">'</span><span class="content">version</span><span class="delimiter">'</span></span>: <span class="integer">1</span>,
+   <span class="string"><span class="delimiter">'</span><span class="content">disable_existing_loggers</span><span class="delimiter">'</span></span>: <span class="predefined-constant">False</span>,
+   <span class="string"><span class="delimiter">'</span><span class="content">handlers</span><span class="delimiter">'</span></span>: {
+       <span class="string"><span class="delimiter">'</span><span class="content">console</span><span class="delimiter">'</span></span>: {
+           <span class="string"><span class="delimiter">'</span><span class="content">level</span><span class="delimiter">'</span></span>: <span class="string"><span class="delimiter">'</span><span class="content">DEBUG</span><span class="delimiter">'</span></span>,
+           <span class="string"><span class="delimiter">'</span><span class="content">class</span><span class="delimiter">'</span></span>: <span class="string"><span class="delimiter">'</span><span class="content">logging.StreamHandler</span><span class="delimiter">'</span></span>,
+       },
+   },
+   <span class="string"><span class="delimiter">'</span><span class="content">loggers</span><span class="delimiter">'</span></span>: {
+        <span class="string"><span class="delimiter">'</span><span class="content">django</span><span class="delimiter">'</span></span>: {
+            <span class="string"><span class="delimiter">'</span><span class="content">handlers</span><span class="delimiter">'</span></span>: [<span class="string"><span class="delimiter">'</span><span class="content">console</span><span class="delimiter">'</span></span>],
+        },
+        <span class="string"><span class="delimiter">'</span><span class="content">accounts</span><span class="delimiter">'</span></span>: {
+            <span class="string"><span class="delimiter">'</span><span class="content">handlers</span><span class="delimiter">'</span></span>: [<span class="string"><span class="delimiter">'</span><span class="content">console</span><span class="delimiter">'</span></span>],
+        },
+        <span class="string"><span class="delimiter">'</span><span class="content">lists</span><span class="delimiter">'</span></span>: {
+            <span class="string"><span class="delimiter">'</span><span class="content">handlers</span><span class="delimiter">'</span></span>: [<span class="string"><span class="delimiter">'</span><span class="content">console</span><span class="delimiter">'</span></span>],
+        },
+    },
+    <span class="string"><span class="delimiter">'</span><span class="content">root</span><span class="delimiter">'</span></span>: {<span class="string"><span class="delimiter">'</span><span class="content">level</span><span class="delimiter">'</span></span>: <span class="string"><span class="delimiter">'</span><span class="content">INFO</span><span class="delimiter">'</span></span>},
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Now <em>accounts.models</em>, <em>accounts.views</em>, <em>accounts.authentication</em>, and all
+the others will inherit the <code>logging.StreamHandler</code> from the parent <em>accounts</em>
+logger.</p>
+</div>
+<div class="paragraph">
+<p>Unfortunately, because of Django&#8217;s project structure, there&#8217;s no
+way of defining a top-level logger for your whole project (aside from using
+the root logger), so you have to define one logger per app.</p>
+</div>
+<div class="paragraph">
+<p>Here&#8217;s how to write a test for logging behaviour:</p>
+</div>
+<div class="listingblock sourcecode skipme">
+<div class="title">accounts/tests/test_authentication.py (ch17l023)</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">import</span> <span class="include">logging</span>
+[...]
+
+<span class="decorator">@patch</span>(<span class="string"><span class="delimiter">'</span><span class="content">accounts.authentication.requests.post</span><span class="delimiter">'</span></span>)
+<span class="keyword">class</span> <span class="class">AuthenticateTest</span>(TestCase):
+    [...]
+
+    <span class="keyword">def</span> <span class="function">test_logs_non_okay_responses_from_persona</span>(<span class="predefined-constant">self</span>, mock_post):
+        response_json = {
+            <span class="string"><span class="delimiter">'</span><span class="content">status</span><span class="delimiter">'</span></span>: <span class="string"><span class="delimiter">'</span><span class="content">not okay</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">reason</span><span class="delimiter">'</span></span>: <span class="string"><span class="delimiter">'</span><span class="content">eg, audience mismatch</span><span class="delimiter">'</span></span>
+        }
+        mock_post.return_value.ok = <span class="predefined-constant">True</span>
+        mock_post.return_value.json.return_value = response_json  <i class="conum" data-value="1"></i><b>(1)</b>
+
+        logger = logging.getLogger(<span class="string"><span class="delimiter">'</span><span class="content">accounts.authentication</span><span class="delimiter">'</span></span>)  <i class="conum" data-value="2"></i><b>(2)</b>
+        <span class="keyword">with</span> patch.object(logger, <span class="string"><span class="delimiter">'</span><span class="content">warning</span><span class="delimiter">'</span></span>) <span class="keyword">as</span> mock_log_warning:  <i class="conum" data-value="3"></i><b>(3)</b>
+            <span class="predefined-constant">self</span>.backend.authenticate(<span class="string"><span class="delimiter">'</span><span class="content">an assertion</span><span class="delimiter">'</span></span>)
+
+        mock_log_warning.assert_called_once_with(
+            <span class="string"><span class="delimiter">'</span><span class="content">Persona says no. Json was: {}</span><span class="delimiter">'</span></span>.format(response_json)  <i class="conum" data-value="4"></i><b>(4)</b>
+        )</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>We set up our test with some data that should cause some logging.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>We retrieve the actual logger for the module we&#8217;re testing.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="3"></i><b>3</b></td>
+<td>We use <code>patch.object</code> to temporarily mock out its warning function,
+by using <code>with</code> to make it a <em>context manager</em> around the function we&#8217;re
+testing.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="4"></i><b>4</b></td>
+<td>And then it&#8217;s available for us to make assertions against.</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>That gives us:</p>
+</div>
+<div class="listingblock skipme">
+<div class="content">
+<pre>AssertionError: Expected 'warning' to be called once. Called 0 times.</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Let&#8217;s just try it out, to make sure we really are testing what we think
+we are:</p>
+</div>
+<div class="listingblock sourcecode skipme">
+<div class="title">accounts/authentication.py (ch17l024)</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">import</span> <span class="include">logging</span>
+logger = logging.getLogger(__name__)
+[...]
+
+        <span class="keyword">if</span> response.ok <span class="keyword">and</span> response.json()[<span class="string"><span class="delimiter">'</span><span class="content">status</span><span class="delimiter">'</span></span>] == <span class="string"><span class="delimiter">'</span><span class="content">okay</span><span class="delimiter">'</span></span>:
+            [...]
+        <span class="keyword">else</span>:
+            logger.warning(<span class="string"><span class="delimiter">'</span><span class="content">foo</span><span class="delimiter">'</span></span>)</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>We get the expected failure:</p>
+</div>
+<div class="listingblock skipme">
+<div class="content">
+<pre>AssertionError: Expected call: warning("Persona says no. Json was: {'status':
+'not okay', 'reason': 'eg, audience mismatch'}")
+Actual call: warning('foo')</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>And so we settle in with our real implementation:</p>
+</div>
+<div class="listingblock sourcecode skipme">
+<div class="title">accounts/authentication.py (ch17l025)</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python">    <span class="keyword">else</span>:
+        logger.warning(
+            <span class="string"><span class="delimiter">'</span><span class="content">Persona says no. Json was: {}</span><span class="delimiter">'</span></span>.format(response.json())
+        )</code></pre>
+</div>
+</div>
+<div class="listingblock skipme">
+<div class="content">
+<pre>$ <strong>python manage.py test accounts</strong>
+[...]
+Ran 15 tests in 0.033s
+
+OK</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>You can easily imagine how you could test more combinations at this point,
+if you wanted different error messages for <code>response.ok != True</code>, and so on.</p>
+</div>
+<div class="sidebarblock">
+<div class="content">
+<div class="title">More notes</div>
+<div class="dlist">
+<dl>
 <dt class="hdlist1">Use loggers named after the module you&#8217;re in</dt>
 <dd>
 <p>The root logger is a single global object, available to any library that&#8217;s
@@ -2203,9 +2270,10 @@ convenient way of unit testing it.</p>
 </div>
 </div>
 </div>
+</div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2016-08-20 15:27:44 CEST
+Last updated 2016-10-09 22:24:00 BST
 </div>
 </div>
 <div class="comments" style="padding: 20px">
