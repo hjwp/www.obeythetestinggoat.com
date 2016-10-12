@@ -84,7 +84,8 @@ Table of contents follows:
 
 ### [Part 1: The Basics of TDD and Django](/book/part1.harry.html)
 
-* [Chapter 1: Getting Django Set Up Using a Functional Test](/book/chapter_01.html)
+
+pica* [Chapter 1: Getting Django Set Up Using a Functional Test](/book/chapter_01.html)
 * [Chapter 2: Extending Our Functional Test Using the unittest Module](/book/chapter_02.html)
 * [Chapter 3: Testing a Simple Home Page with Unit Tests](/book/chapter_03.html)
 * [Chapter 4: What Are We Doing with All These Tests?](/book/chapter_04.html)
@@ -99,8 +100,8 @@ Table of contents follows:
 * [Chapter 10: Input Validation and Test Organisation](/book/chapter_10.html)
 * [Chapter 11: A Simple Form](/book/chapter_11.html)
 * [Chapter 12: More Advanced Forms](/book/chapter_12.html)
-* [Chapter 13: Dipping Our Toes, Very Tentatively, into JavaScript](/book/chapter_14.html)
-* [Chapter 14: Deploying Our New Code](/book/chapter_13.html)
+* [Chapter 13: Dipping Our Toes, Very Tentatively, into JavaScript](/book/chapter_13.html)
+* [Chapter 14: Deploying Our New Code](/book/chapter_14.html)
 
 ### [Part 3: More Advanced Topics](/book/part3.harry.html)
 
