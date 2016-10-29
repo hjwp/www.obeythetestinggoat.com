@@ -85,7 +85,7 @@ Table of contents follows:
 ### [Part 1: The Basics of TDD and Django](/book/part1.harry.html)
 
 
-pica* [Chapter 1: Getting Django Set Up Using a Functional Test](/book/chapter_01.html)
+* [Chapter 1: Getting Django Set Up Using a Functional Test](/book/chapter_01.html)
 * [Chapter 2: Extending Our Functional Test Using the unittest Module](/book/chapter_02.html)
 * [Chapter 3: Testing a Simple Home Page with Unit Tests](/book/chapter_03.html)
 * [Chapter 4: What Are We Doing with All These Tests?](/book/chapter_04.html)

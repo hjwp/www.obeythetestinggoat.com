@@ -992,23 +992,72 @@ works against the database on the staging server too.
 </div>
 <div class="sidebarblock">
 <div class="content">
-<div class="title">JSON Test Fixtures Considered Harmful</div>
+<div class="title">Django Sessions: How a User&#8217;s Cookies Tell the Server She Is Authenticated</div>
 <div class="paragraph">
-<p>When we pre-populate the database with test data, as we&#8217;ve done here with the
-<code>User</code> object and its associated <code>Session</code> object, what we&#8217;re doing is setting
-up a "test fixture".</p>
+<p><em>Being an attempt to explain sessions, cookies, and authentication in Django.</em>
+
+
+
+</p>
 </div>
 <div class="paragraph">
-<p>Django comes with built-in support for saving database objects as JSON (using
-the <code>manage.py dumpdata</code>), and automatically loading them in your test runs
-using the <code>fixtures</code> class attribute on <code>TestCase</code>.</p>
+<p>Because HTTP is stateless, servers need a way of recognising different clients
+with <em>every single request</em>. IP addresses can be shared, so the usual
+solution is to give each client a unique session ID, which it will store in a
+cookie, and submit with every request.  The server will store that ID somewhere
+(by default, in the database), and then it can recognise each request that
+comes in as being from a particular client.</p>
 </div>
 <div class="paragraph">
-<p>More and more people are starting to say:
-<a href="http://bit.ly/1kSTyrb">don&#8217;t use JSON fixtures</a>.
-They&#8217;re a nightmare to maintain when your model changes.  Instead, if you can,
-load data directly using the Django ORM, or look into a tool like
-<a href="https://factoryboy.readthedocs.org/"><code>factory_boy</code></a>.</p>
+<p>If you log in to the site using the dev server, you can actually take a look at
+your session ID by hand if you like.  It&#8217;s stored under the key <code>sessionid</code> by
+default. See <a href="#session-cookie-screenshot">Examining the session cookie in the Debug toolbar</a>.</p>
+</div>
+<div id="session-cookie-screenshot" class="imageblock">
+<div class="content">
+<img src="images/twdp_1601.png" alt="twdp 1601">
+</div>
+<div class="title">Figure 1. Examining the session cookie in the Debug toolbar</div>
+</div>
+<div class="paragraph">
+<p>These session cookies are set for all visitors to a Django site, whether
+they&#8217;re logged in or not.</p>
+</div>
+<div class="paragraph">
+<p>When we want to recognise a client as being a logged-in and authenticated user,
+again, rather asking the client to send their username and password with every
+single request, the server can actually just mark that client&#8217;s session as
+being an authenticated session, and associate it with a user ID in its
+database.</p>
+</div>
+<div class="paragraph">
+<p>A session is a dictionary-like data structure, and the user ID is stored under
+the key given by <code>django.contrib.auth.SESSION_KEY</code>.  You can check this out
+in a <code>manage.py</code> console if you like:</p>
+</div>
+<div class="listingblock skipme small-code">
+<div class="content">
+<pre>$ <strong>python manage.py shell</strong>
+[...]
+In [1]: from django.contrib.sessions.models import Session
+
+# substitute your session id from your browser cookie here
+In [2]: session = Session.objects.get(
+    session_key="8u0pygdy9blo696g3n4o078ygt6l8y0y"
+)
+
+In [3]: print(session.get_decoded())
+{'_auth_user_id': '<a href="mailto:harry@mockmyid.com">harry@mockmyid.com</a>', '_auth_user_backend':
+'accounts.authentication.PersonaAuthenticationBackend'}</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>You can also store any other information you like on a user&#8217;s session,
+as a way of temporarily keeping track of some state. This works for
+non-logged-in users too.  Just use <code>request.session</code> inside any
+view, and it works as a dict. There&#8217;s more information in the
+<a href="https://docs.djangoproject.com/en/1.8/topics/http/sessions/">Django docs on
+sessions</a>.</p>
 </div>
 </div>
 </div>
@@ -1018,9 +1067,8 @@ load data directly using the Django ORM, or look into a tool like
 <p>To check it works, it would be good to use some of the code from our previous
 test.  Let&#8217;s make a couple of functions called <code>assert_logged_in</code> and
 <code>assert_logged_out</code>. To access them from a different test, we&#8217;ll need
-to pull it up into <code>FunctionalTest</code>, as well as a couple of other methods.
-We&#8217;ll also tweak them slightly so that they can take an arbitrary email address
-as a parameter:</p>
+to pull them up into <code>FunctionalTest</code>. We&#8217;ll also tweak them slightly so that
+they can take an arbitrary email address as a parameter:</p>
 </div>
 <div class="listingblock sourcecode">
 <div class="title">functional_tests/base.py (ch17l002)</div>
@@ -1102,12 +1150,34 @@ OK</pre>
 <div class="listingblock">
 <div class="content">
 <pre>$ <strong>git add functional_tests</strong>
-$ <strong>git commit -m "placeholder test_my_lists and move login checkers into base"</strong></pre>
+$ <strong>git commit -m "test_my_lists: precreate sessions, move login checks into base"</strong></pre>
 </div>
 </div>
 <div class="paragraph">
 <p>
 </p>
+</div>
+<div class="sidebarblock">
+<div class="content">
+<div class="title">JSON Test Fixtures Considered Harmful</div>
+<div class="paragraph">
+<p>When we pre-populate the database with test data, as we&#8217;ve done here with the
+<code>User</code> object and its associated <code>Session</code> object, what we&#8217;re doing is setting
+up a "test fixture".</p>
+</div>
+<div class="paragraph">
+<p>Django comes with built-in support for saving database objects as JSON (using
+the <code>manage.py dumpdata</code>), and automatically loading them in your test runs
+using the <code>fixtures</code> class attribute on <code>TestCase</code>.</p>
+</div>
+<div class="paragraph">
+<p>More and more people are starting to say:
+<a href="http://bit.ly/1kSTyrb">don&#8217;t use JSON fixtures</a>.
+They&#8217;re a nightmare to maintain when your model changes.  Instead, if you can,
+load data directly using the Django ORM, or look into a tool like
+<a href="https://factoryboy.readthedocs.org/"><code>factory_boy</code></a>.</p>
+</div>
+</div>
 </div>
 </div>
 </div>
@@ -2291,7 +2361,7 @@ convenient way of unit testing it.</p>
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2016-10-13 17:36:34 BST
+Last updated 2016-10-27 13:05:02 BST
 </div>
 </div>
 <div class="comments" style="padding: 20px">
