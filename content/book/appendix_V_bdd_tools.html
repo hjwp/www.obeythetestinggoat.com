@@ -4,7 +4,7 @@
 <!--[if IE]><meta http-equiv="X-UA-Compatible" content="IE=edge"><![endif]-->
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="generator" content="Asciidoctor 1.5.4">
-<title>Prettification: Layout and Styling, and What to Test About It</title>
+<title>Behaviour-Driven Development (BDD)</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:300,300italic,400,400italic,600,600italic%7CNoto+Serif:400,400italic,700,700italic%7CDroid+Sans+Mono:400,700">
 <style>
 /* Asciidoctor default stylesheet | MIT License | http://asciidoctor.org */
@@ -900,683 +900,384 @@ table.CodeRay td.code>pre{padding:0}
 </div>
 <div id="content">
 <div class="sect1">
-<h2 id="_prettification_layout_and_styling_and_what_to_test_about_it">Prettification: Layout and Styling, and What to Test About It</h2>
+<h2 id="appendix-bdd">Appendix A: Behaviour-Driven Development (BDD)</h2>
 <div class="sectionbody">
 <div class="paragraph">
 <p>
-
-
-We&#8217;re starting to think about releasing the first version of our site, but
-we&#8217;re a bit embarrassed by how ugly it looks at the moment.  In this
-chapter, we&#8217;ll cover some of the basics of styling, including integrating an
-HTML/CSS framework called Bootstrap.  We&#8217;ll learn how static files work
-in Django, and what we need to do about testing them.</p>
+Now I haven&#8217;t used BDD "in anger," so I can&#8217;t claim any sort of expertise, but I
+really like what I have seen of it, and I thought that you deserved at least a
+whirlwind tour.  In this appendix, we&#8217;ll take some of the tests we wrote in a
+"normal" FT, and convert them to using BDD tools.</p>
 </div>
 <div class="sect2">
-<h3 id="_what_to_functionally_test_about_layout_and_style">What to Functionally Test About Layout and Style</h3>
+<h3 id="_what_is_bdd">What is BDD?</h3>
 <div class="paragraph">
-<p>
-
-Our site is undeniably a bit unattractive at the moment
-(<a href="#homepage-looking-ugly">Our homepage, looking a little ugly&#8230;&#8203;</a>).</p>
-</div>
-<div class="admonitionblock note">
-<table>
-<tr>
-<td class="icon">
-<i class="fa icon-note" title="Note"></i>
-</td>
-<td class="content">
-If you spin up your dev server with <code>manage.py runserver</code>, you
-may run into a database error "table lists_item has no column named list_id".
-You need to update your local database to reflect the changes we made in
-<em>models.py</em>.  Use <code>manage.py migrate</code>.
-</td>
-</tr>
-</table>
-</div>
-<div class="paragraph">
-<p>We can&#8217;t be adding to Python&#8217;s reputation for being
-<a href="http://grokcode.com/746/dear-python-why-are-you-so-ugly/">ugly</a>,
-so let&#8217;s do a tiny bit of polishing.  Here&#8217;s a few things we might want:</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p>A nice large input field for adding new and existing lists</p>
-</li>
-<li>
-<p>A large, attention-grabbing, centered box to put it in</p>
-</li>
-</ul>
-</div>
-<div class="paragraph">
-<p>How do we apply TDD to these things?  Most people will tell you you
-shouldn&#8217;t test aesthetics, and they&#8217;re right.  It&#8217;s a bit like testing a
-constant, in that tests usually wouldn&#8217;t add any value.</p>
-</div>
-<div id="homepage-looking-ugly" class="imageblock">
-<div class="content">
-<img src="images/twdp_0701.png" alt="Our homepage, looking a little ugly.">
-</div>
-<div class="title">Figure 1. Our homepage, looking a little ugly&#8230;&#8203;</div>
+<p>BDD, <em>strictly</em> speaking, is a methodology rather than a toolset&#8212;&#8203;it&#8217;s the
+approach of testing your application by testing the behaviour that we expect it
+to display to a user (the
+<a href="https://en.wikipedia.org/wiki/Behavior-driven_development">Wikipedia entry</a>
+has quite a good overview). So, in some ways, the selenium-based FTs that I&#8217;ve
+shown in the rest of the book <em>could</em> be called BDD.</p>
 </div>
 <div class="paragraph">
 <p>
 
-But we can test the implementation of our aesthetics&#8212;&#8203;just enough to
-reassure ourselves that things are working.  For example, we&#8217;re going to use
-Cascading Style Sheets (CSS) for our styling, and they are loaded as static
-files.  Static files can be a bit tricky to configure (especially, as we&#8217;ll see
-later, when you move off your own PC and onto a hosting site), so we&#8217;ll want
-some kind of simple "smoke test" that the CSS has loaded.  We don&#8217;t have to
-test fonts and colours and every single pixel, but we can do a quick check that
-the main input box is aligned the way we want it on each page, and that will
-give us confidence that the rest of the styling for that page is probably
-loaded too.</p>
+But the term has become closely associated with a particular set of tools for
+doing BDD, most importantly the
+<a href="https://github.com/cucumber/cucumber/wiki/Gherkin">Gherkin syntax</a>, which is a
+human-readable DSL for writing functional (or acceptance) tests. Gherkin
+originally came out of the Ruby world, where it&#8217;s associated with a test runner
+called <a href="http://cukes.info/">Cucumber</a>.</p>
 </div>
 <div class="paragraph">
-<p>We start with a new test method inside our functional test:</p>
+<p>
+
+In the Python world, we have a couple of equivalent test running tools,
+<a href="http://lettuce.it/">Lettuce</a> and <a href="http://pythonhosted.org/behave/">Behave</a>.
+Of these, only Behave was compatible with Python 3 at the time of writing, so
+that&#8217;s what we&#8217;ll use. We&#8217;ll also use a plugin called
+<a href="https://pythonhosted.org/behave-django/">behave-django</a>.</p>
 </div>
-<div class="listingblock sourcecode">
-<div class="title">functional_tests/tests.py (ch07l001)</div>
+<div class="sidebarblock">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">class</span> <span class="class">NewVisitorTest</span>(LiveServerTestCase):
-    [...]
-
-
-    <span class="keyword">def</span> <span class="function">test_layout_and_styling</span>(<span class="predefined-constant">self</span>):
-        <span class="comment"># Edith goes to the home page</span>
-        <span class="predefined-constant">self</span>.browser.get(<span class="predefined-constant">self</span>.live_server_url)
-        <span class="predefined-constant">self</span>.browser.set_window_size(<span class="integer">1024</span>, <span class="integer">768</span>)
-
-        <span class="comment"># She notices the input box is nicely centered</span>
-        inputbox = <span class="predefined-constant">self</span>.browser.find_element_by_id(<span class="string"><span class="delimiter">'</span><span class="content">id_new_item</span><span class="delimiter">'</span></span>)
-        <span class="predefined-constant">self</span>.assertAlmostEqual(
-            inputbox.location[<span class="string"><span class="delimiter">'</span><span class="content">x</span><span class="delimiter">'</span></span>] + inputbox.size[<span class="string"><span class="delimiter">'</span><span class="content">width</span><span class="delimiter">'</span></span>] / <span class="integer">2</span>,
-            <span class="integer">512</span>,
-            delta=<span class="integer">5</span>
-        )</code></pre>
-</div>
+<div class="title">Getting the Code for These Examples</div>
+<div class="paragraph">
+<p>I&#8217;m going to use the example from <a href="/book/chapter_18.html">Chapter 18</a>.
+We have a basic to-do lists site, and we want to add a new feature:
+logged-in users should be able to view the lists they&#8217;ve authored in one place.
+Up until this point, all lists are effectively anonymous.</p>
 </div>
 <div class="paragraph">
-<p>A few new things here.  We start by setting the window size to a fixed
-size. We then find the input element, look at its size and location, and
-do a little maths to check whether it seems to be positioned in the middle
-of the page.  <code>assertAlmostEqual</code> helps us to deal with rounding errors by
-letting us specify that we want our arithmetic to work to within plus or
-minus five pixels.</p>
+<p>If you&#8217;ve been following along with the book, I&#8217;m going to assume you can skip
+back to the code for that point.  If you want to pull it from my repo, the
+place to go is the
+<a href="https://github.com/hjwp/book-example/tree/chapter_17">chapter_17 branch</a>.</p>
 </div>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_basic_housekeeping">Basic Housekeeping</h3>
 <div class="paragraph">
-<p>If we run the functional tests, we get:</p>
+<p>We make a directory for our BDD "features," add a steps directory (we&#8217;ll find
+out what these are shortly!), and placeholder for our first feature:</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>$ <strong>python3 manage.py test functional_tests</strong>
-Creating test database for alias 'default'...
-.F
-======================================================================
-FAIL: test_layout_and_styling (functional_tests.tests.NewVisitorTest)
- ---------------------------------------------------------------------
-Traceback (most recent call last):
-  File "/workspace/superlists/functional_tests/tests.py", line 104, in
-test_layout_and_styling
-    delta=5
-AssertionError: 112.0 != 512 within 5 delta
-
- ---------------------------------------------------------------------
-Ran 2 tests in 9.188s
-
-FAILED (failures=1)
-Destroying test database for alias 'default'...</pre>
+<pre>$ <strong>mkdir -p features/steps</strong>
+$ <strong>touch features/my_lists.feature</strong>
+$ <strong>touch features/steps/my_lists.py</strong>
+$ <strong>tree features</strong>
+features
+&#9500;&#9472;&#9472; my_lists.feature
+&#9492;&#9472;&#9472; steps
+ &#160;&#160; &#9492;&#9472;&#9472; my_lists.py</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>That&#8217;s the expected failure.  Still, this kind of FT is easy to get wrong, so
-let&#8217;s use a quick-and-dirty "cheat" solution, to check that the FT also passes
-when the input box is centered.  We&#8217;ll delete this code again almost as soon
-as we&#8217;ve used it to check the FT:</p>
+<p>We install behave-django, and add it to settings.py:</p>
 </div>
-<div class="listingblock sourcecode small-code">
-<div class="title">lists/templates/home.html (ch07l002)</div>
+<div class="listingblock">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="html"><span class="tag">&lt;form</span> <span class="attribute-name">method</span>=<span class="string"><span class="delimiter">"</span><span class="content">POST</span><span class="delimiter">"</span></span> <span class="attribute-name">action</span>=<span class="string"><span class="delimiter">"</span><span class="content">/lists/new</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>
-    <span class="tag">&lt;p</span> <span class="attribute-name">style</span>=<span class="string"><span class="delimiter">"</span><span class="key">text-align</span>: <span class="value">center</span>;<span class="delimiter">"</span></span><span class="tag">&gt;</span>
-        <span class="tag">&lt;input</span> <span class="attribute-name">name</span>=<span class="string"><span class="delimiter">"</span><span class="content">item_text</span><span class="delimiter">"</span></span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">"</span><span class="content">id_new_item</span><span class="delimiter">"</span></span> <span class="attribute-name">placeholder</span>=<span class="string"><span class="delimiter">"</span><span class="content">Enter a to-do item</span><span class="delimiter">"</span></span> <span class="tag">/&gt;</span>
-    <span class="tag">&lt;/p&gt;</span>
-    {% csrf_token %}
-<span class="tag">&lt;/form&gt;</span></code></pre>
+<pre>$ <strong>pip install behave-django</strong></pre>
 </div>
-</div>
-<div class="paragraph">
-<p>That passes, which means the FT works.  Let&#8217;s extend it to make sure that the
-input box is also center-aligned on the page for a new list:</p>
 </div>
 <div class="listingblock sourcecode">
-<div class="title">functional_tests/tests.py (ch07l003)</div>
+<div class="title">lists/tests.py</div>
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python">    <span class="comment"># She starts a new list and sees the input is nicely</span>
-    <span class="comment"># centered there too</span>
-    inputbox.send_keys(<span class="string"><span class="delimiter">'</span><span class="content">testing</span><span class="char">\n</span><span class="delimiter">'</span></span>)
-    inputbox = <span class="predefined-constant">self</span>.browser.find_element_by_id(<span class="string"><span class="delimiter">'</span><span class="content">id_new_item</span><span class="delimiter">'</span></span>)
-    <span class="predefined-constant">self</span>.assertAlmostEqual(
-        inputbox.location[<span class="string"><span class="delimiter">'</span><span class="content">x</span><span class="delimiter">'</span></span>] + inputbox.size[<span class="string"><span class="delimiter">'</span><span class="content">width</span><span class="delimiter">'</span></span>] / <span class="integer">2</span>,
-        <span class="integer">512</span>,
-        delta=<span class="integer">5</span>
+<pre class="CodeRay highlight"><code data-lang="diff"><span class="line head"><span class="head">--- </span><span class="filename">a/superlists/settings.py</span></span>
+<span class="line head"><span class="head">+++ </span><span class="filename">b/superlists/settings.py</span></span>
+<span class="change"><span class="change">@@</span> -41,6 +41,7 <span class="change">@@</span></span> INSTALLED_APPS = (
+     <span class="string"><span class="delimiter">'</span><span class="content">lists</span><span class="delimiter">'</span></span>,
+     <span class="string"><span class="delimiter">'</span><span class="content">accounts</span><span class="delimiter">'</span></span>,
+     <span class="string"><span class="delimiter">'</span><span class="content">functional_tests</span><span class="delimiter">'</span></span>,
+<span class="line insert"><span class="insert">+</span>    <span class="string"><span class="delimiter">'</span><span class="content">behave_django</span><span class="delimiter">'</span></span>,</span>
+ )</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>And then run <code>python manage.py behave</code> as a sanity check:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>python manage.py behave</strong>
+Creating test database for alias <em>default</em>...
+0 features passed, 0 failed, 0 skipped
+0 scenarios passed, 0 failed, 0 skipped
+0 steps passed, 0 failed, 0 skipped, 0 undefined
+Took 0m0.000s</pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_writing_an_ft_as_a_feature_using_gherkin_syntax">Writing an FT as a "Feature" using Gherkin Syntax</h3>
+<div class="paragraph">
+<p>Up until now, we&#8217;ve been writing our FTs using human-readable comments
+that describe the new feature in terms of a user story, interspersed
+with the selenium code required to execute each step in the story.</p>
+</div>
+<div class="paragraph">
+<p>BDD enforces a distinction between those two&#8212;&#8203;we write our human-readable
+story using a human-readable (if occasionally somewhat awkward) syntax
+called "Gherkin", and that is called the "Feature".  Later, we&#8217;ll map
+each line of Gherkin to a function that contains the selenium code necessary
+to implement that "step."</p>
+</div>
+<div class="paragraph">
+<p>Here&#8217;s what a Feature for our new "My lists" page could look like:</p>
+</div>
+<div class="listingblock sourcecode">
+<div class="title">features/my_lists.feature</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="gherkin">Feature: My Lists
+    As a logged-in user
+    I want to be able to see all my lists in one page
+    So that I can find them all after I've written them
+
+    Scenario: Create two lists and see them on the My Lists page
+
+        Given I am a logged-in user
+
+        When I create a list with first item "Reticulate Splines"
+            And I add an item "Immanentize Eschaton"
+            And I create a list with first item "Buy milk"
+
+        Then I will see a link to "My lists"
+
+        When I click the link to "My lists"
+        Then I will see a link to "Reticulate Splines"
+        And I will see a link to "Buy milk"
+
+        When I click the link to "Reticulate Splines"
+        Then I will be on the "Reticulate Splines" list page</code></pre>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_as_a_i_want_to_so_that">As-a /I want to/So that</h4>
+<div class="paragraph">
+<p>At the top you&#8217;ll notice the As-a/I want to/So that clause.  This is
+optional, and it has no executable counterpart&#8212;&#8203;it&#8217;s just a slightly
+formalised way of capturing the "Who and Why?" aspects of a user story,
+gently encouraging the team to think about the justifications for each
+feature.</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_given_when_then">Given/When/Then</h4>
+<div class="paragraph">
+<p>Given/When/Then is the real core of a BDD test.  This trilobite formulation
+matches the setup/exercise/assert pattern we&#8217;ve seen in our unit tests, and
+it represents the setup and assumptions phase, an exercise/action phase, and
+a subsequent assertion/observation phase.  There&#8217;s more info on the
+<a href="https://github.com/cucumber/cucumber/wiki/Given-When-Then">Cucumber wiki</a>.</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_not_always_a_perfect_fit">Not Always A Perfect Fit!</h4>
+<div class="paragraph">
+<p>As you can see, it&#8217;s not always easy to shoe-horn a user story into exactly
+three steps!  We can use the <code>And</code> clause to expand on a step, and I&#8217;ve
+added multiple <code>When</code> steps and subsequent <code>Then</code>'s to illustrate further
+aspects of our My lists page.</p>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_coding_the_step_functions">Coding the Step Functions</h3>
+<div class="paragraph">
+<p>We now build the counterpart to our Gherkin-syntax feature, which are the
+"step" functions which will actually implement them in code.</p>
+</div>
+<div class="sect3">
+<h4 id="_generating_placeholder_steps">Generating Placeholder Steps</h4>
+<div class="paragraph">
+<p>When we run <code>behave</code>, it helpfully tells us about all the steps we need to
+implement:</p>
+</div>
+<div class="listingblock sourcecode small-code">
+<div class="content">
+<pre>$ <strong>python manage.py behave</strong>
+Feature: My Lists # features/my_lists.feature:1
+  As a logged-in user
+  I want to be able to see all my lists in one page
+  So that I can find them all after I've written them
+  Scenario: Create two lists and see them on the My Lists page  # my_lists.feature:6
+    Given I am a logged-in user                                 # None
+    Given I am a logged-in user                                 # None
+    When I create a list with first item "Reticulate Splines"   # None
+    And I add an item "Immanentize Eschaton"                    # None
+    And I create a list with first item "Buy milk"              # None
+    Then I will see a link to "My lists"                        # None
+    When I click the link to "My lists"                         # None
+    Then I will see a link to "Reticulate Splines"              # None
+    And I will see a link to "Buy milk"                         # None
+    When I click the link to "Reticulate Splines"               # None
+    Then I will be on the "Reticulate Splines" list page        # None
+
+
+Failing scenarios:
+  features/my_lists.feature:6  Create two lists and see them on the My Lists page
+
+
+0 features passed, 1 failed, 0 skipped
+0 scenarios passed, 1 failed, 0 skipped
+0 steps passed, 0 failed, 0 skipped, 10 undefined
+Took 0m0.000s
+
+You can implement step definitions for undefined steps with these snippets:
+
+@given(u'I am a logged-in user')
+def step_impl(context):
+    raise NotImplementedError(u'STEP: Given I am a logged-in user')
+
+@when(u'I create a list with first item "Reticulate Splines"')
+def step_impl(context):
+[...]</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>And you&#8217;ll notice all this output is nicely coloured, as shown in
+<a href="#behave-output">Behave with coloured console ouptut</a>.</p>
+</div>
+<div id="behave-output" class="imageblock">
+<div class="content">
+<img src="images/behave-output-colour.png" alt="Colourful console output">
+</div>
+<div class="title">Figure 1. Behave with coloured console ouptut</div>
+</div>
+<div class="paragraph">
+<p>It&#8217;s encouraging us to copy and paste these snippets, and use them as
+starting points to build our steps.</p>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_first_step_definition">First Step Definition</h3>
+<div class="paragraph">
+<p>Here&#8217;s a first stab at making a step for our "Given I am a logged-in user"
+step. I started by stealing the code for <code>self.create_pre_authenticated_session</code>
+from <em>functional_tests/test_my_lists.py</em>, and adapting it slightly (removing
+the server-side version, for example, although it would be easy to re-add
+later).</p>
+</div>
+<div class="listingblock sourcecode">
+<div class="title">features/steps/my_lists.py</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> <span class="include">behave</span> <span class="keyword">import</span> <span class="include">given</span>, <span class="include">when</span>, <span class="include">then</span>
+<span class="keyword">from</span> <span class="include">functional_tests.management.commands.create_session</span> <span class="keyword">import</span> \
+    <span class="include">create_pre_authenticated_session</span>
+<span class="keyword">from</span> <span class="include">django.conf</span> <span class="keyword">import</span> <span class="include">settings</span>
+
+
+<span class="decorator">@given</span>(<span class="string"><span class="delimiter">'</span><span class="content">I am a logged-in user</span><span class="delimiter">'</span></span>)
+<span class="keyword">def</span> <span class="function">given_i_am_logged_in</span>(context):
+    session_key = create_pre_authenticated_session(email=<span class="string"><span class="delimiter">'</span><span class="content">edith@example.com</span><span class="delimiter">'</span></span>)
+    <span class="comment">## to set a cookie we need to first visit the domain.</span>
+    <span class="comment">## 404 pages load the quickest!</span>
+    context.browser.get(context.server_url + <span class="string"><span class="delimiter">"</span><span class="content">/404_no_such_url/</span><span class="delimiter">"</span></span>)
+    context.browser.add_cookie(<span class="predefined">dict</span>(
+        name=settings.SESSION_COOKIE_NAME,
+        value=session_key,
+        path=<span class="string"><span class="delimiter">'</span><span class="content">/</span><span class="delimiter">'</span></span>,
+    ))</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The <em>context</em> variable needs a little explaining&#8201;&#8212;&#8201;it&#8217;s a sort of global
+variable, in the sense that it&#8217;s passed to each step that&#8217;s executed, and it
+can be used to store information that we need to share between steps. Here
+we&#8217;ve assumed we&#8217;ll be storing a browser object on it, and the <code>server_url</code>.
+We end up using it a lot like we used <code>self</code> when we were writing <code>unittest</code>
+FTs.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_setup_and_teardown_equivalents_in_environment_py">setUp and tearDown Equivalents in environment.py</h3>
+<div class="paragraph">
+<p>Steps can make changes to state in the <code>context</code>, but the place to do
+preliminary set-up, the equivalent of <code>setUp</code>, is in a file called
+<em>environment.py</em>:</p>
+</div>
+<div class="listingblock sourcecode">
+<div class="title">features/environment.py</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> <span class="include">selenium</span> <span class="keyword">import</span> <span class="include">webdriver</span>
+
+<span class="keyword">def</span> <span class="function">before_all</span>(context):
+    context.browser = webdriver.Firefox()
+    context.browser.implicitly_wait(<span class="integer">2</span>)
+    context.server_url = <span class="string"><span class="delimiter">'</span><span class="content">http://localhost:8081</span><span class="delimiter">'</span></span>
+
+<span class="keyword">def</span> <span class="function">after_all</span>(context):
+    context.browser.quit()
+
+<span class="keyword">def</span> <span class="function">before_feature</span>(context, feature):
+    <span class="keyword">pass</span></code></pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_another_run">Another Run</h3>
+<div class="paragraph">
+<p>As a sanity check, we can do another run, to see if the new step works and
+that we really can start a browser:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>python manage.py behave</strong>
+[...]
+1 step passed, 0 failed, 0 skipped, 9 undefined</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The usual reams of output, but we can see that it seems to have made it through
+the first step; let&#8217;s define the rest of them.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_capturing_parameters_in_steps">Capturing Parameters in Steps</h3>
+<div class="paragraph">
+<p>We&#8217;ll see how behave allows you to capture parameters from step descriptions.
+Our next step says:</p>
+</div>
+<div class="listingblock sourcecode">
+<div class="title">features/my_lists.feature</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="gherkin">    And I create a list with first item "Reticulate Splines"</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>And the auto-generated step definition looked like this:</p>
+</div>
+<div class="listingblock sourcecode currentcontents small-code">
+<div class="title">features/steps/test_my_lists.py</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python"><span class="decorator">@given</span>(<span class="string"><span class="delimiter">'</span><span class="content">I create a list with first item "Reticulate Splines"</span><span class="delimiter">'</span></span>)
+<span class="keyword">def</span> <span class="function">step_impl</span>(context):
+    <span class="keyword">raise</span> <span class="exception">NotImplementedError</span>(
+        <span class="string"><span class="modifier">u</span><span class="delimiter">'</span><span class="content">STEP: When I create a list with first item "Reticulate Splines"</span><span class="delimiter">'</span></span>
     )</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>That gives us another test failure:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>  File "/workspace/superlists/functional_tests/tests.py", line 114, in
-test_layout_and_styling
-    delta=5
-AssertionError: 112.0 != 512 within 5 delta</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Let&#8217;s commit just the FT:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>$ <strong>git add functional_tests/tests.py</strong>
-$ <strong>git commit -m "first steps of FT for layout + styling"</strong></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Now it feels like we&#8217;re justified in finding a "proper" solution to our need
-for some better styling for our site.  We can back out our hacky
-<code>&lt;p style="text-align: center"&gt;</code>:
-</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>$ <strong>git reset --hard</strong></pre>
-</div>
-</div>
-<div class="admonitionblock warning">
-<table>
-<tr>
-<td class="icon">
-<i class="fa icon-warning" title="Warning"></i>
-</td>
-<td class="content">
-<code>git reset --hard</code> is the "take off and nuke the site from orbit" Git
-command, so be careful with it&#8212;&#8203;it blows away all your un-committed changes.
-Unlike almost everything else you can do with Git, there&#8217;s no way of going back
-after this one.
-
-</td>
-</tr>
-</table>
-</div>
-</div>
-<div class="sect2">
-<h3 id="_prettification_using_a_css_framework">Prettification: Using a CSS Framework</h3>
-<div class="paragraph">
-<p>
-
-Design is hard, and doubly so now that we have to deal with mobile, tablets, and
-so forth.  That&#8217;s why many programmers, particularly lazy ones like me, are
-turning to CSS frameworks to solve some of those problems for them.  There are
-lots of frameworks out there, but one of the earliest and most popular is
-Twitter&#8217;s Bootstrap.  Let&#8217;s use that.</p>
-</div>
-<div class="paragraph">
-<p>
-You can find bootstrap at <a href="http://getbootstrap.com/" class="bare">http://getbootstrap.com/</a>.</p>
-</div>
-<div class="paragraph">
-<p>We&#8217;ll download it and put it in a new folder called <em>static</em> inside the <code>lists</code>
-app:<sup class="footnote">[<a id="_footnoteref_1" class="footnote" href="#_footnote_1" title="View footnote.">1</a>]</sup></p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>$ <strong>wget -O bootstrap.zip https://github.com/twbs/bootstrap/releases/download/\
-v3.3.4/bootstrap-3.3.4-dist.zip</strong>
-$ <strong>unzip bootstrap.zip</strong>
-$ <strong>mkdir lists/static</strong>
-$ <strong>mv bootstrap-3.3.4-dist lists/static/bootstrap</strong>
-$ <strong>rm bootstrap.zip</strong></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Bootstrap comes with a plain, uncustomised installation in the <em>dist</em> folder.
-We&#8217;re going to use that for now, but you should really never do this for a
-real site&#8212;&#8203;vanilla Bootstrap is instantly recognisable, and a big signal
-to anyone in the know that you couldn&#8217;t be bothered to style your site. Learn
-how to use LESS and change the font, if nothing else!  There is info in
-Bootstrap&#8217;s docs, or there&#8217;s a
-<a href="http://coding.smashingmagazine.com/2013/03/12/customizing-bootstrap/">good guide here</a>.</p>
-</div>
-<div class="paragraph">
-<p>Our <em>lists</em> folder will end up looking like this:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>$ <strong>tree lists</strong>
-lists
-&#9500;&#9472;&#9472; __init__.py
-&#9500;&#9472;&#9472; __pycache__
-&#9474;&#160;&#160; &#9492;&#9472;&#9472; [...]
-&#9500;&#9472;&#9472; admin.py
-&#9500;&#9472;&#9472; models.py
-&#9500;&#9472;&#9472; static
-&#9474;&#160;&#160; &#9492;&#9472;&#9472; bootstrap
-&#9474;&#160;&#160;     &#9500;&#9472;&#9472; css
-&#9474;&#160;&#160;     &#9474;&#160;&#160; &#9500;&#9472;&#9472; bootstrap.css
-&#9474;&#160;&#160;     &#9474;&#160;&#160; &#9500;&#9472;&#9472; bootstrap.css.map
-&#9474;&#160;&#160;     &#9474;&#160;&#160; &#9500;&#9472;&#9472; bootstrap.min.css
-&#9474;&#160;&#160;     &#9474;&#160;&#160; &#9500;&#9472;&#9472; bootstrap-theme.css
-&#9474;&#160;&#160;     &#9474;&#160;&#160; &#9500;&#9472;&#9472; bootstrap-theme.css.map
-&#9474;&#160;&#160;     &#9474;&#160;&#160; &#9492;&#9472;&#9472; bootstrap-theme.min.css
-&#9474;&#160;&#160;     &#9500;&#9472;&#9472; fonts
-&#9474;&#160;&#160;     &#9474;&#160;&#160; &#9500;&#9472;&#9472; glyphicons-halflings-regular.eot
-&#9474;&#160;&#160;     &#9474;&#160;&#160; &#9500;&#9472;&#9472; glyphicons-halflings-regular.svg
-&#9474;&#160;&#160;     &#9474;&#160;&#160; &#9500;&#9472;&#9472; glyphicons-halflings-regular.ttf
-&#9474;&#160;&#160;     &#9474;&#160;&#160; &#9500;&#9472;&#9472; glyphicons-halflings-regular.woff
-&#9474;&#160;&#160;     &#9474;&#160;&#160; &#9492;&#9472;&#9472; glyphicons-halflings-regular.woff2
-&#9474;&#160;&#160;     &#9492;&#9472;&#9472; js
-&#9474;&#160;&#160;         &#9500;&#9472;&#9472; bootstrap.js
-&#9474;&#160;&#160;         &#9500;&#9472;&#9472; bootstrap.min.js
-&#9474;&#160;&#160;         &#9492;&#9472;&#9472; npm.js
-&#9500;&#9472;&#9472; templates
-&#9474;&#160;&#160; &#9500;&#9472;&#9472; home.html
-&#9474;&#160;&#160; &#9492;&#9472;&#9472; list.html
-&#9500;&#9472;&#9472; tests.py
-&#9500;&#9472;&#9472; urls.py
-&#9492;&#9472;&#9472; views.py</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>If we have a look at the "Getting Started" section of the
-<a href="http://getbootstrap.com/getting-started/#template">Bootstrap documentation</a>,
-you&#8217;ll see it wants our HTML template to include something like this:</p>
-</div>
-<div class="listingblock skipme">
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="html">    <span class="doctype">&lt;!DOCTYPE html&gt;</span>
-    <span class="tag">&lt;html&gt;</span>
-      <span class="tag">&lt;head&gt;</span>
-        <span class="tag">&lt;meta</span> <span class="attribute-name">charset</span>=<span class="string"><span class="delimiter">"</span><span class="content">utf-8</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>
-        <span class="tag">&lt;meta</span> <span class="attribute-name">http-equiv</span>=<span class="string"><span class="delimiter">"</span><span class="content">X-UA-Compatible</span><span class="delimiter">"</span></span> <span class="attribute-name">content</span>=<span class="string"><span class="delimiter">"</span><span class="content">IE=edge</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>
-        <span class="tag">&lt;meta</span> <span class="attribute-name">name</span>=<span class="string"><span class="delimiter">"</span><span class="content">viewport</span><span class="delimiter">"</span></span> <span class="attribute-name">content</span>=<span class="string"><span class="delimiter">"</span><span class="content">width=device-width, initial-scale=1</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>
-        <span class="tag">&lt;title&gt;</span>Bootstrap 101 Template<span class="tag">&lt;/title&gt;</span>
-        <span class="comment">&lt;!-- Bootstrap --&gt;</span>
-        <span class="tag">&lt;link</span> <span class="attribute-name">href</span>=<span class="string"><span class="delimiter">"</span><span class="content">css/bootstrap.min.css</span><span class="delimiter">"</span></span> <span class="attribute-name">rel</span>=<span class="string"><span class="delimiter">"</span><span class="content">stylesheet</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>
-      <span class="tag">&lt;/head&gt;</span>
-      <span class="tag">&lt;body&gt;</span>
-        <span class="tag">&lt;h1&gt;</span>Hello, world!<span class="tag">&lt;/h1&gt;</span>
-        <span class="tag">&lt;script</span> <span class="attribute-name">src</span>=<span class="string"><span class="delimiter">"</span><span class="content">http://code.jquery.com/jquery.js</span><span class="delimiter">"</span></span><span class="tag">&gt;</span><span class="tag">&lt;/script&gt;</span>
-        <span class="tag">&lt;script</span> <span class="attribute-name">src</span>=<span class="string"><span class="delimiter">"</span><span class="content">js/bootstrap.min.js</span><span class="delimiter">"</span></span><span class="tag">&gt;</span><span class="tag">&lt;/script&gt;</span>
-      <span class="tag">&lt;/body&gt;</span>
-    <span class="tag">&lt;/html&gt;</span></code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>We already have two HTML templates.  We don&#8217;t want to be adding a whole load
-of boilerplate code to each, so now feels like the right time to apply
-the "Don&#8217;t repeat yourself" rule, and bring all the common parts together.
-Thankfully, the Django template language makes that easy using something
-called template inheritance.</p>
-</div>
-</div>
-<div class="sect2">
-<h3 id="_django_template_inheritance">Django Template Inheritance</h3>
-<div class="paragraph">
-<p>
-
-Let&#8217;s have a little review of what the differences are between <em>home.html</em> and
-<em>list.html</em>:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>$ <strong>diff lists/templates/home.html lists/templates/list.html</strong>
-7,8c7,8
-&lt;         &lt;h1&gt;Start a new To-Do list&lt;/h1&gt;
-&lt;         &lt;form method="POST" action="/lists/new"&gt;
----
-&gt;         &lt;h1&gt;Your To-Do list&lt;/h1&gt;
-&gt;         &lt;form method="POST" action="/lists/{{ list.id }}/add_item"&gt;
-11a12,18
-&gt;
-&gt;         &lt;table id="id_list_table"&gt;
-&gt;             {% for item in list.item_set.all %}
-&gt;                 &lt;tr&gt;&lt;td&gt;{{ forloop.counter }}: {{ item.text }}&lt;/td&gt;&lt;/tr&gt;
-&gt;             {% endfor %}
-&gt;         &lt;/table&gt;
-&gt;</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>They have different header texts, and their forms use different URLs. On top
-of that, <em>list.html</em> has the additional <code>&lt;table&gt;</code> element.</p>
-</div>
-<div class="paragraph">
-<p>Now that we&#8217;re clear on what&#8217;s in common and what&#8217;s not, we can make the two
-templates inherit from a common "superclass" template.  We&#8217;ll start by
-making a copy of <em>home.html</em>:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>$ <strong>cp lists/templates/home.html lists/templates/base.html</strong></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>We make this into a base template which just contains the common boilerplate,
-and mark out the "blocks", places where child templates can customise it:</p>
-</div>
-<div class="listingblock sourcecode small-code">
-<div class="title">lists/templates/base.html</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="html"><span class="tag">&lt;html&gt;</span>
-<span class="tag">&lt;head&gt;</span>
-    <span class="tag">&lt;title&gt;</span>To-Do lists<span class="tag">&lt;/title&gt;</span>
-<span class="tag">&lt;/head&gt;</span>
-
-<span class="tag">&lt;body&gt;</span>
-    <span class="tag">&lt;h1&gt;</span>{% block header_text %}{% endblock %}<span class="tag">&lt;/h1&gt;</span>
-    <span class="tag">&lt;form</span> <span class="attribute-name">method</span>=<span class="string"><span class="delimiter">"</span><span class="content">POST</span><span class="delimiter">"</span></span> <span class="attribute-name">action</span>=<span class="string"><span class="delimiter">"</span><span class="content">{% block form_action %}{% endblock %}</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>
-        <span class="tag">&lt;input</span> <span class="attribute-name">name</span>=<span class="string"><span class="delimiter">"</span><span class="content">item_text</span><span class="delimiter">"</span></span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">"</span><span class="content">id_new_item</span><span class="delimiter">"</span></span> <span class="attribute-name">placeholder</span>=<span class="string"><span class="delimiter">"</span><span class="content">Enter a to-do item</span><span class="delimiter">"</span></span> <span class="tag">/&gt;</span>
-        {% csrf_token %}
-    <span class="tag">&lt;/form&gt;</span>
-    {% block table %}
-    {% endblock %}
-<span class="tag">&lt;/body&gt;</span>
-<span class="tag">&lt;/html&gt;</span></code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>The base template defines a series of areas called "blocks", which will be
-places that other templates can hook in and add their own content.  Let&#8217;s
-see how that works in practice, by changing <em>home.html</em> so that it "inherits
-from" <em>base.html</em>:</p>
+<p>We want to be able to create lists with arbitrary first items, so it would be
+nice to somehow capture whatever is between those quotes, and pass them in as
+an argument to a more generic function.  That&#8217;s a common requirement in BDD,
+and behave has a nice syntax for it, reminiscent of the new-style Python string
+formatting syntax:</p>
 </div>
 <div class="listingblock sourcecode">
-<div class="title">lists/templates/home.html</div>
+<div class="title">features/steps/test_my_lists.py</div>
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="html">{% extends 'base.html' %}
-
-{% block header_text %}Start a new To-Do list{% endblock %}
-
-{% block form_action %}/lists/new{% endblock %}</code></pre>
+<pre class="CodeRay highlight"><code data-lang="python"><span class="decorator">@when</span>(<span class="string"><span class="delimiter">'</span><span class="content">I create a list with first item "{first_item_text}"</span><span class="delimiter">'</span></span>)
+<span class="keyword">def</span> <span class="function">create_a_list</span>(context, first_item_text):
+    context.browser.get(context.server_url)
+    context.browser.find_element_by_id(<span class="string"><span class="delimiter">'</span><span class="content">id_text</span><span class="delimiter">'</span></span>).send_keys(first_item_text)
+    context.browser.find_element_by_id(<span class="string"><span class="delimiter">'</span><span class="content">id_text</span><span class="delimiter">'</span></span>).send_keys(<span class="string"><span class="delimiter">'</span><span class="char">\n</span><span class="delimiter">'</span></span>)</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>You can see that lots of the boilerplate HTML disappears, and we just
-concentrate on the bits we want to customise. We do the same for <em>list.html</em>:</p>
-</div>
-<div class="listingblock sourcecode">
-<div class="title">lists/templates/list.html</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="html">{% extends 'base.html' %}
-
-{% block header_text %}Your To-Do list{% endblock %}
-
-{% block form_action %}/lists/{{ list.id }}/add_item{% endblock %}
-
-{% block table %}
-    <span class="tag">&lt;table</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">"</span><span class="content">id_list_table</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>
-        {% for item in list.item_set.all %}
-            <span class="tag">&lt;tr&gt;</span><span class="tag">&lt;td&gt;</span>{{ forloop.counter }}: {{ item.text }}<span class="tag">&lt;/td&gt;</span><span class="tag">&lt;/tr&gt;</span>
-        {% endfor %}
-    <span class="tag">&lt;/table&gt;</span>
-{% endblock %}</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>That&#8217;s a refactor of the way our templates work.  We rerun the FTs to make
-sure we haven&#8217;t broken anything&#8230;&#8203;</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>AssertionError: 112.0 != 512 within 5 delta</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>
-
-Sure enough, they&#8217;re still getting to exactly where they were before.  That&#8217;s
-worthy of a commit:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>$ <strong>git diff -b</strong>
-# the -b means ignore whitespace, useful since we've changed some html indenting
-$ <strong>git status</strong>
-$ <strong>git add lists/templates</strong> # leave static, for now
-$ <strong>git commit -m "refactor templates to use a base template"</strong></pre>
-</div>
-</div>
-</div>
-<div class="sect2">
-<h3 id="_integrating_bootstrap">Integrating Bootstrap</h3>
-<div class="paragraph">
-<p>Now it&#8217;s much easier to integrate the boilerplate code that Bootstrap wants&#8212;&#8203;we
-won&#8217;t add the JavaScript yet, just the CSS:</p>
-</div>
-<div class="listingblock sourcecode">
-<div class="title">lists/templates/base.html (ch07l006)</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="html"><span class="doctype">&lt;!DOCTYPE html&gt;</span>
-<span class="tag">&lt;html</span> <span class="attribute-name">lang</span>=<span class="string"><span class="delimiter">"</span><span class="content">en</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>
-
-<span class="tag">&lt;head&gt;</span>
-    <span class="tag">&lt;meta</span> <span class="attribute-name">charset</span>=<span class="string"><span class="delimiter">"</span><span class="content">utf-8</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>
-    <span class="tag">&lt;meta</span> <span class="attribute-name">http-equiv</span>=<span class="string"><span class="delimiter">"</span><span class="content">X-UA-Compatible</span><span class="delimiter">"</span></span> <span class="attribute-name">content</span>=<span class="string"><span class="delimiter">"</span><span class="content">IE=edge</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>
-    <span class="tag">&lt;meta</span> <span class="attribute-name">name</span>=<span class="string"><span class="delimiter">"</span><span class="content">viewport</span><span class="delimiter">"</span></span> <span class="attribute-name">content</span>=<span class="string"><span class="delimiter">"</span><span class="content">width=device-width, initial-scale=1</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>
-    <span class="tag">&lt;title&gt;</span>To-Do lists<span class="tag">&lt;/title&gt;</span>
-    <span class="tag">&lt;link</span> <span class="attribute-name">href</span>=<span class="string"><span class="delimiter">"</span><span class="content">css/bootstrap.min.css</span><span class="delimiter">"</span></span> <span class="attribute-name">rel</span>=<span class="string"><span class="delimiter">"</span><span class="content">stylesheet</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>
-<span class="tag">&lt;/head&gt;</span>
-[...]</code></pre>
-</div>
-</div>
-<div class="sect3">
-<h4 id="_rows_and_columns">Rows and Columns</h4>
-<div class="paragraph">
-<p>
-Finally, let&#8217;s actually use some of the Bootstrap magic! You&#8217;ll have to read
-the documentation yourself, but should be able to use a combination
-of the grid system and the <code>text-center</code> class to get what we want:</p>
-</div>
-<div class="listingblock sourcecode small-code">
-<div class="title">lists/templates/base.html (ch07l007)</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="html"><span class="tag">&lt;body&gt;</span>
-<span class="tag">&lt;div</span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">"</span><span class="content">container</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>
-
-    <span class="tag">&lt;div</span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">"</span><span class="content">row</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>
-        <span class="tag">&lt;div</span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">"</span><span class="content">col-md-6 col-md-offset-3</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>
-            <span class="tag">&lt;div</span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">"</span><span class="content">text-center</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>
-                <span class="tag">&lt;h1&gt;</span>{% block header_text %}{% endblock %}<span class="tag">&lt;/h1&gt;</span>
-                <span class="tag">&lt;form</span> <span class="attribute-name">method</span>=<span class="string"><span class="delimiter">"</span><span class="content">POST</span><span class="delimiter">"</span></span> <span class="attribute-name">action</span>=<span class="string"><span class="delimiter">"</span><span class="content">{% block form_action %}{% endblock %}</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>
-                    <span class="tag">&lt;input</span> <span class="attribute-name">name</span>=<span class="string"><span class="delimiter">"</span><span class="content">item_text</span><span class="delimiter">"</span></span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">"</span><span class="content">id_new_item</span><span class="delimiter">"</span></span>
-                           <span class="attribute-name">placeholder</span>=<span class="string"><span class="delimiter">"</span><span class="content">Enter a to-do item</span><span class="delimiter">"</span></span>
-                    <span class="tag">/&gt;</span>
-                    {% csrf_token %}
-                <span class="tag">&lt;/form&gt;</span>
-            <span class="tag">&lt;/div&gt;</span>
-        <span class="tag">&lt;/div&gt;</span>
-    <span class="tag">&lt;/div&gt;</span>
-
-    <span class="tag">&lt;div</span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">"</span><span class="content">row</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>
-        <span class="tag">&lt;div</span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">"</span><span class="content">col-md-6 col-md-offset-3</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>
-            {% block table %}
-            {% endblock %}
-        <span class="tag">&lt;/div&gt;</span>
-    <span class="tag">&lt;/div&gt;</span>
-
-<span class="tag">&lt;/div&gt;</span>
-<span class="tag">&lt;/body&gt;</span></code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>(If you&#8217;ve never seen an HTML tag broken up over several lines, that <code>&lt;input&gt;</code>
-may be a little shocking. It is definitely valid, but you don&#8217;t have to use
-it if you find it offensive. ;)</p>
-</div>
-<div class="admonitionblock tip">
-<table>
-<tr>
-<td class="icon">
-<i class="fa icon-tip" title="Tip"></i>
-</td>
-<td class="content">
-Take the time to browse through the <a href="http://getbootstrap.com/">Bootstrap
-documentation</a>, if you&#8217;ve never seen it before.  It&#8217;s a shopping trolley
-brimming full of useful tools to use in your site.
-</td>
-</tr>
-</table>
-</div>
-<div class="paragraph">
-<p>Does that work?</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>AssertionError: 112.0 != 512 within 5 delta</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Hmm. No.  Why isn&#8217;t our CSS loading?</p>
-</div>
-</div>
-</div>
-<div class="sect2">
-<h3 id="_static_files_in_django">Static Files in Django</h3>
-<div class="paragraph">
-<p>
-
-
-Django, and indeed any web server, needs to know two things to deal with static
-files:</p>
-</div>
-<div class="olist arabic">
-<ol class="arabic">
-<li>
-<p>How to tell when a URL request is for a static file, as opposed to for some
-HTML that&#8217;s going to be served via a view function</p>
-</li>
-<li>
-<p>Where to find the static file the user wants</p>
-</li>
-</ol>
-</div>
-<div class="paragraph">
-<p>In other words, static files are a mapping from URLs to files on disk.</p>
-</div>
-<div class="paragraph">
-<p>For item 1, Django lets us define a URL "prefix" to say that any URLs which
-start with that prefix should be treated as requests for static files.  By
-default, the prefix is <code>/static/</code>. It&#8217;s defined in <em>settings.py</em>:</p>
-</div>
-<div class="listingblock sourcecode currentcontents">
-<div class="title">superlists/settings.py</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="python">[...]
-
-<span class="comment"># Static files (CSS, JavaScript, Images)</span>
-<span class="comment"># https://docs.djangoproject.com/en/1.8/howto/static-files/</span>
-
-STATIC_URL = <span class="string"><span class="delimiter">'</span><span class="content">/static/</span><span class="delimiter">'</span></span></code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>The rest of the settings we will add to this section are all to do with item 2:
-finding the actual static files on disk.</p>
-</div>
-<div class="paragraph">
-<p>While we&#8217;re using the Django development server (<code>manage.py runserver</code>), we can
-rely on Django to magically find static files for us&#8212;&#8203;it&#8217;ll just look in any
-subfolder of one of our apps called <em>static</em>.</p>
-</div>
-<div class="paragraph">
-<p>You now see why we put all the Bootstrap static files into
-<em>lists/static</em>.  So why are they not working at the moment?  It&#8217;s because we&#8217;re
-not using the <code>/static/</code> URL prefix.  Have another look at the link to the CSS
-in <em>base.html</em>:</p>
-</div>
-<div class="listingblock sourcecode currentcontents">
-<div class="title">lists/templates/base.html</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="html"><span class="tag">&lt;link</span> <span class="attribute-name">href</span>=<span class="string"><span class="delimiter">"</span><span class="content">css/bootstrap.min.css</span><span class="delimiter">"</span></span> <span class="attribute-name">rel</span>=<span class="string"><span class="delimiter">"</span><span class="content">stylesheet</span><span class="delimiter">"</span></span><span class="tag">&gt;</span></code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>To get this to work, we need to change it to:</p>
-</div>
-<div class="listingblock sourcecode small-code">
-<div class="title">lists/templates/base.html</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="html"><span class="tag">&lt;link</span> <span class="attribute-name">href</span>=<span class="string"><span class="delimiter">"</span><span class="content">/static/bootstrap/css/bootstrap.min.css</span><span class="delimiter">"</span></span> <span class="attribute-name">rel</span>=<span class="string"><span class="delimiter">"</span><span class="content">stylesheet</span><span class="delimiter">"</span></span><span class="tag">&gt;</span></code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>When <code>runserver</code> sees the request, it knows that it&#8217;s for a static file because
-it begins with <code>/static/</code>.  It then tries to find a file called
-<code>bootstrap/css/bootstrap.min.css</code>, looking in each of our app folders for
-subfolders called <em>static</em>, and it should find it at
-<em>lists/static/bootstrap/css/bootstrap.min.css</em>.</p>
-</div>
-<div class="paragraph">
-<p>So if you take a look manually, you should see it works, as in
-<a href="#list-page-centered">Our site starts to look a little better&#8230;&#8203;</a>.</p>
-</div>
-<div id="list-page-centered" class="imageblock">
-<div class="content">
-<img src="images/twdp_0702.png" alt="The list page with centered header.">
-</div>
-<div class="title">Figure 2. Our site starts to look a little better&#8230;&#8203;</div>
-</div>
-<div class="sect3">
-<h4 id="_switching_to_staticliveservertestcase">Switching to StaticLiveServerTestCase</h4>
-<div class="paragraph">
-<p>
-
-If you run the FT though, it won&#8217;t pass:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>AssertionError: 112.0 != 512 within 5 delta</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>That&#8217;s because, although <code>runserver</code> automagically finds static files,
-<code>LiveServerTestCase</code> doesn&#8217;t.  Never fear though, the Django developers have
-made a more magical test class called <code>StaticLiveServerTestCase</code> (see
-<a href="http://bit.ly/Suv4Ip">the
-docs</a>).</p>
-</div>
-<div class="paragraph">
-<p>Let&#8217;s switch to that:</p>
-</div>
-<div class="listingblock sourcecode">
-<div class="title">functional_tests/tests.py</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="diff"><span class="line change"><span class="change">@@</span> -1,8 +1,8 <span class="change">@@</span></span>
-<span class="line delete"><span class="delete">-</span>from django.<span class="eyecatcher">test import </span>LiveServerTestCase</span>
-<span class="line insert"><span class="insert">+</span>from django.<span class="eyecatcher">contrib.staticfiles.testing import Static</span>LiveServerTestCase</span>
- from selenium import webdriver
- from selenium.webdriver.common.keys import Keys
-
-<span class="line delete"><span class="delete">-</span>class NewVisitorTest(LiveServerTestCase):</span>
-<span class="line insert"><span class="insert">+</span>class NewVisitorTest(<span class="eyecatcher">Static</span>LiveServerTestCase):</span></code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>And now it will now find the new CSS, which will get our test to pass:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>$ <strong>python3 manage.py test functional_tests</strong>
-Creating test database for alias 'default'...
-..
- ---------------------------------------------------------------------
-Ran 2 tests in 9.764s</pre>
-</div>
+<p>Neat, huh?</p>
 </div>
 <div class="admonitionblock note">
 <table>
@@ -1585,424 +1286,411 @@ Ran 2 tests in 9.764s</pre>
 <i class="fa icon-note" title="Note"></i>
 </td>
 <td class="content">
-At this point, Windows users may see some (harmless, but distracting)
-    error messages that say <code>socket.error: [WinError 10054] An existing
-    connection was forcibly closed by the remote host</code>.  Add a
-    <code>self.browser.refresh()</code> just before the <code>self.browser.quit()</code> in
-    <code>tearDown</code> to get rid of them.  The issue is being tracked in this
-    <a href="https://code.djangoproject.com/ticket/21227">bug on the Django tracker</a>.
+Capturing parameters for steps is one of the most powerful features
+    of the BDD syntax.
 </td>
 </tr>
 </table>
 </div>
 <div class="paragraph">
-<p>Hooray!</p>
-</div>
-</div>
-</div>
-<div class="sect2">
-<h3 id="_using_bootstrap_components_to_improve_the_look_of_the_site">Using Bootstrap Components to Improve the Look of the Site</h3>
-<div class="paragraph">
-<p>Let&#8217;s see if we can do even better, using some of the other tools in
-Bootstrap&#8217;s panoply.</p>
-</div>
-<div class="sect3">
-<h4 id="_jumbotron">Jumbotron!</h4>
-<div class="paragraph">
-<p>
-
-Bootstrap has a class called <code>jumbotron</code> for things that are meant to be
-particularly prominent on the page.  Let&#8217;s use that to embiggen the main
-page header and the input form:</p>
+<p>Similarly, we can do adding to an existing list, and see or click on links:</p>
 </div>
 <div class="listingblock sourcecode">
-<div class="title">lists/templates/base.html (ch07l009)</div>
+<div class="title">features/steps/test_my_lists.py</div>
 <div class="content">
-<pre>    &lt;div class="col-md-6 col-md-offset-3 jumbotron"&gt;
-        &lt;div class="text-center"&gt;
-            &lt;h1&gt;{% block header_text %}{% endblock %}&lt;/h1&gt;
-            &lt;form method="POST" action="{% block form_action %}{% endblock %}"&gt;
-                [...]</pre>
-</div>
-</div>
-<div class="admonitionblock tip">
-<table>
-<tr>
-<td class="icon">
-<i class="fa icon-tip" title="Tip"></i>
-</td>
-<td class="content">
-When hacking about with design and layout, it&#8217;s best to have a window open
-that we can hit refresh on, frequently.  Use <code>python3 manage.py runserver</code> to
-spin up the dev server, and then browse to <em><a href="http://localhost:8000" class="bare">http://localhost:8000</a></em> to see your
-work as we go.
-</td>
-</tr>
-</table>
-</div>
-</div>
-<div class="sect3">
-<h4 id="_large_inputs">Large Inputs</h4>
-<div class="paragraph">
-<p>
+<pre class="CodeRay highlight"><code data-lang="python"><span class="decorator">@when</span>(<span class="string"><span class="delimiter">'</span><span class="content">I add an item "{item_text}"</span><span class="delimiter">'</span></span>)
+<span class="keyword">def</span> <span class="function">add_an_item</span>(context, item_text):
+    context.browser.find_element_by_id(<span class="string"><span class="delimiter">'</span><span class="content">id_text</span><span class="delimiter">'</span></span>).send_keys(item_text)
+    context.browser.find_element_by_id(<span class="string"><span class="delimiter">'</span><span class="content">id_text</span><span class="delimiter">'</span></span>).send_keys(<span class="string"><span class="delimiter">'</span><span class="char">\n</span><span class="delimiter">'</span></span>)
 
-The jumbotron is a good start, but now the input box has tiny text compared to
-everything else.  Thankfully, Bootstrap&#8217;s form control classes offer an option
-to set an input to be "large":</p>
+<span class="decorator">@then</span>(<span class="string"><span class="delimiter">'</span><span class="content">I will see a link to "{link_text}"</span><span class="delimiter">'</span></span>)
+<span class="keyword">def</span> <span class="function">see_a_link</span>(context, link_text):
+    context.browser.find_element_by_link_text(link_text)
+
+<span class="decorator">@when</span>(<span class="string"><span class="delimiter">'</span><span class="content">I click the link to "{link_text}"</span><span class="delimiter">'</span></span>)
+<span class="keyword">def</span> <span class="function">click_link</span>(context, link_text):
+    context.browser.find_element_by_link_text(link_text).click()</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>And finally the slightly more complex step that says I am on the
+page for a particular list:</p>
 </div>
 <div class="listingblock sourcecode">
-<div class="title">lists/templates/base.html (ch07l010)</div>
+<div class="title">features/steps/test_my_lists.py</div>
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="html"><span class="tag">&lt;input</span> <span class="attribute-name">name</span>=<span class="string"><span class="delimiter">"</span><span class="content">item_text</span><span class="delimiter">"</span></span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">"</span><span class="content">id_new_item</span><span class="delimiter">"</span></span>
-       <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">"</span><span class="content">form-control input-lg</span><span class="delimiter">"</span></span>
-       <span class="attribute-name">placeholder</span>=<span class="string"><span class="delimiter">"</span><span class="content">Enter a to-do item</span><span class="delimiter">"</span></span>
-<span class="tag">/&gt;</span></code></pre>
+<pre class="CodeRay highlight"><code data-lang="python"><span class="decorator">@then</span>(<span class="string"><span class="delimiter">'</span><span class="content">I will be on the "{first_item_text}" list page</span><span class="delimiter">'</span></span>)
+<span class="keyword">def</span> <span class="function">step_impl</span>(context, first_item_text):
+    table = context.browser.find_element_by_id(<span class="string"><span class="delimiter">'</span><span class="content">id_list_table</span><span class="delimiter">'</span></span>)
+    rows = table.find_elements_by_tag_name(<span class="string"><span class="delimiter">'</span><span class="content">tr</span><span class="delimiter">'</span></span>)
+    expected_row_text = <span class="string"><span class="delimiter">'</span><span class="content">1: </span><span class="delimiter">'</span></span> + first_item_text
+    <span class="keyword">assert</span> rows[<span class="integer">0</span>].text == expected_row_text</code></pre>
 </div>
 </div>
-</div>
-<div class="sect3">
-<h4 id="_table_styling">Table Styling</h4>
 <div class="paragraph">
-<p>
-
-
-
-The table text also looks too small compared to the rest of the page now.
-Adding the Bootstrap <code>table</code> class improves things:</p>
+<p>Now we can run it and see our first expected failure:</p>
 </div>
-<div class="listingblock sourcecode">
-<div class="title">lists/templates/list.html (ch07l011)</div>
+<div class="listingblock sourcecode small-code">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="html">    <span class="tag">&lt;table</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">"</span><span class="content">id_list_table</span><span class="delimiter">"</span></span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">"</span><span class="content">table</span><span class="delimiter">"</span></span><span class="tag">&gt;</span></code></pre>
-</div>
-</div>
-</div>
-</div>
-<div class="sect2">
-<h3 id="_using_our_own_css">Using Our Own CSS</h3>
-<div class="paragraph">
-<p>
-
-Finally I&#8217;d like to just offset the input from the title text slightly. There&#8217;s
-no ready-made fix for that in Bootstrap, so we&#8217;ll make one ourselves.  That
-will require specifying our own CSS file:</p>
-</div>
-<div class="listingblock sourcecode">
-<div class="title">lists/templates/base.html</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="html">[...]
-    <span class="tag">&lt;title&gt;</span>To-Do lists<span class="tag">&lt;/title&gt;</span>
-    <span class="tag">&lt;link</span> <span class="attribute-name">href</span>=<span class="string"><span class="delimiter">"</span><span class="content">/static/bootstrap/css/bootstrap.min.css</span><span class="delimiter">"</span></span> <span class="attribute-name">rel</span>=<span class="string"><span class="delimiter">"</span><span class="content">stylesheet</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>
-    <span class="tag">&lt;link</span> <span class="attribute-name">href</span>=<span class="string"><span class="delimiter">"</span><span class="content">/static/base.css</span><span class="delimiter">"</span></span> <span class="attribute-name">rel</span>=<span class="string"><span class="delimiter">"</span><span class="content">stylesheet</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>
-<span class="tag">&lt;/head&gt;</span></code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>We create a new file at <em>lists/static/base.css</em>, with our new CSS rule.
-We&#8217;ll use the <code>id</code> of the input element, <code>id_new_item</code>, to find it and give it
-some styling:</p>
-</div>
-<div class="listingblock sourcecode">
-<div class="title">lists/static/base.css</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="html">#id_new_item {
-    margin-top: 2ex;
-}</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>All that took me a few goes, but I&#8217;m reasonably happy with it now (<a href="#homepage-looking-better">The lists page, with all big chunks&#8230;&#8203;</a>).</p>
-</div>
-<div class="paragraph">
-<p>If you want to go further with customising Bootstrap, you need to get into
-compiling LESS. I <em>definitely</em> recommend taking the time to do that some
-day. LESS and other pseudo-CSS-alikes like SCSS are a great improvement on
-plain old CSS, and a useful tool even if you don&#8217;t use Bootstrap. I won&#8217;t cover
-it in this book, but you can find resources on the Internets.
-<a href="http://coding.smashingmagazine.com/2013/03/12/customizing-bootstrap/">Here&#8217;s one</a>,
-for example.</p>
-</div>
-<div class="paragraph">
-<p>
-A last run of the functional tests, to see if everything still works OK?</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>$ <strong>python3 manage.py test functional_tests</strong>
+<pre>$ <strong>./manage.py behave</strong>
 Creating test database for alias 'default'...
-..
- ---------------------------------------------------------------------
-Ran 2 tests in 10.084s
+Feature: My Lists # features/my_lists.feature:1
+  As a logged-in user
+  I want to be able to see all my lists in one page
+  So that I can find them all after I've written them
+  Scenario: Create two lists and see them on the My Lists page  # my_lists.feature:6
+    Given I am a logged-in user                                 # steps/my_lists.py:7
+Not Found: /404_no_such_url/
+Not Found: /favicon.ico
+    Given I am a logged-in user                                 # steps/my_lists.py:7 0.09s
+    When I create a list with first item "Reticulate Splines"   # steps/my_lists.py:20 8.46s
+    And I add an item "Immanentize Eschaton"                    # steps/my_lists.py:27 0.82s
+    And I create a list with first item "Buy milk"              # steps/my_lists.py:20 0.40s
+    Then I will see a link to "My lists"                        # steps/my_lists.py:33 8.27s
+      Traceback (most recent call last):
+        [...]
+      selenium.common.exceptions.NoSuchElementException: Message: Unable to
+        locate element: {"method":"link text","selector":"My lists"}
 
-OK
+    [...]
+
+Failing scenarios:
+  features/my_lists.feature:6  Create two lists and see them on the My Lists page
+
+0 features passed, 1 failed, 0 skipped
+0 scenarios passed, 1 failed, 0 skipped
+4 steps passed, 1 failed, 5 skipped, 0 undefined
+Took 0m18.064s
 Destroying test database for alias 'default'...</pre>
 </div>
 </div>
-<div id="homepage-looking-better" class="imageblock">
-<div class="content">
-<img src="images/twdp_0703.png" alt="Screenshot of lists page with big styling.">
-</div>
-<div class="title">Figure 3. The lists page, with all big chunks&#8230;&#8203;</div>
-</div>
 <div class="paragraph">
-<p>That&#8217;s it! Definitely time for a commit:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>$ <strong>git status</strong> # changes tests.py, base.html, list.html + untracked lists/static
-$ <strong>git add .</strong>
-$ <strong>git status</strong> # will now show all the bootstrap additions
-$ <strong>git commit -m "Use Bootstrap to improve layout"</strong></pre>
-</div>
+<p>You can see how the output really gives you a sense of how far through the
+"story" of the test we got: we manage to create our two lists successfully, but
+the "My lists" link does not appear.</p>
 </div>
 </div>
 <div class="sect2">
-<h3 id="_what_we_glossed_over_collectstatic_and_other_static_directories">What We Glossed Over: collectstatic and Other Static Directories</h3>
+<h3 id="_comparing_the_inline_style_ft">Comparing the Inline-Style FT</h3>
 <div class="paragraph">
-<p>
-
-
-
-We saw earlier that the Django dev server will magically find all your static
-files inside app folders, and serve them for you. That&#8217;s fine during
-development, but when you&#8217;re running on a real web server, you don&#8217;t want
-Django serving your static content&#8212;&#8203;using Python to serve raw files is
-slow and inefficient, and a web server like Apache or Nginx can do this all for
-you. You might even decide to upload all your static files to a CDN, instead
-of hosting them yourself.</p>
+<p>I&#8217;m not going to run through the implementation of the feature, but you can
+see how the test will drive development just as well as the inline-style FT
+would have.</p>
 </div>
 <div class="paragraph">
-<p>For these reasons, you want to be able to gather up all your static files from
-inside their various app folders, and copy them into a single location, ready
-for deployment. This is what the <code>collectstatic</code> command is for.</p>
-</div>
-<div class="paragraph">
-<p>The destination, the place where the collected static files go, is defined in
-<em>settings.py</em> as <code>STATIC_ROOT</code>. In the next chapter we&#8217;ll be doing some
-deployment, so let&#8217;s actually experiment with that now.  We&#8217;ll change its value
-to a folder just outside our repo&#8212;&#8203;I&#8217;m going to make it a folder just next to
-the main source folder:</p>
-</div>
-<div class="listingblock skipme">
-<div class="content">
-<pre>workspace
-&#9474;&#160;&#160;  &#9500;&#9472;&#9472; superlists
-&#9474;&#160;&#160;  &#9474;    &#9500;&#9472;&#9472; lists
-&#9474;&#160;&#160;  &#9474;    &#9474;     &#9500;&#9472;&#9472; models.py
-&#9474;&#160;&#160;  &#9474;    &#9474;
-&#9474;&#160;&#160;  &#9474;    &#9500;&#9472;&#9472; manage.py
-&#9474;&#160;&#160;  &#9474;    &#9500;&#9472;&#9472; superlists
-&#9474;&#160;&#160;  &#9474;
-&#9474;&#160;&#160;  &#9500;&#9472;&#9472; static
-&#9474;&#160;&#160;  &#9474;    &#9500;&#9472;&#9472; base.css
-&#9474;&#160;&#160;  &#9474;    &#9500;&#9472;&#9472; etc...</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>The logic is that the static files folder shouldn&#8217;t be a part of your
-repository&#8212;&#8203;we don&#8217;t want to put it under source control, because it&#8217;s a
-duplicate of all the files that are inside <em>lists/static</em>.</p>
-</div>
-<div class="paragraph">
-<p>Here&#8217;s a neat way of specifying that folder, making it relative to the location
-of project base directory:</p>
+<p>Let&#8217;s have a look at it, for comparison:</p>
 </div>
 <div class="listingblock sourcecode">
-<div class="title">superlists/settings.py (ch07l018)</div>
+<div class="title">lists/tests.py</div>
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="comment"># Static files (CSS, JavaScript, Images)</span>
-<span class="comment"># https://docs.djangoproject.com/en/1.8/howto/static-files/</span>
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">def</span> <span class="function">test_logged_in_users_lists_are_saved_as_my_lists</span>(<span class="predefined-constant">self</span>):
+    <span class="comment"># Edith is a logged-in user</span>
+    <span class="predefined-constant">self</span>.create_pre_authenticated_session(<span class="string"><span class="delimiter">'</span><span class="content">edith@example.com</span><span class="delimiter">'</span></span>)
 
-STATIC_URL = <span class="string"><span class="delimiter">'</span><span class="content">/static/</span><span class="delimiter">'</span></span>
-STATIC_ROOT = os.path.abspath(os.path.join(BASE_DIR, <span class="string"><span class="delimiter">'</span><span class="content">../static</span><span class="delimiter">'</span></span>))</code></pre>
+    <span class="comment"># She goes to the home page and starts a list</span>
+    <span class="predefined-constant">self</span>.browser.get(<span class="predefined-constant">self</span>.server_url)
+    <span class="predefined-constant">self</span>.get_item_input_box().send_keys(<span class="string"><span class="delimiter">'</span><span class="content">Reticulate splines</span><span class="char">\n</span><span class="delimiter">'</span></span>)
+    <span class="predefined-constant">self</span>.get_item_input_box().send_keys(<span class="string"><span class="delimiter">'</span><span class="content">Immanentize eschaton</span><span class="char">\n</span><span class="delimiter">'</span></span>)
+    first_list_url = <span class="predefined-constant">self</span>.browser.current_url
+
+    <span class="comment"># She notices a "My lists" link, for the first time.</span>
+    <span class="predefined-constant">self</span>.browser.find_element_by_link_text(<span class="string"><span class="delimiter">'</span><span class="content">My lists</span><span class="delimiter">'</span></span>).click()
+
+    <span class="comment"># She sees that her list is in there, named according to its</span>
+    <span class="comment"># first list item</span>
+    <span class="predefined-constant">self</span>.browser.find_element_by_link_text(<span class="string"><span class="delimiter">'</span><span class="content">Reticulate splines</span><span class="delimiter">'</span></span>).click()
+    <span class="predefined-constant">self</span>.assertEqual(<span class="predefined-constant">self</span>.browser.current_url, first_list_url)
+
+    <span class="comment"># She decides to start another list, just to see</span>
+    <span class="predefined-constant">self</span>.browser.get(<span class="predefined-constant">self</span>.server_url)
+    <span class="predefined-constant">self</span>.get_item_input_box().send_keys(<span class="string"><span class="delimiter">'</span><span class="content">Click cows</span><span class="char">\n</span><span class="delimiter">'</span></span>)
+    second_list_url = <span class="predefined-constant">self</span>.browser.current_url
+
+    <span class="comment"># Under "my lists", her new list appears</span>
+    <span class="predefined-constant">self</span>.browser.find_element_by_link_text(<span class="string"><span class="delimiter">'</span><span class="content">My lists</span><span class="delimiter">'</span></span>).click()
+    <span class="predefined-constant">self</span>.browser.find_element_by_link_text(<span class="string"><span class="delimiter">'</span><span class="content">Click cows</span><span class="delimiter">'</span></span>).click()
+    <span class="predefined-constant">self</span>.assertEqual(<span class="predefined-constant">self</span>.browser.current_url, second_list_url)
+
+    <span class="comment"># She logs out.  The "My lists" option disappears</span>
+    <span class="predefined-constant">self</span>.browser.find_element_by_id(<span class="string"><span class="delimiter">'</span><span class="content">id_logout</span><span class="delimiter">'</span></span>).click()
+    <span class="predefined-constant">self</span>.assertEqual(
+        <span class="predefined-constant">self</span>.browser.find_elements_by_link_text(<span class="string"><span class="delimiter">'</span><span class="content">My lists</span><span class="delimiter">'</span></span>),
+        []
+    )</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>Take a look at the top of the settings file, and you&#8217;ll see how that <code>BASE_DIR</code>
-variable is helpfully defined for us, using <code>__file__</code> (which itself is a
-really, really useful Python built-in).</p>
+<p>It&#8217;s not entirely an apples-to-apples comparison, but we can look at the
+number of lines of code in <a href="#table-code-compare">Lines of code comparison</a>.</p>
 </div>
+<table id="table-code-compare" class="tableblock frame-all grid-all spread">
+<caption class="title">Table 1. Lines of code comparison</caption>
+<colgroup>
+<col style="width: 50%;">
+<col style="width: 50%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">BDD</th>
+<th class="tableblock halign-left valign-top">Standard FT</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Feature file: 20 (3 optional)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">test function body: 34</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Steps file: 40 lines</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">helper functions: 20</p></td>
+</tr>
+</tbody>
+</table>
 <div class="paragraph">
-<p>Anyway, let&#8217;s try running <code>collectstatic</code>:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>$ <strong>python3 manage.py collectstatic</strong>
-
-You have requested to collect static files at the destination
-location as specified in your settings:
-
-/workspace/static
-
-This will overwrite existing files!
-Are you sure you want to do this?
-
-Type 'yes' to continue, or 'no' to cancel:
-<strong>yes</strong>
-
-[...]
-Copying '/workspace/superlists/lists/static/bootstrap/js/bootstrap.js'
-Copying '/workspace/superlists/lists/static/bootstrap/js/bootstrap.min.js'
-Copying '/workspace/superlists/lists/static/bootstrap/js/npm.js'
-
-77 static files copied to '/workspace/static'.</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>And if we look in <em>../static</em>, we&#8217;ll find all our CSS files:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>$ <strong>tree ../static/</strong>
-../static/
-&#9500;&#9472;&#9472; admin
-&#9474;&#160;&#160; &#9500;&#9472;&#9472; css
-&#9474;&#160;&#160; &#9474;&#160;&#160; &#9500;&#9472;&#9472; base.css
-
-[...]
-
-&#9474;&#160;&#160;     &#9492;&#9472;&#9472; urlify.js
-&#9500;&#9472;&#9472; base.css
-&#9492;&#9472;&#9472; bootstrap
-    &#9500;&#9472;&#9472; css
-    &#9474;&#160;&#160; &#9500;&#9472;&#9472; bootstrap.css
-    &#9474;&#160;&#160; &#9500;&#9472;&#9472; bootstrap.min.css
-    &#9474;&#160;&#160; &#9500;&#9472;&#9472; bootstrap-theme.css
-    &#9474;&#160;&#160; &#9492;&#9472;&#9472; bootstrap-theme.min.css
-    &#9500;&#9472;&#9472; fonts
-    &#9474;&#160;&#160; &#9500;&#9472;&#9472; glyphicons-halflings-regular.eot
-    &#9474;&#160;&#160; &#9500;&#9472;&#9472; glyphicons-halflings-regular.svg
-    &#9474;&#160;&#160; &#9500;&#9472;&#9472; glyphicons-halflings-regular.ttf
-    &#9474;&#160;&#160; &#9500;&#9472;&#9472; glyphicons-halflings-regular.woff
-    &#9474;&#160;&#160; &#9492;&#9472;&#9472; glyphicons-halflings-regular.woff2
-    &#9492;&#9472;&#9472; js
-        &#9500;&#9472;&#9472; bootstrap.js
-        &#9500;&#9472;&#9472; bootstrap.min.js
-        &#9492;&#9472;&#9472; npm.js
-
-10 directories, 77 files</pre>
-</div>
-</div>
-<div class="paragraph">
-<p><code>collectstatic</code> has also picked up all the CSS for the admin site. It&#8217;s one of
-Django&#8217;s powerful features, and we&#8217;ll find out all about it one day, but we&#8217;re
-not ready to use that yet, so let&#8217;s disable it for now:</p>
-</div>
-<div class="listingblock sourcecode">
-<div class="title">superlists/settings.py</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="python">INSTALLED_APPS = (
-    <span class="comment">#'django.contrib.admin',</span>
-    <span class="string"><span class="delimiter">'</span><span class="content">django.contrib.auth</span><span class="delimiter">'</span></span>,
-    <span class="string"><span class="delimiter">'</span><span class="content">django.contrib.contenttypes</span><span class="delimiter">'</span></span>,
-    <span class="string"><span class="delimiter">'</span><span class="content">django.contrib.sessions</span><span class="delimiter">'</span></span>,
-    <span class="string"><span class="delimiter">'</span><span class="content">django.contrib.messages</span><span class="delimiter">'</span></span>,
-    <span class="string"><span class="delimiter">'</span><span class="content">django.contrib.staticfiles</span><span class="delimiter">'</span></span>,
-    <span class="string"><span class="delimiter">'</span><span class="content">lists</span><span class="delimiter">'</span></span>,
-)</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>And we try again:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>$ <strong>rm -rf ../static/</strong>
-$ <strong>python3 manage.py collectstatic --noinput</strong>
-Copying '/workspace/superlists/lists/static/base.css'
-[...]
-Copying '/workspace/superlists/lists/static/bootstrap/js/bootstrap.js'
-Copying '/workspace/superlists/lists/static/bootstrap/js/bootstrap.min.js'
-Copying '/workspace/superlists/lists/static/bootstrap/js/npm.js'
-
-15 static files copied to '/workspace/static'.</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Much better.
-
-
-</p>
-</div>
-<div class="paragraph">
-<p>Anyway, now we know how to collect all the static files into a single folder,
-where it&#8217;s easy for a web server to find them. We&#8217;ll find out all about that,
-including how to test it, in the next chapter!</p>
-</div>
-<div class="paragraph">
-<p>For now let&#8217;s save our changes to <em>settings.py</em>:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>$ <strong>git diff</strong> # should show changes in settings.py*
-$ <strong>git commit -am "set STATIC_ROOT in settings and disable admin"</strong></pre>
-</div>
+<p>The comparison isn&#8217;t perfect, but you might say that the feature file and the
+body of a "standard FT" test function are equivalent in that they present the
+main "story" of a test, while the steps and helper functions represent the
+"hidden" implementation details.  If you add them up, the total numbers are
+pretty similar, but notice that they&#8217;re spread out differently: the BDD tests
+have made the story more concise, and pushed more work out into the hidden
+implementation details.</p>
 </div>
 </div>
 <div class="sect2">
-<h3 id="_a_few_things_that_didn_t_make_it">A Few Things That Didn&#8217;t Make It</h3>
+<h3 id="_bdd_encourages_structured_test_code">BDD Encourages Structured Test Code</h3>
 <div class="paragraph">
-<p>Inevitably this was only a whirlwind tour of styling and CSS, and there were
-several topics that I&#8217;d hoped to cover in more depth that didn&#8217;t make it.
-Here&#8217;s a few candidates for further study:</p>
+<p>This is the real appeal, for me: the BDD tool has <em>forced</em> us to structure our
+test code.  In the inline-style FT, we&#8217;re free to use as many lines as we want
+to implement a step, as described by its comment line.  It&#8217;s very hard to
+resist the urge to just copy-and-paste code from elsewhere, or just from
+earlier on in the test.   You can see that, by this point in the book, I&#8217;ve
+built just a couple of helper functions (like <code>get_item_input_box</code>).</p>
+</div>
+<div class="paragraph">
+<p>In contrast, the BDD syntax has immediately forced me to have a separate
+function for each step, so I&#8217;ve already built some very reusable code to:</p>
 </div>
 <div class="ulist">
 <ul>
 <li>
-<p>Customising bootstrap with LESS</p>
+<p>Start a new list</p>
 </li>
 <li>
-<p>The <code>{% static %}</code> template tag, for more DRY and less hard-coded URLs</p>
+<p>Add an item to an existing list</p>
 </li>
 <li>
-<p>Client-side packaging tools, like bower
-
-</p>
+<p>Click a on a link with particular text</p>
+</li>
+<li>
+<p>Assert that I&#8217;m looking at a particular list&#8217;s page</p>
 </li>
 </ul>
 </div>
+<div class="paragraph">
+<p>BDD really encourages you to write test code that seems to match well with
+the business domain, and to use a layer of abstraction between the story of
+your FT and its implementation in code.</p>
+</div>
+<div class="paragraph">
+<p>The ultimate expression of this is that, theoretically, if you wanted to
+change programming languages, you could keep all your features in Gherkin
+syntax exactly as they are, and throw away the Python steps and replace them
+with steps implemented in another language.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_the_page_pattern_as_an_alternative">The Page Pattern as an Alternative</h3>
+<div class="paragraph">
+<p>In
+<a href="/book/chapter_21.html">[page-pattern-chapter]</a>
+of the book, I present an example of the "Page pattern", which is an
+object-oriented approach to structuring your selenium tests.  Here&#8217;s a
+reminder of what it looks like:</p>
+</div>
+<div class="listingblock sourcecode">
+<div class="title">functional_tests/test_sharing.py</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> .home_and_list_pages <span class="keyword">import</span> <span class="include">HomePage</span>
+[...]
+
+<span class="keyword">class</span> <span class="class">SharingTest</span>(FunctionalTest):
+
+    <span class="keyword">def</span> <span class="function">test_logged_in_users_lists_are_saved_as_my_lists</span>(<span class="predefined-constant">self</span>):
+        <span class="comment"># [...]</span>
+        list_page = HomePage(<span class="predefined-constant">self</span>).start_new_list(<span class="string"><span class="delimiter">'</span><span class="content">Get help</span><span class="delimiter">'</span></span>)
+
+        <span class="comment"># She notices a "Share this list" option</span>
+        share_box = list_page.get_share_box()
+        <span class="predefined-constant">self</span>.assertEqual(
+            share_box.get_attribute(<span class="string"><span class="delimiter">'</span><span class="content">placeholder</span><span class="delimiter">'</span></span>),
+            <span class="string"><span class="delimiter">'</span><span class="content">your-friend@example.com</span><span class="delimiter">'</span></span>
+        )
+
+        <span class="comment"># She shares her list.</span>
+        <span class="comment"># The page updates to say that it's shared with Oniciferous:</span>
+        list_page.share_list_with(<span class="string"><span class="delimiter">'</span><span class="content">oniciferous@example.com</span><span class="delimiter">'</span></span>)
+
+        <span class="comment"># Oniciferous now goes to the lists page with his browser</span>
+        <span class="predefined-constant">self</span>.browser = oni_browser
+        HomePage(<span class="predefined-constant">self</span>).go_to_home_page().go_to_my_lists_page()</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>And the Page classes look like this:</p>
+</div>
+<div class="listingblock sourcecode">
+<div class="title">functional_tests/home_and_lists_pages.py</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">class</span> <span class="class">HomePage</span>(<span class="predefined">object</span>):
+
+    <span class="keyword">def</span> <span class="function">__init__</span>(<span class="predefined-constant">self</span>, test):
+        <span class="predefined-constant">self</span>.test = test
+
+
+    <span class="keyword">def</span> <span class="function">go_to_home_page</span>(<span class="predefined-constant">self</span>):
+        <span class="predefined-constant">self</span>.test.browser.get(<span class="predefined-constant">self</span>.test.server_url)
+        <span class="predefined-constant">self</span>.test.wait_for(<span class="predefined-constant">self</span>.get_item_input)
+        <span class="keyword">return</span> <span class="predefined-constant">self</span>
+
+
+    <span class="keyword">def</span> <span class="function">get_item_input</span>(<span class="predefined-constant">self</span>):
+        <span class="keyword">return</span> <span class="predefined-constant">self</span>.test.browser.find_element_by_id(ITEM_INPUT_ID)
+
+
+    <span class="keyword">def</span> <span class="function">start_new_list</span>(<span class="predefined-constant">self</span>, item_text):
+        <span class="predefined-constant">self</span>.go_to_home_page()
+        inputbox = <span class="predefined-constant">self</span>.get_item_input()
+        inputbox.send_keys(item_text + <span class="string"><span class="delimiter">'</span><span class="char">\n</span><span class="delimiter">'</span></span>)
+        list_page = ListPage(<span class="predefined-constant">self</span>.test)
+        list_page.wait_for_new_item_in_list(item_text, <span class="integer">1</span>)
+        <span class="keyword">return</span> list_page
+
+
+    <span class="keyword">def</span> <span class="function">go_to_my_lists_page</span>(<span class="predefined-constant">self</span>):
+        [...]</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>So it&#8217;s definitely possible to implement a similar layer of abstraction,
+and a sort of DSL, in inline-style FTs, whether it&#8217;s by using the Page
+pattern or whatever structure you prefer&#8201;&#8212;&#8201;but now it&#8217;s a matter of
+self-discipline, rather than having a framework that pushes you towards
+it.</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+In fact, you can actually use the Page pattern with BDD as well, as
+a resource for your steps to use when navigating the pages of your site.
+</td>
+</tr>
+</table>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_bdd_might_be_less_expressive_than_inline_comments">BDD Might Be Less Expressive than Inline Comments</h3>
+<div class="paragraph">
+<p>On the other hand, I can also see potential for the Gherkin syntax to
+feel somewhat restrictive.  Compare how expressive and readable the
+inline-style comments are, with the slightly awkward BDD feature:</p>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre># Edith is a logged-in user
+# She goes to the home page and starts a list
+# She notices a "My lists" link, for the first time.
+# She sees that her list is in there, named according to its
+# first list item
+# She decides to start another list, just to see
+# Under "my lists", her new list appears
+# She logs out.  The "My lists" option disappears</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>That&#8217;s much more readable and natural than our slightly forced Given/Then/When
+incantations, and, in a way, might encourage more user-centric thinking. (There
+is a syntax in Gherkin for including "comments" in a feature file, which would
+mitigate this somewhat, but I gather that it&#8217;s not widely used.)</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_will_nonprogrammers_write_tests">Will Nonprogrammers Write Tests?</h3>
+<div class="paragraph">
+<p>I haven&#8217;t touched on one of the original promises of BDD, which is that
+nonprogrammers&#8212;&#8203;business or client representatives perhaps&#8212;&#8203;might actually
+write the Gherkin syntax.  I&#8217;m quite skeptical about whether this would
+actually work in the real world, but I don&#8217;t think that detracts from the other
+potential benefits of BDD.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_some_tentative_conclusions">Some Tentative Conclusions</h3>
+<div class="paragraph">
+<p>I&#8217;ve only dipped my toes into the BDD world, so I&#8217;m hesitant to draw any firm
+conclusions. I find the "forced" structuring of FTs into steps very appealing
+though&#8212;&#8203;it looks like it has the potential to encourage a lot of reuse in your
+FT code, and that it neatly separates concerns between describing the story,
+and implementing it, and that it forces us to think about things in terms of
+the business domain, rather than in terms of "what we need to do with
+selenium."</p>
+</div>
+<div class="paragraph">
+<p>But there&#8217;s no free lunch. The Gherkin syntax is restrictive, compared to
+the total freedom offered by inline FT comments.</p>
+</div>
+<div class="paragraph">
+<p>I also would like to see how BDD scales once you have not just one or two
+features, and four or five steps, but several dozen features and hundreds of
+lines of steps code.</p>
+</div>
+<div class="paragraph">
+<p>Overall, I would say it&#8217;s definitely worth investigating, and I will probably
+use BDD for my next personal project.</p>
+</div>
+<div class="paragraph">
+<p>My thanks to Daniel Pope, Rachel Willmer, and Jared Contrascere for their
+feedback on this chapter.</p>
+</div>
 <div class="sidebarblock">
 <div class="content">
-<div class="title">Recap: On Testing Design and Layout</div>
-<div class="paragraph">
-<p>
-The short answer is: you shouldn&#8217;t write tests for design and layout.  It&#8217;s too
-much like testing a constant, and any tests you write are likely to be brittle.</p>
-</div>
-<div class="paragraph">
-<p>With that said, the <em>implementation</em> of design and layout involves something
-quite tricky: CSS and static files.   As a result, it is valuable to have some
-kind of minimal "smoke test" which checks that your static files and CSS are
-working.  As we&#8217;ll see in the next chapter, it can help pick up problems when
-you deploy your code to production.</p>
-</div>
-<div class="paragraph">
-<p>Similarly, if a particular piece of styling required a lot of client-side
-JavaScript code to get it to work (dynamic resizing is one I&#8217;ve spent a bit
-of time on), you&#8217;ll definitely want some tests for that.</p>
-</div>
-<div class="paragraph">
-<p>So be aware that this is a dangerous area.  Try and write the minimal tests
-that will give you confidence that your design and layout is working, without
-testing <em>what</em> it actually is.  Try and leave yourself in a position where you
-can freely make changes to the design and layout, without having to go back and
-adjust tests all the time.</p>
-</div>
-</div>
+<div class="title">BDD Conclusions</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">Encourages structured, reusable test code</dt>
+<dd>
+<p>By separating concerns, breaking your FTs out into the human-readable,
+Gherkin syntax "feature" file and a separate implementation of steps
+functions, BDD has the potential to encourage more reusable and manageable
+test code</p>
+</dd>
+<dt class="hdlist1">It may come at the expense of readability</dt>
+<dd>
+<p>The Gherkin syntax, for all its attempt to be human-readable, is ultimately
+a constraint on human language, and so it may not capture nuance and
+intention as well as inline comments do.</p>
+</dd>
+<dt class="hdlist1">Try it! I will</dt>
+<dd>
+<p>As I keep saying, I haven&#8217;t used BDD on a real project, so you should take
+my words with a heavy pinch of salt, but I&#8217;d like to give it a hearty
+endorsement.  I&#8217;m going to try it out on the next project I can, and I&#8217;d
+encourage you to do so as well.</p>
+</dd>
+</dl>
 </div>
 </div>
 </div>
 </div>
 </div>
-<div id="footnotes">
-<hr>
-<div class="footnote" id="_footnote_1">
-<a href="#_footnoteref_1">1</a>. On Windows, you may not have <code>wget</code> and <code>unzip</code>, but I&#8217;m sure you can figure out how to download Bootstrap, unzip it, and put the contents of the <em>dist</em> folder into the <em>lists/static/bootstrap</em> folder.
 </div>
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2016-10-29 11:39:09 BST
+Last updated 2016-11-03 06:58:22 GMT
 </div>
 </div>
 <div class="comments" style="padding: 20px">

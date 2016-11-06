@@ -4,7 +4,7 @@
 <!--[if IE]><meta http-equiv="X-UA-Compatible" content="IE=edge"><![endif]-->
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="generator" content="Asciidoctor 1.5.4">
-<title>Prettification: Layout and Styling, and What to Test About It</title>
+<title>Building a REST API: JSON, Ajax, and mocking with JavaScript</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:300,300italic,400,400italic,600,600italic%7CNoto+Serif:400,400italic,700,700italic%7CDroid+Sans+Mono:400,700">
 <style>
 /* Asciidoctor default stylesheet | MIT License | http://asciidoctor.org */
@@ -900,1109 +900,985 @@ table.CodeRay td.code>pre{padding:0}
 </div>
 <div id="content">
 <div class="sect1">
-<h2 id="_prettification_layout_and_styling_and_what_to_test_about_it">Prettification: Layout and Styling, and What to Test About It</h2>
+<h2 id="appendix-rest-api-backend">Appendix A: Building a REST API: JSON, Ajax, and mocking with JavaScript</h2>
 <div class="sectionbody">
 <div class="paragraph">
 <p>
 
-
-We&#8217;re starting to think about releasing the first version of our site, but
-we&#8217;re a bit embarrassed by how ugly it looks at the moment.  In this
-chapter, we&#8217;ll cover some of the basics of styling, including integrating an
-HTML/CSS framework called Bootstrap.  We&#8217;ll learn how static files work
-in Django, and what we need to do about testing them.</p>
-</div>
-<div class="sect2">
-<h3 id="_what_to_functionally_test_about_layout_and_style">What to Functionally Test About Layout and Style</h3>
-<div class="paragraph">
-<p>
-
-Our site is undeniably a bit unattractive at the moment
-(<a href="#homepage-looking-ugly">Our homepage, looking a little ugly&#8230;&#8203;</a>).</p>
-</div>
-<div class="admonitionblock note">
-<table>
-<tr>
-<td class="icon">
-<i class="fa icon-note" title="Note"></i>
-</td>
-<td class="content">
-If you spin up your dev server with <code>manage.py runserver</code>, you
-may run into a database error "table lists_item has no column named list_id".
-You need to update your local database to reflect the changes we made in
-<em>models.py</em>.  Use <code>manage.py migrate</code>.
-</td>
-</tr>
-</table>
+WARNING: Chapter under construction.  Apologies, it&#8217;s in pretty telegraphic style for now.</p>
 </div>
 <div class="paragraph">
-<p>We can&#8217;t be adding to Python&#8217;s reputation for being
-<a href="http://grokcode.com/746/dear-python-why-are-you-so-ugly/">ugly</a>,
-so let&#8217;s do a tiny bit of polishing.  Here&#8217;s a few things we might want:</p>
+<p>Plan:</p>
 </div>
 <div class="ulist">
 <ul>
 <li>
-<p>A nice large input field for adding new and existing lists</p>
+<p>All assumes an existing list</p>
 </li>
 <li>
-<p>A large, attention-grabbing, centered box to put it in</p>
+<p>new URL structure /api/lists/{id}/</p>
+</li>
+<li>
+<p>GET gives you details of a list (including all its items)</p>
+</li>
+<li>
+<p>POST lets you add an item</p>
 </li>
 </ul>
 </div>
 <div class="paragraph">
-<p>How do we apply TDD to these things?  Most people will tell you you
-shouldn&#8217;t test aesthetics, and they&#8217;re right.  It&#8217;s a bit like testing a
-constant, in that tests usually wouldn&#8217;t add any value.</p>
+<p>Code example start from chapter 21.</p>
 </div>
-<div id="homepage-looking-ugly" class="imageblock">
-<div class="content">
-<img src="images/twdp_0701.png" alt="Our homepage, looking a little ugly.">
-</div>
-<div class="title">Figure 1. Our homepage, looking a little ugly&#8230;&#8203;</div>
-</div>
+<div class="sect2">
+<h3 id="_basic_piping">Basic piping</h3>
 <div class="paragraph">
-<p>
-
-But we can test the implementation of our aesthetics&#8212;&#8203;just enough to
-reassure ourselves that things are working.  For example, we&#8217;re going to use
-Cascading Style Sheets (CSS) for our styling, and they are loaded as static
-files.  Static files can be a bit tricky to configure (especially, as we&#8217;ll see
-later, when you move off your own PC and onto a hosting site), so we&#8217;ll want
-some kind of simple "smoke test" that the CSS has loaded.  We don&#8217;t have to
-test fonts and colours and every single pixel, but we can do a quick check that
-the main input box is aligned the way we want it on each page, and that will
-give us confidence that the rest of the styling for that page is probably
-loaded too.</p>
-</div>
-<div class="paragraph">
-<p>We start with a new test method inside our functional test:</p>
+<p>Start with a unit test that we can return a JSON response, status 200, from a URL</p>
 </div>
 <div class="listingblock sourcecode">
-<div class="title">functional_tests/tests.py (ch07l001)</div>
+<div class="title">lists/tests.py</div>
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">class</span> <span class="class">NewVisitorTest</span>(LiveServerTestCase):
-    [...]
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">import</span> <span class="include">json</span>
+<span class="keyword">from</span> <span class="include">django.test</span> <span class="keyword">import</span> <span class="include">TestCase</span>
+
+<span class="keyword">from</span> <span class="include">lists.models</span> <span class="keyword">import</span> <span class="include">List</span>, <span class="include">Item</span>
 
 
-    <span class="keyword">def</span> <span class="function">test_layout_and_styling</span>(<span class="predefined-constant">self</span>):
-        <span class="comment"># Edith goes to the home page</span>
-        <span class="predefined-constant">self</span>.browser.get(<span class="predefined-constant">self</span>.live_server_url)
-        <span class="predefined-constant">self</span>.browser.set_window_size(<span class="integer">1024</span>, <span class="integer">768</span>)
+<span class="keyword">class</span> <span class="class">APIGetListItemsTest</span>(TestCase):
+    base_url = <span class="string"><span class="delimiter">'</span><span class="content">/api/lists/{}/</span><span class="delimiter">'</span></span>  <i class="conum" data-value="1"></i><b>(1)</b>
 
-        <span class="comment"># She notices the input box is nicely centered</span>
-        inputbox = <span class="predefined-constant">self</span>.browser.find_element_by_id(<span class="string"><span class="delimiter">'</span><span class="content">id_new_item</span><span class="delimiter">'</span></span>)
-        <span class="predefined-constant">self</span>.assertAlmostEqual(
-            inputbox.location[<span class="string"><span class="delimiter">'</span><span class="content">x</span><span class="delimiter">'</span></span>] + inputbox.size[<span class="string"><span class="delimiter">'</span><span class="content">width</span><span class="delimiter">'</span></span>] / <span class="integer">2</span>,
-            <span class="integer">512</span>,
-            delta=<span class="integer">5</span>
+    <span class="keyword">def</span> <span class="function">test_get_returns_json_200</span>(<span class="predefined-constant">self</span>):
+        list_ = List.objects.create()
+        response = <span class="predefined-constant">self</span>.client.get(<span class="predefined-constant">self</span>.base_url.format(list_.id))
+        <span class="predefined-constant">self</span>.assertEqual(response.status_code, <span class="integer">200</span>)
+        <span class="predefined-constant">self</span>.assertEqual(response[<span class="string"><span class="delimiter">'</span><span class="content">content-type</span><span class="delimiter">'</span></span>], <span class="string"><span class="delimiter">'</span><span class="content">application/json</span><span class="delimiter">'</span></span>)</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>This is a new pattern we&#8217;ll introduce for this chapter, it&#8217;ll help
+us to remove duplication of hard-coded urls in this test.  We could
+even have used a call to <code>reverse</code></td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>And we can get that together in 3 lines</p>
+</div>
+<div class="listingblock sourcecode">
+<div class="title">lists/tests.py</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> <span class="include">django.http</span> <span class="keyword">import</span> <span class="include">HttpResponse</span>
+
+<span class="keyword">def</span> <span class="function">list</span>(request, list_id):
+    <span class="keyword">return</span> HttpResponse(content_type=<span class="string"><span class="delimiter">'</span><span class="content">application/json</span><span class="delimiter">'</span></span>)</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>And wire up a couple of urls files:</p>
+</div>
+<div class="listingblock sourcecode">
+<div class="title">lists/tests.py</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python">[...]
+<span class="keyword">from</span> <span class="include">lists</span> <span class="keyword">import</span> <span class="include">api_urls</span>
+<span class="keyword">from</span> <span class="include">lists</span> <span class="keyword">import</span> <span class="include">urls</span> <span class="keyword">as</span> list_urls
+
+urlpatterns = [
+    url(<span class="string"><span class="modifier">r</span><span class="delimiter">'</span><span class="content">^$</span><span class="delimiter">'</span></span>, list_views.home_page, name=<span class="string"><span class="delimiter">'</span><span class="content">home</span><span class="delimiter">'</span></span>),
+    url(<span class="string"><span class="modifier">r</span><span class="delimiter">'</span><span class="content">^lists/</span><span class="delimiter">'</span></span>, include(list_urls)),
+    url(<span class="string"><span class="modifier">r</span><span class="delimiter">'</span><span class="content">^accounts/</span><span class="delimiter">'</span></span>, include(accounts_urls)),
+    url(<span class="string"><span class="modifier">r</span><span class="delimiter">'</span><span class="content">^api/</span><span class="delimiter">'</span></span>, include(api_urls)),
+]</code></pre>
+</div>
+</div>
+<div class="listingblock sourcecode">
+<div class="title">lists/api_urls.py</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> <span class="include">django.conf.urls</span> <span class="keyword">import</span> <span class="include">url</span>
+<span class="keyword">from</span> <span class="include">lists</span> <span class="keyword">import</span> <span class="include">api</span>
+
+urlpatterns = [
+    url(<span class="string"><span class="modifier">r</span><span class="delimiter">'</span><span class="content">^lists/(</span><span class="content">\d</span><span class="content">+)/$</span><span class="delimiter">'</span></span>, api.list, name=<span class="string"><span class="delimiter">'</span><span class="content">api_list</span><span class="delimiter">'</span></span>),
+]</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The tests should pass, and we have the basic piping together.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>python3 manage.py test lists</strong>
+Creating test database for alias 'default'...
+..................................................
+ ---------------------------------------------------------------------
+Ran 50 tests in 0.177s
+
+OK</pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_actually_responding_something">Actually responding something</h3>
+<div class="listingblock sourcecode">
+<div class="title">lists/tests.py</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python">    <span class="keyword">def</span> <span class="function">test_get_returns_items_for_correct_list</span>(<span class="predefined-constant">self</span>):
+        other_list = List.objects.create()
+        Item.objects.create(list=other_list, text=<span class="string"><span class="delimiter">'</span><span class="content">item 1</span><span class="delimiter">'</span></span>)
+        our_list = List.objects.create()
+        item1 = Item.objects.create(list=our_list, text=<span class="string"><span class="delimiter">'</span><span class="content">item 1</span><span class="delimiter">'</span></span>)
+        item2 = Item.objects.create(list=our_list, text=<span class="string"><span class="delimiter">'</span><span class="content">item 2</span><span class="delimiter">'</span></span>)
+        response = <span class="predefined-constant">self</span>.client.get(<span class="predefined-constant">self</span>.base_url.format(our_list.id))
+        <span class="predefined-constant">self</span>.assertEqual(
+            json.loads(response.content.decode(<span class="string"><span class="delimiter">'</span><span class="content">utf8</span><span class="delimiter">'</span></span>)),  <i class="conum" data-value="1"></i><b>(1)</b>
+            [
+                {<span class="string"><span class="delimiter">'</span><span class="content">id</span><span class="delimiter">'</span></span>: item1.id, <span class="string"><span class="delimiter">'</span><span class="content">text</span><span class="delimiter">'</span></span>: item1.text},
+                {<span class="string"><span class="delimiter">'</span><span class="content">id</span><span class="delimiter">'</span></span>: item2.id, <span class="string"><span class="delimiter">'</span><span class="content">text</span><span class="delimiter">'</span></span>: item2.text},
+            ]
         )</code></pre>
 </div>
 </div>
-<div class="paragraph">
-<p>A few new things here.  We start by setting the window size to a fixed
-size. We then find the input element, look at its size and location, and
-do a little maths to check whether it seems to be positioned in the middle
-of the page.  <code>assertAlmostEqual</code> helps us to deal with rounding errors by
-letting us specify that we want our arithmetic to work to within plus or
-minus five pixels.</p>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>This is the main thing to notice about this test&#8201;&#8212;&#8201;we expect our
+response to be in JSON format.  We use <code>json.loads()</code> because testing
+python objects is easier than messing about with raw JSON strings.</td>
+</tr>
+</table>
 </div>
 <div class="paragraph">
-<p>If we run the functional tests, we get:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>$ <strong>python3 manage.py test functional_tests</strong>
-Creating test database for alias 'default'...
-.F
-======================================================================
-FAIL: test_layout_and_styling (functional_tests.tests.NewVisitorTest)
- ---------------------------------------------------------------------
-Traceback (most recent call last):
-  File "/workspace/superlists/functional_tests/tests.py", line 104, in
-test_layout_and_styling
-    delta=5
-AssertionError: 112.0 != 512 within 5 delta
-
- ---------------------------------------------------------------------
-Ran 2 tests in 9.188s
-
-FAILED (failures=1)
-Destroying test database for alias 'default'...</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>That&#8217;s the expected failure.  Still, this kind of FT is easy to get wrong, so
-let&#8217;s use a quick-and-dirty "cheat" solution, to check that the FT also passes
-when the input box is centered.  We&#8217;ll delete this code again almost as soon
-as we&#8217;ve used it to check the FT:</p>
-</div>
-<div class="listingblock sourcecode small-code">
-<div class="title">lists/templates/home.html (ch07l002)</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="html"><span class="tag">&lt;form</span> <span class="attribute-name">method</span>=<span class="string"><span class="delimiter">"</span><span class="content">POST</span><span class="delimiter">"</span></span> <span class="attribute-name">action</span>=<span class="string"><span class="delimiter">"</span><span class="content">/lists/new</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>
-    <span class="tag">&lt;p</span> <span class="attribute-name">style</span>=<span class="string"><span class="delimiter">"</span><span class="key">text-align</span>: <span class="value">center</span>;<span class="delimiter">"</span></span><span class="tag">&gt;</span>
-        <span class="tag">&lt;input</span> <span class="attribute-name">name</span>=<span class="string"><span class="delimiter">"</span><span class="content">item_text</span><span class="delimiter">"</span></span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">"</span><span class="content">id_new_item</span><span class="delimiter">"</span></span> <span class="attribute-name">placeholder</span>=<span class="string"><span class="delimiter">"</span><span class="content">Enter a to-do item</span><span class="delimiter">"</span></span> <span class="tag">/&gt;</span>
-    <span class="tag">&lt;/p&gt;</span>
-    {% csrf_token %}
-<span class="tag">&lt;/form&gt;</span></code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>That passes, which means the FT works.  Let&#8217;s extend it to make sure that the
-input box is also center-aligned on the page for a new list:</p>
+<p>And the implementation, conversely, uses <code>json.dumps()</code></p>
 </div>
 <div class="listingblock sourcecode">
-<div class="title">functional_tests/tests.py (ch07l003)</div>
+<div class="title">lists/tests.py</div>
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python">    <span class="comment"># She starts a new list and sees the input is nicely</span>
-    <span class="comment"># centered there too</span>
-    inputbox.send_keys(<span class="string"><span class="delimiter">'</span><span class="content">testing</span><span class="char">\n</span><span class="delimiter">'</span></span>)
-    inputbox = <span class="predefined-constant">self</span>.browser.find_element_by_id(<span class="string"><span class="delimiter">'</span><span class="content">id_new_item</span><span class="delimiter">'</span></span>)
-    <span class="predefined-constant">self</span>.assertAlmostEqual(
-        inputbox.location[<span class="string"><span class="delimiter">'</span><span class="content">x</span><span class="delimiter">'</span></span>] + inputbox.size[<span class="string"><span class="delimiter">'</span><span class="content">width</span><span class="delimiter">'</span></span>] / <span class="integer">2</span>,
-        <span class="integer">512</span>,
-        delta=<span class="integer">5</span>
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">import</span> <span class="include">json</span>
+<span class="keyword">from</span> <span class="include">django.http</span> <span class="keyword">import</span> <span class="include">HttpResponse</span>
+<span class="keyword">from</span> <span class="include">lists.models</span> <span class="keyword">import</span> <span class="include">List</span>
+
+
+<span class="keyword">def</span> <span class="function">list</span>(request, list_id):
+    list_ = List.objects.get(id=list_id)
+    item_dicts = [
+        {<span class="string"><span class="delimiter">'</span><span class="content">id</span><span class="delimiter">'</span></span>: item.id, <span class="string"><span class="delimiter">'</span><span class="content">text</span><span class="delimiter">'</span></span>: item.text}
+        <span class="keyword">for</span> item <span class="keyword">in</span> list_.item_set.all()
+    ]
+    <span class="keyword">return</span> HttpResponse(
+        json.dumps(item_dicts),
+        content_type=<span class="string"><span class="delimiter">'</span><span class="content">application/json</span><span class="delimiter">'</span></span>
     )</code></pre>
 </div>
 </div>
+</div>
+<div class="sect2">
+<h3 id="_adding_post">Adding POST</h3>
 <div class="paragraph">
-<p>That gives us another test failure:</p>
+<p>We&#8217;ll start with the "happy path":</p>
+</div>
+<div class="listingblock sourcecode">
+<div class="title">lists/tests.py</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python">    <span class="keyword">def</span> <span class="function">test_POSTing_a_new_item</span>(<span class="predefined-constant">self</span>):
+        list_ = List.objects.create()
+        response = <span class="predefined-constant">self</span>.client.post(
+            <span class="predefined-constant">self</span>.base_url.format(list_.id),
+            {<span class="string"><span class="delimiter">'</span><span class="content">text</span><span class="delimiter">'</span></span>: <span class="string"><span class="delimiter">'</span><span class="content">new item</span><span class="delimiter">'</span></span>},
+        )
+        <span class="predefined-constant">self</span>.assertEqual(response.status_code, <span class="integer">201</span>)
+        new_item = list_.item_set.get()
+        <span class="predefined-constant">self</span>.assertEqual(new_item.text, <span class="string"><span class="delimiter">'</span><span class="content">new item</span><span class="delimiter">'</span></span>)</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>And the implementation is similarly simple&#8201;&#8212;&#8201;basically
+the same was what we do in our normal view, but we return
+a 201 rather than a redirect:</p>
+</div>
+<div class="listingblock sourcecode">
+<div class="title">lists/tests.py</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">def</span> <span class="function">list</span>(request, list_id):
+    list_ = List.objects.get(id=list_id)
+    <span class="keyword">if</span> request.method == <span class="string"><span class="delimiter">'</span><span class="content">POST</span><span class="delimiter">'</span></span>:
+        Item.objects.create(list=list_, text=request.POST[<span class="string"><span class="delimiter">'</span><span class="content">text</span><span class="delimiter">'</span></span>])
+        <span class="keyword">return</span> HttpResponse(status=<span class="integer">201</span>)
+    [...]</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>And that should get us started.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_testing_the_client_side_with_sinon_js">Testing the client-side with sinon.js</h3>
+<div class="paragraph">
+<p>Don&#8217;t even <em>think</em> of doing Ajax testing without a mocking library.  Different test frameworks
+and tools have their own, sinon is generic.  It also provides JavaScript mocks, as we&#8217;ll see&#8230;&#8203;</p>
+</div>
+<div class="paragraph">
+<p><a href="http://sinonjs.org/" class="bare">http://sinonjs.org/</a></p>
+</div>
+<div class="listingblock sourcecode">
+<div class="title">lists/static/tests/tests.html</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="html">  <span class="tag">&lt;div</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">"</span><span class="content">qunit-fixture</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>
+    <span class="tag">&lt;form&gt;</span>
+      <span class="tag">&lt;input</span> <span class="attribute-name">name</span>=<span class="string"><span class="delimiter">"</span><span class="content">text</span><span class="delimiter">"</span></span> <span class="tag">/&gt;</span>
+      <span class="tag">&lt;div</span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">"</span><span class="content">has-error</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>Error text<span class="tag">&lt;/div&gt;</span>
+    <span class="tag">&lt;/form&gt;</span>
+    <span class="tag">&lt;table</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">"</span><span class="content">id_list_table</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>  <span class="comment">&lt;!--&lt;1&gt;--&gt;</span>
+    <span class="tag">&lt;/table&gt;</span>
+  <span class="tag">&lt;/div&gt;</span>
+
+  <span class="tag">&lt;script</span> <span class="attribute-name">src</span>=<span class="string"><span class="delimiter">"</span><span class="content">../jquery-3.1.1.min.js</span><span class="delimiter">"</span></span><span class="tag">&gt;</span><span class="tag">&lt;/script&gt;</span>
+  <span class="tag">&lt;script</span> <span class="attribute-name">src</span>=<span class="string"><span class="delimiter">"</span><span class="content">../list.js</span><span class="delimiter">"</span></span><span class="tag">&gt;</span><span class="tag">&lt;/script&gt;</span>
+  <span class="tag">&lt;script</span> <span class="attribute-name">src</span>=<span class="string"><span class="delimiter">"</span><span class="content">qunit-2.0.1.js</span><span class="delimiter">"</span></span><span class="tag">&gt;</span><span class="tag">&lt;/script&gt;</span>
+  <span class="tag">&lt;script</span> <span class="attribute-name">src</span>=<span class="string"><span class="delimiter">"</span><span class="content">sinon-1.17.6.js</span><span class="delimiter">"</span></span><span class="tag">&gt;</span><span class="tag">&lt;/script&gt;</span>  <span class="comment">&lt;!--&lt;2&gt;--&gt;</span>
+
+  <span class="tag">&lt;script&gt;</span>
+<span class="inline"><span class="comment">/* global sinon */</span>
+<span class="keyword">var</span> server;
+QUnit.testStart(<span class="keyword">function</span> () {
+  server = sinon.fakeServer.create();  <i class="conum" data-value="3"></i><b>(3)</b>
+});
+QUnit.testDone(<span class="keyword">function</span> () {
+  server.restore();  <i class="conum" data-value="3"></i><b>(3)</b>
+});
+
+QUnit.test(<span class="string"><span class="delimiter">"</span><span class="content">errors should be hidden on keypress</span><span class="delimiter">"</span></span>, <span class="keyword">function</span> (assert) {
+[...]
+
+
+QUnit.test(<span class="string"><span class="delimiter">"</span><span class="content">should get items by ajax on initialize</span><span class="delimiter">"</span></span>, <span class="keyword">function</span> (assert) {
+  <span class="keyword">var</span> url = <span class="string"><span class="delimiter">'</span><span class="content">/getitems/</span><span class="delimiter">'</span></span>;
+  window.Superlists.initialize(url);
+
+  assert.equal(server.requests.length, <span class="integer">1</span>); <i class="conum" data-value="4"></i><b>(4)</b>
+  <span class="keyword">var</span> request = server.requests[<span class="integer">0</span>];
+  assert.equal(request.url, url);
+  assert.equal(request.method, <span class="string"><span class="delimiter">'</span><span class="content">GET</span><span class="delimiter">'</span></span>);
+});</span>
+
+  <span class="tag">&lt;/script&gt;</span></code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>We add a new item to the fixture div to represent our list table</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>We import <em>sinon.js</em></td>
+</tr>
+<tr>
+<td><i class="conum" data-value="3"></i><b>3</b></td>
+<td><code>testStart</code> and <code>testDone</code> are the QUnit equivalents of <code>setUp</code> and
+<code>tearDown</code>.  We use them to tell sinon to start up its ajax testing
+tool, the <code>fakeServer</code>.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="4"></i><b>4</b></td>
+<td>That lets us make assertions about any ajax requests that were made
+by our code.</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>And we can get that passing with this</p>
+</div>
+<div class="listingblock sourcecode">
+<div class="title">lists/static/lists.js</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="diff"><span class="line change"><span class="change">@@</span> -1,6 +1,10 <span class="change">@@</span></span>
+ window.Superlists = {};
+<span class="line delete"><span class="delete">-</span>window.Superlists.initialize = function () {</span>
+<span class="line insert"><span class="insert">+</span>window.Superlists.initialize = function (<span class="eyecatcher">url</span>) {</span>
+   $('input[name="text"]').on('keypress', function () {
+     $('.has-error').hide();
+   });
+<span class="line insert"><span class="insert">+</span></span>
+<span class="line insert"><span class="insert">+</span>  $.get(url);</span>
+<span class="line insert"><span class="insert">+</span></span>
+ };</code></pre>
+</div>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>  File "/workspace/superlists/functional_tests/tests.py", line 114, in
-test_layout_and_styling
-    delta=5
-AssertionError: 112.0 != 512 within 5 delta</pre>
+<pre>Took 35ms to run 5 tests. 5 passed, 0 failed.</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>Let&#8217;s commit just the FT:</p>
+<p>But what about the async part, where we deal with the response?</p>
 </div>
-<div class="listingblock">
+<div class="sect4">
+<h5 id="_sinon_and_testing_the_async_part_of_ajax">Sinon and testing the async part of Ajax</h5>
+<div class="paragraph">
+<p>This is a major reason to love sinon.  <code>server.respond()</code> allows us to exactly
+control the flow of the async code.</p>
+</div>
+<div class="listingblock sourcecode">
+<div class="title">lists/static/tests/tests.html</div>
 <div class="content">
-<pre>$ <strong>git add functional_tests/tests.py</strong>
-$ <strong>git commit -m "first steps of FT for layout + styling"</strong></pre>
+<pre class="CodeRay highlight"><code data-lang="html">QUnit.test("should fill in lists table from ajax response", function (assert) {
+  var url = '/getitems/';
+  var responseData = [
+    {'id': 101, 'text': 'item 1 text'},
+    {'id': 102, 'text': 'item 2 text'},
+  ];
+  server.respondWith('GET', url, [
+    200, {"Content-Type": "application/json"}, JSON.stringify(responseData) <i class="conum" data-value="1"></i><b>(1)</b>
+  ]);
+  window.Superlists.initialize(url); <i class="conum" data-value="2"></i><b>(2)</b>
+
+  server.respond(); <i class="conum" data-value="3"></i><b>(3)</b>
+
+  var rows = $('#id_list_table tr');
+  assert.equal(rows.length, 2);
+  var row1 = $('#id_list_table tr:first-child td');
+  console.log(row1);
+  assert.equal(row1.text(), '1: item 1 text');
+  var row2 = $('#id_list_table tr:last-child td');
+  assert.equal(row2.text(), '2: item 2 text');
+});</code></pre>
 </div>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>We set up some response data for sinon to use, telling it what status code, headers,
+and importantly what kind of response JSON we want to simulate coming from the
+server.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>Then we call the function under test</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="3"></i><b>3</b></td>
+<td>Here&#8217;s the magic.  <em>Then</em> we can call <code>server.respond()</code>, whenever we like, and that
+will kick off all the async part of the Ajax loop&#8201;&#8212;&#8201;all the callbacks we&#8217;d assigned
+to deal with the response.</td>
+</tr>
+</table>
 </div>
 <div class="paragraph">
-<p>Now it feels like we&#8217;re justified in finding a "proper" solution to our need
-for some better styling for our site.  We can back out our hacky
-<code>&lt;p style="text-align: center"&gt;</code>:
-</p>
+<p>And then we can quietly check whether our Ajax callback has actually populated our table
+with the new list rows&#8230;&#8203;</p>
 </div>
-<div class="listingblock">
-<div class="content">
-<pre>$ <strong>git reset --hard</strong></pre>
-</div>
-</div>
-<div class="admonitionblock warning">
+<div class="admonitionblock tip">
 <table>
 <tr>
 <td class="icon">
-<i class="fa icon-warning" title="Warning"></i>
+<i class="fa icon-tip" title="Tip"></i>
 </td>
 <td class="content">
-<code>git reset --hard</code> is the "take off and nuke the site from orbit" Git
-command, so be careful with it&#8212;&#8203;it blows away all your un-committed changes.
-Unlike almost everything else you can do with Git, there&#8217;s no way of going back
-after this one.
-
+We&#8217;re lucky because of the way jQuery registers its callbacks for Ajax when we use
+    the <code>.done()</code> function.  If you want to switch to the more standard JavaScript Promise
+    <code>.then()</code> callback, we get one more level of async.  QUnit does have a way of dealing with
+    that.  Check out the docs for the <a href="http://api.qunitjs.com/async/">async</a> function.  Other test
+    frameworks have something similar.
 </td>
 </tr>
 </table>
 </div>
 </div>
-<div class="sect2">
-<h3 id="_prettification_using_a_css_framework">Prettification: Using a CSS Framework</h3>
-<div class="paragraph">
-<p>
-
-Design is hard, and doubly so now that we have to deal with mobile, tablets, and
-so forth.  That&#8217;s why many programmers, particularly lazy ones like me, are
-turning to CSS frameworks to solve some of those problems for them.  There are
-lots of frameworks out there, but one of the earliest and most popular is
-Twitter&#8217;s Bootstrap.  Let&#8217;s use that.</p>
-</div>
-<div class="paragraph">
-<p>
-You can find bootstrap at <a href="http://getbootstrap.com/" class="bare">http://getbootstrap.com/</a>.</p>
-</div>
-<div class="paragraph">
-<p>We&#8217;ll download it and put it in a new folder called <em>static</em> inside the <code>lists</code>
-app:<sup class="footnote">[<a id="_footnoteref_1" class="footnote" href="#_footnote_1" title="View footnote.">1</a>]</sup></p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>$ <strong>wget -O bootstrap.zip https://github.com/twbs/bootstrap/releases/download/\
-v3.3.4/bootstrap-3.3.4-dist.zip</strong>
-$ <strong>unzip bootstrap.zip</strong>
-$ <strong>mkdir lists/static</strong>
-$ <strong>mv bootstrap-3.3.4-dist lists/static/bootstrap</strong>
-$ <strong>rm bootstrap.zip</strong></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Bootstrap comes with a plain, uncustomised installation in the <em>dist</em> folder.
-We&#8217;re going to use that for now, but you should really never do this for a
-real site&#8212;&#8203;vanilla Bootstrap is instantly recognisable, and a big signal
-to anyone in the know that you couldn&#8217;t be bothered to style your site. Learn
-how to use LESS and change the font, if nothing else!  There is info in
-Bootstrap&#8217;s docs, or there&#8217;s a
-<a href="http://coding.smashingmagazine.com/2013/03/12/customizing-bootstrap/">good guide here</a>.</p>
-</div>
-<div class="paragraph">
-<p>Our <em>lists</em> folder will end up looking like this:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>$ <strong>tree lists</strong>
-lists
-&#9500;&#9472;&#9472; __init__.py
-&#9500;&#9472;&#9472; __pycache__
-&#9474;&#160;&#160; &#9492;&#9472;&#9472; [...]
-&#9500;&#9472;&#9472; admin.py
-&#9500;&#9472;&#9472; models.py
-&#9500;&#9472;&#9472; static
-&#9474;&#160;&#160; &#9492;&#9472;&#9472; bootstrap
-&#9474;&#160;&#160;     &#9500;&#9472;&#9472; css
-&#9474;&#160;&#160;     &#9474;&#160;&#160; &#9500;&#9472;&#9472; bootstrap.css
-&#9474;&#160;&#160;     &#9474;&#160;&#160; &#9500;&#9472;&#9472; bootstrap.css.map
-&#9474;&#160;&#160;     &#9474;&#160;&#160; &#9500;&#9472;&#9472; bootstrap.min.css
-&#9474;&#160;&#160;     &#9474;&#160;&#160; &#9500;&#9472;&#9472; bootstrap-theme.css
-&#9474;&#160;&#160;     &#9474;&#160;&#160; &#9500;&#9472;&#9472; bootstrap-theme.css.map
-&#9474;&#160;&#160;     &#9474;&#160;&#160; &#9492;&#9472;&#9472; bootstrap-theme.min.css
-&#9474;&#160;&#160;     &#9500;&#9472;&#9472; fonts
-&#9474;&#160;&#160;     &#9474;&#160;&#160; &#9500;&#9472;&#9472; glyphicons-halflings-regular.eot
-&#9474;&#160;&#160;     &#9474;&#160;&#160; &#9500;&#9472;&#9472; glyphicons-halflings-regular.svg
-&#9474;&#160;&#160;     &#9474;&#160;&#160; &#9500;&#9472;&#9472; glyphicons-halflings-regular.ttf
-&#9474;&#160;&#160;     &#9474;&#160;&#160; &#9500;&#9472;&#9472; glyphicons-halflings-regular.woff
-&#9474;&#160;&#160;     &#9474;&#160;&#160; &#9492;&#9472;&#9472; glyphicons-halflings-regular.woff2
-&#9474;&#160;&#160;     &#9492;&#9472;&#9472; js
-&#9474;&#160;&#160;         &#9500;&#9472;&#9472; bootstrap.js
-&#9474;&#160;&#160;         &#9500;&#9472;&#9472; bootstrap.min.js
-&#9474;&#160;&#160;         &#9492;&#9472;&#9472; npm.js
-&#9500;&#9472;&#9472; templates
-&#9474;&#160;&#160; &#9500;&#9472;&#9472; home.html
-&#9474;&#160;&#160; &#9492;&#9472;&#9472; list.html
-&#9500;&#9472;&#9472; tests.py
-&#9500;&#9472;&#9472; urls.py
-&#9492;&#9472;&#9472; views.py</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>If we have a look at the "Getting Started" section of the
-<a href="http://getbootstrap.com/getting-started/#template">Bootstrap documentation</a>,
-you&#8217;ll see it wants our HTML template to include something like this:</p>
-</div>
-<div class="listingblock skipme">
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="html">    <span class="doctype">&lt;!DOCTYPE html&gt;</span>
-    <span class="tag">&lt;html&gt;</span>
-      <span class="tag">&lt;head&gt;</span>
-        <span class="tag">&lt;meta</span> <span class="attribute-name">charset</span>=<span class="string"><span class="delimiter">"</span><span class="content">utf-8</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>
-        <span class="tag">&lt;meta</span> <span class="attribute-name">http-equiv</span>=<span class="string"><span class="delimiter">"</span><span class="content">X-UA-Compatible</span><span class="delimiter">"</span></span> <span class="attribute-name">content</span>=<span class="string"><span class="delimiter">"</span><span class="content">IE=edge</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>
-        <span class="tag">&lt;meta</span> <span class="attribute-name">name</span>=<span class="string"><span class="delimiter">"</span><span class="content">viewport</span><span class="delimiter">"</span></span> <span class="attribute-name">content</span>=<span class="string"><span class="delimiter">"</span><span class="content">width=device-width, initial-scale=1</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>
-        <span class="tag">&lt;title&gt;</span>Bootstrap 101 Template<span class="tag">&lt;/title&gt;</span>
-        <span class="comment">&lt;!-- Bootstrap --&gt;</span>
-        <span class="tag">&lt;link</span> <span class="attribute-name">href</span>=<span class="string"><span class="delimiter">"</span><span class="content">css/bootstrap.min.css</span><span class="delimiter">"</span></span> <span class="attribute-name">rel</span>=<span class="string"><span class="delimiter">"</span><span class="content">stylesheet</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>
-      <span class="tag">&lt;/head&gt;</span>
-      <span class="tag">&lt;body&gt;</span>
-        <span class="tag">&lt;h1&gt;</span>Hello, world!<span class="tag">&lt;/h1&gt;</span>
-        <span class="tag">&lt;script</span> <span class="attribute-name">src</span>=<span class="string"><span class="delimiter">"</span><span class="content">http://code.jquery.com/jquery.js</span><span class="delimiter">"</span></span><span class="tag">&gt;</span><span class="tag">&lt;/script&gt;</span>
-        <span class="tag">&lt;script</span> <span class="attribute-name">src</span>=<span class="string"><span class="delimiter">"</span><span class="content">js/bootstrap.min.js</span><span class="delimiter">"</span></span><span class="tag">&gt;</span><span class="tag">&lt;/script&gt;</span>
-      <span class="tag">&lt;/body&gt;</span>
-    <span class="tag">&lt;/html&gt;</span></code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>We already have two HTML templates.  We don&#8217;t want to be adding a whole load
-of boilerplate code to each, so now feels like the right time to apply
-the "Don&#8217;t repeat yourself" rule, and bring all the common parts together.
-Thankfully, the Django template language makes that easy using something
-called template inheritance.</p>
-</div>
 </div>
 <div class="sect2">
-<h3 id="_django_template_inheritance">Django Template Inheritance</h3>
+<h3 id="_wiring_it_all_up_in_the_template_to_check_it_all_works_so_far">Wiring it all up in the template to check it all works so far</h3>
 <div class="paragraph">
-<p>
-
-Let&#8217;s have a little review of what the differences are between <em>home.html</em> and
-<em>list.html</em>:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>$ <strong>diff lists/templates/home.html lists/templates/list.html</strong>
-7,8c7,8
-&lt;         &lt;h1&gt;Start a new To-Do list&lt;/h1&gt;
-&lt;         &lt;form method="POST" action="/lists/new"&gt;
----
-&gt;         &lt;h1&gt;Your To-Do list&lt;/h1&gt;
-&gt;         &lt;form method="POST" action="/lists/{{ list.id }}/add_item"&gt;
-11a12,18
-&gt;
-&gt;         &lt;table id="id_list_table"&gt;
-&gt;             {% for item in list.item_set.all %}
-&gt;                 &lt;tr&gt;&lt;td&gt;{{ forloop.counter }}: {{ item.text }}&lt;/td&gt;&lt;/tr&gt;
-&gt;             {% endfor %}
-&gt;         &lt;/table&gt;
-&gt;</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>They have different header texts, and their forms use different URLs. On top
-of that, <em>list.html</em> has the additional <code>&lt;table&gt;</code> element.</p>
-</div>
-<div class="paragraph">
-<p>Now that we&#8217;re clear on what&#8217;s in common and what&#8217;s not, we can make the two
-templates inherit from a common "superclass" template.  We&#8217;ll start by
-making a copy of <em>home.html</em>:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>$ <strong>cp lists/templates/home.html lists/templates/base.html</strong></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>We make this into a base template which just contains the common boilerplate,
-and mark out the "blocks", places where child templates can customise it:</p>
-</div>
-<div class="listingblock sourcecode small-code">
-<div class="title">lists/templates/base.html</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="html"><span class="tag">&lt;html&gt;</span>
-<span class="tag">&lt;head&gt;</span>
-    <span class="tag">&lt;title&gt;</span>To-Do lists<span class="tag">&lt;/title&gt;</span>
-<span class="tag">&lt;/head&gt;</span>
-
-<span class="tag">&lt;body&gt;</span>
-    <span class="tag">&lt;h1&gt;</span>{% block header_text %}{% endblock %}<span class="tag">&lt;/h1&gt;</span>
-    <span class="tag">&lt;form</span> <span class="attribute-name">method</span>=<span class="string"><span class="delimiter">"</span><span class="content">POST</span><span class="delimiter">"</span></span> <span class="attribute-name">action</span>=<span class="string"><span class="delimiter">"</span><span class="content">{% block form_action %}{% endblock %}</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>
-        <span class="tag">&lt;input</span> <span class="attribute-name">name</span>=<span class="string"><span class="delimiter">"</span><span class="content">item_text</span><span class="delimiter">"</span></span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">"</span><span class="content">id_new_item</span><span class="delimiter">"</span></span> <span class="attribute-name">placeholder</span>=<span class="string"><span class="delimiter">"</span><span class="content">Enter a to-do item</span><span class="delimiter">"</span></span> <span class="tag">/&gt;</span>
-        {% csrf_token %}
-    <span class="tag">&lt;/form&gt;</span>
-    {% block table %}
-    {% endblock %}
-<span class="tag">&lt;/body&gt;</span>
-<span class="tag">&lt;/html&gt;</span></code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>The base template defines a series of areas called "blocks", which will be
-places that other templates can hook in and add their own content.  Let&#8217;s
-see how that works in practice, by changing <em>home.html</em> so that it "inherits
-from" <em>base.html</em>:</p>
-</div>
-<div class="listingblock sourcecode">
-<div class="title">lists/templates/home.html</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="html">{% extends 'base.html' %}
-
-{% block header_text %}Start a new To-Do list{% endblock %}
-
-{% block form_action %}/lists/new{% endblock %}</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>You can see that lots of the boilerplate HTML disappears, and we just
-concentrate on the bits we want to customise. We do the same for <em>list.html</em>:</p>
+<p>We break it first, by removing the list table <code>{% for %}</code> loop from the
+lists.html template.</p>
 </div>
 <div class="listingblock sourcecode">
 <div class="title">lists/templates/list.html</div>
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="html">{% extends 'base.html' %}
+<pre class="CodeRay highlight"><code data-lang="diff"><span class="line change"><span class="change">@@</span> -6,9 +6,6 <span class="change">@@</span></span>
 
-{% block header_text %}Your To-Do list{% endblock %}
+ {% block table %}
+     &lt;table id="id_list_table" class="table"&gt;
+<span class="line delete"><span class="delete">-</span>        {% for item in list.item_set.all %}</span>
+<span class="line delete"><span class="delete">-</span>            &lt;tr&gt;&lt;td&gt;{{ forloop.counter }}: {{ item.text }}&lt;/td&gt;&lt;/tr&gt;</span>
+<span class="line delete"><span class="delete">-</span>        {% endfor %}</span>
+     &lt;/table&gt;
 
-{% block form_action %}/lists/{{ list.id }}/add_item{% endblock %}
-
-{% block table %}
-    <span class="tag">&lt;table</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">"</span><span class="content">id_list_table</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>
-        {% for item in list.item_set.all %}
-            <span class="tag">&lt;tr&gt;</span><span class="tag">&lt;td&gt;</span>{{ forloop.counter }}: {{ item.text }}<span class="tag">&lt;/td&gt;</span><span class="tag">&lt;/tr&gt;</span>
-        {% endfor %}
-    <span class="tag">&lt;/table&gt;</span>
-{% endblock %}</code></pre>
+     {% if list.owner %}</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>That&#8217;s a refactor of the way our templates work.  We rerun the FTs to make
-sure we haven&#8217;t broken anything&#8230;&#8203;</p>
+<p>Yep, that breaks the FT</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>AssertionError: 112.0 != 512 within 5 delta</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>
+<pre>$ <strong>python manage.py test functional_tests.test_simple_list_creation</strong>
+[...]
+  File "/workspace/functional_tests/test_simple_list_creation.py", line 35, in
+test_can_start_a_list_and_retrieve_it_later
+    self.check_for_row_in_list_table('1: Buy peacock feathers')
+  File "/workspace/functional_tests/base.py", line 109, in
+check_for_row_in_list_table
+    self.assertIn(row_text, [row.text for row in rows])
+AssertionError: '1: Buy peacock feathers' not found in []
 
-Sure enough, they&#8217;re still getting to exactly where they were before.  That&#8217;s
-worthy of a commit:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>$ <strong>git diff -b</strong>
-# the -b means ignore whitespace, useful since we've changed some html indenting
-$ <strong>git status</strong>
-$ <strong>git add lists/templates</strong> # leave static, for now
-$ <strong>git commit -m "refactor templates to use a base template"</strong></pre>
+FAILED (failures=1)</pre>
 </div>
 </div>
-</div>
-<div class="sect2">
-<h3 id="_integrating_bootstrap">Integrating Bootstrap</h3>
 <div class="paragraph">
-<p>Now it&#8217;s much easier to integrate the boilerplate code that Bootstrap wants&#8212;&#8203;we
-won&#8217;t add the JavaScript yet, just the CSS:</p>
+<p>We then add a block called <code>{% scripts %}</code> to the base template to allow us
+to override it selectively in <em>list.html</em>:</p>
 </div>
 <div class="listingblock sourcecode">
-<div class="title">lists/templates/base.html (ch07l006)</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="html"><span class="doctype">&lt;!DOCTYPE html&gt;</span>
-<span class="tag">&lt;html</span> <span class="attribute-name">lang</span>=<span class="string"><span class="delimiter">"</span><span class="content">en</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>
-
-<span class="tag">&lt;head&gt;</span>
-    <span class="tag">&lt;meta</span> <span class="attribute-name">charset</span>=<span class="string"><span class="delimiter">"</span><span class="content">utf-8</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>
-    <span class="tag">&lt;meta</span> <span class="attribute-name">http-equiv</span>=<span class="string"><span class="delimiter">"</span><span class="content">X-UA-Compatible</span><span class="delimiter">"</span></span> <span class="attribute-name">content</span>=<span class="string"><span class="delimiter">"</span><span class="content">IE=edge</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>
-    <span class="tag">&lt;meta</span> <span class="attribute-name">name</span>=<span class="string"><span class="delimiter">"</span><span class="content">viewport</span><span class="delimiter">"</span></span> <span class="attribute-name">content</span>=<span class="string"><span class="delimiter">"</span><span class="content">width=device-width, initial-scale=1</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>
-    <span class="tag">&lt;title&gt;</span>To-Do lists<span class="tag">&lt;/title&gt;</span>
-    <span class="tag">&lt;link</span> <span class="attribute-name">href</span>=<span class="string"><span class="delimiter">"</span><span class="content">css/bootstrap.min.css</span><span class="delimiter">"</span></span> <span class="attribute-name">rel</span>=<span class="string"><span class="delimiter">"</span><span class="content">stylesheet</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>
-<span class="tag">&lt;/head&gt;</span>
-[...]</code></pre>
-</div>
-</div>
-<div class="sect3">
-<h4 id="_rows_and_columns">Rows and Columns</h4>
-<div class="paragraph">
-<p>
-Finally, let&#8217;s actually use some of the Bootstrap magic! You&#8217;ll have to read
-the documentation yourself, but should be able to use a combination
-of the grid system and the <code>text-center</code> class to get what we want:</p>
-</div>
-<div class="listingblock sourcecode small-code">
-<div class="title">lists/templates/base.html (ch07l007)</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="html"><span class="tag">&lt;body&gt;</span>
-<span class="tag">&lt;div</span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">"</span><span class="content">container</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>
-
-    <span class="tag">&lt;div</span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">"</span><span class="content">row</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>
-        <span class="tag">&lt;div</span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">"</span><span class="content">col-md-6 col-md-offset-3</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>
-            <span class="tag">&lt;div</span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">"</span><span class="content">text-center</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>
-                <span class="tag">&lt;h1&gt;</span>{% block header_text %}{% endblock %}<span class="tag">&lt;/h1&gt;</span>
-                <span class="tag">&lt;form</span> <span class="attribute-name">method</span>=<span class="string"><span class="delimiter">"</span><span class="content">POST</span><span class="delimiter">"</span></span> <span class="attribute-name">action</span>=<span class="string"><span class="delimiter">"</span><span class="content">{% block form_action %}{% endblock %}</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>
-                    <span class="tag">&lt;input</span> <span class="attribute-name">name</span>=<span class="string"><span class="delimiter">"</span><span class="content">item_text</span><span class="delimiter">"</span></span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">"</span><span class="content">id_new_item</span><span class="delimiter">"</span></span>
-                           <span class="attribute-name">placeholder</span>=<span class="string"><span class="delimiter">"</span><span class="content">Enter a to-do item</span><span class="delimiter">"</span></span>
-                    <span class="tag">/&gt;</span>
-                    {% csrf_token %}
-                <span class="tag">&lt;/form&gt;</span>
-            <span class="tag">&lt;/div&gt;</span>
-        <span class="tag">&lt;/div&gt;</span>
-    <span class="tag">&lt;/div&gt;</span>
-
-    <span class="tag">&lt;div</span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">"</span><span class="content">row</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>
-        <span class="tag">&lt;div</span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">"</span><span class="content">col-md-6 col-md-offset-3</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>
-            {% block table %}
-            {% endblock %}
-        <span class="tag">&lt;/div&gt;</span>
-    <span class="tag">&lt;/div&gt;</span>
-
-<span class="tag">&lt;/div&gt;</span>
-<span class="tag">&lt;/body&gt;</span></code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>(If you&#8217;ve never seen an HTML tag broken up over several lines, that <code>&lt;input&gt;</code>
-may be a little shocking. It is definitely valid, but you don&#8217;t have to use
-it if you find it offensive. ;)</p>
-</div>
-<div class="admonitionblock tip">
-<table>
-<tr>
-<td class="icon">
-<i class="fa icon-tip" title="Tip"></i>
-</td>
-<td class="content">
-Take the time to browse through the <a href="http://getbootstrap.com/">Bootstrap
-documentation</a>, if you&#8217;ve never seen it before.  It&#8217;s a shopping trolley
-brimming full of useful tools to use in your site.
-</td>
-</tr>
-</table>
-</div>
-<div class="paragraph">
-<p>Does that work?</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>AssertionError: 112.0 != 512 within 5 delta</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Hmm. No.  Why isn&#8217;t our CSS loading?</p>
-</div>
-</div>
-</div>
-<div class="sect2">
-<h3 id="_static_files_in_django">Static Files in Django</h3>
-<div class="paragraph">
-<p>
-
-
-Django, and indeed any web server, needs to know two things to deal with static
-files:</p>
-</div>
-<div class="olist arabic">
-<ol class="arabic">
-<li>
-<p>How to tell when a URL request is for a static file, as opposed to for some
-HTML that&#8217;s going to be served via a view function</p>
-</li>
-<li>
-<p>Where to find the static file the user wants</p>
-</li>
-</ol>
-</div>
-<div class="paragraph">
-<p>In other words, static files are a mapping from URLs to files on disk.</p>
-</div>
-<div class="paragraph">
-<p>For item 1, Django lets us define a URL "prefix" to say that any URLs which
-start with that prefix should be treated as requests for static files.  By
-default, the prefix is <code>/static/</code>. It&#8217;s defined in <em>settings.py</em>:</p>
-</div>
-<div class="listingblock sourcecode currentcontents">
-<div class="title">superlists/settings.py</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="python">[...]
-
-<span class="comment"># Static files (CSS, JavaScript, Images)</span>
-<span class="comment"># https://docs.djangoproject.com/en/1.8/howto/static-files/</span>
-
-STATIC_URL = <span class="string"><span class="delimiter">'</span><span class="content">/static/</span><span class="delimiter">'</span></span></code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>The rest of the settings we will add to this section are all to do with item 2:
-finding the actual static files on disk.</p>
-</div>
-<div class="paragraph">
-<p>While we&#8217;re using the Django development server (<code>manage.py runserver</code>), we can
-rely on Django to magically find static files for us&#8212;&#8203;it&#8217;ll just look in any
-subfolder of one of our apps called <em>static</em>.</p>
-</div>
-<div class="paragraph">
-<p>You now see why we put all the Bootstrap static files into
-<em>lists/static</em>.  So why are they not working at the moment?  It&#8217;s because we&#8217;re
-not using the <code>/static/</code> URL prefix.  Have another look at the link to the CSS
-in <em>base.html</em>:</p>
-</div>
-<div class="listingblock sourcecode currentcontents">
 <div class="title">lists/templates/base.html</div>
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="html"><span class="tag">&lt;link</span> <span class="attribute-name">href</span>=<span class="string"><span class="delimiter">"</span><span class="content">css/bootstrap.min.css</span><span class="delimiter">"</span></span> <span class="attribute-name">rel</span>=<span class="string"><span class="delimiter">"</span><span class="content">stylesheet</span><span class="delimiter">"</span></span><span class="tag">&gt;</span></code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>To get this to work, we need to change it to:</p>
-</div>
-<div class="listingblock sourcecode small-code">
-<div class="title">lists/templates/base.html</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="html"><span class="tag">&lt;link</span> <span class="attribute-name">href</span>=<span class="string"><span class="delimiter">"</span><span class="content">/static/bootstrap/css/bootstrap.min.css</span><span class="delimiter">"</span></span> <span class="attribute-name">rel</span>=<span class="string"><span class="delimiter">"</span><span class="content">stylesheet</span><span class="delimiter">"</span></span><span class="tag">&gt;</span></code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>When <code>runserver</code> sees the request, it knows that it&#8217;s for a static file because
-it begins with <code>/static/</code>.  It then tries to find a file called
-<code>bootstrap/css/bootstrap.min.css</code>, looking in each of our app folders for
-subfolders called <em>static</em>, and it should find it at
-<em>lists/static/bootstrap/css/bootstrap.min.css</em>.</p>
-</div>
-<div class="paragraph">
-<p>So if you take a look manually, you should see it works, as in
-<a href="#list-page-centered">Our site starts to look a little better&#8230;&#8203;</a>.</p>
-</div>
-<div id="list-page-centered" class="imageblock">
-<div class="content">
-<img src="images/twdp_0702.png" alt="The list page with centered header.">
-</div>
-<div class="title">Figure 2. Our site starts to look a little better&#8230;&#8203;</div>
-</div>
-<div class="sect3">
-<h4 id="_switching_to_staticliveservertestcase">Switching to StaticLiveServerTestCase</h4>
-<div class="paragraph">
-<p>
+<pre class="CodeRay highlight"><code data-lang="html">    <span class="tag">&lt;script</span> <span class="attribute-name">src</span>=<span class="string"><span class="delimiter">"</span><span class="content">/static/list.js</span><span class="delimiter">"</span></span><span class="tag">&gt;</span><span class="tag">&lt;/script&gt;</span>
 
-If you run the FT though, it won&#8217;t pass:</p>
+    {% block scripts %}
+      <span class="tag">&lt;script&gt;</span>
+<span class="inline"><span class="predefined">$</span>(document).ready(<span class="keyword">function</span> () {
+  window.Superlists.initialize();
+});</span>
+      <span class="tag">&lt;/script&gt;</span>
+    {% endblock scripts %}
+
+  <span class="tag">&lt;/body&gt;</span></code></pre>
 </div>
-<div class="listingblock">
-<div class="content">
-<pre>AssertionError: 112.0 != 512 within 5 delta</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>That&#8217;s because, although <code>runserver</code> automagically finds static files,
-<code>LiveServerTestCase</code> doesn&#8217;t.  Never fear though, the Django developers have
-made a more magical test class called <code>StaticLiveServerTestCase</code> (see
-<a href="http://bit.ly/Suv4Ip">the
-docs</a>).</p>
 </div>
 <div class="paragraph">
-<p>Let&#8217;s switch to that:</p>
+<p>And now in <em>list.html</em> we add a slightly different call to <code>initialize</code>, with
+the correct url:</p>
 </div>
 <div class="listingblock sourcecode">
-<div class="title">functional_tests/tests.py</div>
+<div class="title">lists/templates/list.html</div>
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="diff"><span class="line change"><span class="change">@@</span> -1,8 +1,8 <span class="change">@@</span></span>
-<span class="line delete"><span class="delete">-</span>from django.<span class="eyecatcher">test import </span>LiveServerTestCase</span>
-<span class="line insert"><span class="insert">+</span>from django.<span class="eyecatcher">contrib.staticfiles.testing import Static</span>LiveServerTestCase</span>
- from selenium import webdriver
- from selenium.webdriver.common.keys import Keys
-
-<span class="line delete"><span class="delete">-</span>class NewVisitorTest(LiveServerTestCase):</span>
-<span class="line insert"><span class="insert">+</span>class NewVisitorTest(<span class="eyecatcher">Static</span>LiveServerTestCase):</span></code></pre>
+<pre class="CodeRay highlight"><code data-lang="html">{% block scripts %}
+  <span class="tag">&lt;script&gt;</span>
+<span class="inline"><span class="predefined">$</span>(document).ready(<span class="keyword">function</span> () {
+  <span class="keyword">var</span> url = <span class="string"><span class="delimiter">"</span><span class="content">{% url 'api_list' list.id %}</span><span class="delimiter">"</span></span>;
+  window.Superlists.initialize(url);
+});</span>
+  <span class="tag">&lt;/script&gt;</span>
+{% endblock scripts %}</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>And now it will now find the new CSS, which will get our test to pass:</p>
+<p>And guess what? The test passes!</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>$ <strong>python3 manage.py test functional_tests</strong>
-Creating test database for alias 'default'...
-..
+<pre>$ <strong>python manage.py test functional_tests.test_simple_list_creation</strong>
+[...]
+.
  ---------------------------------------------------------------------
-Ran 2 tests in 9.764s</pre>
-</div>
-</div>
-<div class="admonitionblock note">
-<table>
-<tr>
-<td class="icon">
-<i class="fa icon-note" title="Note"></i>
-</td>
-<td class="content">
-At this point, Windows users may see some (harmless, but distracting)
-    error messages that say <code>socket.error: [WinError 10054] An existing
-    connection was forcibly closed by the remote host</code>.  Add a
-    <code>self.browser.refresh()</code> just before the <code>self.browser.quit()</code> in
-    <code>tearDown</code> to get rid of them.  The issue is being tracked in this
-    <a href="https://code.djangoproject.com/ticket/21227">bug on the Django tracker</a>.
-</td>
-</tr>
-</table>
-</div>
-<div class="paragraph">
-<p>Hooray!</p>
-</div>
-</div>
-</div>
-<div class="sect2">
-<h3 id="_using_bootstrap_components_to_improve_the_look_of_the_site">Using Bootstrap Components to Improve the Look of the Site</h3>
-<div class="paragraph">
-<p>Let&#8217;s see if we can do even better, using some of the other tools in
-Bootstrap&#8217;s panoply.</p>
-</div>
-<div class="sect3">
-<h4 id="_jumbotron">Jumbotron!</h4>
-<div class="paragraph">
-<p>
-
-Bootstrap has a class called <code>jumbotron</code> for things that are meant to be
-particularly prominent on the page.  Let&#8217;s use that to embiggen the main
-page header and the input form:</p>
-</div>
-<div class="listingblock sourcecode">
-<div class="title">lists/templates/base.html (ch07l009)</div>
-<div class="content">
-<pre>    &lt;div class="col-md-6 col-md-offset-3 jumbotron"&gt;
-        &lt;div class="text-center"&gt;
-            &lt;h1&gt;{% block header_text %}{% endblock %}&lt;/h1&gt;
-            &lt;form method="POST" action="{% block form_action %}{% endblock %}"&gt;
-                [...]</pre>
-</div>
-</div>
-<div class="admonitionblock tip">
-<table>
-<tr>
-<td class="icon">
-<i class="fa icon-tip" title="Tip"></i>
-</td>
-<td class="content">
-When hacking about with design and layout, it&#8217;s best to have a window open
-that we can hit refresh on, frequently.  Use <code>python3 manage.py runserver</code> to
-spin up the dev server, and then browse to <em><a href="http://localhost:8000" class="bare">http://localhost:8000</a></em> to see your
-work as we go.
-</td>
-</tr>
-</table>
-</div>
-</div>
-<div class="sect3">
-<h4 id="_large_inputs">Large Inputs</h4>
-<div class="paragraph">
-<p>
-
-The jumbotron is a good start, but now the input box has tiny text compared to
-everything else.  Thankfully, Bootstrap&#8217;s form control classes offer an option
-to set an input to be "large":</p>
-</div>
-<div class="listingblock sourcecode">
-<div class="title">lists/templates/base.html (ch07l010)</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="html"><span class="tag">&lt;input</span> <span class="attribute-name">name</span>=<span class="string"><span class="delimiter">"</span><span class="content">item_text</span><span class="delimiter">"</span></span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">"</span><span class="content">id_new_item</span><span class="delimiter">"</span></span>
-       <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">"</span><span class="content">form-control input-lg</span><span class="delimiter">"</span></span>
-       <span class="attribute-name">placeholder</span>=<span class="string"><span class="delimiter">"</span><span class="content">Enter a to-do item</span><span class="delimiter">"</span></span>
-<span class="tag">/&gt;</span></code></pre>
-</div>
-</div>
-</div>
-<div class="sect3">
-<h4 id="_table_styling">Table Styling</h4>
-<div class="paragraph">
-<p>
-
-
-
-The table text also looks too small compared to the rest of the page now.
-Adding the Bootstrap <code>table</code> class improves things:</p>
-</div>
-<div class="listingblock sourcecode">
-<div class="title">lists/templates/list.html (ch07l011)</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="html">    <span class="tag">&lt;table</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">"</span><span class="content">id_list_table</span><span class="delimiter">"</span></span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">"</span><span class="content">table</span><span class="delimiter">"</span></span><span class="tag">&gt;</span></code></pre>
-</div>
-</div>
-</div>
-</div>
-<div class="sect2">
-<h3 id="_using_our_own_css">Using Our Own CSS</h3>
-<div class="paragraph">
-<p>
-
-Finally I&#8217;d like to just offset the input from the title text slightly. There&#8217;s
-no ready-made fix for that in Bootstrap, so we&#8217;ll make one ourselves.  That
-will require specifying our own CSS file:</p>
-</div>
-<div class="listingblock sourcecode">
-<div class="title">lists/templates/base.html</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="html">[...]
-    <span class="tag">&lt;title&gt;</span>To-Do lists<span class="tag">&lt;/title&gt;</span>
-    <span class="tag">&lt;link</span> <span class="attribute-name">href</span>=<span class="string"><span class="delimiter">"</span><span class="content">/static/bootstrap/css/bootstrap.min.css</span><span class="delimiter">"</span></span> <span class="attribute-name">rel</span>=<span class="string"><span class="delimiter">"</span><span class="content">stylesheet</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>
-    <span class="tag">&lt;link</span> <span class="attribute-name">href</span>=<span class="string"><span class="delimiter">"</span><span class="content">/static/base.css</span><span class="delimiter">"</span></span> <span class="attribute-name">rel</span>=<span class="string"><span class="delimiter">"</span><span class="content">stylesheet</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>
-<span class="tag">&lt;/head&gt;</span></code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>We create a new file at <em>lists/static/base.css</em>, with our new CSS rule.
-We&#8217;ll use the <code>id</code> of the input element, <code>id_new_item</code>, to find it and give it
-some styling:</p>
-</div>
-<div class="listingblock sourcecode">
-<div class="title">lists/static/base.css</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="html">#id_new_item {
-    margin-top: 2ex;
-}</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>All that took me a few goes, but I&#8217;m reasonably happy with it now (<a href="#homepage-looking-better">The lists page, with all big chunks&#8230;&#8203;</a>).</p>
-</div>
-<div class="paragraph">
-<p>If you want to go further with customising Bootstrap, you need to get into
-compiling LESS. I <em>definitely</em> recommend taking the time to do that some
-day. LESS and other pseudo-CSS-alikes like SCSS are a great improvement on
-plain old CSS, and a useful tool even if you don&#8217;t use Bootstrap. I won&#8217;t cover
-it in this book, but you can find resources on the Internets.
-<a href="http://coding.smashingmagazine.com/2013/03/12/customizing-bootstrap/">Here&#8217;s one</a>,
-for example.</p>
-</div>
-<div class="paragraph">
-<p>
-A last run of the functional tests, to see if everything still works OK?</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>$ <strong>python3 manage.py test functional_tests</strong>
-Creating test database for alias 'default'...
-..
- ---------------------------------------------------------------------
-Ran 2 tests in 10.084s
+Ran 1 test in 11.730s
 
 OK
 Destroying test database for alias 'default'...</pre>
 </div>
 </div>
-<div id="homepage-looking-better" class="imageblock">
-<div class="content">
-<img src="images/twdp_0703.png" alt="Screenshot of lists page with big styling.">
-</div>
-<div class="title">Figure 3. The lists page, with all big chunks&#8230;&#8203;</div>
+<div class="paragraph">
+<p>That&#8217;s a pretty good start!</p>
 </div>
 <div class="paragraph">
-<p>That&#8217;s it! Definitely time for a commit:</p>
+<p>Now if you run all the FTs you&#8217;ll see we&#8217;ve got some failures in
+other FTs, so we&#8217;ll have to deal with them. Also, we&#8217;re using an old-fashioned
+POST from the form, with page refresh, so we&#8217;re not at our trendy hipster
+single-page app yet.  But we&#8217;ll get there!</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_implementing_ajax_post">Implementing Ajax POST</h3>
+<div class="paragraph">
+<p>First we give our list form an <code>id</code> so we can pick it up
+in our JS:</p>
+</div>
+<div class="listingblock sourcecode">
+<div class="title">lists/templates/base.html</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="diff"><span class="line change"><span class="change">@@</span> -56,7 +56,7 <span class="change">@@</span></span>
+           &lt;div class="text-center"&gt;
+             &lt;h1&gt;{% block header_text %}{% endblock %}&lt;/h1&gt;
+             {% block list_form %}
+<span class="line delete"><span class="delete">-</span>              &lt;form method="POST" action="{% block form_action %}{% endblock %}"&gt;</span>
+<span class="line insert"><span class="insert">+</span>              &lt;form <span class="eyecatcher">id="id_item_form" </span>method="POST" action="{% block form_action %}{% endblock %}"&gt;</span>
+                 {{ form.text }}
+                 {% csrf_token %}
+                 {% if form.errors %}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Next tweak the fixture in our js test:</p>
+</div>
+<div class="listingblock sourcecode">
+<div class="title">lists/static/tests/tests.html</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="diff"><span class="line change"><span class="change">@@</span> -9,8 +9,9 <span class="change">@@</span></span>
+ &lt;body&gt;
+   &lt;div id="qunit"&gt;&lt;/div&gt;
+   &lt;div id="qunit-fixture"&gt;
+<span class="line delete"><span class="delete">-</span>    &lt;form&gt;</span>
+<span class="line insert"><span class="insert">+</span>    &lt;form<span class="eyecatcher"> id="id_item_form"</span>&gt;</span>
+       &lt;input name="text" /&gt;
+<span class="line insert"><span class="insert">+</span>      &lt;input type="hidden" name="csrfmiddlewaretoken" value="tokey" /&gt;</span>
+       &lt;div class="has-error"&gt;Error text&lt;/div&gt;
+     &lt;/form&gt;</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>And here&#8217;s our test:</p>
+</div>
+<div class="listingblock sourcecode">
+<div class="title">lists/static/tests/tests.html</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="javascript">QUnit.test(<span class="string"><span class="delimiter">"</span><span class="content">should intercept form submit and do ajax post</span><span class="delimiter">"</span></span>, <span class="keyword">function</span> (assert) {
+  <span class="keyword">var</span> url = <span class="string"><span class="delimiter">'</span><span class="content">/listitemsapi/</span><span class="delimiter">'</span></span>;
+  window.Superlists.initialize(url);
+
+  <span class="predefined">$</span>(<span class="string"><span class="delimiter">'</span><span class="content">#id_item_form input[name="text"]</span><span class="delimiter">'</span></span>).val(<span class="string"><span class="delimiter">'</span><span class="content">user input</span><span class="delimiter">'</span></span>);  <i class="conum" data-value="1"></i><b>(1)</b>
+  <span class="predefined">$</span>(<span class="string"><span class="delimiter">'</span><span class="content">#id_item_form input[name="csrfmiddlewaretoken"]</span><span class="delimiter">'</span></span>).val(<span class="string"><span class="delimiter">'</span><span class="content">tokeney</span><span class="delimiter">'</span></span>);  <i class="conum" data-value="1"></i><b>(1)</b>
+  <span class="predefined">$</span>(<span class="string"><span class="delimiter">'</span><span class="content">#id_item_form</span><span class="delimiter">'</span></span>).submit();  <i class="conum" data-value="1"></i><b>(1)</b>
+
+  assert.equal(server.requests.length, <span class="integer">2</span>);  <i class="conum" data-value="2"></i><b>(2)</b>
+  <span class="keyword">var</span> request = server.requests[<span class="integer">1</span>];
+  assert.equal(request.url, url);
+  assert.equal(request.method, <span class="string"><span class="delimiter">"</span><span class="content">POST</span><span class="delimiter">"</span></span>);
+  assert.equal(
+    request.requestBody,
+    <span class="string"><span class="delimiter">'</span><span class="content">text=user+input&amp;csrfmiddlewaretoken=tokeney</span><span class="delimiter">'</span></span>  <i class="conum" data-value="3"></i><b>(3)</b>
+  );
+});</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>We simulate the user filling in the form and hitting submit.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>We now expect that there should be a second Ajax request (the
+first one is the GET for the list items table).</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="3"></i><b>3</b></td>
+<td>We check our POST <code>requestBody</code>.  As you can see, it&#8217;s
+URL-encoded, which isn&#8217;t the most value to test, but it&#8217;s still just about
+readable.</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>And here&#8217;s how we implement it:</p>
+</div>
+<div class="listingblock sourcecode">
+<div class="title">lists/static/list.js</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="javascript">    [...]
+      <span class="predefined">$</span>(<span class="string"><span class="delimiter">'</span><span class="content">#id_list_table</span><span class="delimiter">'</span></span>).html(rows);
+    });
+
+    <span class="keyword">var</span> form = <span class="predefined">$</span>(<span class="string"><span class="delimiter">'</span><span class="content">#id_item_form</span><span class="delimiter">'</span></span>);
+    form.on(<span class="string"><span class="delimiter">'</span><span class="content">submit</span><span class="delimiter">'</span></span>, <span class="keyword">function</span>(event) {
+      event.preventDefault();
+      <span class="predefined">$</span>.post(url, {
+        <span class="key"><span class="delimiter">'</span><span class="content">text</span><span class="delimiter">'</span></span>: form.find(<span class="string"><span class="delimiter">'</span><span class="content">input[name="text"]</span><span class="delimiter">'</span></span>).val(),
+        <span class="key"><span class="delimiter">'</span><span class="content">csrfmiddlewaretoken</span><span class="delimiter">'</span></span>: form.find(<span class="string"><span class="delimiter">'</span><span class="content">input[name="csrfmiddlewaretoken"]</span><span class="delimiter">'</span></span>).val(),
+      });
+    });</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>That get our JS tests passing but it breaks our FTs, because, although we&#8217;re
+doing our POST ok, we&#8217;re not updating the page after the POST to show the new
+list item:</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>$ <strong>git status</strong> # changes tests.py, base.html, list.html + untracked lists/static
-$ <strong>git add .</strong>
-$ <strong>git status</strong> # will now show all the bootstrap additions
-$ <strong>git commit -m "Use Bootstrap to improve layout"</strong></pre>
+<pre>  File "/workspace/superlists/functional_tests/base.py", line 109, in check_for_row_in_list_table
+    self.assertIn(row_text, [row.text for row in rows])
+AssertionError: '2: Use peacock feathers to make a fly' not found in ['1: Buy peacock feathers']</pre>
 </div>
 </div>
 </div>
 <div class="sect2">
-<h3 id="_what_we_glossed_over_collectstatic_and_other_static_directories">What We Glossed Over: collectstatic and Other Static Directories</h3>
+<h3 id="_mocking_in_javascript">Mocking in JavaScript</h3>
 <div class="paragraph">
-<p>
-
-
-
-We saw earlier that the Django dev server will magically find all your static
-files inside app folders, and serve them for you. That&#8217;s fine during
-development, but when you&#8217;re running on a real web server, you don&#8217;t want
-Django serving your static content&#8212;&#8203;using Python to serve raw files is
-slow and inefficient, and a web server like Apache or Nginx can do this all for
-you. You might even decide to upload all your static files to a CDN, instead
-of hosting them yourself.</p>
+<p>We want our client-side to update the table of items after the Ajax POST completes.
+Essentially it&#8217;ll do the same work as we do as soon as the page loads, retrieving
+the current list of items from the server, and filling in the item table.</p>
 </div>
 <div class="paragraph">
-<p>For these reasons, you want to be able to gather up all your static files from
-inside their various app folders, and copy them into a single location, ready
-for deployment. This is what the <code>collectstatic</code> command is for.</p>
-</div>
-<div class="paragraph">
-<p>The destination, the place where the collected static files go, is defined in
-<em>settings.py</em> as <code>STATIC_ROOT</code>. In the next chapter we&#8217;ll be doing some
-deployment, so let&#8217;s actually experiment with that now.  We&#8217;ll change its value
-to a folder just outside our repo&#8212;&#8203;I&#8217;m going to make it a folder just next to
-the main source folder:</p>
-</div>
-<div class="listingblock skipme">
-<div class="content">
-<pre>workspace
-&#9474;&#160;&#160;  &#9500;&#9472;&#9472; superlists
-&#9474;&#160;&#160;  &#9474;    &#9500;&#9472;&#9472; lists
-&#9474;&#160;&#160;  &#9474;    &#9474;     &#9500;&#9472;&#9472; models.py
-&#9474;&#160;&#160;  &#9474;    &#9474;
-&#9474;&#160;&#160;  &#9474;    &#9500;&#9472;&#9472; manage.py
-&#9474;&#160;&#160;  &#9474;    &#9500;&#9472;&#9472; superlists
-&#9474;&#160;&#160;  &#9474;
-&#9474;&#160;&#160;  &#9500;&#9472;&#9472; static
-&#9474;&#160;&#160;  &#9474;    &#9500;&#9472;&#9472; base.css
-&#9474;&#160;&#160;  &#9474;    &#9500;&#9472;&#9472; etc...</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>The logic is that the static files folder shouldn&#8217;t be a part of your
-repository&#8212;&#8203;we don&#8217;t want to put it under source control, because it&#8217;s a
-duplicate of all the files that are inside <em>lists/static</em>.</p>
-</div>
-<div class="paragraph">
-<p>Here&#8217;s a neat way of specifying that folder, making it relative to the location
-of project base directory:</p>
+<p>Sounds like a helper function is in order!</p>
 </div>
 <div class="listingblock sourcecode">
-<div class="title">superlists/settings.py (ch07l018)</div>
+<div class="title">lists/static/list.js</div>
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="comment"># Static files (CSS, JavaScript, Images)</span>
-<span class="comment"># https://docs.djangoproject.com/en/1.8/howto/static-files/</span>
+<pre class="CodeRay highlight"><code data-lang="javascript">window.Superlists = {};
 
-STATIC_URL = <span class="string"><span class="delimiter">'</span><span class="content">/static/</span><span class="delimiter">'</span></span>
-STATIC_ROOT = os.path.abspath(os.path.join(BASE_DIR, <span class="string"><span class="delimiter">'</span><span class="content">../static</span><span class="delimiter">'</span></span>))</code></pre>
+window.Superlists.<span class="function">updateItems</span> = <span class="keyword">function</span> (url) {
+  <span class="predefined">$</span>.get(url).done(<span class="keyword">function</span> (response) {
+    <span class="keyword">var</span> rows = <span class="string"><span class="delimiter">'</span><span class="delimiter">'</span></span>;
+    <span class="keyword">for</span> (<span class="keyword">var</span> i=<span class="integer">0</span>; i&lt;response.length; i++) {
+      <span class="keyword">var</span> item = response[i];
+      rows += <span class="string"><span class="delimiter">'</span><span class="content">\n</span><span class="content">&lt;tr&gt;&lt;td&gt;</span><span class="delimiter">'</span></span> + (i+<span class="integer">1</span>) + <span class="string"><span class="delimiter">'</span><span class="content">: </span><span class="delimiter">'</span></span> + item.text + <span class="string"><span class="delimiter">'</span><span class="content">&lt;/td&gt;&lt;/tr&gt;</span><span class="delimiter">'</span></span>;
+    }
+    <span class="predefined">$</span>(<span class="string"><span class="delimiter">'</span><span class="content">#id_list_table</span><span class="delimiter">'</span></span>).html(rows);
+  });
+};
+
+window.Superlists.<span class="function">initialize</span> = <span class="keyword">function</span> (url) {
+  <span class="predefined">$</span>(<span class="string"><span class="delimiter">'</span><span class="content">input[name="text"]</span><span class="delimiter">'</span></span>).on(<span class="string"><span class="delimiter">'</span><span class="content">keypress</span><span class="delimiter">'</span></span>, <span class="keyword">function</span> () {
+    <span class="predefined">$</span>(<span class="string"><span class="delimiter">'</span><span class="content">.has-error</span><span class="delimiter">'</span></span>).hide();
+  });
+
+  <span class="keyword">if</span> (url) {
+    window.Superlists.updateItems(url);
+
+    <span class="keyword">var</span> form = <span class="predefined">$</span>(<span class="string"><span class="delimiter">'</span><span class="content">#id_item_form</span><span class="delimiter">'</span></span>);</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>Take a look at the top of the settings file, and you&#8217;ll see how that <code>BASE_DIR</code>
-variable is helpfully defined for us, using <code>__file__</code> (which itself is a
-really, really useful Python built-in).</p>
+<p>That was just a refactor, we check the JS tests all still pass:</p>
 </div>
-<div class="paragraph">
-<p>Anyway, let&#8217;s try running <code>collectstatic</code>:</p>
-</div>
-<div class="listingblock">
+<div class="literalblock">
 <div class="content">
-<pre>$ <strong>python3 manage.py collectstatic</strong>
-
-You have requested to collect static files at the destination
-location as specified in your settings:
-
-/workspace/static
-
-This will overwrite existing files!
-Are you sure you want to do this?
-
-Type 'yes' to continue, or 'no' to cancel:
-<strong>yes</strong>
-
-[...]
-Copying '/workspace/superlists/lists/static/bootstrap/js/bootstrap.js'
-Copying '/workspace/superlists/lists/static/bootstrap/js/bootstrap.min.js'
-Copying '/workspace/superlists/lists/static/bootstrap/js/npm.js'
-
-77 static files copied to '/workspace/static'.</pre>
+<pre>Took 46ms to run 11 tests. 11 passed, 0 failed.</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>And if we look in <em>../static</em>, we&#8217;ll find all our CSS files:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>$ <strong>tree ../static/</strong>
-../static/
-&#9500;&#9472;&#9472; admin
-&#9474;&#160;&#160; &#9500;&#9472;&#9472; css
-&#9474;&#160;&#160; &#9474;&#160;&#160; &#9500;&#9472;&#9472; base.css
-
-[...]
-
-&#9474;&#160;&#160;     &#9492;&#9472;&#9472; urlify.js
-&#9500;&#9472;&#9472; base.css
-&#9492;&#9472;&#9472; bootstrap
-    &#9500;&#9472;&#9472; css
-    &#9474;&#160;&#160; &#9500;&#9472;&#9472; bootstrap.css
-    &#9474;&#160;&#160; &#9500;&#9472;&#9472; bootstrap.min.css
-    &#9474;&#160;&#160; &#9500;&#9472;&#9472; bootstrap-theme.css
-    &#9474;&#160;&#160; &#9492;&#9472;&#9472; bootstrap-theme.min.css
-    &#9500;&#9472;&#9472; fonts
-    &#9474;&#160;&#160; &#9500;&#9472;&#9472; glyphicons-halflings-regular.eot
-    &#9474;&#160;&#160; &#9500;&#9472;&#9472; glyphicons-halflings-regular.svg
-    &#9474;&#160;&#160; &#9500;&#9472;&#9472; glyphicons-halflings-regular.ttf
-    &#9474;&#160;&#160; &#9500;&#9472;&#9472; glyphicons-halflings-regular.woff
-    &#9474;&#160;&#160; &#9492;&#9472;&#9472; glyphicons-halflings-regular.woff2
-    &#9492;&#9472;&#9472; js
-        &#9500;&#9472;&#9472; bootstrap.js
-        &#9500;&#9472;&#9472; bootstrap.min.js
-        &#9492;&#9472;&#9472; npm.js
-
-10 directories, 77 files</pre>
-</div>
+<p>Now how to test that our Ajax POST calls <code>updateItems</code> on POST success?  We
+don&#8217;t want to dumbly duplicate the code that simulates a server response
+and checks the items table manually&#8230;&#8203;   How about a Mock?</p>
 </div>
 <div class="paragraph">
-<p><code>collectstatic</code> has also picked up all the CSS for the admin site. It&#8217;s one of
-Django&#8217;s powerful features, and we&#8217;ll find out all about it one day, but we&#8217;re
-not ready to use that yet, so let&#8217;s disable it for now:</p>
+<p>First we set up a thing called a "sandbox".  It will keep track of all
+the mocks we create, and make sure to un-monkeypatch all the things that
+have been mocked after each test.</p>
 </div>
 <div class="listingblock sourcecode">
-<div class="title">superlists/settings.py</div>
+<div class="title">lists/static/tests/tests.html</div>
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python">INSTALLED_APPS = (
-    <span class="comment">#'django.contrib.admin',</span>
-    <span class="string"><span class="delimiter">'</span><span class="content">django.contrib.auth</span><span class="delimiter">'</span></span>,
-    <span class="string"><span class="delimiter">'</span><span class="content">django.contrib.contenttypes</span><span class="delimiter">'</span></span>,
-    <span class="string"><span class="delimiter">'</span><span class="content">django.contrib.sessions</span><span class="delimiter">'</span></span>,
-    <span class="string"><span class="delimiter">'</span><span class="content">django.contrib.messages</span><span class="delimiter">'</span></span>,
-    <span class="string"><span class="delimiter">'</span><span class="content">django.contrib.staticfiles</span><span class="delimiter">'</span></span>,
-    <span class="string"><span class="delimiter">'</span><span class="content">lists</span><span class="delimiter">'</span></span>,
-)</code></pre>
+<pre class="CodeRay highlight"><code data-lang="html">var server, sandbox;
+QUnit.testStart(function () {
+  server = sinon.fakeServer.create();
+  sandbox = sinon.sandbox.create();
+});
+QUnit.testDone(function () {
+  server.restore();
+  sandbox.restore(); <i class="conum" data-value="1"></i><b>(1)</b>
+});</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>This <code>.restore()</code> is the important part, that undoes all the
+mocking we&#8217;ve done in each test.</td>
+</tr>
+</table>
+</div>
+<div class="listingblock sourcecode">
+<div class="title">lists/static/tests/tests.html</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="html">QUnit.test("should call updateItems after successful post", function (assert) {
+  var url = '/listitemsapi/';
+  window.Superlists.initialize(url); <i class="conum" data-value="1"></i><b>(1)</b>
+  var response = [
+    201,
+    {"Content-Type": "application/json"},
+    JSON.stringify({}),
+  ];
+  server.respondWith('POST', url, response); <i class="conum" data-value="1"></i><b>(1)</b>
+  $('#id_item_form input[name="text"]').val('user input');
+  $('#id_item_form input[name="csrfmiddlewaretoken"]').val('tokeney');
+  $('#id_item_form').submit();
+
+  sandbox.spy(window.Superlists, 'updateItems');  <i class="conum" data-value="2"></i><b>(2)</b>
+  server.respond();  <i class="conum" data-value="2"></i><b>(2)</b>
+
+  assert.equal(
+    window.Superlists.updateItems.lastCall.args,  <i class="conum" data-value="3"></i><b>(3)</b>
+    url
+  );
+});</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>First important thing to notice:  We only set up our server response
+<em>after</em> we do the initialize.  We want this to be the response to the
+POST request that happens on form submit, not the response to the
+initial GET request (remember our lesson from chapter 13?  On of the most
+challenging things about JS testing is controlling the order of execution)</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>Similarly, we only start mocking our helper function <em>after</em> we know the
+first call for the initial GET has already happened.  The <code>sandbox.spy</code> call
+is what does the job that <code>patch</code> does in Python tests.  It replaces the given
+object with a mock version.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="3"></i><b>3</b></td>
+<td>our <code>updateItems</code> function has now grown some mocky extra attributes, like
+<code>lastCall</code> and <code>lastCall.args</code>, which are like the Python mock&#8217;s <code>call_args</code>.</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>To get it passing, we first make a deliberate mistake, to check our tests really
+do test what we think they do:</p>
+</div>
+<div class="listingblock sourcecode">
+<div class="title">lists/static/lists.js</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="javascript">      <span class="predefined">$</span>.post(url, {
+        <span class="key"><span class="delimiter">'</span><span class="content">text</span><span class="delimiter">'</span></span>: form.find(<span class="string"><span class="delimiter">'</span><span class="content">input[name="text"]</span><span class="delimiter">'</span></span>).val(),
+        <span class="key"><span class="delimiter">'</span><span class="content">csrfmiddlewaretoken</span><span class="delimiter">'</span></span>: form.find(<span class="string"><span class="delimiter">'</span><span class="content">input[name="csrfmiddlewaretoken"]</span><span class="delimiter">'</span></span>).val(),
+      }).done(<span class="keyword">function</span> () {
+        window.Superlists.updateItems();
+      });</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>And we try again:</p>
+<p>Yep, we&#8217;re almost there but not quite:</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>$ <strong>rm -rf ../static/</strong>
-$ <strong>python3 manage.py collectstatic --noinput</strong>
-Copying '/workspace/superlists/lists/static/base.css'
-[...]
-Copying '/workspace/superlists/lists/static/bootstrap/js/bootstrap.js'
-Copying '/workspace/superlists/lists/static/bootstrap/js/bootstrap.min.js'
-Copying '/workspace/superlists/lists/static/bootstrap/js/npm.js'
-
-15 static files copied to '/workspace/static'.</pre>
+<pre>Test failed: should call updateItems after successful post
+    Failed assertion: expected: /listitemsapi/, but was:
+file:///workspace/superlists/lists/static/tests/tests.html:120:15</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>Much better.
-
-
-</p>
+<p>And we fix it thusly:</p>
 </div>
-<div class="paragraph">
-<p>Anyway, now we know how to collect all the static files into a single folder,
-where it&#8217;s easy for a web server to find them. We&#8217;ll find out all about that,
-including how to test it, in the next chapter!</p>
-</div>
-<div class="paragraph">
-<p>For now let&#8217;s save our changes to <em>settings.py</em>:</p>
-</div>
-<div class="listingblock">
+<div class="listingblock sourcecode">
+<div class="title">lists/static/lists.js</div>
 <div class="content">
-<pre>$ <strong>git diff</strong> # should show changes in settings.py*
-$ <strong>git commit -am "set STATIC_ROOT in settings and disable admin"</strong></pre>
+<pre class="CodeRay highlight"><code data-lang="javascript">      }).done(<span class="keyword">function</span> () {
+        window.Superlists.updateItems(url);
+      });</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>And our FT passes!  or at least one of them does, the others have problems,
+we&#8217;ll come back to them later</p>
+</div>
+<div class="paragraph">
+<p>First, I&#8217;m not happy until we&#8217;ve seen through this refactor, and made
+our unit tests match the code a little more:</p>
+</div>
+<div class="listingblock sourcecode">
+<div class="title">lists/static/tests/tests.html</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="diff"><span class="change"><span class="change">@@</span> -50,9 +50,19 <span class="change">@@</span></span> QUnit.testDone(function () {
+ });
+
+
+<span class="line delete"><span class="delete">-</span>QUnit.test("should <span class="eyecatcher">get items by ajax</span> on initialize", function (assert) {</span>
+<span class="line insert"><span class="insert">+</span>QUnit.test("should <span class="eyecatcher">call updateItems</span> on initialize", function (assert) {</span>
+   var url = '/getitems/';
+<span class="line insert"><span class="insert">+</span>  sandbox.spy(window.Superlists, 'updateItems');</span>
+   window.Superlists.initialize(url);
+<span class="line insert"><span class="insert">+</span>  assert.equal(</span>
+<span class="line insert"><span class="insert">+</span>    window.Superlists.updateItems.lastCall.args,</span>
+<span class="line insert"><span class="insert">+</span>    url</span>
+<span class="line insert"><span class="insert">+</span>  );</span>
+<span class="line insert"><span class="insert">+</span>});</span>
+<span class="line insert"><span class="insert">+</span></span>
+<span class="line insert"><span class="insert">+</span>QUnit.test("updateItems should get correct url by ajax", function (assert) {</span>
+<span class="line insert"><span class="insert">+</span>  var url = '/getitems/';</span>
+<span class="line insert"><span class="insert">+</span>  window.Superlists.updateItems(url);</span>
+
+   assert.equal(server.requests.length, 1);
+   var request = server.requests[0];
+<span class="change"><span class="change">@@</span> -60,7 +70,7 <span class="change">@@</span></span> QUnit.test("should get items by ajax on initialize", function (assert) {
+   assert.equal(request.method, 'GET');
+ });
+
+<span class="line delete"><span class="delete">-</span>QUnit.test("should fill in lists table from ajax response", function (assert) {</span>
+<span class="line insert"><span class="insert">+</span>QUnit.test("<span class="eyecatcher">updateItems </span>should fill in lists table from ajax response", function (assert) {</span>
+   var url = '/getitems/';
+   var responseData = [
+     {'id': 101, 'text': 'item 1 text'},
+<span class="change"><span class="change">@@</span> -69,7 +79,7 <span class="change">@@</span></span> QUnit.test("should fill in lists table from ajax response", function (assert) {
+   server.respondWith('GET', url, [
+     200, {"Content-Type": "application/json"}, JSON.stringify(responseData)
+   ]);
+<span class="line delete"><span class="delete">-</span>  window.Superlists.<span class="eyecatcher">initialize</span>(url);</span>
+<span class="line insert"><span class="insert">+</span>  window.Superlists.<span class="eyecatcher">updateItems</span>(url);</span>
+
+   server.respond();</code></pre>
 </div>
 </div>
 </div>
 <div class="sect2">
-<h3 id="_a_few_things_that_didn_t_make_it">A Few Things That Didn&#8217;t Make It</h3>
+<h3 id="_data_validation_an_exercise_for_the_reader">Data validation.  An exercise for the reader?</h3>
 <div class="paragraph">
-<p>Inevitably this was only a whirlwind tour of styling and CSS, and there were
-several topics that I&#8217;d hoped to cover in more depth that didn&#8217;t make it.
-Here&#8217;s a few candidates for further study:</p>
+<p>IF you do a full test run, you should find two FTs are failing:</p>
 </div>
-<div class="ulist">
-<ul>
-<li>
-<p>Customising bootstrap with LESS</p>
-</li>
-<li>
-<p>The <code>{% static %}</code> template tag, for more DRY and less hard-coded URLs</p>
-</li>
-<li>
-<p>Client-side packaging tools, like bower
+<div class="listingblock">
+<div class="content">
+<pre>$ *python manage.py test *
+[...]
+ERROR: test_cannot_add_empty_list_items
+(functional_tests.test_list_item_validation.ItemValidationTest)
+[...]
+ERROR: test_cannot_add_duplicate_items
+(functional_tests.test_list_item_validation.ItemValidationTest)</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>I won&#8217;t spell this all out for you, but here&#8217;s at least the unit
+tests you&#8217;ll need:</p>
+</div>
+<div class="listingblock sourcecode">
+<div class="title">lists/tests/test_api.py</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python">    <span class="keyword">def</span> <span class="function">post_empty_input</span>(<span class="predefined-constant">self</span>):
+        list_ = List.objects.create()
+        <span class="keyword">return</span> <span class="predefined-constant">self</span>.client.post(
+            <span class="predefined-constant">self</span>.base_url.format(list_.id),
+            data={<span class="string"><span class="delimiter">'</span><span class="content">text</span><span class="delimiter">'</span></span>: <span class="string"><span class="delimiter">'</span><span class="delimiter">'</span></span>}
+        )
 
-</p>
-</li>
-</ul>
+
+    <span class="keyword">def</span> <span class="function">test_for_invalid_input_nothing_saved_to_db</span>(<span class="predefined-constant">self</span>):
+        <span class="predefined-constant">self</span>.post_empty_input()
+        <span class="predefined-constant">self</span>.assertEqual(Item.objects.count(), <span class="integer">0</span>)
+
+
+    <span class="keyword">def</span> <span class="function">test_for_invalid_input_returns_error_code</span>(<span class="predefined-constant">self</span>):
+        response = <span class="predefined-constant">self</span>.post_empty_input()
+        <span class="predefined-constant">self</span>.assertEqual(response.status_code, <span class="integer">400</span>)
+        <span class="predefined-constant">self</span>.assertEqual(
+            json.loads(response.content.decode(<span class="string"><span class="delimiter">'</span><span class="content">utf8</span><span class="delimiter">'</span></span>)),
+            {<span class="string"><span class="delimiter">'</span><span class="content">error</span><span class="delimiter">'</span></span>: EMPTY_ITEM_ERROR}
+        )
+
+
+    <span class="keyword">def</span> <span class="function">test_duplicate_items_error</span>(<span class="predefined-constant">self</span>):
+        list_ = List.objects.create()
+        <span class="predefined-constant">self</span>.client.post(<span class="predefined-constant">self</span>.base_url.format(list_.id), data={<span class="string"><span class="delimiter">'</span><span class="content">text</span><span class="delimiter">'</span></span>: <span class="string"><span class="delimiter">'</span><span class="content">thing</span><span class="delimiter">'</span></span>})
+        response = <span class="predefined-constant">self</span>.client.post(<span class="predefined-constant">self</span>.base_url.format(list_.id), data={<span class="string"><span class="delimiter">'</span><span class="content">text</span><span class="delimiter">'</span></span>: <span class="string"><span class="delimiter">'</span><span class="content">thing</span><span class="delimiter">'</span></span>})
+        <span class="predefined-constant">self</span>.assertEqual(response.status_code, <span class="integer">400</span>)
+        <span class="predefined-constant">self</span>.assertEqual(
+            json.loads(response.content.decode(<span class="string"><span class="delimiter">'</span><span class="content">utf8</span><span class="delimiter">'</span></span>)),
+            {<span class="string"><span class="delimiter">'</span><span class="content">error</span><span class="delimiter">'</span></span>: DUPLICATE_ITEM_ERROR}
+        )</code></pre>
+</div>
+</div>
+<div class="listingblock sourcecode">
+<div class="title">lists/static/tests/tests.html</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python">QUnit.test(<span class="string"><span class="delimiter">"</span><span class="content">should display errors on post failure</span><span class="delimiter">"</span></span>, function (<span class="keyword">assert</span>) {
+  var url = <span class="string"><span class="delimiter">'</span><span class="content">/listitemsapi/</span><span class="delimiter">'</span></span>;
+  window.Superlists.initialize(url);
+  server.respondWith(<span class="string"><span class="delimiter">'</span><span class="content">POST</span><span class="delimiter">'</span></span>, url, [
+    <span class="integer">400</span>,
+    {<span class="string"><span class="delimiter">"</span><span class="content">Content-Type</span><span class="delimiter">"</span></span>: <span class="string"><span class="delimiter">"</span><span class="content">application/json</span><span class="delimiter">"</span></span>},
+    JSON.stringify({<span class="string"><span class="delimiter">'</span><span class="content">error</span><span class="delimiter">'</span></span>: <span class="string"><span class="delimiter">'</span><span class="content">something is amiss</span><span class="delimiter">'</span></span>})
+  ]);
+  <span class="error">$</span>(<span class="string"><span class="delimiter">'</span><span class="content">.has-error</span><span class="delimiter">'</span></span>).hide();
+
+  <span class="error">$</span>(<span class="string"><span class="delimiter">'</span><span class="content">#id_item_form</span><span class="delimiter">'</span></span>).submit();
+  server.respond();
+
+  <span class="keyword">assert</span>.equal(<span class="error">$</span>(<span class="string"><span class="delimiter">'</span><span class="content">.has-error</span><span class="delimiter">'</span></span>).is(<span class="string"><span class="delimiter">'</span><span class="content">:visible</span><span class="delimiter">'</span></span>), true);
+  <span class="keyword">assert</span>.equal(<span class="error">$</span>(<span class="string"><span class="delimiter">'</span><span class="content">.has-error .help-block</span><span class="delimiter">'</span></span>).text(), <span class="string"><span class="delimiter">'</span><span class="content">something is amiss</span><span class="delimiter">'</span></span>);
+});
+
+QUnit.test(<span class="string"><span class="delimiter">"</span><span class="content">should hide errors on post success</span><span class="delimiter">"</span></span>, function (<span class="keyword">assert</span>) {
+    [...]</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>And you&#8217;ll want some modifications to <em>base.html</em> to make it compatible with
+both displaying Django errors (which the home page still uses for now) and
+errors from JavaScript:</p>
+</div>
+<div class="listingblock sourcecode">
+<div class="title">lists/templates/base.html</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="diff"><span class="line change"><span class="change">@@</span> -12,6 +12,7 <span class="change">@@</span></span>
+
+   &lt;body&gt;
+     &lt;div class="container"&gt;
+<span class="line insert"><span class="insert">+</span></span>
+       &lt;nav class="navbar navbar-default" role="navigation"&gt;
+         &lt;div class="container-fluid"&gt;
+           &lt;a class="navbar-brand" href="/"&gt;Superlists&lt;/a&gt;
+<span class="line change"><span class="change">@@</span> -55,17 +56,21 <span class="change">@@</span></span>
+         &lt;div class="col-md-6 col-md-offset-3 jumbotron"&gt;
+           &lt;div class="text-center"&gt;
+             &lt;h1&gt;{% block header_text %}{% endblock %}&lt;/h1&gt;
+<span class="line insert"><span class="insert">+</span></span>
+             {% block list_form %}
+             &lt;form id="id_item_form" method="POST" action="{% block form_action %}{% endblock %}"&gt;
+               {{ form.text }}
+               {% csrf_token %}
+<span class="line delete"><span class="delete">-</span>                {% if form.errors %}</span>
+               &lt;div class="form-group has-error"&gt;
+<span class="line delete"><span class="delete">-</span>                    &lt;div class="help-block"&gt;{{ form.text.errors }}&lt;/div&gt;</span>
+<span class="line delete"><span class="delete">-</span>                  &lt;/div&gt;</span>
+<span class="line insert"><span class="insert">+</span>                &lt;div class="help-block"&gt;</span>
+<span class="line insert"><span class="insert">+</span>                  {% if form.errors %}</span>
+<span class="line insert"><span class="insert">+</span>                    {{ form.text.errors }}</span>
+                   {% endif %}
+<span class="line insert"><span class="insert">+</span>                &lt;/div&gt;</span>
+<span class="line insert"><span class="insert">+</span>              &lt;/div&gt;</span>
+             &lt;/form&gt;
+             {% endblock %}
+<span class="line insert"><span class="insert">+</span></span>
+           &lt;/div&gt;</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>If you need a hint, check out the repo</p>
+</div>
+<div class="paragraph">
+<p>But I would never suggest building a REST API in Django without checking out
+Django-Rest-Framework.  Which is the topix of the next appendix!  Read on,
+Macduff.</p>
 </div>
 <div class="sidebarblock">
 <div class="content">
-<div class="title">Recap: On Testing Design and Layout</div>
-<div class="paragraph">
-<p>
-The short answer is: you shouldn&#8217;t write tests for design and layout.  It&#8217;s too
-much like testing a constant, and any tests you write are likely to be brittle.</p>
-</div>
-<div class="paragraph">
-<p>With that said, the <em>implementation</em> of design and layout involves something
-quite tricky: CSS and static files.   As a result, it is valuable to have some
-kind of minimal "smoke test" which checks that your static files and CSS are
-working.  As we&#8217;ll see in the next chapter, it can help pick up problems when
-you deploy your code to production.</p>
-</div>
-<div class="paragraph">
-<p>Similarly, if a particular piece of styling required a lot of client-side
-JavaScript code to get it to work (dynamic resizing is one I&#8217;ve spent a bit
-of time on), you&#8217;ll definitely want some tests for that.</p>
-</div>
-<div class="paragraph">
-<p>So be aware that this is a dangerous area.  Try and write the minimal tests
-that will give you confidence that your design and layout is working, without
-testing <em>what</em> it actually is.  Try and leave yourself in a position where you
-can freely make changes to the design and layout, without having to go back and
-adjust tests all the time.</p>
+<div class="title">REST API tips</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">Dedupe ursl</dt>
+<dd>
+<p>in test</p>
+</dd>
+<dt class="hdlist1">Don&#8217;t work with raw json strings</dt>
+<dd>
+<p>json.loads and json.dumps are your friend.</p>
+</dd>
+<dt class="hdlist1">Always use an ajax mocking library for your js tests</dt>
+<dd>
+<p>sinon is fine.  Jasmine has its own, as does Angular.</p>
+</dd>
+</dl>
 </div>
 </div>
 </div>
 </div>
 </div>
-</div>
-</div>
-<div id="footnotes">
-<hr>
-<div class="footnote" id="_footnote_1">
-<a href="#_footnoteref_1">1</a>. On Windows, you may not have <code>wget</code> and <code>unzip</code>, but I&#8217;m sure you can figure out how to download Bootstrap, unzip it, and put the contents of the <em>dist</em> folder into the <em>lists/static/bootstrap</em> folder.
 </div>
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2016-10-29 11:39:09 BST
+Last updated 2016-11-03 07:05:36 GMT
 </div>
 </div>
 <div class="comments" style="padding: 20px">
