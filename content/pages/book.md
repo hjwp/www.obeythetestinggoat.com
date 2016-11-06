@@ -84,13 +84,13 @@ Table of contents follows:
 
 ### [Part 1: The Basics of TDD and Django](/book/part1.harry.html)
 
-
 * [Chapter 1: Getting Django Set Up Using a Functional Test](/book/chapter_01.html)
 * [Chapter 2: Extending Our Functional Test Using the unittest Module](/book/chapter_02.html)
 * [Chapter 3: Testing a Simple Home Page with Unit Tests](/book/chapter_03.html)
 * [Chapter 4: What Are We Doing with All These Tests?](/book/chapter_04.html)
 * [Chapter 5: Saving User Input](/book/chapter_05.html)
 * [Chapter 6: Getting to the Minimum Viable Site](/book/chapter_06.html)
+
 
 ### [Part 2: Web Development Sine Qua Nons](/book/part2.harry.html)
 
@@ -103,16 +103,18 @@ Table of contents follows:
 * [Chapter 13: Dipping Our Toes, Very Tentatively, into JavaScript](/book/chapter_13.html)
 * [Chapter 14: Deploying Our New Code](/book/chapter_14.html)
 
+
 ### [Part 3: More Advanced Topics](/book/part3.harry.html)
 
-* [Chapter 15: User Authentication, Spiking and Mocking](/book/chapter_15.html)
+* [Chapter 15: User Authentication, Spiking and De-Spiking](/book/chapter_15.html)
 * [Chapter 16: Testing external dependencies using mocks](/book/chapter_16.html)
-* [Chapter 17: Test Fixtures, Logging, and Server-Side Debugging](/book/chapter_17.html)
+* [Chapter 17: Test Fixtures, and Server-Side Debugging](/book/chapter_17.html)
 * [Chapter 18: Finishing "My Lists": Outside-In TDD](/book/chapter_18.html)
 * [Chapter 19: Test Isolation, and "Listening to Your Tests"](/book/chapter_19.html)
 * [Chapter 20: Continuous Integration (CI)](/book/chapter_20.html)
 * [Chapter 21: The Token Social Bit, the Page Pattern, and an Exercise for the Reader](/book/chapter_21.html)
 * [Chapter 22: Fast Tests, Slow Tests, and Hot Lava](/book/chapter_22.html)
+
 
 ### Epilogue and appendices:
 
@@ -121,11 +123,12 @@ Table of contents follows:
 * [Appendix II: Django Class-Based Views](/book/appendix_II_Django_Class-Based_Views.html)
 * [Appendix III: Provisioning with Ansible](/book/appendix_III_provisioning_with_ansible.html)
 * [Appendix IV: Testing Database Migrations](/book/appendix_IV_testing_migrations.html)
-* [Appendix V: Behaviour-Driven Development (BDD)](/book/appendix_bdd_tools.html)
-* [Appendix VI: What to Do Next](/book/appendix_V_what_to_do_next.html)
-* [Appendix VII: Cheat Sheet](/book/appendix_VI_cheat_sheet.html)
-* [Cheat Sheet](/book/bibliography.html)
-
+* [Appendix V: Behaviour-Driven Development (BDD)](/book/appendix_V_bdd_tools.html)
+* [Appendix VI: Building a REST API: JSON, Ajax, and mocking with JavaScript](/book/appendix_VI_rest_api.html)
+* [Appendix VII: Django-Rest-Framework](/book/appendix_VII_DjangoRestFramework.html)
+* [Appendix IX: Cheat Sheet](/book/appendix_IX_cheat_sheet.html)
+* [Appendix X: What to Do Next](/book/appendix_X_what_to_do_next.html)
+* [Bibliography](/book/bibliography.html)
 
 
 
