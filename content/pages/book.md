@@ -5,10 +5,9 @@ Tags: book, o''reilly, read online, buy, ebook, pdf
 
 <div class="right">
     <blockquote>
-        <a href="http://www.anrdoezrs.net/click-7079286-11260198?url=http%3A%2F%2Fshop.oreilly.com%2Fproduct%2F0636920029533.do%3Fcmp%3Daf-code-book-product_cj_9781449367794_%7BPID%7D&cjsku=0636920029533" target="_top">
+        <a href="http://shop.oreilly.com/product/0636920051091.do" target="_top">
             <img src="https://akamaicovers.oreilly.com/images/0636920029533/cat.gif" border="0" alt="Test-Driven Development with Python"/>
         </a>
-        <img src="http://www.ftjcfx.com/image-7079286-11260198" width="1" height="1" border="0"/>
     </blockquote>
 </div>
 
@@ -29,10 +28,9 @@ There are two ways you can read this book:
 
 <div class="row">
     <div class="large-3 columns">
-        <a class="button" href="http://bit.ly/1pyuCm5" target="_top">
+        <a class="button" href="http://shop.oreilly.com/product/0636920051091.do" target="_top">
             Buy it now via O'Reilly
         </a>
-        <img src="http://www.awltovhc.com/image-7079286-11260198" width="1" height="1" border="0"/>
     </div>
     <div class="large-9 columns">
         <p>
