@@ -521,6 +521,7 @@ table.CodeRay td.code>pre{padding:0}
 <li><a href="/book/praise.harry.html">Praise for <em>Test-Driven Development with Python</em></a></li>
 <li><a href="/book/preface.html">Preface</a>
 <ul class="sectlevel2">
+<li><a href="/book/preface.html#_second_edition_release_history">Second Edition Release History:</a></li>
 <li><a href="/book/preface.html#_why_i_wrote_a_book_about_test_driven_development">Why I Wrote a Book About Test-Driven Development</a></li>
 <li><a href="/book/preface.html#_aims_of_this_book">Aims of This Book</a></li>
 <li><a href="/book/preface.html#_outline">Outline</a></li>
@@ -603,8 +604,9 @@ table.CodeRay td.code>pre{padding:0}
 <li><a href="/book/chapter_06.html#_another_url_and_view_for_adding_list_items">6.6. Another URL and View for Adding List Items</a></li>
 <li><a href="/book/chapter_06.html#_adjusting_our_models">6.7. Adjusting Our Models</a></li>
 <li><a href="/book/chapter_06.html#_each_list_should_have_its_own_url">6.8. Each List Should Have Its Own URL</a></li>
-<li><a href="/book/chapter_06.html#_one_more_view_to_handle_adding_items_to_an_existing_list">6.9. One More View to Handle Adding Items to an Existing List</a></li>
-<li><a href="/book/chapter_06.html#_a_final_refactor_using_url_includes">6.10. A Final Refactor Using URL includes</a></li>
+<li><a href="/book/chapter_06.html#_the_functional_tests_detect_a_regression">6.9. The functional tests detect a regression</a></li>
+<li><a href="/book/chapter_06.html#_one_more_view_to_handle_adding_items_to_an_existing_list">6.10. One More View to Handle Adding Items to an Existing List</a></li>
+<li><a href="/book/chapter_06.html#_a_final_refactor_using_url_includes">6.11. A Final Refactor Using URL includes</a></li>
 </ul>
 </li>
 </ul>
@@ -1173,11 +1175,11 @@ once all the unit tests are passing, so if in doubt, try both!</p>
 work.  Currently the FT (which is the closest we have to a design document)
 says this:</p>
 </div>
-<div class="listingblock sourcecode">
+<div class="listingblock sourcecode currentcontents">
 <div class="title">functional_tests/tests.py</div>
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="python">    <span class="comment"># Edith wonders whether the site will remember her list. Then she sees</span>
-    <span class="comment"># that the site has generate a unique URL for her -- there is some</span>
+    <span class="comment"># that the site has generated a unique URL for her -- there is some</span>
     <span class="comment"># explanatory text to that effect.</span>
     <span class="predefined-constant">self</span>.fail(<span class="string"><span class="delimiter">'</span><span class="content">Finish the test!</span><span class="delimiter">'</span></span>)
 
@@ -1345,12 +1347,17 @@ the flowchart for the TDD process in <a href="#TDD-double-loop">The TDD process 
 </div>
 <div class="paragraph">
 <p>At the top level, we&#8217;re going to use a combination of adding new functionality
-(by extending the FT and writing new application code), and refactoring our
+(by adding a new FT and writing new application code), and refactoring our
 application&#8212;&#8203;i.e., rewriting some of the existing implementation so that it
 delivers the same functionality to the user but using aspects of our new
-design. At the unit test level, we&#8217;ll be adding new tests or modifying existing
-ones to test for the changes we want, and we&#8217;ll be able to use the untouched
-unit tests to make sure we don&#8217;t break anything in the process.</p>
+design. We&#8217;ll be able to use the existing functional test to verify we don&#8217;t
+break what already works, and the new functional test to drive the new
+features.</p>
+</div>
+<div class="paragraph">
+<p>At the unit test level, we&#8217;ll be adding new tests or modifying existing ones to
+test for the changes we want, and we&#8217;ll be able to similarly use the unit tests
+we don&#8217;t touch to help make sure we don&#8217;t break anything in the process.</p>
 </div>
 <div id="TDD-double-loop" class="imageblock">
 <div class="content">
@@ -1359,27 +1366,34 @@ unit tests to make sure we don&#8217;t break anything in the process.</p>
 <div class="title">Figure 1. The TDD process with functional and unit tests</div>
 </div>
 <div class="paragraph">
-<p>Let&#8217;s translate our scratchpad into our functional test.  As soon as Edith
-submits a first list item, we&#8217;ll want to create a new list, adding one
-item to it, and take her to the URL for her list.  Look for the point
-at which we say <code>inputbox.send_keys('Buy peacock feathers')</code>, and amend
-the next block of code like this:</p>
+<p>Let&#8217;s translate our scratchpad into a new functional test method, which
+introduces a second user a checks that their to-do list is separate from
+Edith&#8217;s.</p>
+</div>
+<div class="paragraph">
+<p>We&#8217;ll start out very similarly to the first, Edith adds a first item to
+create a to-do list, but we introduce our first new assertion:  Edith&#8217;s
+list should live at its own, unique URL:</p>
 </div>
 <div class="listingblock sourcecode">
-<div class="title">functional_tests/tests.py</div>
+<div class="title">functional_tests/tests.py (ch06l005)</div>
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python">    inputbox.send_keys(<span class="string"><span class="delimiter">'</span><span class="content">Buy peacock feathers</span><span class="delimiter">'</span></span>)
+<pre class="CodeRay highlight"><code data-lang="python">    <span class="keyword">def</span> <span class="function">test_can_start_a_list_for_one_user</span>(<span class="predefined-constant">self</span>):
+        <span class="comment"># Edith has heard about a cool new online to-do app. She goes</span>
+        [...]
 
-    <span class="comment"># When she hits enter, she is taken to a new URL,</span>
-    <span class="comment"># and now the page lists "1: Buy peacock feathers" as an item in a</span>
-    <span class="comment"># to-do list table</span>
-    inputbox.send_keys(Keys.ENTER)
-    edith_list_url = <span class="predefined-constant">self</span>.browser.current_url
-    <span class="predefined-constant">self</span>.assertRegex(edith_list_url, <span class="string"><span class="delimiter">'</span><span class="content">/lists/.+</span><span class="delimiter">'</span></span>)  <i class="conum" data-value="1"></i><b>(1)</b>
-    <span class="predefined-constant">self</span>.check_for_row_in_list_table(<span class="string"><span class="delimiter">'</span><span class="content">1: Buy peacock feathers</span><span class="delimiter">'</span></span>)
 
-    <span class="comment"># There is still a text box inviting her to add another item. She</span>
-    [...]</code></pre>
+    <span class="keyword">def</span> <span class="function">test_multiple_users_can_start_lists_at_different_urls</span>(<span class="predefined-constant">self</span>):
+        <span class="comment"># Edith start a new todo list</span>
+        <span class="predefined-constant">self</span>.browser.get(<span class="predefined-constant">self</span>.live_server_url)
+        inputbox = <span class="predefined-constant">self</span>.browser.find_element_by_id(<span class="string"><span class="delimiter">'</span><span class="content">id_new_item</span><span class="delimiter">'</span></span>)
+        inputbox.send_keys(<span class="string"><span class="delimiter">'</span><span class="content">Buy peacock feathers</span><span class="delimiter">'</span></span>)
+        inputbox.send_keys(Keys.ENTER)
+        <span class="predefined-constant">self</span>.check_for_row_in_list_table(<span class="string"><span class="delimiter">'</span><span class="content">1: Buy peacock feathers</span><span class="delimiter">'</span></span>)
+
+        <span class="comment"># She notices that her list has a unique URL</span>
+        edith_list_url = <span class="predefined-constant">self</span>.browser.current_url
+        <span class="predefined-constant">self</span>.assertRegex(edith_list_url, <span class="string"><span class="delimiter">'</span><span class="content">/lists/.+</span><span class="delimiter">'</span></span>)  <i class="conum" data-value="1"></i><b>(1)</b></code></pre>
 </div>
 </div>
 <div class="colist arabic">
@@ -1387,35 +1401,28 @@ the next block of code like this:</p>
 <tr>
 <td><i class="conum" data-value="1"></i><b>1</b></td>
 <td><code>assertRegex</code> is a helper function from <code>unittest</code> that checks
-whether a string matches a regular expression. We use it to check that our new
-REST-ish design has been implemented. Find out more in the
+whether a string matches a regular expression. We use it to check that our
+new REST-ish design has been implemented. Find out more in the
 
 <a href="http://docs.python.org/3/library/unittest.html"><code>unittest</code> documentation</a>.</td>
 </tr>
 </table>
 </div>
 <div class="paragraph">
-<p>Let&#8217;s also change the end of the test and imagine a new user coming along.
-We want to check that they don&#8217;t see any of Edith&#8217;s items when they visit
-the home page, and that they get their own unique URL for their list.</p>
-</div>
-<div class="paragraph">
-<p>Delete everything from the comments just before the <code>self.fail</code> (they say
-"Edith wonders whether the site will remember her list &#8230;&#8203;") and replace
-them with a new ending to our FT:</p>
+<p>Next we imagine a new user coming along. We want to check that they don&#8217;t see
+any of Edith&#8217;s items when they visit the home page, and that they get their own
+unique URL for their list.</p>
 </div>
 <div class="listingblock sourcecode">
-<div class="title">functional_tests/tests.py</div>
+<div class="title">functional_tests/tests.py (ch06l006)</div>
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="python">    [...]
-    <span class="comment"># The page updates again, and now shows both items on her list</span>
-    <span class="predefined-constant">self</span>.check_for_row_in_list_table(<span class="string"><span class="delimiter">'</span><span class="content">2: Use peacock feathers to make a fly</span><span class="delimiter">'</span></span>)
-    <span class="predefined-constant">self</span>.check_for_row_in_list_table(<span class="string"><span class="delimiter">'</span><span class="content">1: Buy peacock feathers</span><span class="delimiter">'</span></span>)
+    <span class="predefined-constant">self</span>.assertRegex(edith_list_url, <span class="string"><span class="delimiter">'</span><span class="content">/lists/.+</span><span class="delimiter">'</span></span>)  <i class="conum" data-value="1"></i><b>(1)</b>
 
     <span class="comment"># Now a new user, Francis, comes along to the site.</span>
 
     <span class="comment">## We use a new browser session to make sure that no information</span>
-    <span class="comment">## of Edith's is coming through from cookies etc  </span><i class="conum" data-value="1"></i><b>(1)</b>
+    <span class="comment">## of Edith's is coming through from cookies etc</span>
     <span class="predefined-constant">self</span>.browser.quit()
     <span class="predefined-constant">self</span>.browser = webdriver.Firefox()
 
@@ -1431,6 +1438,7 @@ them with a new ending to our FT:</p>
     inputbox = <span class="predefined-constant">self</span>.browser.find_element_by_id(<span class="string"><span class="delimiter">'</span><span class="content">id_new_item</span><span class="delimiter">'</span></span>)
     inputbox.send_keys(<span class="string"><span class="delimiter">'</span><span class="content">Buy milk</span><span class="delimiter">'</span></span>)
     inputbox.send_keys(Keys.ENTER)
+    <span class="predefined-constant">self</span>.check_for_row_in_list_table(<span class="string"><span class="delimiter">'</span><span class="content">1: Buy milk</span><span class="delimiter">'</span></span>)
 
     <span class="comment"># Francis gets his own unique URL</span>
     francis_list_url = <span class="predefined-constant">self</span>.browser.current_url
@@ -1452,28 +1460,44 @@ them with a new ending to our FT:</p>
 <td>I&#8217;m using the convention of double-hashes (<code>##</code>) to indicate
 "meta-comments"&#8212;comments about <em>how</em> the test is working and why&#8212;&#8203;so
 that we can distinguish them from regular comments in FTs which explain the
-User Story. They&#8217;re a message to our future selves, which might otherwise be
-wondering why the heck we&#8217;re quitting the browser and starting a new one&#8230;&#8203;
+User Story. They&#8217;re a message to our future selves, which might otherwise
+be wondering why the heck we&#8217;re quitting the browser and starting a new
+one&#8230;&#8203;
 
 </td>
 </tr>
 </table>
 </div>
 <div class="paragraph">
-<p>Other than that, the changes are fairly self-explanatory. Let&#8217;s see how they do
+<p>Other than that, the new test is fairly self-explanatory. Let&#8217;s see how we do
 when we run our FTs:</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>[...]
+<pre>$ <strong>python3 manage.py test functional_tests</strong>
+Creating test database for alias 'default'...
+.F
+======================================================================
+FAIL: test_multiple_users_can_start_lists_at_different_urls
+(functional_tests.tests.NewVisitorTest)
+ ---------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/superlists/functional_tests/tests.py", line 71, in
+test_multiple_users_can_start_lists_at_different_urls
     self.assertRegex(edith_list_url, '/lists/.+')
 AssertionError: Regex didn't match: '/lists/.+' not found in
-'http://localhost:8081/'</pre>
+'http://localhost:8081/'
+
+ ---------------------------------------------------------------------
+Ran 2 tests in 5.786s
+
+FAILED (failures=1)
+Destroying test database for alias 'default'...</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>As expected.  Let&#8217;s do a commit, and then go and build some new models
-and views:</p>
+<p>Good, our first test still passes, and the second one fails where we might
+expect.  Let&#8217;s do a commit, and then go and build some new models and views:</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -1488,12 +1512,12 @@ and views:</p>
 </td>
 <td class="content">
 I found the FTs hung when I tried to run them today.  It turns out I
-needed to upgrade Selenium, with a <code>pip install --upgrade "selenium&lt;3"</code>. You
-may remember from the preface that it&#8217;s important to have the latest version
-of Selenium installed&#8212;&#8203;it&#8217;s only been a couple of months since I last
-upgraded, and Selenium had gone up by six point versions.  If something weird is
-happening, always try upgrading Selenium!
-
+    needed to upgrade Selenium, with a <code>pip install --upgrade "selenium&lt;3"</code>.
+    You may remember from the preface that it&#8217;s important to have the latest
+    version of Selenium installed&#8212;&#8203;it&#8217;s only been a couple of months since I
+    last upgraded, and Selenium had gone up by six point versions.  If
+    something weird is happening, always try upgrading Selenium!
+    
 </td>
 </tr>
 </table>
@@ -1581,21 +1605,33 @@ AssertionError: '/' != '/lists/the-only-list-in-the-world/'</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>Of course, that will now totally break the functional tests, because there is no
-such URL on our site yet.  Sure enough, if you run them, you&#8217;ll find they fail
-just after trying to submit the first item, saying that they can&#8217;t find the
-list table; it&#8217;s because URL <em>/the-only-list-in-the-world/</em> doesn&#8217;t exist yet!</p>
+<p>Of course, that will now totally break the functional tests, because there is
+no such URL on our site yet.  Sure enough, if you run them, you&#8217;ll find they
+fail just after trying to submit the first item, saying that they can&#8217;t find
+the list table; it&#8217;s because URL <em>/the-only-list-in-the-world/</em> doesn&#8217;t exist
+yet!</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>    self.check_for_row_in_list_table('1: Buy peacock feathers')
+<pre>  File "/workspace/superlists/functional_tests/tests.py", line 45, in
+test_can_start_a_list_for_one_user
+[...]
+selenium.common.exceptions.NoSuchElementException: Message: Unable to locate
+element: {"method":"id","selector":"id_list_table"}
+[...]
+
+  File "/workspace/superlists/functional_tests/tests.py", line 67, in
+test_multiple_users_can_start_lists_at_different_urls
+    self.check_for_row_in_list_table('1: Buy peacock feathers')
 [...]
 selenium.common.exceptions.NoSuchElementException: Message: Unable to locate
 element: {"method":"id","selector":"id_list_table"}</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>So, let&#8217;s build a special URL for our one and only list.</p>
+<p>Not only is our new test failing, but the old one is too.  That tells
+us we&#8217;ve introduce a <em>regression</em>.  Let&#8217;s try and get back to a working
+state as quickly as possible by building a URL for our one and only list.</p>
 </div>
 </div>
 <div class="sect2">
@@ -1619,7 +1655,7 @@ view functions, templates, and URL mappings, and now you know how to test them.<
 <p>
 So let&#8217;s use the Django test client.  Open up <em>lists/tests.py</em>, and add a new
 test class called <code>ListViewTest</code>.  Then copy the method called
-<code>test_home_page_displays_all_</code> <code>list_items</code> across from <code>HomePageTest</code> into our
+<code>test_home_page_displays_all_list_items</code> across from <code>HomePageTest</code> into our
 new class, rename it, and adapt it slightly:</p>
 </div>
 <div class="listingblock sourcecode">
@@ -1663,18 +1699,17 @@ bytes of their content.</td>
 </td>
 <td class="content">
 Some people really don&#8217;t like the Django test client.  They say it
-    provides too much magic, and involves too much of the stack to be used in a
+    does too much magic, and involves too much of the stack to be used in a
     real "unit" test&#8212;&#8203;you end up writing what are more properly called
     integrated tests.  They also complain that it is relatively slow (and
     relatively is measured in milliseconds). We&#8217;ll explore this argument
-    further in a later chapter. For now we&#8217;ll use it because it&#8217;s extremely
-    convenient!
+    further in <a href="/book/chapter_19.html">a later chapter</a>.
 </td>
 </tr>
 </table>
 </div>
 <div class="paragraph">
-<p>Let&#8217;s try running the test now:</p>
+<p>Let&#8217;s try running this test now:</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -1697,7 +1732,7 @@ Our singleton list URL doesn&#8217;t exist yet.  We fix that in <em>superlists/u
 </td>
 <td class="content">
 Watch out for trailing slashes in URLs, both here in the tests and in
-%%urls.py%%&#8212;They&#8217;re a common source of bugs.
+    <em>urls.py</em>&#8212;they&#8217;re a common source of bugs.
 </td>
 </tr>
 </table>
@@ -1760,7 +1795,7 @@ the trick:</p>
 </div>
 </div>
 <div class="paragraph">
-<p>Rerun the tests and they should pass:</p>
+<p>Rerun the unit tests and they should pass:</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -1769,13 +1804,91 @@ OK</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>And the FTs should get a little further on:</p>
+<p>Now let&#8217;s try the FTs again and see what they tell us:</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>AssertionError: '2: Use peacock feathers to make a fly' not found in ['1: Buy
-peacock feathers']</pre>
+<pre>FAIL: test_can_start_a_list_for_one_user
+[...]
+  File "/workspace/superlists/functional_tests/tests.py", line 55, in
+test_can_start_a_list_for_one_user
+[...]
+AssertionError: '2: Use peacock feathers to make a fly' not found in ['1: Buy
+peacock feathers']
+
+FAIL: test_multiple_users_can_start_lists_at_different_urls
+[...]
+AssertionError: 'Buy peacock feathers' unexpectedly found in 'Your To-Do
+list\n1: Buy peacock feathers'
+[...]</pre>
 </div>
+</div>
+<div class="paragraph">
+<p>Both of them are getting a little further than they were before, but they&#8217;re
+still failing.  It would be nice to get back to a working state and get that
+first one passing again.  What&#8217;s it trying to tell us?</p>
+</div>
+<div class="paragraph">
+<p>It&#8217;s failing when we try to add the second item.  We have to put our debugging
+hats on here.  We know the home page is working, because the test has got all
+the way down to line 55 in the FT, so we&#8217;ve at least added a first item.  And
+our unit tests are all passing, so we&#8217;re pretty sure the URLs and views are
+doing what they should&#8201;&#8212;&#8201;the home page displays the right template, and
+can handle POST requests, and the only-list-in-the-world view knows how
+to display all items&#8230;&#8203;  But it doesn&#8217;t know how to handle POST requests.</p>
+</div>
+<div class="paragraph">
+<p>Ah, that gives us a clue.  The second clue is the fact that, when all the unit
+tests are passing but the functional tests aren&#8217;t, it&#8217;s often pointing at a
+problem that&#8217;s not covered by the unit tests, and in our case, that&#8217;s often
+a template problem.</p>
+</div>
+<div class="paragraph">
+<p>The answer is that our <em>home.html</em> input form currently doesn&#8217;t specify an
+explicit URL to POST to.</p>
+</div>
+<div class="listingblock sourcecode currentcontents">
+<div class="title">lists/templates/home.html</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="html">        <span class="tag">&lt;form</span> <span class="attribute-name">method</span>=<span class="string"><span class="delimiter">"</span><span class="content">POST</span><span class="delimiter">"</span></span><span class="tag">&gt;</span></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>So, by default the browser sends the POST data back to the same URL it&#8217;s
+currently on.  When we&#8217;re on the home page that works fine, but when we&#8217;re on
+our only-list-in-the-world page, it doesn&#8217;t.</p>
+</div>
+<div class="paragraph">
+<p>Now we could dive in and add POST request handling to our new view, but that
+would involve writing a bunch more tests and code, and at this point we&#8217;d like
+to get back to a working state as quickly as possible.  So the quickest thing
+we can do to get things fixed is to just use the home page view, which already
+works, for all POST requests:</p>
+</div>
+<div class="listingblock sourcecode">
+<div class="title">lists/templates/home.html</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="html">        <span class="tag">&lt;form</span> <span class="attribute-name">method</span>=<span class="string"><span class="delimiter">"</span><span class="content">POST</span><span class="delimiter">"</span></span> <span class="attribute-name">action</span>=<span class="string"><span class="delimiter">"</span><span class="content">/</span><span class="delimiter">"</span></span><span class="tag">&gt;</span></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Try that, and we&#8217;ll see our FTs get back to a happier place:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>FAIL: test_multiple_users_can_start_lists_at_different_urls
+[...]
+AssertionError: 'Buy peacock feathers' unexpectedly found in 'Your To-Do
+list\n1: Buy peacock feathers'
+
+Ran 2 tests in 8.541s
+FAILED (failures=1)</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Our original test passes once again, so we know we&#8217;re back to a working state.
+The new functionality may not be working yet, but at least the old stuff
+is working again.</p>
 </div>
 <div class="sect4">
 <h5 id="_green_refactor">Green? Refactor</h5>
@@ -1812,7 +1925,7 @@ class ItemModelTest(TestCase):
 it&#8217;s no longer needed.  If you run <strong><code>manage.py test lists</code></strong> now, it should say
 it ran 7 tests instead of 8:</p>
 </div>
-<div class="listingblock dofirst-ch06l010">
+<div class="listingblock dofirst-ch06l012">
 <div class="content">
 <pre>Ran 7 tests in 0.016s
 OK</pre>
@@ -1945,53 +2058,27 @@ our <code>home_page</code> view, so we can simplify that:</p>
 </div>
 </div>
 <div class="paragraph">
-<p>Rerun the unit tests; they still pass. Let&#8217;s run the functional tests:</p>
+<p>Rerun the unit tests once more; they still pass. Time to run the functional
+tests:</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>AssertionError: '2: Use peacock feathers to make a fly' not found in ['1: Buy
-peacock feathers']</pre>
+<pre>AssertionError: '1: Buy milk' not found in ['1: Buy peacock feathers', '2: Buy
+milk']</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>
-We&#8217;re still failing to input the second item.  What&#8217;s going on here?  Well, it&#8217;s
-not immediately obvious, but it looks like our POST requests aren&#8217;t working the
-way they should.  After a bit of head-scratching and digging through the various
-views and templates, we will eventually uncover the problem: both our
-forms are missing the <code>action=</code> attribute, which means that, by default, they
-submit to the same URL they were rendered from. That works for the home page,
-because it&#8217;s the only one that knows how to deal with POST requests currently,
-but it won&#8217;t work for our <code>view_list</code> function, which is just ignoring the
-POST.</p>
+<p>Not bad!  Our regression test (the first FT) is passing, and our new test
+is now getting slightly further forwards&#8201;&#8212;&#8201;it&#8217;s telling us that Francis
+isn&#8217;t getting his own list page (because he still sees some of Edith&#8217;s
+list items.)</p>
 </div>
 <div class="paragraph">
-<p>We can fix that in <em>lists/templates/list.html</em>:</p>
-</div>
-<div class="listingblock sourcecode">
-<div class="title">lists/templates/list.html (ch06l019)</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="html">    <span class="tag">&lt;form</span> <span class="attribute-name">method</span>=<span class="string"><span class="delimiter">"</span><span class="content">POST</span><span class="delimiter">"</span></span> <span class="attribute-name">action</span>=<span class="string"><span class="delimiter">"</span><span class="content">/</span><span class="delimiter">"</span></span><span class="tag">&gt;</span></code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>And try running the FT again:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>    self.assertNotEqual(francis_list_url, edith_list_url)
-AssertionError: 'http://localhost:8081/lists/the-only-list-in-the-world/' ==
-'http://localhost:8081/lists/the-only-list-in-the-world/'</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Hooray! We&#8217;re back to where we were earlier, which means our refactoring is
-complete&#8212;&#8203;we now have a unique URL for our one list.  It may feel like we
-haven&#8217;t made much headway since, functionally, the site still behaves almost
-exactly like it did when we started the chapter, but this really is progress.
-We&#8217;ve started on the road to our new design, and we&#8217;ve implemented a number of
-stepping stones <em>without making anything worse than it was before</em>.  Let&#8217;s
-commit our progress so far:</p>
+<p>It may feel like we haven&#8217;t made much headway since, functionally, the site
+still behaves almost exactly like it did when we started the chapter, but this
+really is progress. We&#8217;ve started on the road to our new design, and we&#8217;ve
+implemented a number of stepping stones <em>without making anything worse than it
+was before</em>.  Let&#8217;s commit our progress so far:</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -2023,7 +2110,7 @@ $ <strong>git commit -a</strong> # add a message summarising the above, maybe so
 <p><em>Adjust model so that items are associated with different lists</em></p>
 </li>
 <li>
-<p><em>Add unique URLs for each list</em></p>
+<p><em>Add unique URLs for each list</em>  &#8592;- &#8230;&#8203;</p>
 </li>
 <li>
 <p><em>Add a URL for creating a new list via POST</em></p>
@@ -2105,16 +2192,16 @@ a trailing slash are "action" URLs which modify the database.</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>    self.assertEqual(Item.objects.count(), 1)
-AssertionError: 0 != 1
+<pre>    self.assertEqual(response.status_code, 302)
+AssertionError: 404 != 302
 [...]
-    self.assertEqual(response.status_code, 302)
-AssertionError: 404 != 302</pre>
+    self.assertEqual(Item.objects.count(), 1)
+AssertionError: 0 != 1</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>The first failure tells us we&#8217;re not saving a new item to the database, and the
-second says that, instead of returning a 302 redirect, our view is returning a
+<p>The last failure tells us we&#8217;re not saving a new item to the database, and the
+first says that, instead of returning a 302 redirect, our view is returning a
 404. That&#8217;s because we haven&#8217;t built a URL for <em>/lists/new</em>, so the
 <code>client.post</code> is just getting a 404 response.</p>
 </div>
@@ -2126,9 +2213,9 @@ second says that, instead of returning a 302 redirect, our view is returning a
 </td>
 <td class="content">
 Do you remember how we split this out into two tests in the last chapter?
-If we only had one test that checked both the saving and the redirect, it would
-have failed on the <code>0 != 1</code> failure, which would have been much harder to
-debug.  Ask me how I know this.
+    If we only had one test that checked both the saving and the redirect, it
+    would have failed on the <code>0 != 1</code> failure, which would have been much
+    harder to debug.  Ask me how I know this.
 </td>
 </tr>
 </table>
@@ -2284,8 +2371,8 @@ OK</pre>
 <p>
 
 
-Finally, let&#8217;s wire up our two forms to use this new URL.  In <em>both</em>
-<em>home.html</em> and <em>lists.html</em>:</p>
+At this point the FTs will fail because we still need to wire up our
+two forms to use this new URL.  In <em>both</em> <em>home.html</em> and <em>lists.html</em>:</p>
 </div>
 <div class="listingblock sourcecode">
 <div class="title">lists/templates/home.html, lists/templates/list.html</div>
@@ -2299,16 +2386,16 @@ well as it did earlier&#8230;&#8203;</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>AssertionError: 'http://localhost:8081/lists/the-only-list-in-the-world/' ==
-'http://localhost:8081/lists/the-only-list-in-the-world/'</pre>
+<pre>AssertionError: '1: Buy milk' not found in ['1: Buy peacock feathers', '2: Buy
+milk']</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>Yup, we get to the same point we did before. That&#8217;s a nicely self-contained
-commit, in that we&#8217;ve made a bunch of changes to our URLs, our <em>views.py</em> is
-looking much neater and tidier, and we&#8217;re sure the application is still
-working as well as it did before.  We&#8217;re getting good at this refactoring
-malarkey!</p>
+<p>Yup, our regression FT still passes, and our new FT gets to the same point it
+did before. That&#8217;s a nicely self-contained commit, in that we&#8217;ve made a bunch
+of changes to our URLs, our <em>views.py</em> is looking much neater and tidier, and
+we&#8217;re sure the application is still working as well as it did before.  We&#8217;re
+getting good at this refactoring malarkey!</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -2685,8 +2772,20 @@ each foot, and take one step at a time, checking at each stage that the place
 you&#8217;ve put it hasn&#8217;t caused you to fall off a cliff.</p>
 </div>
 <div class="paragraph">
-<p>So just to reassure ourselves that things have worked, we rerun the FT.  Sure
-enough, it gets all the way through to where we were before.  We haven&#8217;t broken
+<p>So just to reassure ourselves that things have worked, we rerun the FT.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>AssertionError: '1: Buy milk' not found in ['1: Buy peacock feathers', '2: Buy
+milk']
+[...]
+
+Ran 2 tests in 9.649s
+FAILED (failures=1)</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Sure enough, it gets all the way through to where we were before.  We haven&#8217;t broken
 anything, and we&#8217;ve made a change to the database.  That&#8217;s something to be
 pleased with! Let&#8217;s commit:</p>
 </div>
@@ -2743,7 +2842,7 @@ URLs.</p>
 only the items for a specific list are displayed:</p>
 </div>
 <div class="listingblock sourcecode">
-<div class="title">lists/tests.py (ch06l033-1)</div>
+<div class="title">lists/tests.py (ch06l033)</div>
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">class</span> <span class="class">ListViewTest</span>(TestCase):
 
@@ -2777,11 +2876,11 @@ only the items for a specific list are displayed:</p>
 </td>
 <td class="content">
 If you&#8217;re not familiar with Python string substitutions, or the
-<code>printf</code> function from C, maybe that <code>%d</code> is a little confusing?
-<a href="http://www.diveintopython.net/"><em>Dive Into Python</em></a> has a good overview, if you
-want to go look them up quickly.  We&#8217;ll see an alternative string substitution
-syntax later in the book too.
-
+    <code>printf</code> function from C, maybe that <code>%d</code> is a little confusing?
+    <a href="http://www.diveintopython.net/"><em>Dive Into Python</em></a> has a good overview, if
+    you want to go look them up quickly.  We&#8217;ll see an alternative string
+    substitution syntax later in the book too.
+    
 </td>
 </tr>
 </table>
@@ -2934,17 +3033,40 @@ itself, and change it so it redirects to a valid place:</p>
 <p>That gets us back to passing unit tests.  What about the functional
 tests?  We must be almost there?</p>
 </div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_the_functional_tests_detect_a_regression">The functional tests detect a regression</h3>
 <div class="listingblock">
 <div class="content">
-<pre>AssertionError: '2: Use peacock feathers to make a fly' not found in ['1: Use
-peacock feathers to make a fly']</pre>
+<pre>Creating test database for alias 'default'...
+F.
+======================================================================
+FAIL: test_can_start_a_list_for_one_user
+(functional_tests.tests.NewVisitorTest)
+ ---------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/superlists/functional_tests/tests.py", line 55, in
+test_can_start_a_list_for_one_user
+    self.check_for_row_in_list_table('2: Use peacock feathers to make a fly')
+  File "/workspace/superlists/functional_tests/tests.py", line 18, in
+check_for_row_in_list_table
+    self.assertIn(row_text, [row.text for row in rows])
+AssertionError: '2: Use peacock feathers to make a fly' not found in ['1: Use
+peacock feathers to make a fly']
+
+ ---------------------------------------------------------------------
+Ran 2 tests in 9.661s
+
+FAILED (failures=1)
+Destroying test database for alias 'default'...</pre>
 </div>
 </div>
 <div class="paragraph">
 <p>The functional tests have warned us of a regression in our application: because
-we&#8217;re now creating a new list for every single POST submission, we have broken
-the ability to add multiple items to a list.  This is exactly what we have
-functional tests for!</p>
+of our quick-and dirty hack where create a new list for every single POST
+submission, we have broken the ability to add multiple items to a list.  This
+is exactly what we have functional tests for!</p>
 </div>
 <div class="paragraph">
 <p>And it correlates nicely with the last item on our to-do list:</p>
@@ -2973,15 +3095,14 @@ functional tests for!</p>
 </div>
 </div>
 </div>
-</div>
 <div class="sect2">
 <h3 id="_one_more_view_to_handle_adding_items_to_an_existing_list">One More View to Handle Adding Items to an Existing List</h3>
 <div class="paragraph">
 <p>
 
-We need a URL and view to handle adding a new item to an existing list (
-<em>/lists/&lt;list_id&gt;/add_item</em>).  We&#8217;re getting pretty good at these now, so let&#8217;s
-knock one together quickly:</p>
+We need a URL and view to handle adding a new item to an existing list
+(<em>/lists/&lt;list_id&gt;/add_item</em>).  We&#8217;re getting pretty good at these now, so
+let&#8217;s knock one together quickly:</p>
 </div>
 <div class="listingblock sourcecode">
 <div class="title">lists/tests.py</div>
@@ -3035,7 +3156,7 @@ That&#8217;s a little strange. We haven&#8217;t actually specified a URL for
 getting a 301?</p>
 </div>
 <div class="paragraph">
-<p>This was a bit of a puzzler, but it&#8217;s because we&#8217;ve used a very "greedy"
+<p>This was a bit of a puzzler; it&#8217;s because we&#8217;ve used a very "greedy"
 regular expression in our URL:</p>
 </div>
 <div class="listingblock skipme">
@@ -3292,15 +3413,20 @@ opportunity to simplify a little:</p>
 
     [...]
 
-        {% for item in list.item_set.all %}
+        {% for item in list.item_set.all %}  <i class="conum" data-value="1"></i><b>(1)</b>
             <span class="tag">&lt;tr&gt;</span><span class="tag">&lt;td&gt;</span>{{ forloop.counter }}: {{ item.text }}<span class="tag">&lt;/td&gt;</span><span class="tag">&lt;/tr&gt;</span>
         {% endfor %}</code></pre>
 </div>
 </div>
-<div class="paragraph">
-<p><code>.item_set</code> is called a "reverse lookup"&#8212;it&#8217;s one of Django&#8217;s incredibly
-useful bits of ORM that lets you look up an object&#8217;s related items from a
-different table&#8230;&#8203;</p>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td><code>.item_set</code> is called a "reverse lookup"&#8212;it&#8217;s one of Django&#8217;s
+incredibly useful bits of ORM that lets you look up an object&#8217;s related
+items from a different table&#8230;&#8203;</td>
+</tr>
+</table>
 </div>
 <div class="paragraph">
 <p>So that gets the unit tests to pass:</p>
@@ -3313,15 +3439,15 @@ OK</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>How about the FT?</p>
+<p>How about the FTs?</p>
 </div>
 <div class="listingblock">
 <div class="content">
 <pre>$ <strong>python manage.py test functional_tests</strong>
 Creating test database for alias 'default'...
-.
+..
  ---------------------------------------------------------------------
-Ran 1 test in 5.824s
+Ran 2 tests in 9.771s
 
 OK
 Destroying test database for alias 'default'...</pre>
@@ -3426,7 +3552,7 @@ to&#8212;&#8203;and indeed we will need to later on in the book.</td>
 of our three URLs, and none of the other stuff from the parent <em>urls.py</em>:</p>
 </div>
 <div class="listingblock sourcecode">
-<div class="title">lists/urls.py (ch06l045)</div>
+<div class="title">lists/urls.py (ch06l046)</div>
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> <span class="include">django.conf.urls</span> <span class="keyword">import</span> <span class="include">url</span>
 <span class="keyword">from</span> <span class="include">lists</span> <span class="keyword">import</span> <span class="include">views</span>
@@ -3519,7 +3645,7 @@ methodology that helps us avoid this trap.</p>
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2016-11-17 14:59:08 GMT
+Last updated 2016-11-27 00:15:38 GMT
 </div>
 </div>
 <div class="comments" style="padding: 20px">
