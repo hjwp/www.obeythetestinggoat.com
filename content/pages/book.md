@@ -86,9 +86,8 @@ Table of contents follows:
 * [Chapter 2: Extending Our Functional Test Using the unittest Module](/book/chapter_02.html)
 * [Chapter 3: Testing a Simple Home Page with Unit Tests](/book/chapter_03.html)
 * [Chapter 4: What Are We Doing with All These Tests?](/book/chapter_04.html)
-* [Chapter 5: Saving User Input](/book/chapter_05.html)
-* [Chapter 6: Getting to the Minimum Viable Site](/book/chapter_06.html)
-
+* [Chapter 5: Saving User Input: Testing the Database](/book/chapter_05.html)
+* [Chapter 6: Working Incrementally](/book/chapter_06.html)
 
 ### [Part 2: Web Development Sine Qua Nons](/book/part2.harry.html)
 
@@ -105,7 +104,7 @@ Table of contents follows:
 ### [Part 3: More Advanced Topics](/book/part3.harry.html)
 
 * [Chapter 15: User Authentication, Spiking and De-Spiking](/book/chapter_15.html)
-* [Chapter 16: Testing external dependencies using mocks](/book/chapter_16.html)
+* [Chapter 16: Using Mocks to Test External Dependencies or Reduce Duplication](/book/chapter_16.html)
 * [Chapter 17: Test Fixtures, and Server-Side Debugging](/book/chapter_17.html)
 * [Chapter 18: Finishing "My Lists": Outside-In TDD](/book/chapter_18.html)
 * [Chapter 19: Test Isolation, and "Listening to Your Tests"](/book/chapter_19.html)
