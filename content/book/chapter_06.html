@@ -4,7 +4,7 @@
 <!--[if IE]><meta http-equiv="X-UA-Compatible" content="IE=edge"><![endif]-->
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="generator" content="Asciidoctor 1.5.4">
-<title>Getting to the Minimum Viable Site</title>
+<title>Working Incrementally</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:300,300italic,400,400italic,600,600italic%7CNoto+Serif:400,400italic,700,700italic%7CDroid+Sans+Mono:400,700">
 <style>
 /* Asciidoctor default stylesheet | MIT License | http://asciidoctor.org */
@@ -598,13 +598,13 @@ table.CodeRay td.code>pre{padding:0}
 <ul class="sectlevel2">
 <li><a href="/book/chapter_06.html#_ensuring_test_isolation_in_functional_tests">6.1. Ensuring Test Isolation in Functional Tests</a></li>
 <li><a href="/book/chapter_06.html#_small_design_when_necessary">6.2. Small Design When Necessary</a></li>
-<li><a href="/book/chapter_06.html#_implementing_the_new_design_using_tdd">6.3. Implementing the New Design Using TDD</a></li>
+<li><a href="#_implementing_the_new_design_using_tdd">6.3. Implementing the New Design Using TDD</a></li>
 <li><a href="/book/chapter_06.html#_iterating_towards_the_new_design">6.4. Iterating Towards the New Design</a></li>
-<li><a href="/book/chapter_06.html#_testing_views_templates_and_urls_together_with_the_django_test_client">6.5. Testing Views, Templates, and URLs Together with the Django Test Client</a></li>
-<li><a href="/book/chapter_06.html#_another_url_and_view_for_adding_list_items">6.6. Another URL and View for Adding List Items</a></li>
-<li><a href="/book/chapter_06.html#_adjusting_our_models">6.7. Adjusting Our Models</a></li>
+<li><a href="#_testing_views_templates_and_urls_together_with_the_django_test_client">6.5. Testing Views, Templates, and URLs Together with the Django Test Client</a></li>
+<li><a href="#_another_url_and_view_for_adding_list_items">6.6. Another URL and View for Adding List Items</a></li>
+<li><a href="#_adjusting_our_models">6.7. Adjusting Our Models</a></li>
 <li><a href="/book/chapter_06.html#_each_list_should_have_its_own_url">6.8. Each List Should Have Its Own URL</a></li>
-<li><a href="/book/chapter_06.html#_the_functional_tests_detect_a_regression">6.9. The functional tests detect a regression</a></li>
+<li><a href="#_the_functional_tests_detect_a_regression">6.9. The functional tests detect a regression</a></li>
 <li><a href="/book/chapter_06.html#_one_more_view_to_handle_adding_items_to_an_existing_list">6.10. One More View to Handle Adding Items to an Existing List</a></li>
 <li><a href="/book/chapter_06.html#_a_final_refactor_using_url_includes">6.11. A Final Refactor Using URL includes</a></li>
 </ul>
@@ -711,7 +711,7 @@ table.CodeRay td.code>pre{padding:0}
 <li><a href="/book/chapter_16.html#_mocking_manually_aka_monkey_patching">16.2. Mocking manually, aka monkey-patching</a></li>
 <li><a href="/book/chapter_16.html#_the_python_mock_library">16.3. The Python Mock Library</a></li>
 <li><a href="/book/chapter_16.html#_de_spiking_our_custom_authentication_backend">16.4. De-spiking Our Custom Authentication Backend</a></li>
-<li><a href="/book/chapter_16.html#_using_mocks_to_test_our_own_code">16.5. Using mocks to test our own code</a></li>
+<li><a href="#_using_mocks_to_test_our_own_code">16.5. Using mocks to test our own code</a></li>
 <li><a href="/book/chapter_16.html#_the_moment_of_truth_will_the_ft_pass">16.6. The Moment of Truth:  Will the FT Pass?</a></li>
 <li><a href="/book/chapter_16.html#_finishing_off_our_ft_testing_logout">16.7. Finishing Off Our FT, Testing Logout</a></li>
 <li><a href="/book/chapter_16.html#_old_content_i_can_t_find_a_place_for">16.8. Old content I can&#8217;t find a place for</a></li>
@@ -903,30 +903,29 @@ table.CodeRay td.code>pre{padding:0}
 </div>
 <div id="content">
 <div class="sect1">
-<h2 id="chapter-6">Getting to the Minimum Viable Site</h2>
+<h2 id="chapter-6">Working Incrementally</h2>
 <div class="sectionbody">
 <div class="paragraph">
-<p>
-
-In this chapter we&#8217;re going to address the problems we discovered at the end
+<p>In this chapter we&#8217;re going to address the problems we discovered at the end
 of the last chapter. In the immediate, the problem of cleaning up after
 functional test runs. Later, the more general problem, which is that
 our design only allows for one global list.  I&#8217;ll demonstrate a critical
 TDD technique:  how to adapt existing code using an incremental, step-by-step
-process which takes you from working code to working code. Testing Goat, not
+process which takes you from working state to working state. Testing Goat, not
 Refactoring Cat.</p>
 </div>
 <div class="sect2">
 <h3 id="_ensuring_test_isolation_in_functional_tests">Ensuring Test Isolation in Functional Tests</h3>
 <div class="paragraph">
-<p>We ended the last chapter with a classic testing problem:  how to ensure
+<p>
+
+We ended the last chapter with a classic testing problem:  how to ensure
 <em>isolation</em> between tests.  Each run of our functional tests was leaving list
 items lying around in the database, and that would interfere with the test
 results when you next ran the tests.</p>
 </div>
 <div class="paragraph">
-<p>
-When we run <em>unit</em> tests, the Django test runner automatically creates a brand
+<p>When we run <em>unit</em> tests, the Django test runner automatically creates a brand
 new test database (separate from the real one), which it can safely reset
 before each individual test is run, and then throw away at the end.  But our
 functional tests currently run against the "real" database, <em>db.sqlite3</em>.</p>
@@ -938,6 +937,7 @@ to <em>functional_tests.py</em> which would do the cleaning up. The <code>setUp<
 </div>
 <div class="paragraph">
 <p>
+
 
 Since Django 1.4 though, there&#8217;s a new class called <code>LiveServerTestCase</code> which
 can do this work for you. It will automatically create a test database (just
@@ -983,6 +983,7 @@ $ <strong>git status</strong> # shows the rename to functional_tests/tests.py an
 &#9474;&#160;&#160; &#9492;&#9472;&#9472; tests.py
 &#9500;&#9472;&#9472; lists
 &#9474;&#160;&#160; &#9500;&#9472;&#9472; admin.py
+&#9474;&#160;&#160; &#9500;&#9472;&#9472; apps.py
 &#9474;&#160;&#160; &#9500;&#9472;&#9472; __init__.py
 &#9474;&#160;&#160; &#9500;&#9472;&#9472; migrations
 &#9474;&#160;&#160; &#9474;&#160;&#160; &#9500;&#9472;&#9472; 0001_initial.py
@@ -1118,14 +1119,14 @@ unit tests:</p>
 <div class="content">
 <pre>$ <strong>python manage.py test</strong>
 Creating test database for alias 'default'...
-.......F
+......F
 ======================================================================
 FAIL: test_can_start_a_list_and_retrieve_it_later
 [...]
 AssertionError: Finish the test!
 
  ---------------------------------------------------------------------
-Ran 8 tests in 3.132s
+Ran 7 tests in 3.132s
 
 FAILED (failures=1)
 Destroying test database for alias 'default'...</pre>
@@ -1139,9 +1140,9 @@ only run the tests for the <code>lists</code> app:</p>
 <div class="content">
 <pre>$ <strong>python manage.py test lists</strong>
 Creating test database for alias 'default'...
-.......
+......
  ---------------------------------------------------------------------
-Ran 7 tests in 0.009s
+Ran 6 tests in 0.009s
 
 OK
 Destroying test database for alias 'default'...</pre>
@@ -1338,7 +1339,7 @@ use a PUT request here&#8212;&#8203;we&#8217;re just using REST for inspiration.
 </div>
 </div>
 <div class="sect2">
-<h3 id="_implementing_the_new_design_using_tdd">Implementing the New Design Using TDD</h3>
+<h3 id="_implementing_the_new_design_incrementally_using_tdd">Implementing the New Design Incrementally using TDD</h3>
 <div class="paragraph">
 <p>
 
@@ -1365,6 +1366,9 @@ we don&#8217;t touch to help make sure we don&#8217;t break anything in the proc
 </div>
 <div class="title">Figure 1. The TDD process with functional and unit tests</div>
 </div>
+</div>
+<div class="sect2">
+<h3 id="_ensuring_we_have_a_regression_test">Ensuring we have a regression test</h3>
 <div class="paragraph">
 <p>Let&#8217;s translate our scratchpad into a new functional test method, which
 introduces a second user a checks that their to-do list is separate from
@@ -1378,22 +1382,27 @@ list should live at its own, unique URL:</p>
 <div class="listingblock sourcecode">
 <div class="title">functional_tests/tests.py (ch06l005)</div>
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python">    <span class="keyword">def</span> <span class="function">test_can_start_a_list_for_one_user</span>(<span class="predefined-constant">self</span>):
-        <span class="comment"># Edith has heard about a cool new online to-do app. She goes</span>
-        [...]
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">def</span> <span class="function">test_can_start_a_list_for_one_user</span>(<span class="predefined-constant">self</span>):
+    <span class="comment"># Edith has heard about a cool new online to-do app. She goes</span>
+    [...]
+    <span class="comment"># The page updates again, and now shows both items on her list</span>
+    <span class="predefined-constant">self</span>.check_for_row_in_list_table(<span class="string"><span class="delimiter">'</span><span class="content">2: Use peacock feathers to make a fly</span><span class="delimiter">'</span></span>)
+    <span class="predefined-constant">self</span>.check_for_row_in_list_table(<span class="string"><span class="delimiter">'</span><span class="content">1: Buy peacock feathers</span><span class="delimiter">'</span></span>)
+
+    <span class="comment"># Satisfied, she goes back to sleep</span>
 
 
-    <span class="keyword">def</span> <span class="function">test_multiple_users_can_start_lists_at_different_urls</span>(<span class="predefined-constant">self</span>):
-        <span class="comment"># Edith start a new todo list</span>
-        <span class="predefined-constant">self</span>.browser.get(<span class="predefined-constant">self</span>.live_server_url)
-        inputbox = <span class="predefined-constant">self</span>.browser.find_element_by_id(<span class="string"><span class="delimiter">'</span><span class="content">id_new_item</span><span class="delimiter">'</span></span>)
-        inputbox.send_keys(<span class="string"><span class="delimiter">'</span><span class="content">Buy peacock feathers</span><span class="delimiter">'</span></span>)
-        inputbox.send_keys(Keys.ENTER)
-        <span class="predefined-constant">self</span>.check_for_row_in_list_table(<span class="string"><span class="delimiter">'</span><span class="content">1: Buy peacock feathers</span><span class="delimiter">'</span></span>)
+<span class="keyword">def</span> <span class="function">test_multiple_users_can_start_lists_at_different_urls</span>(<span class="predefined-constant">self</span>):
+    <span class="comment"># Edith start a new todo list</span>
+    <span class="predefined-constant">self</span>.browser.get(<span class="predefined-constant">self</span>.live_server_url)
+    inputbox = <span class="predefined-constant">self</span>.browser.find_element_by_id(<span class="string"><span class="delimiter">'</span><span class="content">id_new_item</span><span class="delimiter">'</span></span>)
+    inputbox.send_keys(<span class="string"><span class="delimiter">'</span><span class="content">Buy peacock feathers</span><span class="delimiter">'</span></span>)
+    inputbox.send_keys(Keys.ENTER)
+    <span class="predefined-constant">self</span>.check_for_row_in_list_table(<span class="string"><span class="delimiter">'</span><span class="content">1: Buy peacock feathers</span><span class="delimiter">'</span></span>)
 
-        <span class="comment"># She notices that her list has a unique URL</span>
-        edith_list_url = <span class="predefined-constant">self</span>.browser.current_url
-        <span class="predefined-constant">self</span>.assertRegex(edith_list_url, <span class="string"><span class="delimiter">'</span><span class="content">/lists/.+</span><span class="delimiter">'</span></span>)  <i class="conum" data-value="1"></i><b>(1)</b></code></pre>
+    <span class="comment"># She notices that her list has a unique URL</span>
+    edith_list_url = <span class="predefined-constant">self</span>.browser.current_url
+    <span class="predefined-constant">self</span>.assertRegex(edith_list_url, <span class="string"><span class="delimiter">'</span><span class="content">/lists/.+</span><span class="delimiter">'</span></span>)  <i class="conum" data-value="1"></i><b>(1)</b></code></pre>
 </div>
 </div>
 <div class="colist arabic">
@@ -1635,28 +1644,11 @@ state as quickly as possible by building a URL for our one and only list.</p>
 </div>
 </div>
 <div class="sect2">
-<h3 id="_testing_views_templates_and_urls_together_with_the_django_test_client">Testing Views, Templates, and URLs Together with the Django Test Client</h3>
+<h3 id="_taking_a_first_self_contained_step_one_new_url">Taking a first, self-contained step: one new URL</h3>
 <div class="paragraph">
-<p>In previous chapters we&#8217;ve used unit tests that check the URL resolution
-explicitly, that test view functions by actually calling them, and that
-check that views render templates correctly too.  Django actually
-provides us with a little tool that can do all three at once, which we&#8217;ll use
-now.</p>
-</div>
-<div class="paragraph">
-<p>I wanted to show you how to "roll your own" first, partially because it&#8217;s
-a better introduction to how Django works, but also because those techniques
-are portable&#8212;&#8203;you may not always use Django, but you&#8217;ll almost always have
-view functions, templates, and URL mappings, and now you know how to test them.</p>
-</div>
-<div class="sect3">
-<h4 id="_a_new_test_class">A New Test Class</h4>
-<div class="paragraph">
-<p>
-So let&#8217;s use the Django test client.  Open up <em>lists/tests.py</em>, and add a new
-test class called <code>ListViewTest</code>.  Then copy the method called
-<code>test_home_page_displays_all_list_items</code> across from <code>HomePageTest</code> into our
-new class, rename it, and adapt it slightly:</p>
+<p>Open up <em>lists/tests.py</em>, and add a new test class called <code>ListViewTest</code>.  Then
+copy the method called <code>test_displays_all_list_items</code> across from
+<code>HomePageTest</code> into our new class, rename it, and adapt it slightly:</p>
 </div>
 <div class="listingblock sourcecode">
 <div class="title">lists/tests.py (ch06l009)</div>
@@ -1667,44 +1659,20 @@ new class, rename it, and adapt it slightly:</p>
         Item.objects.create(text=<span class="string"><span class="delimiter">'</span><span class="content">itemey 1</span><span class="delimiter">'</span></span>)
         Item.objects.create(text=<span class="string"><span class="delimiter">'</span><span class="content">itemey 2</span><span class="delimiter">'</span></span>)
 
-        response = <span class="predefined-constant">self</span>.client.get(<span class="string"><span class="delimiter">'</span><span class="content">/lists/the-only-list-in-the-world/</span><span class="delimiter">'</span></span>)  <i class="conum" data-value="1"></i><b>(1)</b>
+        response = <span class="predefined-constant">self</span>.client.get(<span class="string"><span class="delimiter">'</span><span class="content">/lists/the-only-list-in-the-world/</span><span class="delimiter">'</span></span>)
 
-        <span class="predefined-constant">self</span>.assertContains(response, <span class="string"><span class="delimiter">'</span><span class="content">itemey 1</span><span class="delimiter">'</span></span>)  <i class="conum" data-value="2"></i><b>(2)</b>
-        <span class="predefined-constant">self</span>.assertContains(response, <span class="string"><span class="delimiter">'</span><span class="content">itemey 2</span><span class="delimiter">'</span></span>)  <i class="conum" data-value="2"></i><b>(2)</b></code></pre>
+        <span class="predefined-constant">self</span>.assertContains(response, <span class="string"><span class="delimiter">'</span><span class="content">itemey 1</span><span class="delimiter">'</span></span>)  <i class="conum" data-value="1"></i><b>(1)</b>
+        <span class="predefined-constant">self</span>.assertContains(response, <span class="string"><span class="delimiter">'</span><span class="content">itemey 2</span><span class="delimiter">'</span></span>)  <i class="conum" data-value="1"></i><b>(1)</b></code></pre>
 </div>
 </div>
 <div class="colist arabic">
 <table>
 <tr>
 <td><i class="conum" data-value="1"></i><b>1</b></td>
-<td>Instead of calling the view function directly, we use the Django test
-client, which is an attribute of the Django <code>TestCase</code> called
-<code>self.client</code>. We tell it to <code>.get</code> the URL we&#8217;re testing&#8212;&#8203;it&#8217;s actually a
-very similar API to the one that Selenium uses.</td>
-</tr>
-<tr>
-<td><i class="conum" data-value="2"></i><b>2</b></td>
-<td>Instead of using the slightly annoying
+<td>Here&#8217;s a new helper method: instead of using the slightly annoying
 <code>assertIn</code>/<code>response.content.decode()</code> dance, Django provides the
 <code>assertContains</code> method which knows how to deal with responses and the
 bytes of their content.</td>
-</tr>
-</table>
-</div>
-<div class="admonitionblock note">
-<table>
-<tr>
-<td class="icon">
-<i class="fa icon-note" title="Note"></i>
-</td>
-<td class="content">
-Some people really don&#8217;t like the Django test client.  They say it
-    does too much magic, and involves too much of the stack to be used in a
-    real "unit" test&#8212;&#8203;you end up writing what are more properly called
-    integrated tests.  They also complain that it is relatively slow (and
-    relatively is measured in milliseconds). We&#8217;ll explore this argument
-    further in <a href="/book/chapter_19.html">a later chapter</a>.
-</td>
 </tr>
 </table>
 </div>
@@ -1713,9 +1681,15 @@ Some people really don&#8217;t like the Django test client.  They say it
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>AssertionError: 404 != 200 : Couldn't retrieve content: Response code was 404</pre>
+<pre>    self.assertContains(response, 'itemey 1')
+[...]
+AssertionError: 404 != 200 : Couldn't retrieve content: Response code was 404</pre>
 </div>
 </div>
+<div class="paragraph">
+<p>Here&#8217;s a nice side-effect of using <code>assertContains</code>: it tells us straight
+away that the test is failing because our new URL doesn&#8217;t exist yet, and
+is returning a 404.</p>
 </div>
 <div class="sect3">
 <h4 id="_a_new_url">A New URL</h4>
@@ -1732,7 +1706,7 @@ Our singleton list URL doesn&#8217;t exist yet.  We fix that in <em>superlists/u
 </td>
 <td class="content">
 Watch out for trailing slashes in URLs, both here in the tests and in
-    <em>urls.py</em>&#8212;they&#8217;re a common source of bugs.
+    <em>urls.py</em>. They&#8217;re a common source of bugs.
 </td>
 </tr>
 </table>
@@ -1743,7 +1717,6 @@ Watch out for trailing slashes in URLs, both here in the tests and in
 <pre class="CodeRay highlight"><code data-lang="python">urlpatterns = [
     url(<span class="string"><span class="modifier">r</span><span class="delimiter">'</span><span class="content">^$</span><span class="delimiter">'</span></span>, views.home_page, name=<span class="string"><span class="delimiter">'</span><span class="content">home</span><span class="delimiter">'</span></span>),
     url(<span class="string"><span class="modifier">r</span><span class="delimiter">'</span><span class="content">^lists/the-only-list-in-the-world/$</span><span class="delimiter">'</span></span>, views.view_list, name=<span class="string"><span class="delimiter">'</span><span class="content">view_list</span><span class="delimiter">'</span></span>),
-    <span class="comment"># url(r'^admin/', include(admin.site.urls)),</span>
 ]</code></pre>
 </div>
 </div>
@@ -1754,7 +1727,7 @@ Watch out for trailing slashes in URLs, both here in the tests and in
 <div class="content">
 <pre>AttributeError: module 'lists.views' has no attribute 'view_list'
 [...]
-FAILED (errors=4)</pre>
+FAILED (errors=6)</pre>
 </div>
 </div>
 </div>
@@ -1779,12 +1752,16 @@ Nicely self-explanatory.  Let&#8217;s create a dummy view function in
 <div class="listingblock">
 <div class="content">
 <pre>ValueError: The view lists.views.view_list didn't return an HttpResponse
-object. It returned None instead.</pre>
+object. It returned None instead.
+
+[...]
+FAILED (errors=1)</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>Let&#8217;s copy the two last lines from the <code>home_page</code> view and see if they&#8217;ll do
-the trick:</p>
+<p>Down to just one failure, and it&#8217;s pointing us in the right direction. Let&#8217;s
+copy the two last lines from the <code>home_page</code> view and see if they&#8217;ll do the
+trick:</p>
 </div>
 <div class="listingblock sourcecode">
 <div class="title">lists/views.py</div>
@@ -1799,7 +1776,7 @@ the trick:</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>Ran 8 tests in 0.016s
+<pre>Ran 7 tests in 0.016s
 OK</pre>
 </div>
 </div>
@@ -1834,14 +1811,14 @@ hats on here.  We know the home page is working, because the test has got all
 the way down to line 55 in the FT, so we&#8217;ve at least added a first item.  And
 our unit tests are all passing, so we&#8217;re pretty sure the URLs and views are
 doing what they should&#8201;&#8212;&#8201;the home page displays the right template, and
-can handle POST requests, and the only-list-in-the-world view knows how
-to display all items&#8230;&#8203;  But it doesn&#8217;t know how to handle POST requests.</p>
+can handle POST requests, and the <em>only-list-in-the-world</em> view knows how
+to display all items&#8230;&#8203;  But it doesn&#8217;t know how to handle POST requests. Ah,
+that gives us a clue.</p>
 </div>
 <div class="paragraph">
-<p>Ah, that gives us a clue.  The second clue is the fact that, when all the unit
-tests are passing but the functional tests aren&#8217;t, it&#8217;s often pointing at a
-problem that&#8217;s not covered by the unit tests, and in our case, that&#8217;s often
-a template problem.</p>
+<p>A second clue is the rule of thumb that, when all the unit tests are passing
+but the functional tests aren&#8217;t, it&#8217;s often pointing at a problem that&#8217;s not
+covered by the unit tests, and in our case, that&#8217;s often a template problem.</p>
 </div>
 <div class="paragraph">
 <p>The answer is that our <em>home.html</em> input form currently doesn&#8217;t specify an
@@ -1854,16 +1831,16 @@ explicit URL to POST to.</p>
 </div>
 </div>
 <div class="paragraph">
-<p>So, by default the browser sends the POST data back to the same URL it&#8217;s
-currently on.  When we&#8217;re on the home page that works fine, but when we&#8217;re on
-our only-list-in-the-world page, it doesn&#8217;t.</p>
+<p>By default the browser sends the POST data back to the same URL it&#8217;s currently
+on.  When we&#8217;re on the home page that works fine, but when we&#8217;re on our
+<em>only-list-in-the-world</em> page, it doesn&#8217;t.</p>
 </div>
 <div class="paragraph">
 <p>Now we could dive in and add POST request handling to our new view, but that
 would involve writing a bunch more tests and code, and at this point we&#8217;d like
-to get back to a working state as quickly as possible.  So the quickest thing
-we can do to get things fixed is to just use the home page view, which already
-works, for all POST requests:</p>
+to get back to a working state as quickly as possible.  Actually the quickest
+thing we can do to get things fixed is to just use the existing home page view,
+which already works, for all POST requests:</p>
 </div>
 <div class="listingblock sourcecode">
 <div class="title">lists/templates/home.html</div>
@@ -1887,33 +1864,34 @@ FAILED (failures=1)</pre>
 </div>
 <div class="paragraph">
 <p>Our original test passes once again, so we know we&#8217;re back to a working state.
-The new functionality may not be working yet, but at least the old stuff
-is working again.</p>
+The new functionality may not be working yet, but at least the old stuff works
+as well as it used to.</p>
 </div>
-<div class="sect4">
-<h5 id="_green_refactor">Green? Refactor</h5>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_green_refactor">Green? Refactor</h3>
 <div class="paragraph">
 <p>
 
 Time for a little tidying up.</p>
 </div>
 <div class="paragraph">
-<p>In the Red/Green/Refactor dance, we&#8217;ve arrived at green, so we should see what
-needs a refactor.  We now have two views, one for the home page, and one for an
-individual list.  Both are currently using the same template, and passing it
-all the list items currently in the database.  If we look through our unit test
-methods, we can see some stuff we probably want to change:</p>
+<p>In the <em>Red/Green/Refactor</em> dance, we&#8217;ve arrived at green, so we should see
+what needs a refactor.  We now have two views, one for the home page, and one
+for an individual list.  Both are currently using the same template, and
+passing it all the list items currently in the database.  If we look through
+our unit test methods, we can see some stuff we probably want to change:</p>
 </div>
 <div class="listingblock">
 <div class="content">
 <pre>$ <strong>grep -E "class|def" lists/tests.py</strong>
 class HomePageTest(TestCase):
-    def test_root_url_resolves_to_home_page_view(self):
-    def test_home_page_returns_correct_html(self):
-    def test_home_page_displays_all_list_items(self):
-    def test_home_page_can_save_a_POST_request(self):
-    def test_home_page_redirects_after_POST(self):
-    def test_home_page_only_saves_items_when_necessary(self):
+    def test_uses_home_template(self):
+    def test_displays_all_list_items(self):
+    def test_can_save_a_POST_request(self):
+    def test_redirects_after_POST(self):
+    def test_only_saves_items_when_necessary(self):
 class ListViewTest(TestCase):
     def test_displays_all_items(self):
 class ItemModelTest(TestCase):
@@ -1921,24 +1899,24 @@ class ItemModelTest(TestCase):
 </div>
 </div>
 <div class="paragraph">
-<p>We can definitely delete the <code>test_home_page_displays_all_list_items</code> method,
-it&#8217;s no longer needed.  If you run <strong><code>manage.py test lists</code></strong> now, it should say
-it ran 7 tests instead of 8:</p>
+<p>We can definitely delete the <code>test_displays_all_list_items</code> method from
+<code>HomePageTest</code>, it&#8217;s no longer needed.  If you run <strong><code>manage.py test lists</code></strong>
+now, it should say it ran 6 tests instead of 7:</p>
 </div>
 <div class="listingblock dofirst-ch06l012">
 <div class="content">
-<pre>Ran 7 tests in 0.016s
+<pre>Ran 6 tests in 0.016s
 OK</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>Next, we don&#8217;t actually need the home page to display all list items any more;
-it should just show a single input box inviting you to start a new list.</p>
+<p>Next, since we don&#8217;t actually need the home page template to display all list
+items any more; it should just show a single input box inviting you to start a
+new list.</p>
 </div>
 </div>
-</div>
-<div class="sect3">
-<h4 id="_a_separate_template_for_viewing_lists">A Separate Template for Viewing Lists</h4>
+<div class="sect2">
+<h3 id="_another_small_step_a_separate_template_for_viewing_lists">Another Small Step: A Separate Template for Viewing Lists</h3>
 <div class="paragraph">
 <p>
 
@@ -1992,7 +1970,7 @@ get:</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>django.template.base.TemplateDoesNotExist: list.html</pre>
+<pre>django.template.exceptions.TemplateDoesNotExist: list.html</pre>
 </div>
 </div>
 <div class="paragraph">
@@ -2093,9 +2071,8 @@ $ <strong>git commit -a</strong> # add a message summarising the above, maybe so
 </div>
 </div>
 </div>
-</div>
 <div class="sect2">
-<h3 id="_another_url_and_view_for_adding_list_items">Another URL and View for Adding List Items</h3>
+<h3 id="_a_third_small_step_a_url_for_adding_list_items">A Third Small Step: a URL for Adding List Items</h3>
 <div class="paragraph">
 <p>Where are we with our own to-do list?</p>
 </div>
@@ -2136,74 +2113,76 @@ simplify the home page view.</p>
 <div class="paragraph">
 <p>
 Open up <em>lists/tests.py</em>, and <em>move</em> the
-<code>test_home_page_can_save_a_POST_request</code> and
-<code>test_home_page_redirects_after_POST</code> methods into a new class, then change
-their names:</p>
+<code>test_can_save_a_POST_request</code> and
+<code>test_redirects_after_POST</code> methods into a new class, then change
+the URL they POST to:</p>
 </div>
-<div class="listingblock sourcecode">
+<div class="listingblock sourcecode small-code">
 <div class="title">lists/tests.py (ch06l021-1)</div>
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">class</span> <span class="class">NewListTest</span>(TestCase):
 
-    <span class="keyword">def</span> <span class="function">test_saving_a_POST_request</span>(<span class="predefined-constant">self</span>):
-        request = HttpRequest()
-        request.method = <span class="string"><span class="delimiter">'</span><span class="content">POST</span><span class="delimiter">'</span></span>
-        [...]
-
-    <span class="keyword">def</span> <span class="function">test_redirects_after_POST</span>(<span class="predefined-constant">self</span>):
-        [...]</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>
-Now let&#8217;s use the Django test client:</p>
-</div>
-<div class="listingblock sourcecode small-code">
-<div class="title">lists/tests.py (ch06l021-2)</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">class</span> <span class="class">NewListTest</span>(TestCase):
-
-    <span class="keyword">def</span> <span class="function">test_saving_a_POST_request</span>(<span class="predefined-constant">self</span>):
-        <span class="predefined-constant">self</span>.client.post(
-            <span class="string"><span class="delimiter">'</span><span class="content">/lists/new</span><span class="delimiter">'</span></span>,
-            data={<span class="string"><span class="delimiter">'</span><span class="content">item_text</span><span class="delimiter">'</span></span>: <span class="string"><span class="delimiter">'</span><span class="content">A new list item</span><span class="delimiter">'</span></span>}
-        )
+    <span class="keyword">def</span> <span class="function">test_can_save_a_POST_request</span>(<span class="predefined-constant">self</span>):
+        <span class="predefined-constant">self</span>.client.post(<span class="string"><span class="delimiter">'</span><span class="content">/lists/new</span><span class="delimiter">'</span></span>, data={<span class="string"><span class="delimiter">'</span><span class="content">item_text</span><span class="delimiter">'</span></span>: <span class="string"><span class="delimiter">'</span><span class="content">A new list item</span><span class="delimiter">'</span></span>})
         <span class="predefined-constant">self</span>.assertEqual(Item.objects.count(), <span class="integer">1</span>)
         new_item = Item.objects.first()
         <span class="predefined-constant">self</span>.assertEqual(new_item.text, <span class="string"><span class="delimiter">'</span><span class="content">A new list item</span><span class="delimiter">'</span></span>)
 
 
     <span class="keyword">def</span> <span class="function">test_redirects_after_POST</span>(<span class="predefined-constant">self</span>):
-        response = <span class="predefined-constant">self</span>.client.post(
-            <span class="string"><span class="delimiter">'</span><span class="content">/lists/new</span><span class="delimiter">'</span></span>,
-            data={<span class="string"><span class="delimiter">'</span><span class="content">item_text</span><span class="delimiter">'</span></span>: <span class="string"><span class="delimiter">'</span><span class="content">A new list item</span><span class="delimiter">'</span></span>}
-        )
+        response = <span class="predefined-constant">self</span>.client.post(<span class="string"><span class="delimiter">'</span><span class="content">/lists/new</span><span class="delimiter">'</span></span>, data={<span class="string"><span class="delimiter">'</span><span class="content">item_text</span><span class="delimiter">'</span></span>: <span class="string"><span class="delimiter">'</span><span class="content">A new list item</span><span class="delimiter">'</span></span>})
         <span class="predefined-constant">self</span>.assertEqual(response.status_code, <span class="integer">302</span>)
         <span class="predefined-constant">self</span>.assertEqual(response[<span class="string"><span class="delimiter">'</span><span class="content">location</span><span class="delimiter">'</span></span>], <span class="string"><span class="delimiter">'</span><span class="content">/lists/the-only-list-in-the-world/</span><span class="delimiter">'</span></span>)</code></pre>
 </div>
 </div>
+<div class="admonitionblock tip">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-tip" title="Tip"></i>
+</td>
+<td class="content">
+This is another place to pay attention to trailing slashes, incidentally.
+    It&#8217;s <code>/new</code>, with no trailing slash.  The convention I&#8217;m using is that URLs
+    without a trailing slash are "action" URLs which modify the database.
+</td>
+</tr>
+</table>
+</div>
 <div class="paragraph">
-<p>This is another place to pay attention to trailing slashes, incidentally. It&#8217;s
-<code>/new</code>, with no trailing slash.  The convention I&#8217;m using is that URLs without
-a trailing slash are "action" URLs which modify the database.</p>
+<p>While we&#8217;re at it, let&#8217;s learn a new Django Test Client method, <code>assertRedirects</code>:</p>
+</div>
+<div class="listingblock sourcecode small-code">
+<div class="title">lists/tests.py (ch06l021-2)</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python">    <span class="keyword">def</span> <span class="function">test_redirects_after_POST</span>(<span class="predefined-constant">self</span>):
+        response = <span class="predefined-constant">self</span>.client.post(<span class="string"><span class="delimiter">'</span><span class="content">/lists/new</span><span class="delimiter">'</span></span>, data={<span class="string"><span class="delimiter">'</span><span class="content">item_text</span><span class="delimiter">'</span></span>: <span class="string"><span class="delimiter">'</span><span class="content">A new list item</span><span class="delimiter">'</span></span>})
+        <span class="predefined-constant">self</span>.assertRedirects(response, <span class="string"><span class="delimiter">'</span><span class="content">/lists/the-only-list-in-the-world/</span><span class="delimiter">'</span></span>)</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>There&#8217;s not much to it, but it just nicely replaces two asserts with a single
+one&#8230;&#8203;</p>
 </div>
 <div class="paragraph">
 <p>Try running that:</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>    self.assertEqual(response.status_code, 302)
-AssertionError: 404 != 302
+<pre>    self.assertEqual(Item.objects.count(), 1)
+AssertionError: 0 != 1
 [...]
-    self.assertEqual(Item.objects.count(), 1)
-AssertionError: 0 != 1</pre>
+    self.assertRedirects(response, '/lists/the-only-list-in-the-world/')
+[...]
+AssertionError: 404 != 302 : Response didn't redirect as expected: Response
+code was 404 (expected 302)</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>The last failure tells us we&#8217;re not saving a new item to the database, and the
-first says that, instead of returning a 302 redirect, our view is returning a
-404. That&#8217;s because we haven&#8217;t built a URL for <em>/lists/new</em>, so the
-<code>client.post</code> is just getting a 404 response.</p>
+<p>The first failure tells us we&#8217;re not saving a new item to the database, and the
+second says that, instead of returning a 302 redirect, our view is returning
+a 404. That&#8217;s because we haven&#8217;t built a URL for <em>/lists/new</em>, so the
+<code>client.post</code> is just getting a "not found" response.</p>
 </div>
 <div class="admonitionblock note">
 <table>
@@ -2237,12 +2216,12 @@ Let&#8217;s build our new URL now:</p>
     url(<span class="string"><span class="modifier">r</span><span class="delimiter">'</span><span class="content">^$</span><span class="delimiter">'</span></span>, views.home_page, name=<span class="string"><span class="delimiter">'</span><span class="content">home</span><span class="delimiter">'</span></span>),
     url(<span class="string"><span class="modifier">r</span><span class="delimiter">'</span><span class="content">^lists/new$</span><span class="delimiter">'</span></span>, views.new_list, name=<span class="string"><span class="delimiter">'</span><span class="content">new_list</span><span class="delimiter">'</span></span>),
     url(<span class="string"><span class="modifier">r</span><span class="delimiter">'</span><span class="content">^lists/the-only-list-in-the-world/$</span><span class="delimiter">'</span></span>, views.view_list, name=<span class="string"><span class="delimiter">'</span><span class="content">view_list</span><span class="delimiter">'</span></span>),
-    <span class="comment"># url(r'^admin/', include(admin.site.urls)),</span>
 ]</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>Next we get a <code>no attribute 'new_list'</code>, so let&#8217;s fix that, in <em>lists/views.py</em>:</p>
+<p>Next we get a <code>no attribute 'new_list'</code>, so let&#8217;s fix that, in
+<em>lists/views.py</em>:</p>
 </div>
 <div class="listingblock sourcecode">
 <div class="title">lists/views.py</div>
@@ -2270,15 +2249,11 @@ from <code>home_page</code>:</p>
 <div class="listingblock">
 <div class="content">
 <pre>    self.assertEqual(Item.objects.count(), 1)
-AssertionError: 0 != 1
-[...]
-AssertionError: 'http://testserver/lists/the-only-list-in-the-world/' !=
-'/lists/the-only-list-in-the-world/'</pre>
+AssertionError: 0 != 1</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>Let&#8217;s start with the first failure, because it&#8217;s reasonably straightforward. We
-borrow another line from <code>home_page</code>:</p>
+<p>Seems reasonably straightforward. We borrow another line from <code>home_page</code>:</p>
 </div>
 <div class="listingblock sourcecode">
 <div class="title">lists/views.py</div>
@@ -2289,41 +2264,25 @@ borrow another line from <code>home_page</code>:</p>
 </div>
 </div>
 <div class="paragraph">
-<p>And that takes us down to just the second, unexpected failure:</p>
+<p>And everything now passes:</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>    self.assertEqual(response['location'],
-'/lists/the-only-list-in-the-world/')
-AssertionError: 'http://testserver/lists/the-only-list-in-the-world/' !=
-'/lists/the-only-list-in-the-world/'</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>It&#8217;s happening because the Django test client behaves slightly differently to
-our pure view function; it&#8217;s using the full Django stack which adds the domain
-to our relative URL.  Let&#8217;s use another of Django&#8217;s test helper functions,
-instead of our two-step check for the redirect:</p>
-</div>
-<div class="listingblock sourcecode">
-<div class="title">lists/tests.py</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="python">    <span class="keyword">def</span> <span class="function">test_redirects_after_POST</span>(<span class="predefined-constant">self</span>):
-        response = <span class="predefined-constant">self</span>.client.post(
-            <span class="string"><span class="delimiter">'</span><span class="content">/lists/new</span><span class="delimiter">'</span></span>,
-            data={<span class="string"><span class="delimiter">'</span><span class="content">item_text</span><span class="delimiter">'</span></span>: <span class="string"><span class="delimiter">'</span><span class="content">A new list item</span><span class="delimiter">'</span></span>}
-        )
-        <span class="predefined-constant">self</span>.assertRedirects(response, <span class="string"><span class="delimiter">'</span><span class="content">/lists/the-only-list-in-the-world/</span><span class="delimiter">'</span></span>)</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>That now passes:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>Ran 8 tests in 0.030s
+<pre>Ran 7 tests in 0.030s
 
 OK</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>And the FTs show me that I&#8217;m back to the working state:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>[...]
+AssertionError: '1: Buy milk' not found in ['1: Buy peacock feathers', '2: Buy
+milk']
+Ran 2 tests in 8.972s
+FAILED (failures=1)</pre>
 </div>
 </div>
 </div>
@@ -2352,27 +2311,59 @@ remove the whole <code>if request.method == 'POST'</code> section, for example?<
 </div>
 <div class="paragraph">
 <p>And while we&#8217;re at it, we can remove the now-redundant
-<code>test_home_page_only_saves_</code> <code>items_when_necessary</code> test too!</p>
+<code>test_only_saves_items_when_necessary</code> test too!</p>
 </div>
 <div class="paragraph">
 <p>Doesn&#8217;t that feel good?  The view functions are looking much simpler. We rerun
 the tests to make sure&#8230;&#8203;</p>
 </div>
-<div class="listingblock dofirst-ch06l026">
+<div class="listingblock dofirst-ch06l025">
 <div class="content">
-<pre>Ran 7 tests in 0.016s
+<pre>Ran 6 tests in 0.016s
 OK</pre>
 </div>
 </div>
+<div class="paragraph">
+<p>and the FTs?</p>
+</div>
 </div>
 <div class="sect3">
-<h4 id="_pointing_our_forms_at_the_new_url">Pointing Our Forms at the New URL</h4>
+<h4 id="_a_regression_pointing_our_forms_at_the_new_url">A regression! Pointing Our Forms at the New URL</h4>
+<div class="paragraph">
+<p>Oops:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>ERROR: test_can_start_a_list_for_one_user
+[...]
+  File "/workspace/superlists/functional_tests/tests.py", line 45, in
+test_can_start_a_list_for_one_user
+    self.check_for_row_in_list_table('1: Buy peacock feathers')
+  File "/workspace/superlists/functional_tests/tests.py", line 16, in
+check_for_row_in_list_table
+    table = self.browser.find_element_by_id('id_list_table')
+selenium.common.exceptions.NoSuchElementException: Message: Unable to locate
+element: {"method":"id","selector":"id_list_table"}
+
+ERROR: test_multiple_users_can_start_lists_at_different_urls
+[...]
+  File "/workspace/superlists/functional_tests/tests.py", line 67, in
+test_multiple_users_can_start_lists_at_different_urls
+    self.check_for_row_in_list_table('1: Buy peacock feathers')
+selenium.common.exceptions.NoSuchElementException: Message: Unable to locate
+element: {"method":"id","selector":"id_list_table"}
+[...]
+
+Ran 2 tests in 11.592s
+FAILED (errors=2)</pre>
+</div>
+</div>
 <div class="paragraph">
 <p>
 
 
-At this point the FTs will fail because we still need to wire up our
-two forms to use this new URL.  In <em>both</em> <em>home.html</em> and <em>lists.html</em>:</p>
+It&#8217;s because our forms are still pointing to the old URL. In <em>both</em> <em>home.html</em>
+and <em>lists.html</em>, let&#8217;s change them to:</p>
 </div>
 <div class="listingblock sourcecode">
 <div class="title">lists/templates/home.html, lists/templates/list.html</div>
@@ -2381,21 +2372,21 @@ two forms to use this new URL.  In <em>both</em> <em>home.html</em> and <em>list
 </div>
 </div>
 <div class="paragraph">
-<p>And we rerun our FTs to make sure everything still works, or works at least as
-well as it did earlier&#8230;&#8203;</p>
+<p>And that should get us back to working again:</p>
 </div>
 <div class="listingblock">
 <div class="content">
 <pre>AssertionError: '1: Buy milk' not found in ['1: Buy peacock feathers', '2: Buy
-milk']</pre>
+milk']
+[...]
+FAILED (failures=1)</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>Yup, our regression FT still passes, and our new FT gets to the same point it
-did before. That&#8217;s a nicely self-contained commit, in that we&#8217;ve made a bunch
+<p>That&#8217;s another nicely self-contained commit, in that we&#8217;ve made a bunch
 of changes to our URLs, our <em>views.py</em> is looking much neater and tidier, and
 we&#8217;re sure the application is still working as well as it did before.  We&#8217;re
-getting good at this refactoring malarkey!</p>
+getting good at this working-state-to-working-state malarkey!</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -2433,7 +2424,7 @@ $ <strong>git commit -a</strong></pre>
 </div>
 </div>
 <div class="sect2">
-<h3 id="_adjusting_our_models">Adjusting Our Models</h3>
+<h3 id="_biting_the_bullet_adjusting_our_models">Biting the bullet: Adjusting Our Models</h3>
 <div class="paragraph">
 <p>
 Enough housekeeping with our URLs. It&#8217;s time to bite the bullet and
@@ -2443,16 +2434,14 @@ present the changes in the form of a diff:</p>
 <div class="listingblock sourcecode">
 <div class="title">lists/tests.py</div>
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="diff"><span class="change"><span class="change">@@</span> -3,7 +3,7 <span class="change">@@</span></span> from django.http import HttpRequest
- from django.template.loader import render_to_string
+<pre class="CodeRay highlight"><code data-lang="diff"><span class="line change"><span class="change">@@</span> -1,5 +1,5 <span class="change">@@</span></span>
  from django.test import TestCase
-
 <span class="line delete"><span class="delete">-</span>from lists.models import Item</span>
 <span class="line insert"><span class="insert">+</span>from lists.models import Item<span class="eyecatcher">, List</span></span>
- from lists.views import home_page
+
 
  class HomePageTest(TestCase):
-<span class="change"><span class="change">@@</span> -60,22 +60,32 <span class="change">@@</span></span> class ListViewTest(TestCase):
+<span class="change"><span class="change">@@</span> -44,22 +44,32 <span class="change">@@</span></span> class ListViewTest(TestCase):
 
 
 
@@ -2492,7 +2481,7 @@ present the changes in the form of a diff:</p>
 by assigning it as its <code>.list</code> property.  We check the list is properly
 saved, and we check that the two items have also saved their relationship
 to the list.  You&#8217;ll also notice that we can compare list objects with each
-other directly (<code>saved_list</code> and <code>list</code>)&#8212;behind the scenes, these
+other directly (<code>saved_list</code> and <code>list_</code>)&#8212;behind the scenes, these
 will compare themselves by checking their primary key (the <code>.id</code> attribute)
 is the same.</p>
 </div>
@@ -2504,8 +2493,8 @@ is the same.</p>
 </td>
 <td class="content">
 I&#8217;m using the variable name <code>list_</code> to avoid "shadowing" the Python
-built-in <code>list</code> function.  It&#8217;s ugly, but all the other options I tried were
-equally ugly or worse (<code>my_list</code>, <code>the_list</code>, <code>list1</code>, <code>listey</code>&#8230;&#8203;).
+    built-in <code>list</code> function.  It&#8217;s ugly, but all the other options I tried
+    were equally ugly or worse (<code>my_list</code>, <code>the_list</code>, <code>list1</code>, <code>listey</code>&#8230;&#8203;).
 </td>
 </tr>
 </table>
@@ -2543,7 +2532,7 @@ Need a hint?  Go back and take a look at the steps we took to introduce
 <div class="paragraph">
 <p>Fix that, then you should see:</p>
 </div>
-<div class="listingblock dofirst-ch06l029-1">
+<div class="listingblock dofirst-ch06l028-1">
 <div class="content">
 <pre>AttributeError: 'List' object has no attribute 'save'</pre>
 </div>
@@ -2551,7 +2540,7 @@ Need a hint?  Go back and take a look at the steps we took to introduce
 <div class="paragraph">
 <p>Next you should see:</p>
 </div>
-<div class="listingblock dofirst-ch06l029-2">
+<div class="listingblock dofirst-ch06l028-2">
 <div class="content">
 <pre>django.db.utils.OperationalError: no such table: lists_list</pre>
 </div>
@@ -2563,7 +2552,7 @@ Need a hint?  Go back and take a look at the steps we took to introduce
 <div class="content">
 <pre>$ <strong>python manage.py makemigrations</strong>
 Migrations for 'lists':
-  0003_list.py:
+  lists/migrations/0003_list.py:
     - Create model List</pre>
 </div>
 </div>
@@ -2609,7 +2598,7 @@ django.db.utils.OperationalError: no such column: lists_item.list
 
 $ <strong>python manage.py makemigrations</strong>
 Migrations for 'lists':
-  0004_item_list.py:
+  lists/migrations/0004_item_list.py:
     - Add field list to item</pre>
 </div>
 </div>
@@ -2651,7 +2640,7 @@ delete it and replace it with a new one:</p>
 <pre>$ <strong>rm lists/migrations/0004_item_list.py</strong>
 $ <strong>python manage.py makemigrations</strong>
 Migrations for 'lists':
-  0004_item_list.py:
+  lists/migrations/0004_item_list.py:
     - Add field list to item</pre>
 </div>
 </div>
@@ -2688,10 +2677,10 @@ django.db.utils.IntegrityError: NOT NULL constraint failed: lists_item.list_id
 ERROR: test_redirects_after_POST (lists.tests.NewListTest)
 django.db.utils.IntegrityError: NOT NULL constraint failed: lists_item.list_id
 [...]
-ERROR: test_saving_a_POST_request (lists.tests.NewListTest)
+ERROR: test_can_save_a_POST_request (lists.tests.NewListTest)
 django.db.utils.IntegrityError: NOT NULL constraint failed: lists_item.list_id
 
-Ran 7 tests in 0.021s
+Ran 6 tests in 0.021s
 
 FAILED (errors=3)</pre>
 </div>
@@ -2706,10 +2695,10 @@ passing.  But three of our view tests are failing nastily.</p>
 <div class="paragraph">
 <p>The reason is because of the new relationship we&#8217;ve introduced between
 Items and Lists, which requires each item to have a parent list, which
-our old tests weren&#8217;t prepared for.</p>
+our old tests and code aren&#8217;t prepared for.</p>
 </div>
 <div class="paragraph">
-<p>Still, this is exactly why we have tests. Let&#8217;s get them working again.  The
+<p>Still, this is exactly why we have tests! Let&#8217;s get them working again.  The
 easiest is the <code>ListViewTest</code>; we just create a parent list for our two test
 items:</p>
 </div>
@@ -2727,8 +2716,8 @@ items:</p>
 <div class="paragraph">
 <p>That gets us down to two failing tests, both on tests that try to POST to our
 <code>new_list</code> view. Decoding the tracebacks using our usual technique, working back
-from error, to line of test code, to the line of our own code that caused the
-failure, we identify:</p>
+from error, to line of test code, to, buried in there somewhere, the line of
+our own code that caused the failure:</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -2756,7 +2745,9 @@ change in the view:</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>OK</pre>
+<pre>Ran 6 tests in 0.030s
+
+OK</pre>
 </div>
 </div>
 <div class="paragraph">
@@ -2778,10 +2769,7 @@ you&#8217;ve put it hasn&#8217;t caused you to fall off a cliff.</p>
 <div class="content">
 <pre>AssertionError: '1: Buy milk' not found in ['1: Buy peacock feathers', '2: Buy
 milk']
-[...]
-
-Ran 2 tests in 9.649s
-FAILED (failures=1)</pre>
+[...]</pre>
 </div>
 </div>
 <div class="paragraph">
@@ -2911,7 +2899,6 @@ It&#8217;s time to learn how we can pass parameters from URLs to views:</p>
     url(<span class="string"><span class="modifier">r</span><span class="delimiter">'</span><span class="content">^$</span><span class="delimiter">'</span></span>, views.home_page, name=<span class="string"><span class="delimiter">'</span><span class="content">home</span><span class="delimiter">'</span></span>),
     url(<span class="string"><span class="modifier">r</span><span class="delimiter">'</span><span class="content">^lists/new$</span><span class="delimiter">'</span></span>, views.new_list, name=<span class="string"><span class="delimiter">'</span><span class="content">new_list</span><span class="delimiter">'</span></span>),
     url(<span class="string"><span class="modifier">r</span><span class="delimiter">'</span><span class="content">^lists/(.+)/$</span><span class="delimiter">'</span></span>, views.view_list, name=<span class="string"><span class="delimiter">'</span><span class="content">view_list</span><span class="delimiter">'</span></span>),
-    <span class="comment"># url(r'^admin/', include(admin.site.urls)),</span>
 ]</code></pre>
 </div>
 </div>
@@ -2931,10 +2918,17 @@ If we go to <em>/lists/foo/</em>, we get <code>view_list(request, "foo")</code>.
 <div class="listingblock">
 <div class="content">
 <pre>ERROR: test_displays_only_items_for_that_list (lists.tests.ListViewTest)
+[...]
+TypeError: view_list() takes 1 positional argument but 2 were given
+[...]
 ERROR: test_uses_list_template (lists.tests.ListViewTest)
+[...]
+TypeError: view_list() takes 1 positional argument but 2 were given
+[...]
 ERROR: test_redirects_after_POST (lists.tests.NewListTest)
 [...]
-TypeError: view_list() takes 1 positional argument but 2 were given</pre>
+TypeError: view_list() takes 1 positional argument but 2 were given
+FAILED (errors=3)</pre>
 </div>
 </div>
 <div class="paragraph">
@@ -2953,6 +2947,7 @@ TypeError: view_list() takes 1 positional argument but 2 were given</pre>
 <div class="listingblock">
 <div class="content">
 <pre>FAIL: test_displays_only_items_for_that_list (lists.tests.ListViewTest)
+[...]
 AssertionError: 1 != 0 : Response should not contain 'other list item 1'</pre>
 </div>
 </div>
@@ -2973,7 +2968,7 @@ template:</p>
 <div class="sect3">
 <h4 id="_adjusting_new_list_to_the_new_world">Adjusting new_list to the New World</h4>
 <div class="paragraph">
-<p>Now we get errors in another test:</p>
+<p>Oops, now we get errors in another test:</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -2983,7 +2978,7 @@ ValueError: invalid literal for int() with base 10:
 </div>
 </div>
 <div class="paragraph">
-<p>Let&#8217;s take a look at this test then, since it&#8217;s whining:</p>
+<p>Let&#8217;s take a look at this test then, since it&#8217;s moaning:</p>
 </div>
 <div class="listingblock sourcecode currentcontents">
 <div class="title">lists/tests.py</div>
@@ -2992,26 +2987,20 @@ ValueError: invalid literal for int() with base 10:
     [...]
 
     <span class="keyword">def</span> <span class="function">test_redirects_after_POST</span>(<span class="predefined-constant">self</span>):
-        response = <span class="predefined-constant">self</span>.client.post(
-            <span class="string"><span class="delimiter">'</span><span class="content">/lists/new</span><span class="delimiter">'</span></span>,
-            data={<span class="string"><span class="delimiter">'</span><span class="content">item_text</span><span class="delimiter">'</span></span>: <span class="string"><span class="delimiter">'</span><span class="content">A new list item</span><span class="delimiter">'</span></span>}
-        )
+        response = <span class="predefined-constant">self</span>.client.post(<span class="string"><span class="delimiter">'</span><span class="content">/lists/new</span><span class="delimiter">'</span></span>, data={<span class="string"><span class="delimiter">'</span><span class="content">item_text</span><span class="delimiter">'</span></span>: <span class="string"><span class="delimiter">'</span><span class="content">A new list item</span><span class="delimiter">'</span></span>})
         <span class="predefined-constant">self</span>.assertRedirects(response, <span class="string"><span class="delimiter">'</span><span class="content">/lists/the-only-list-in-the-world/</span><span class="delimiter">'</span></span>)</code></pre>
 </div>
 </div>
 <div class="paragraph">
 <p>It looks like it hasn&#8217;t been adjusted to the new world of Lists and Items.
-The test should be saying that this view redirects to the URL of the new list
-it just created:</p>
+The test should be saying that this view redirects to the URL of the specific
+new list it just created:</p>
 </div>
 <div class="listingblock sourcecode">
 <div class="title">lists/tests.py (ch06l036-1)</div>
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="python">    <span class="keyword">def</span> <span class="function">test_redirects_after_POST</span>(<span class="predefined-constant">self</span>):
-        response = <span class="predefined-constant">self</span>.client.post(
-            <span class="string"><span class="delimiter">'</span><span class="content">/lists/new</span><span class="delimiter">'</span></span>,
-            data={<span class="string"><span class="delimiter">'</span><span class="content">item_text</span><span class="delimiter">'</span></span>: <span class="string"><span class="delimiter">'</span><span class="content">A new list item</span><span class="delimiter">'</span></span>}
-        )
+        response = <span class="predefined-constant">self</span>.client.post(<span class="string"><span class="delimiter">'</span><span class="content">/lists/new</span><span class="delimiter">'</span></span>, data={<span class="string"><span class="delimiter">'</span><span class="content">item_text</span><span class="delimiter">'</span></span>: <span class="string"><span class="delimiter">'</span><span class="content">A new list item</span><span class="delimiter">'</span></span>})
         new_list = List.objects.first()
         <span class="predefined-constant">self</span>.assertRedirects(response, <span class="string"><span class="delimiter">'</span><span class="content">/lists/%d/</span><span class="delimiter">'</span></span> % (new_list.id,))</code></pre>
 </div>
@@ -3030,13 +3019,29 @@ itself, and change it so it redirects to a valid place:</p>
 </div>
 </div>
 <div class="paragraph">
-<p>That gets us back to passing unit tests.  What about the functional
-tests?  We must be almost there?</p>
+<p>That gets us back to passing unit tests.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>Creating test database for alias 'default'...
+......
+ ---------------------------------------------------------------------
+Ran 6 tests in 0.033s
+
+OK
+Destroying test database for alias 'default'...</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>What about the functional tests?  We must be almost there?</p>
 </div>
 </div>
 </div>
 <div class="sect2">
-<h3 id="_the_functional_tests_detect_a_regression">The functional tests detect a regression</h3>
+<h3 id="_the_functional_tests_detect_another_regression">The functional tests detect another regression</h3>
+<div class="paragraph">
+<p>Well, almost:</p>
+</div>
 <div class="listingblock">
 <div class="content">
 <pre>Creating test database for alias 'default'...
@@ -3056,17 +3061,18 @@ AssertionError: '2: Use peacock feathers to make a fly' not found in ['1: Use
 peacock feathers to make a fly']
 
  ---------------------------------------------------------------------
-Ran 2 tests in 9.661s
+Ran 2 tests in 8.617s
 
 FAILED (failures=1)
 Destroying test database for alias 'default'...</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>The functional tests have warned us of a regression in our application: because
-of our quick-and dirty hack where create a new list for every single POST
-submission, we have broken the ability to add multiple items to a list.  This
-is exactly what we have functional tests for!</p>
+<p>Our new test is actually passing, and different users can get different lists,
+but the old test is warning us of a regression.  It looks like you can&#8217;t
+add a second item to a list any more.  It&#8217;s because of our quick-and dirty hack
+where create a new list for every single POST submission. This is exactly what
+we have functional tests for!</p>
 </div>
 <div class="paragraph">
 <p>And it correlates nicely with the last item on our to-do list:</p>
@@ -3136,6 +3142,25 @@ let&#8217;s knock one together quickly:</p>
         <span class="predefined-constant">self</span>.assertRedirects(response, <span class="string"><span class="delimiter">'</span><span class="content">/lists/%d/</span><span class="delimiter">'</span></span> % (correct_list.id,))</code></pre>
 </div>
 </div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+Are you wondering about <code>other_list</code>?  A bit like in the tests for
+    viewing a specific list, it&#8217;s important that we add items to a specific
+    list.  Adding this second object to the database prevents me from using
+    a hack like List.objects.first() in the implementation.  That would be
+    a stupid thing to do, and you can&#8217;t go too far down the road of testing
+    for all the stupid things you must not do (there are an infinite number
+    of those after all). It&#8217;s a judgement call, but this one feels worth it.
+    There&#8217;s some more discussion of this in <a href="#Chapter%0A%20%20%20%2012">testing-for-stupidity</a>
+</td>
+</tr>
+</table>
+</div>
 <div class="paragraph">
 <p>We get:</p>
 </div>
@@ -3156,12 +3181,13 @@ That&#8217;s a little strange. We haven&#8217;t actually specified a URL for
 getting a 301?</p>
 </div>
 <div class="paragraph">
-<p>This was a bit of a puzzler; it&#8217;s because we&#8217;ve used a very "greedy"
+<p>This was a bit of a puzzler! It&#8217;s because we&#8217;ve used a very "greedy"
 regular expression in our URL:</p>
 </div>
-<div class="listingblock skipme">
+<div class="listingblock sourcecode currentcontents">
+<div class="title">superlists/urls.py</div>
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python">    url(<span class="string"><span class="modifier">r</span><span class="delimiter">'</span><span class="content">^lists/(.+)/$</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">lists.views.view_list</span><span class="delimiter">'</span></span>, name=<span class="string"><span class="delimiter">'</span><span class="content">view_list</span><span class="delimiter">'</span></span>),</code></pre>
+<pre class="CodeRay highlight"><code data-lang="python">    url(<span class="string"><span class="modifier">r</span><span class="delimiter">'</span><span class="content">^lists/(.+)/$</span><span class="delimiter">'</span></span>, views.view_list, name=<span class="string"><span class="delimiter">'</span><span class="content">view_list</span><span class="delimiter">'</span></span>),</code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -3182,7 +3208,7 @@ digits, by using the regular expression <code>\d</code>:</p>
 </div>
 </div>
 <div class="paragraph">
-<p>That gives:</p>
+<p>That gives us the failure we expected:</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -3209,7 +3235,6 @@ existing lists:</p>
     url(<span class="string"><span class="modifier">r</span><span class="delimiter">'</span><span class="content">^lists/new$</span><span class="delimiter">'</span></span>, views.new_list, name=<span class="string"><span class="delimiter">'</span><span class="content">new_list</span><span class="delimiter">'</span></span>),
     url(<span class="string"><span class="modifier">r</span><span class="delimiter">'</span><span class="content">^lists/(</span><span class="content">\d</span><span class="content">+)/$</span><span class="delimiter">'</span></span>, views.view_list, name=<span class="string"><span class="delimiter">'</span><span class="content">view_list</span><span class="delimiter">'</span></span>),
     url(<span class="string"><span class="modifier">r</span><span class="delimiter">'</span><span class="content">^lists/(</span><span class="content">\d</span><span class="content">+)/add_item$</span><span class="delimiter">'</span></span>, views.add_item, name=<span class="string"><span class="delimiter">'</span><span class="content">add_item</span><span class="delimiter">'</span></span>),
-    <span class="comment"># url(r'^admin/', include(admin.site.urls)),</span>
 ]</code></pre>
 </div>
 </div>
@@ -3328,14 +3353,14 @@ AssertionError: 0 != 1</pre>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>Ran 9 tests in 0.050s
+<pre>Ran 8 tests in 0.050s
 
 OK</pre>
 </div>
 </div>
 </div>
 <div class="sect3">
-<h4 id="_but_how_to_use_that_url_in_the_form">But How to Use That URL in the Form?</h4>
+<h4 id="_testing_the_response_context_objects_directly">Testing the response context objects directly</h4>
 <div class="paragraph">
 <p>
 
@@ -3370,13 +3395,21 @@ Let&#8217;s create a new unit test in <code>ListViewTest</code>:</p>
         other_list = List.objects.create()
         correct_list = List.objects.create()
         response = <span class="predefined-constant">self</span>.client.get(<span class="string"><span class="delimiter">'</span><span class="content">/lists/%d/</span><span class="delimiter">'</span></span> % (correct_list.id,))
-        <span class="predefined-constant">self</span>.assertEqual(response.context[<span class="string"><span class="delimiter">'</span><span class="content">list</span><span class="delimiter">'</span></span>], correct_list)</code></pre>
+        <span class="predefined-constant">self</span>.assertEqual(response.context[<span class="string"><span class="delimiter">'</span><span class="content">list</span><span class="delimiter">'</span></span>], correct_list)  <i class="conum" data-value="1"></i><b>(1)</b></code></pre>
 </div>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td><code>response.context</code> represents the context we&#8217;re going to pass into
+the render function&#8212;&#8203;the Django test client puts it on the <code>response</code>
+object for us, to help with testing.</td>
+</tr>
+</table>
 </div>
 <div class="paragraph">
-<p><code>response.context</code> represents the context we&#8217;re going to pass into
-the render function&#8212;&#8203;the Django test client puts it on the <code>response</code>
-object for us, to help with testing. That gives us:</p>
+<p>That gives us:</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -3396,11 +3429,14 @@ opportunity to simplify a little:</p>
 </div>
 </div>
 <div class="paragraph">
-<p>That, of course, will break because the template is expecting <code>items</code>:</p>
+<p>That, of course, will break one of our old tests, because the template
+needed <code>items</code>:</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>AssertionError: False is not true : Couldn't find 'itemey 1' in response</pre>
+<pre>FAIL: test_displays_only_items_for_that_list (lists.tests.ListViewTest)
+[...]
+AssertionError: False is not true : Couldn't find 'itemey 1' in response</pre>
 </div>
 </div>
 <div class="paragraph">
@@ -3409,11 +3445,11 @@ opportunity to simplify a little:</p>
 <div class="listingblock sourcecode">
 <div class="title">lists/templates/list.html (ch06l043)</div>
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="html">    <span class="tag">&lt;form</span> <span class="attribute-name">method</span>=<span class="string"><span class="delimiter">"</span><span class="content">POST</span><span class="delimiter">"</span></span> <span class="attribute-name">action</span>=<span class="string"><span class="delimiter">"</span><span class="content">/lists/{{ list.id }}/add_item</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>
+<pre class="CodeRay highlight"><code data-lang="html">    <span class="tag">&lt;form</span> <span class="attribute-name">method</span>=<span class="string"><span class="delimiter">"</span><span class="content">POST</span><span class="delimiter">"</span></span> <span class="attribute-name">action</span>=<span class="string"><span class="delimiter">"</span><span class="content">/lists/{{ list.id }}/add_item</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>  <i class="conum" data-value="1"></i><b>(1)</b>
 
     [...]
 
-        {% for item in list.item_set.all %}  <i class="conum" data-value="1"></i><b>(1)</b>
+        {% for item in list.item_set.all %}  <i class="conum" data-value="2"></i><b>(2)</b>
             <span class="tag">&lt;tr&gt;</span><span class="tag">&lt;td&gt;</span>{{ forloop.counter }}: {{ item.text }}<span class="tag">&lt;/td&gt;</span><span class="tag">&lt;/tr&gt;</span>
         {% endfor %}</code></pre>
 </div>
@@ -3422,9 +3458,14 @@ opportunity to simplify a little:</p>
 <table>
 <tr>
 <td><i class="conum" data-value="1"></i><b>1</b></td>
-<td><code>.item_set</code> is called a "reverse lookup"&#8212;it&#8217;s one of Django&#8217;s
-incredibly useful bits of ORM that lets you look up an object&#8217;s related
-items from a different table&#8230;&#8203;</td>
+<td>There&#8217;s our new form action.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td><code>.item_set</code> is called a
+<a href="https://docs.djangoproject.com/en/1.10/topics/db/queries/#following-relationships-backward">reverse lookup</a>.
+It&#8217;s one of Django&#8217;s incredibly useful bits of ORM that lets you look up an
+object&#8217;s related items from a different table&#8230;&#8203;</td>
 </tr>
 </table>
 </div>
@@ -3433,7 +3474,7 @@ items from a different table&#8230;&#8203;</td>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>Ran 10 tests in 0.060s
+<pre>Ran 9 tests in 0.040s
 
 OK</pre>
 </div>
@@ -3454,7 +3495,7 @@ Destroying test database for alias 'default'...</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>Yes!  And a quick check on our to-do list:</p>
+<p>HOORAY!  Oh, and a quick check on our to-do list:</p>
 </div>
 <div class="sidebarblock scratchpad">
 <div class="content">
@@ -3516,10 +3557,7 @@ simplest way to make one is to use a copy of the existing <em>urls.py</em>:</p>
 </div>
 </div>
 <div class="paragraph">
-<p>Then we replace three lines in <em>superlists/urls.py</em> with an <code>include</code>.  Notice
-that <code>include</code> can take a part of a URL regex as a prefix, which will be
-applied to all the included URLs (this is the bit where we reduce duplication,
-as well as giving our code a better structure):</p>
+<p>Then we replace three lines in <em>superlists/urls.py</em> with an <code>include</code>.</p>
 </div>
 <div class="listingblock sourcecode">
 <div class="title">superlists/urls.py</div>
@@ -3530,8 +3568,7 @@ as well as giving our code a better structure):</p>
 
 urlpatterns = [
     url(<span class="string"><span class="modifier">r</span><span class="delimiter">'</span><span class="content">^$</span><span class="delimiter">'</span></span>, list_views.home_page, name=<span class="string"><span class="delimiter">'</span><span class="content">home</span><span class="delimiter">'</span></span>),
-    url(<span class="string"><span class="modifier">r</span><span class="delimiter">'</span><span class="content">^lists/</span><span class="delimiter">'</span></span>, include(list_urls)),
-    <span class="comment"># url(r'^admin/', include(admin.site.urls)),</span>
+    url(<span class="string"><span class="modifier">r</span><span class="delimiter">'</span><span class="content">^lists/</span><span class="delimiter">'</span></span>, include(list_urls)),  <i class="conum" data-value="2"></i><b>(2)</b>
 ]</code></pre>
 </div>
 </div>
@@ -3539,11 +3576,17 @@ urlpatterns = [
 <table>
 <tr>
 <td><i class="conum" data-value="1"></i><b>1</b></td>
-<td>While we&#8217;re at it, we use the <code>import x as y</code> syntax
-to alias <code>views</code> and <code>urls</code>.  This is good practice
-in your top-level <em>urls.py</em>, because it will let us
-import views and urls from multiple apps if we need
-to&#8212;&#8203;and indeed we will need to later on in the book.</td>
+<td>While we&#8217;re at it, we use the <code>import x as y</code> syntax to alias <code>views</code> and
+<code>urls</code>.  This is good practice in your top-level <em>urls.py</em>, because it will
+let us import views and urls from multiple apps if we want&#8212;&#8203;and indeed we
+will need to later on in the book.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>Here&#8217;s the <code>include</code>. Notice that it can take a part of a URL regex as a
+prefix, which will be applied to all the included URLs (this is the bit
+where we reduce duplication, as well as giving our code a better
+structure):</td>
 </tr>
 </table>
 </div>
@@ -3565,14 +3608,17 @@ urlpatterns = [
 </div>
 </div>
 <div class="paragraph">
-<p>Rerun the unit tests to check everything worked.  When I did it, I
-couldn&#8217;t quite believe I did it correctly on the first go. It always pays to be
-skeptical of your own abilities, so I deliberately changed one of the URLs
-slightly, just to check if it broke a test. It did. We&#8217;re covered.</p>
+<p>Rerun the unit tests to check everything worked.</p>
+</div>
+<div class="paragraph">
+<p>When I did it, I couldn&#8217;t quite believe I did it correctly on the first go. It
+always pays to be skeptical of your own abilities, so I deliberately changed
+one of the URLs slightly, just to check if it broke a test. It did. We&#8217;re
+covered.</p>
 </div>
 <div class="paragraph">
 <p>Feel free to try it yourself!  Remember to change it back, check the tests
-all pass again, and then commit:</p>
+all pass again, and then a final commit:</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -3645,7 +3691,7 @@ methodology that helps us avoid this trap.</p>
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2016-11-27 00:15:38 GMT
+Last updated 2016-12-06 13:23:40 GMT
 </div>
 </div>
 <div class="comments" style="padding: 20px">
