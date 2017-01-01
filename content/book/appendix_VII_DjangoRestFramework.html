@@ -911,22 +911,30 @@ table.CodeRay td.code>pre{padding:0}
 <div class="sect1">
 <h2 id="appendix-rest-api-frontend">Appendix A: Django-Rest-Framework</h2>
 <div class="sectionbody">
+<div class="admonitionblock warning">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-warning" title="Warning"></i>
+</td>
+<td class="content">
+Chapter under construction.  Apologies, it&#8217;s in pretty telegraphic style for now.
+</td>
+</tr>
+</table>
+</div>
 <div class="paragraph">
 <p>
 
-WARNING: Chapter under construction.  Apologies, it&#8217;s in pretty telegraphic style for now.</p>
-</div>
-<div class="paragraph">
-<p>I can&#8217;t write a book involving Django and tell you to build a REST API without
+I can&#8217;t write a book involving Django and tell you to build a REST API without
 telling you to at least investigate
 <a href="http://www.django-rest-framework.org/">Django-Rest-Framework</a>.</p>
 </div>
 <div class="paragraph">
 <p>Writing this appendix, one of the main thing I struggled with was getting the
 exact same API that I&#8217;d just implemented manually to be replicated by DRF.
-Geting the exact same URL structure, the exact data structures I&#8217;d defined
-in JSON, proved to be quite a challenge, and I felt like I was fighting the
-framework.</p>
+Getting the same URL layout and the same JSON data structures I&#8217;d defined,
+proved to be quite a challenge, and I felt like I was fighting the framework.</p>
 </div>
 <div class="paragraph">
 <p>That&#8217;s always a warning sign.  The people who built Django-Rest-Framework
@@ -937,7 +945,7 @@ with their view of the world, rather than forcing my own preconceptions
 onto it.</p>
 </div>
 <div class="paragraph">
-<p>"Don&#8217;t fight the framework" is one of the best pieces of advice I&#8217;ve heard.
+<p>"Don&#8217;t fight the framework" is one of the great pieces of advice I&#8217;ve heard.
 Either go with the flow, or perhaps re-assess whether you want to be using
 a framework at all.</p>
 </div>
@@ -1029,7 +1037,7 @@ router.register(<span class="string"><span class="modifier">r</span><span class=
 </div>
 </div>
 <div class="paragraph">
-<p>SO that means we change the test slightly</p>
+<p>So that means we change the test slightly</p>
 </div>
 <div class="listingblock sourcecode">
 <div class="title">lists/tests/test_api.py</div>
@@ -1050,9 +1058,8 @@ router.register(<span class="string"><span class="modifier">r</span><span class=
 </div>
 </div>
 <div class="paragraph">
-<p>And so on.  Also need to add the list id to our
-serialization of items, otherwise we don&#8217;t know
-what list it&#8217;s for:</p>
+<p>And so on.  Also need to add the list id to our serialization of items,
+otherwise we don&#8217;t know what list it&#8217;s for:</p>
 </div>
 <div class="listingblock sourcecode">
 <div class="title">lists/api.py</div>
@@ -1134,7 +1141,112 @@ for retrieving list and posting new items</p>
 </div>
 </div>
 <div class="paragraph">
-<p>And a few more to do with error handling</p>
+<p>And a few more to do with error handling, which you can explore in the
+<a href="https://github.com/hjwp/book-example/blob/appendix_VII_DjangoRestFramework/lists/api.py">repo for this appendix</a> if
+you&#8217;re curious.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_what_django_rest_framework_gives_you">What Django-Rest-Framework gives you</h3>
+<div class="paragraph">
+<p>You may be wondering what the point of using this framework was.</p>
+</div>
+<div class="sect3">
+<h4 id="_configuration_instead_of_code">Configuration instead of code</h4>
+<div class="paragraph">
+<p>Well, the first advantage is that I&#8217;ve transformed my old procedural view
+function into a more declarative syntax</p>
+</div>
+<div class="listingblock sourcecode skipme">
+<div class="title">lists/api.py (old version)</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">def</span> <span class="function">list</span>(request, list_id):
+    list_ = List.objects.get(id=list_id)
+    <span class="keyword">if</span> request.method == <span class="string"><span class="delimiter">'</span><span class="content">POST</span><span class="delimiter">'</span></span>:
+        form = ExistingListItemForm(for_list=list_, data=request.POST)
+        <span class="keyword">if</span> form.is_valid():
+            form.save()
+            <span class="keyword">return</span> HttpResponse(status=<span class="integer">201</span>)
+        <span class="keyword">else</span>:
+            <span class="keyword">return</span> HttpResponse(
+                json.dumps({<span class="string"><span class="delimiter">'</span><span class="content">error</span><span class="delimiter">'</span></span>: form.errors[<span class="string"><span class="delimiter">'</span><span class="content">text</span><span class="delimiter">'</span></span>][<span class="integer">0</span>]}),
+                content_type=<span class="string"><span class="delimiter">'</span><span class="content">application/json</span><span class="delimiter">'</span></span>,
+                status=<span class="integer">400</span>
+            )
+    item_dicts = [
+        {<span class="string"><span class="delimiter">'</span><span class="content">id</span><span class="delimiter">'</span></span>: item.id, <span class="string"><span class="delimiter">'</span><span class="content">text</span><span class="delimiter">'</span></span>: item.text}
+        <span class="keyword">for</span> item <span class="keyword">in</span> list_.item_set.all()
+    ]
+    <span class="keyword">return</span> HttpResponse(
+        json.dumps(item_dicts),
+        content_type=<span class="string"><span class="delimiter">'</span><span class="content">application/json</span><span class="delimiter">'</span></span>
+    )</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>If you compare this to the final DRF version, you&#8217;ll notice that it is actually
+entirely configuration:</p>
+</div>
+<div class="listingblock sourcecode skipme">
+<div class="title">lists/api.py (new version)</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">class</span> <span class="class">ItemSerializer</span>(serializers.ModelSerializer):
+    text = serializers.CharField(
+        allow_blank=<span class="predefined-constant">False</span>, error_messages={<span class="string"><span class="delimiter">'</span><span class="content">blank</span><span class="delimiter">'</span></span>: EMPTY_ITEM_ERROR}
+    )
+
+    <span class="keyword">class</span> <span class="class">Meta</span>:
+        model = Item
+        fields = (<span class="string"><span class="delimiter">'</span><span class="content">id</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">list</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">text</span><span class="delimiter">'</span></span>)
+        validators = [
+            UniqueTogetherValidator(
+                queryset=Item.objects.all(),
+                fields=(<span class="string"><span class="delimiter">'</span><span class="content">list</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">text</span><span class="delimiter">'</span></span>),
+                message=DUPLICATE_ITEM_ERROR
+            )
+        ]
+
+
+<span class="keyword">class</span> <span class="class">ListSerializer</span>(serializers.ModelSerializer):
+    items = ItemSerializer(many=<span class="predefined-constant">True</span>, source=<span class="string"><span class="delimiter">'</span><span class="content">item_set</span><span class="delimiter">'</span></span>)
+
+    <span class="keyword">class</span> <span class="class">Meta</span>:
+        model = List
+        fields = (<span class="string"><span class="delimiter">'</span><span class="content">id</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">items</span><span class="delimiter">'</span></span>,)
+
+
+<span class="keyword">class</span> <span class="class">ListViewSet</span>(viewsets.ModelViewSet):
+    queryset = List.objects.all()
+    serializer_class = ListSerializer
+
+
+<span class="keyword">class</span> <span class="class">ItemViewSet</span>(viewsets.ModelViewSet):
+    serializer_class = ItemSerializer
+    queryset = Item.objects.all()
+
+
+router = routers.SimpleRouter()
+router.register(<span class="string"><span class="modifier">r</span><span class="delimiter">'</span><span class="content">lists</span><span class="delimiter">'</span></span>, ListViewSet)
+router.register(<span class="string"><span class="modifier">r</span><span class="delimiter">'</span><span class="content">items</span><span class="delimiter">'</span></span>, ItemViewSet)</code></pre>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_free_functionality">Free functionality</h4>
+<div class="paragraph">
+<p>The second advantage is that, by using DRF&#8217;s <code>ModelSerializer</code>, <code>ViewSet</code> and
+routers, I&#8217;ve actually ended up with a much more extensive API than the one I&#8217;d
+rolled by hand.</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>GET, POST, PUT, PATCH, OPTIONS for all list and items urls</p>
+</li>
+<li>
+<p>browsable / self-documenting version available</p>
+</li>
+</ul>
 </div>
 <div class="sidebarblock">
 <div class="content">
@@ -1154,9 +1266,10 @@ maybe don&#8217;t use the framework.  Or use it at a lower level.</p>
 </div>
 </div>
 </div>
+</div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2016-12-18 20:53:47 CET
+Last updated 2017-01-01 20:12:36 GMT
 </div>
 </div>
 <div class="comments" style="padding: 20px">
