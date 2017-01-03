@@ -911,14 +911,15 @@ table.CodeRay td.code>pre{padding:0}
 <div class="sect1">
 <h2 id="appendix-rest-api-frontend">Appendix A: Django-Rest-Framework</h2>
 <div class="sectionbody">
-<div class="admonitionblock warning">
+<div class="admonitionblock note">
 <table>
 <tr>
 <td class="icon">
-<i class="fa icon-warning" title="Warning"></i>
+<i class="fa icon-note" title="Note"></i>
 </td>
 <td class="content">
-Chapter under construction.  Apologies, it&#8217;s in pretty telegraphic style for now.
+This is a new chapter.  Feedback and suggestions are particularly
+    requested!
 </td>
 </tr>
 </table>
@@ -987,7 +988,15 @@ formats) that you can send over the wire.</p>
 <div class="sect2">
 <h3 id="_viewsets_well_modelviewsets_really_and_routers">Viewsets (well, ModelViewsets really) and routers</h3>
 <div class="paragraph">
-<p>Retrieving all items for a list</p>
+<p>A ModelViewSet is DRF&#8217;s way of defining all the different ways you can interact
+with the objects for a particular model via your API. By telling it which
+models you&#8217;re interested in (via the <code>queryset</code> attribute) and how to serialize
+them (<code>serializer_class</code>), it will then do the rest&#8201;&#8212;&#8201;automatically building
+views for you that will let you retrieve, update and even delete objects.</p>
+</div>
+<div class="paragraph">
+<p>Here&#8217;s all we need to do for a viewset that&#8217;ll be able to retrieve items for
+a particular list:</p>
 </div>
 <div class="listingblock sourcecode">
 <div class="title">lists/api.py</div>
@@ -1001,7 +1010,14 @@ router.register(<span class="string"><span class="modifier">r</span><span class=
 </div>
 </div>
 <div class="paragraph">
-<p>tweak existing test bc of extra "items" key:</p>
+<p>A <em>router</em> is DRF&#8217;s way of building URL configuration automatically, and
+mapping them to the functionality provided by the ViewSet.</p>
+</div>
+<div class="paragraph">
+<p>DRF&#8217;s default configuration does provide a slightly different data structure
+to the one we built by hand&#8201;&#8212;&#8201;doing a GET for a list gives you its ID, and
+then the list items are inside a key called "items".  That means a slight
+modification to our unit test, before it gets back to passing:</p>
 </div>
 <div class="listingblock sourcecode">
 <div class="title">lists/tests/test_api.py</div>
@@ -1015,13 +1031,20 @@ router.register(<span class="string"><span class="modifier">r</span><span class=
     )</code></pre>
 </div>
 </div>
+<div class="paragraph">
+<p>That' retrieving list items using GET sorted (and, as we&#8217;ll see later, we&#8217;ve got a
+bunch of other stuff for free too).  How about adding new ones, using POST?</p>
+</div>
 </div>
 <div class="sect2">
 <h3 id="_a_different_url_for_post_item">A different URL for POST item</h3>
 <div class="paragraph">
-<p>This is the point at which I gave up on fighting the framework
-and just saw where DRF wanted to take me. You post to an item view, not a list
-view:</p>
+<p>This is the point at which I gave up on fighting the framework and just saw
+where DRF wanted to take me.  Although it&#8217;s possible, it&#8217;s quite torturous to
+do a POST to the "lists" ViewSet in order to add an item to a list.</p>
+</div>
+<div class="paragraph">
+<p>Instead, the simplest thing is to post to an item view, not a list view:</p>
 </div>
 <div class="listingblock sourcecode">
 <div class="title">lists/api.py</div>
@@ -1077,12 +1100,10 @@ otherwise we don&#8217;t know what list it&#8217;s for:</p>
 </div>
 <div class="sect2">
 <h3 id="_adapting_the_client_side">Adapting the client side</h3>
-<div class="ulist">
-<ul>
-<li>
-<p><code>response.items</code></p>
-</li>
-</ul>
+<div class="paragraph">
+<p>Our API no longer returns a flat array of the items in a list.  It returns an
+object, with a <code>.items</code> attribute that represents the items.  That means a
+small tweak to our <code>updateItems</code> function:</p>
 </div>
 <div class="listingblock sourcecode">
 <div class="title">lists/static/list.js</div>
@@ -1102,13 +1123,10 @@ otherwise we don&#8217;t know what list it&#8217;s for:</p>
  };</code></pre>
 </div>
 </div>
-<div class="ulist">
-<ul>
-<li>
-<p><code>initialize</code> with 3 params, including different urls
-for retrieving list and posting new items</p>
-</li>
-</ul>
+<div class="paragraph">
+<p>And because we&#8217;re using different URLs for GETing lists and POSTing items,
+we tweak the <code>initialize</code> function slightly too.  Rather than multiple
+arguments, we&#8217;ll switch to using a "params" object containing the required config:</p>
 </div>
 <div class="listingblock sourcecode">
 <div class="title">lists/static/list.js</div>
@@ -1141,9 +1159,9 @@ for retrieving list and posting new items</p>
 </div>
 </div>
 <div class="paragraph">
-<p>And a few more to do with error handling, which you can explore in the
-<a href="https://github.com/hjwp/book-example/blob/appendix_VII_DjangoRestFramework/lists/api.py">repo for this appendix</a> if
-you&#8217;re curious.</p>
+<p>There&#8217;s a few more changes to do with error handling, which you can explore in the
+<a href="https://github.com/hjwp/book-example/blob/appendix_VII_DjangoRestFramework/lists/api.py">repo for this appendix</a>
+if you&#8217;re curious.</p>
 </div>
 </div>
 <div class="sect2">
@@ -1184,8 +1202,8 @@ function into a more declarative syntax</p>
 </div>
 </div>
 <div class="paragraph">
-<p>If you compare this to the final DRF version, you&#8217;ll notice that it is actually
-entirely configuration:</p>
+<p>If you compare this to the final DRF version, you&#8217;ll notice that we are
+actually now entirely configuration:</p>
 </div>
 <div class="listingblock sourcecode skipme">
 <div class="title">lists/api.py (new version)</div>
@@ -1241,10 +1259,11 @@ rolled by hand.</p>
 <div class="ulist">
 <ul>
 <li>
-<p>GET, POST, OPTIONS methods now work, out of the box, for all list and items URLs.</p>
+<p>All the HTTP methods: GET, POST, PUT, PATCH, DELETE, and OPTIONS methods now work,
+out of the box, for all list and items URLs.</p>
 </li>
 <li>
-<p>And a browsable / self-documenting version is available at
+<p>And a browsable / self-documenting version of the API is available at
 <a href="http://localhost:8000/api/lists/" class="bare">http://localhost:8000/api/lists/</a> and <a href="http://localhost:8000/api/items" class="bare">http://localhost:8000/api/items</a>. (Try it! You&#8217;ll
 need to add <code>rest_framework</code> to <code>INSTALLED_APPS</code>).</p>
 </li>
@@ -1301,7 +1320,7 @@ your users.</p>
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2017-01-01 20:54:38 GMT
+Last updated 2017-01-03 12:55:43 GMT
 </div>
 </div>
 <div class="comments" style="padding: 20px">
