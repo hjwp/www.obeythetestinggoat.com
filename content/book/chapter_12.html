@@ -4,7 +4,7 @@
 <!--[if IE]><meta http-equiv="X-UA-Compatible" content="IE=edge"><![endif]-->
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="generator" content="Asciidoctor 1.5.4">
-<title>More Advanced Forms</title>
+<title>A Simple Form</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:300,300italic,400,400italic,600,600italic%7CNoto+Serif:400,400italic,700,700italic%7CDroid+Sans+Mono:400,700">
 <link rel="stylesheet" href="./asciidoctor.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.5.0/css/font-awesome.min.css">
@@ -31,327 +31,317 @@ httpRequest.send();
 </div>
 <div id="content">
 <div class="sect1">
-<h2 id="advanced-forms-chapter">More Advanced Forms</h2>
+<h2 id="simple-form-chapter">A Simple Form</h2>
 <div class="sectionbody">
-<div class="paragraph">
-<p>
-Now let&#8217;s look at some more advanced forms usage.  We&#8217;ve helped our users
-to avoid blank list items, now let&#8217;s help them avoid duplicate items.</p>
+<div class="admonitionblock warning">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-warning" title="Warning"></i>
+</td>
+<td class="content">
+Major update released for Selenium 3.
+    If you started this book on or before Jan 30th 2017,
+    be aware: chapters have been renumbered,
+    so check this is the one you think it is,
+    and have a look at the new <a href="/book/chapter_06.html">[explicit-waits-chapter]</a>
+    for an indication of the changes you&#8217;ll need in your FTs.
+    You should do a <code>pip install --upgrade selenium</code> too.
+</td>
+</tr>
+</table>
 </div>
 <div class="paragraph">
-<p>This chapter goes into more intricate details of Django&#8217;s form validation, and
-you can consider it optional if you already know all about customising Django
-forms.  If you&#8217;re still learning Django, there&#8217;s good stuff in here.  If you
-want to skip ahead, that&#8217;s OK too. Make sure you take a quick look at the aside
-on developer stupidity, and the recap on testing views at the end.</p>
+<p>
+
+At the end of the last chapter, we were left with the thought that there
+was too much duplication of code in the validation handling bits of our
+views. Django encourages you to use form classes to do the work of validating
+user input, and choosing what error messages to display. Let&#8217;s see how that
+works.</p>
+</div>
+<div class="paragraph">
+<p>As we go through the chapter, we&#8217;ll also spend a bit of time tidying up our
+unit tests, and making sure each of them only tests one thing at a time.</p>
 </div>
 <div class="sect2">
-<h3 id="_another_ft_for_duplicate_items">Another FT for Duplicate Items</h3>
-<div class="paragraph">
-<p>
+<h3 id="_moving_validation_logic_into_a_form">Moving Validation Logic into a Form</h3>
+<div class="admonitionblock tip">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-tip" title="Tip"></i>
+</td>
+<td class="content">
+In Django, a complex view is a code smell.  Could some of that logic
+be pushed out to a form?  Or to some custom methods on the model class? Or
+maybe even to a non-Django module that represents your business logic?
 
-We add a second test method to <code>ItemValidationTest</code>:</p>
-</div>
-<div class="listingblock sourcecode">
-<div class="title">functional_tests/test_list_item_validation.py (ch12l001)</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">def</span> <span class="function">test_cannot_add_duplicate_items</span>(<span class="predefined-constant">self</span>):
-    <span class="comment"># Edith goes to the home page and starts a new list</span>
-    <span class="predefined-constant">self</span>.browser.get(<span class="predefined-constant">self</span>.server_url)
-    <span class="predefined-constant">self</span>.get_item_input_box().send_keys(<span class="string"><span class="delimiter">'</span><span class="content">Buy wellies</span><span class="char">\n</span><span class="delimiter">'</span></span>)
-    <span class="predefined-constant">self</span>.check_for_row_in_list_table(<span class="string"><span class="delimiter">'</span><span class="content">1: Buy wellies</span><span class="delimiter">'</span></span>)
-
-    <span class="comment"># She accidentally tries to enter a duplicate item</span>
-    <span class="predefined-constant">self</span>.get_item_input_box().send_keys(<span class="string"><span class="delimiter">'</span><span class="content">Buy wellies</span><span class="char">\n</span><span class="delimiter">'</span></span>)
-
-    <span class="comment"># She sees a helpful error message</span>
-    <span class="predefined-constant">self</span>.check_for_row_in_list_table(<span class="string"><span class="delimiter">'</span><span class="content">1: Buy wellies</span><span class="delimiter">'</span></span>)
-    error = <span class="predefined-constant">self</span>.browser.find_element_by_css_selector(<span class="string"><span class="delimiter">'</span><span class="content">.has-error</span><span class="delimiter">'</span></span>)
-    <span class="predefined-constant">self</span>.assertEqual(error.text, <span class="string"><span class="delimiter">"</span><span class="content">You've already got this in your list</span><span class="delimiter">"</span></span>)</code></pre>
-</div>
+</td>
+</tr>
+</table>
 </div>
 <div class="paragraph">
-<p>Why have two test methods rather than extending one, or having a new file
-and class?  It&#8217;s a judgement call.  These two feel closely related; they&#8217;re
-both about validation on the same input field, so it feels right to
-keep them in the same file.  On the other hand, they&#8217;re logically separate
-enough that it&#8217;s practical to keep them in different methods:</p>
+<p>Forms have several superpowers in Django:</p>
 </div>
-<div class="listingblock">
-<div class="content">
-<pre>$ <strong>python manage.py test functional_tests.test_list_item_validation</strong>
-[...]
-selenium.common.exceptions.NoSuchElementException: Message: Unable to locate
-element: {"method":"css selector","selector":".has-error"}
-
-Ran 2 tests in 9.613s</pre>
-</div>
+<div class="ulist">
+<ul>
+<li>
+<p>They can process user input and validate it for errors.</p>
+</li>
+<li>
+<p>They can be used in templates to render HTML input elements, and error
+messages too.</p>
+</li>
+<li>
+<p>And, as we&#8217;ll see later, some of them can even save data to the database
+for you.</p>
+</li>
+</ul>
 </div>
 <div class="paragraph">
-<p>OK, so we know the first of the two tests passes now. Is there a way to run
-just the failing one, I hear you ask?  Why yes indeed:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>$ <strong>python manage.py test functional_tests.\
-test_list_item_validation.ItemValidationTest.test_cannot_add_duplicate_items</strong>
-[...]
-selenium.common.exceptions.NoSuchElementException: Message: Unable to locate
-element: {"method":"css selector","selector":".has-error"}</pre>
-</div>
+<p>You don&#8217;t have to use all three form superpowers in every form.  You may prefer
+to roll your own HTML, or do your own saving. But they are an excellent place
+to keep validation logic.</p>
 </div>
 <div class="sect3">
-<h4 id="_preventing_duplicates_at_the_model_layer">Preventing Duplicates at the Model Layer</h4>
+<h4 id="_exploring_the_forms_api_with_a_unit_test">Exploring the Forms API with a Unit Test</h4>
 <div class="paragraph">
 <p>
-Here&#8217;s what we really wanted to do.  It&#8217;s a new test that checks that duplicate
-items in the same list raise an error:</p>
+Let&#8217;s do a little experimenting with forms by using a unit test.  My plan is to
+iterate towards a complete solution, and hopefully introduce forms gradually
+enough that they&#8217;ll make sense if you&#8217;ve never seen them before.</p>
+</div>
+<div class="paragraph">
+<p>First we add a new file for our form unit tests, and we start with a test that
+just looks at the form HTML:</p>
 </div>
 <div class="listingblock sourcecode">
-<div class="title">lists/tests/test_models.py (ch09l028)</div>
+<div class="title">lists/tests/test_forms.py</div>
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">def</span> <span class="function">test_duplicate_items_are_invalid</span>(<span class="predefined-constant">self</span>):
-    list_ = List.objects.create()
-    Item.objects.create(list=list_, text=<span class="string"><span class="delimiter">'</span><span class="content">bla</span><span class="delimiter">'</span></span>)
-    <span class="keyword">with</span> <span class="predefined-constant">self</span>.assertRaises(ValidationError):
-        item = Item(list=list_, text=<span class="string"><span class="delimiter">'</span><span class="content">bla</span><span class="delimiter">'</span></span>)
-        item.full_clean()</code></pre>
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> <span class="include">django.test</span> <span class="keyword">import</span> <span class="include">TestCase</span>
+
+<span class="keyword">from</span> <span class="include">lists.forms</span> <span class="keyword">import</span> <span class="include">ItemForm</span>
+
+
+<span class="keyword">class</span> <span class="class">ItemFormTest</span>(TestCase):
+
+    <span class="keyword">def</span> <span class="function">test_form_renders_item_text_input</span>(<span class="predefined-constant">self</span>):
+        form = ItemForm()
+        <span class="predefined-constant">self</span>.fail(form.as_p())</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>And, while it occurs to us, we add another test to make sure we don&#8217;t
-overdo it on our integrity constraints:</p>
+<p><code>form.as_p()</code> renders the form as HTML.  This unit test is using a <code>self.fail</code>
+for some exploratory coding.  You could just as easily use a <code>manage.py shell</code>
+session, although you&#8217;d need to keep reloading your code for each change.</p>
+</div>
+<div class="paragraph">
+<p>Let&#8217;s make a minimal form.  It inherits from the base <code>Form</code> class, and has
+a single field called <code>item_text</code>:</p>
 </div>
 <div class="listingblock sourcecode">
-<div class="title">lists/tests/test_models.py (ch09l029)</div>
+<div class="title">lists/forms.py</div>
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">def</span> <span class="function">test_CAN_save_same_item_to_different_lists</span>(<span class="predefined-constant">self</span>):
-    list1 = List.objects.create()
-    list2 = List.objects.create()
-    Item.objects.create(list=list1, text=<span class="string"><span class="delimiter">'</span><span class="content">bla</span><span class="delimiter">'</span></span>)
-    item = Item(list=list2, text=<span class="string"><span class="delimiter">'</span><span class="content">bla</span><span class="delimiter">'</span></span>)
-    item.full_clean()  <span class="comment"># should not raise</span></code></pre>
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> <span class="include">django</span> <span class="keyword">import</span> <span class="include">forms</span>
+
+<span class="keyword">class</span> <span class="class">ItemForm</span>(forms.Form):
+    item_text = forms.CharField()</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>I always like to put a little comment for tests which are checking
-that a particular use case should <em>not</em> raise an error; otherwise
-it can be hard to see what&#8217;s being tested.</p>
+<p>We now see a failure message which tells us what the auto-generated form
+HTML will look like:</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>AssertionError: ValidationError not raised</pre>
+<pre>    self.fail(form.as_p())
+AssertionError: &lt;p&gt;&lt;label for="id_item_text"&gt;Item text:&lt;/label&gt; &lt;input
+id="id_item_text" name="item_text" type="text" required /&gt;&lt;/p&gt;</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>If we want to get it deliberately wrong, we can do this:</p>
+<p>It&#8217;s already pretty close to what we have in <em>base.html</em>.  We&#8217;re missing
+the placeholder attribute and the Bootstrap CSS classes.  Let&#8217;s make our
+unit test into a test for that:</p>
 </div>
 <div class="listingblock sourcecode">
-<div class="title">lists/models.py (ch09l030)</div>
+<div class="title">lists/tests/test_forms.py</div>
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">class</span> <span class="class">Item</span>(models.Model):
-    text = models.TextField(default=<span class="string"><span class="delimiter">'</span><span class="delimiter">'</span></span>, unique=<span class="predefined-constant">True</span>)
-    list = models.ForeignKey(List, default=<span class="predefined-constant">None</span>)</code></pre>
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">class</span> <span class="class">ItemFormTest</span>(TestCase):
+
+    <span class="keyword">def</span> <span class="function">test_form_item_input_has_placeholder_and_css_classes</span>(<span class="predefined-constant">self</span>):
+        form = ItemForm()
+        <span class="predefined-constant">self</span>.assertIn(<span class="string"><span class="delimiter">'</span><span class="content">placeholder="Enter a to-do item"</span><span class="delimiter">'</span></span>, form.as_p())
+        <span class="predefined-constant">self</span>.assertIn(<span class="string"><span class="delimiter">'</span><span class="content">class="form-control input-lg"</span><span class="delimiter">'</span></span>, form.as_p())</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>That lets us check that our second test really does pick up on this
-problem:</p>
+<p>
+
+That gives us a fail which justifies some real coding.  How can we customise
+the input for a form field?  Using a "widget".  Here it is with just
+the placeholder:</p>
+</div>
+<div class="listingblock sourcecode">
+<div class="title">lists/forms.py</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">class</span> <span class="class">ItemForm</span>(forms.Form):
+    item_text = forms.CharField(
+        widget=forms.fields.TextInput(attrs={
+            <span class="string"><span class="delimiter">'</span><span class="content">placeholder</span><span class="delimiter">'</span></span>: <span class="string"><span class="delimiter">'</span><span class="content">Enter a to-do item</span><span class="delimiter">'</span></span>,
+        }),
+    )</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>That gives:</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>Traceback (most recent call last):
-  File "/.../superlists/lists/tests/test_models.py", line 63, in
-test_CAN_save_same_item_to_different_lists
-    item.full_clean()  # should not raise
-    [...]
-django.core.exceptions.ValidationError: {'text': ['Item with this Text already
-exists.']}</pre>
+<pre>AssertionError: 'class="form-control input-lg"' not found in '&lt;p&gt;&lt;label
+for="id_item_text"&gt;Item text:&lt;/label&gt; &lt;input id="id_item_text" name="item_text"
+placeholder="Enter a to-do item" type="text" required /&gt;&lt;/p&gt;'</pre>
 </div>
 </div>
-<div id="testing-for-stupidity" class="sidebarblock">
-<div class="content">
-<div class="title">An Aside on When to Test for Developer Stupidity</div>
 <div class="paragraph">
-<p>One of the judgement calls in testing is when you should write tests that sound
-like "check we haven&#8217;t done something stupid".  In general, you should be wary
-of these.
+<p>And then:</p>
+</div>
+<div class="listingblock sourcecode">
+<div class="title">lists/forms.py</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python">    widget=forms.fields.TextInput(attrs={
+        <span class="string"><span class="delimiter">'</span><span class="content">placeholder</span><span class="delimiter">'</span></span>: <span class="string"><span class="delimiter">'</span><span class="content">Enter a to-do item</span><span class="delimiter">'</span></span>,
+        <span class="string"><span class="delimiter">'</span><span class="content">class</span><span class="delimiter">'</span></span>: <span class="string"><span class="delimiter">'</span><span class="content">form-control input-lg</span><span class="delimiter">'</span></span>,
+    }),</code></pre>
+</div>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+Doing this sort of widget customisation would get tedious if we
+had a much larger, more complex form.  Check out
+<a href="https://django-crispy-forms.readthedocs.org/">django-crispy-forms</a> and
+<a href="http://bit.ly/1rR5eyD">django-floppyforms</a>
+for some help.
+</td>
+</tr>
+</table>
+</div>
+<div class="sidebarblock">
+<div class="content">
+<div class="title">Development-Driven Tests: Using Unit Tests for Exploratory Coding</div>
+<div class="paragraph">
+<p>Does this feel a bit like development-driven tests?  That&#8217;s OK, now
+and again.
 </p>
 </div>
 <div class="paragraph">
-<p>In this case, we&#8217;ve written a test to check that you can&#8217;t save duplicate items
-to the same list.  Now, the simplest way to get that test to pass, the way in
-which you&#8217;d write the least lines of code, would be to make it impossible to
-save <em>any</em> duplicate items.  That justifies writing another test, despite the
-fact that it would be a "stupid" or "wrong" thing for us to code.</p>
+<p>When you&#8217;re exploring a new API, you&#8217;re absolutely allowed to mess about with
+it for a while before you get back to rigorous TDD.  You might use the
+interactive console, or write some exploratory code (but you have to promise
+the Testing Goat that you&#8217;ll throw it away and rewrite it properly later).</p>
 </div>
 <div class="paragraph">
-<p>But you can&#8217;t be writing tests for every possible way we could have coded
-something wrong.  If you have a function that adds two numbers, you can write
-a couple of tests:</p>
-</div>
-<div class="listingblock skipme">
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">assert</span> adder(<span class="integer">1</span>, <span class="integer">1</span>) == <span class="integer">2</span>
-<span class="keyword">assert</span> adder(<span class="integer">2</span>, <span class="integer">1</span>) == <span class="integer">3</span></code></pre>
+<p>Here we&#8217;re actually using a unit test as a way of experimenting with the
+forms API. It&#8217;s actually a pretty good way of learning how it works.</p>
 </div>
 </div>
-<div class="paragraph">
-<p>But you have the right to assume that the implementation isn&#8217;t deliberately
-screwey or perverse:</p>
-</div>
-<div class="listingblock skipme">
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">def</span> <span class="function">adder</span>(a, b):
-    <span class="comment"># unlikely code!</span>
-    <span class="keyword">if</span> a == <span class="integer">3</span>:
-        <span class="keyword">return</span> <span class="integer">666</span>
-    <span class="keyword">else</span>:
-        <span class="keyword">return</span> a + b</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>One way of putting it is that you should trust yourself not to do something
-<em>deliberately</em> stupid, but not something <em>accidentally</em> stupid.</p>
-</div>
-</div>
-</div>
-<div class="paragraph">
-<p>Just like <code>ModelForm</code>'s, models have a <code>class Meta</code>, and that&#8217;s where we can
-implement a constraint which says that that an item must be unique for a
-particular list, or in other words, that <code>text</code> and <code>list</code> must be unique
-together:</p>
-</div>
-<div class="listingblock sourcecode">
-<div class="title">lists/models.py (ch09l031)</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">class</span> <span class="class">Item</span>(models.Model):
-    text = models.TextField(default=<span class="string"><span class="delimiter">'</span><span class="delimiter">'</span></span>)
-    list = models.ForeignKey(List, default=<span class="predefined-constant">None</span>)
-
-    <span class="keyword">class</span> <span class="class">Meta</span>:
-        unique_together = (<span class="string"><span class="delimiter">'</span><span class="content">list</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">text</span><span class="delimiter">'</span></span>)</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>You might want to take a quick peek at the
-<a href="https://docs.djangoproject.com/en/1.10/ref/models/options/">Django docs on model
-<code>Meta</code> attributes</a> at this point.</p>
 </div>
 </div>
 <div class="sect3">
-<h4 id="_a_little_digression_on_queryset_ordering_and_string_representations">A Little Digression on Queryset Ordering and String Representations</h4>
+<h4 id="_switching_to_a_django_modelform">Switching to a Django ModelForm</h4>
 <div class="paragraph">
 <p>
-When we run the tests they reveal an unexpected failure:</p>
-</div>
-<div class="listingblock skipme">
-<div class="content">
-<pre>======================================================================
-FAIL: test_saving_and_retrieving_items
-(lists.tests.test_models.ListAndItemModelsTest)
- ---------------------------------------------------------------------
-Traceback (most recent call last):
-  File "/.../superlists/lists/tests/test_models.py", line 31, in
-test_saving_and_retrieving_items
-    self.assertEqual(first_saved_item.text, 'The first (ever) list item')
-AssertionError: 'Item the second' != 'The first (ever) list item'
-- Item the second
-[...]</pre>
-</div>
-</div>
-<div class="admonitionblock note">
-<table>
-<tr>
-<td class="icon">
-<i class="fa icon-note" title="Note"></i>
-</td>
-<td class="content">
-Depending on your platform and its SQLite installation, you may
-not see this error. You can follow along anyway; the code and tests are
-interesting in their own right.
-</td>
-</tr>
-</table>
-</div>
-<div class="paragraph">
-<p>That&#8217;s a bit of a puzzler. A bit of print-based debugging:</p>
-</div>
-<div class="listingblock sourcecode skipme">
-<div class="title">lists/tests/test_models.py</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="python">    first_saved_item = saved_items[<span class="integer">0</span>]
-    print(first_saved_item.text)
-    second_saved_item = saved_items[<span class="integer">1</span>]
-    print(second_saved_item.text)
-    <span class="predefined-constant">self</span>.assertEqual(first_saved_item.text, <span class="string"><span class="delimiter">'</span><span class="content">The first (ever) list item</span><span class="delimiter">'</span></span>)</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Will show us&#8230;&#8203;</p>
-</div>
-<div class="listingblock skipme">
-<div class="content">
-<pre>.....Item the second
-The first (ever) list item
-F.....</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>It looks like our uniqueness constraint has messed with the default ordering
-of queries like <code>Item.objects.all()</code>.  Although we already have a failing test,
-it&#8217;s best to add a new test that explicitly tests for ordering:</p>
+
+
+What&#8217;s next?  We want our form to reuse the validation code that we&#8217;ve already
+defined on our model.  Django provides a special class which can auto-generate
+a form for a model, called <code>ModelForm</code>.  As you&#8217;ll see, it&#8217;s configured using a
+special attribute called <code>Meta</code>:</p>
 </div>
 <div class="listingblock sourcecode">
-<div class="title">lists/tests/test_models.py (ch09l032)</div>
+<div class="title">lists/forms.py</div>
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python">    <span class="keyword">def</span> <span class="function">test_list_ordering</span>(<span class="predefined-constant">self</span>):
-        list1 = List.objects.create()
-        item1 = Item.objects.create(list=list1, text=<span class="string"><span class="delimiter">'</span><span class="content">i1</span><span class="delimiter">'</span></span>)
-        item2 = Item.objects.create(list=list1, text=<span class="string"><span class="delimiter">'</span><span class="content">item 2</span><span class="delimiter">'</span></span>)
-        item3 = Item.objects.create(list=list1, text=<span class="string"><span class="delimiter">'</span><span class="content">3</span><span class="delimiter">'</span></span>)
-        <span class="predefined-constant">self</span>.assertEqual(
-            Item.objects.all(),
-            [item1, item2, item3]
-        )</code></pre>
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> <span class="include">django</span> <span class="keyword">import</span> <span class="include">forms</span>
+
+<span class="keyword">from</span> <span class="include">lists.models</span> <span class="keyword">import</span> <span class="include">Item</span>
+
+<span class="keyword">class</span> <span class="class">ItemForm</span>(forms.models.ModelForm):
+
+    <span class="keyword">class</span> <span class="class">Meta</span>:
+        model = Item
+        fields = (<span class="string"><span class="delimiter">'</span><span class="content">text</span><span class="delimiter">'</span></span>,)</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>That gives us a new failure, but it&#8217;s not a very readable one:</p>
+<p>
+In <code>Meta</code> we specify which model the form is for, and which fields we want it
+to use.</p>
+</div>
+<div class="paragraph">
+<p><code>ModelForm</code>'s do all sorts of smart stuff, like assigning sensible HTML
+form input types to different types of field, and applying default
+validation.  Check out the
+<a href="https://docs.djangoproject.com/en/1.10/topics/forms/modelforms/">docs</a> for more
+info.</p>
+</div>
+<div class="paragraph">
+<p>We now have some different-looking form HTML:</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>AssertionError: &lt;QuerySet [&lt;Item: Item object&gt;, &lt;Item: Item object&gt;, &lt;Item:
-Item object&gt;]&gt; != [&lt;Item: Item object&gt;, &lt;Item: Item object&gt;, &lt;Item: Item
-object&gt;]</pre>
+<pre>AssertionError: 'placeholder="Enter a to-do item"' not found in '&lt;p&gt;&lt;label
+for="id_text"&gt;Text:&lt;/label&gt; &lt;textarea cols="40" id="id_text" name="text"
+rows="10" required&gt;\r\n&lt;/textarea&gt;&lt;/p&gt;'</pre>
 </div>
 </div>
 <div class="paragraph">
 <p>
-We need a better string representation for our objects.  Let&#8217;s add another
-unit test:</p>
-</div>
-<div class="admonitionblock note">
-<table>
-<tr>
-<td class="icon">
-<i class="fa icon-note" title="Note"></i>
-</td>
-<td class="content">
-Ordinarily you would be wary of adding more failing tests when you
-    already have some&#8212;&#8203;it makes reading test output that much more complicated,
-    and just generally makes you nervous. Will we ever get back to a working
-    state? In this case, they&#8217;re all quite simple tests, so I&#8217;m not worried.
-</td>
-</tr>
-</table>
+It&#8217;s lost our placeholder and CSS class. But you can also see that it&#8217;s using
+<code>name="text"</code> instead of <code>name="item_text"</code>. We can probably live with that.
+But it&#8217;s using a <code>textarea</code> instead of a normal input, and that&#8217;s not the UI we
+want for our app. Thankfully, you can override widgets for <code>ModelForm</code> fields,
+similarly to the way we did it with the normal form:</p>
 </div>
 <div class="listingblock sourcecode">
-<div class="title">lists/tests/test_models.py (ch12l008)</div>
+<div class="title">lists/forms.py</div>
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">def</span> <span class="function">test_string_representation</span>(<span class="predefined-constant">self</span>):
-    item = Item(text=<span class="string"><span class="delimiter">'</span><span class="content">some text</span><span class="delimiter">'</span></span>)
-    <span class="predefined-constant">self</span>.assertEqual(<span class="predefined">str</span>(item), <span class="string"><span class="delimiter">'</span><span class="content">some text</span><span class="delimiter">'</span></span>)</code></pre>
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">class</span> <span class="class">ItemForm</span>(forms.models.ModelForm):
+
+    <span class="keyword">class</span> <span class="class">Meta</span>:
+        model = Item
+        fields = (<span class="string"><span class="delimiter">'</span><span class="content">text</span><span class="delimiter">'</span></span>,)
+        widgets = {
+            <span class="string"><span class="delimiter">'</span><span class="content">text</span><span class="delimiter">'</span></span>: forms.fields.TextInput(attrs={
+                <span class="string"><span class="delimiter">'</span><span class="content">placeholder</span><span class="delimiter">'</span></span>: <span class="string"><span class="delimiter">'</span><span class="content">Enter a to-do item</span><span class="delimiter">'</span></span>,
+                <span class="string"><span class="delimiter">'</span><span class="content">class</span><span class="delimiter">'</span></span>: <span class="string"><span class="delimiter">'</span><span class="content">form-control input-lg</span><span class="delimiter">'</span></span>,
+            }),
+        }</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>That gets the test passing.</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_testing_and_customising_form_validation">Testing and Customising Form Validation</h4>
+<div class="paragraph">
+<p>
+Now let&#8217;s see if the <code>ModelForm</code> has picked up the same validation rules which we
+defined on the model.  We&#8217;ll also learn how to pass data into the form, as if
+it came from the user:</p>
+</div>
+<div class="listingblock sourcecode">
+<div class="title">lists/tests/test_forms.py (ch11l008)</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python">    <span class="keyword">def</span> <span class="function">test_form_validation_for_blank_items</span>(<span class="predefined-constant">self</span>):
+        form = ItemForm(data={<span class="string"><span class="delimiter">'</span><span class="content">text</span><span class="delimiter">'</span></span>: <span class="string"><span class="delimiter">'</span><span class="delimiter">'</span></span>})
+        form.save()</code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -359,712 +349,1116 @@ Ordinarily you would be wary of adding more failing tests when you
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>AssertionError: 'Item object' != 'some text'</pre>
+<pre>ValueError: The Item could not be created because the data didn't validate.</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>As well as the other two failures.  Let&#8217;s start fixing them all now:</p>
+<p>Good, the form won&#8217;t allow you to save if you give it an empty item text.</p>
+</div>
+<div class="paragraph">
+<p>Now let&#8217;s see if we can get it to use the specific error message that we
+want.  The API for checking form validation <em>before</em> we try and save any
+data is a function called <code>is_valid</code>:</p>
 </div>
 <div class="listingblock sourcecode">
-<div class="title">lists/models.py (ch09l034)</div>
+<div class="title">lists/tests/test_forms.py (ch11l009)</div>
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">class</span> <span class="class">Item</span>(models.Model):
-    [...]
-
-    <span class="keyword">def</span> <span class="function">__str__</span>(<span class="predefined-constant">self</span>):
-        <span class="keyword">return</span> <span class="predefined-constant">self</span>.text</code></pre>
-</div>
-</div>
-<div class="admonitionblock note">
-<table>
-<tr>
-<td class="icon">
-<i class="fa icon-note" title="Note"></i>
-</td>
-<td class="content">
-in Python 2.x versions of Django, the string representation method used
-    to be <code>__unicode__</code>. Like much string handling, this is simplified in
-    Python 3. See the
-    <a href="https://docs.djangoproject.com/en/1.10/topics/python3/#str-and-unicode-methods">Django docs</a>.
-</td>
-</tr>
-</table>
-</div>
-<div class="paragraph">
-<p>Now we&#8217;re down to two failures, and the ordering test has a more readable
-failure message:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>AssertionError: &lt;QuerySet [&lt;Item: i1&gt;, &lt;Item: item 2&gt;, &lt;Item: 3&gt;]&gt; != [&lt;Item:
-i1&gt;, &lt;Item: item 2&gt;, &lt;Item: 3&gt;]</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>We can fix that in the <code>class Meta</code>:</p>
-</div>
-<div class="listingblock sourcecode">
-<div class="title">lists/models.py (ch09l035)</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="python">    <span class="keyword">class</span> <span class="class">Meta</span>:
-        ordering = (<span class="string"><span class="delimiter">'</span><span class="content">id</span><span class="delimiter">'</span></span>,)
-        unique_together = (<span class="string"><span class="delimiter">'</span><span class="content">list</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">text</span><span class="delimiter">'</span></span>)</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Does that work?</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>AssertionError: &lt;QuerySet [&lt;Item: i1&gt;, &lt;Item: item 2&gt;, &lt;Item: 3&gt;]&gt; != [&lt;Item:
-i1&gt;, &lt;Item: item 2&gt;, &lt;Item: 3&gt;]</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Urp?  It has worked; you can see the items <em>are</em> in the same order, but the
-tests are confused.  I keep running into this problem actually&#8212;&#8203;Django
-querysets don&#8217;t compare well with lists.  We can fix it by converting the
-queryset to a list<sup class="footnote">[<a id="_footnoteref_1" class="footnote" href="#_footnote_1" title="View footnote.">1</a>]</sup>
-in our test:</p>
-</div>
-<div class="listingblock sourcecode">
-<div class="title">lists/tests/test_models.py (ch09l036)</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="python">    <span class="predefined-constant">self</span>.assertEqual(
-        <span class="predefined">list</span>(Item.objects.all()),
-        [item1, item2, item3]
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">def</span> <span class="function">test_form_validation_for_blank_items</span>(<span class="predefined-constant">self</span>):
+    form = ItemForm(data={<span class="string"><span class="delimiter">'</span><span class="content">text</span><span class="delimiter">'</span></span>: <span class="string"><span class="delimiter">'</span><span class="delimiter">'</span></span>})
+    <span class="predefined-constant">self</span>.assertFalse(form.is_valid())
+    <span class="predefined-constant">self</span>.assertEqual(
+        form.errors[<span class="string"><span class="delimiter">'</span><span class="content">text</span><span class="delimiter">'</span></span>],
+        [<span class="string"><span class="delimiter">"</span><span class="content">You can't have an empty list item</span><span class="delimiter">"</span></span>]
     )</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>That works; we get a fully passing test suite:
-</p>
+<p>Calling <code>form.is_valid()</code> returns <code>True</code> or <code>False</code>, but it also has the
+side effect of validating the input data, and populating the <code>errors</code>
+attribute.  It&#8217;s a dictionary mapping the names of fields to lists of
+errors for those fields (it&#8217;s possible for a field to have more than
+one error).</p>
+</div>
+<div class="paragraph">
+<p>That gives us:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>AssertionError: ['This field is required.'] != ["You can't have an empty list
+item"]</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Django already has a default error message that we could present to the
+user&#8212;&#8203;you might use it if you were in a hurry to build your web app,
+but we care enough to make our message special.  Customising it means
+changing <code>error_messages</code>, another <code>Meta</code> variable:</p>
+</div>
+<div class="listingblock sourcecode">
+<div class="title">lists/forms.py (ch11l010)</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python">    <span class="keyword">class</span> <span class="class">Meta</span>:
+        model = Item
+        fields = (<span class="string"><span class="delimiter">'</span><span class="content">text</span><span class="delimiter">'</span></span>,)
+        widgets = {
+            <span class="string"><span class="delimiter">'</span><span class="content">text</span><span class="delimiter">'</span></span>: forms.fields.TextInput(attrs={
+                <span class="string"><span class="delimiter">'</span><span class="content">placeholder</span><span class="delimiter">'</span></span>: <span class="string"><span class="delimiter">'</span><span class="content">Enter a to-do item</span><span class="delimiter">'</span></span>,
+                <span class="string"><span class="delimiter">'</span><span class="content">class</span><span class="delimiter">'</span></span>: <span class="string"><span class="delimiter">'</span><span class="content">form-control input-lg</span><span class="delimiter">'</span></span>,
+            }),
+        }
+        error_messages = {
+            <span class="string"><span class="delimiter">'</span><span class="content">text</span><span class="delimiter">'</span></span>: {<span class="string"><span class="delimiter">'</span><span class="content">required</span><span class="delimiter">'</span></span>: <span class="string"><span class="delimiter">"</span><span class="content">You can't have an empty list item</span><span class="delimiter">"</span></span>}
+        }</code></pre>
+</div>
 </div>
 <div class="listingblock">
 <div class="content">
 <pre>OK</pre>
 </div>
 </div>
-</div>
-<div class="sect3">
-<h4 id="rewrite-model-test">Rewriting the Old Model Test</h4>
 <div class="paragraph">
-<p>
-That long-winded model test did serendipitously help us find an unexpected
-bug, but now it&#8217;s time to rewrite it. I wrote it in a very verbose style to
-introduce the Django ORM, but in fact, now that we have the explicit test for
-ordering, we can get the same coverage from a couple of much shorter tests.
-Delete <code>test_saving_and_retrieving_items</code> and replace with this:</p>
+<p>You know what would be even better than messing about with all these
+error strings?  Having a constant:</p>
 </div>
 <div class="listingblock sourcecode">
-<div class="title">lists/tests/test_models.py (ch12l010)</div>
+<div class="title">lists/forms.py (ch11l011)</div>
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">class</span> <span class="class">ListAndItemModelsTest</span>(TestCase):
+<pre class="CodeRay highlight"><code data-lang="python">EMPTY_ITEM_ERROR = <span class="string"><span class="delimiter">"</span><span class="content">You can't have an empty list item</span><span class="delimiter">"</span></span>
+[...]
 
-    <span class="keyword">def</span> <span class="function">test_default_text</span>(<span class="predefined-constant">self</span>):
-        item = Item()
-        <span class="predefined-constant">self</span>.assertEqual(item.text, <span class="string"><span class="delimiter">'</span><span class="delimiter">'</span></span>)
-
-
-    <span class="keyword">def</span> <span class="function">test_item_is_related_to_list</span>(<span class="predefined-constant">self</span>):
-        list_ = List.objects.create()
-        item = Item()
-        item.list = list_
-        item.save()
-        <span class="predefined-constant">self</span>.assertIn(item, list_.item_set.all())
-
-    [...]</code></pre>
+        error_messages = {
+            <span class="string"><span class="delimiter">'</span><span class="content">text</span><span class="delimiter">'</span></span>: {<span class="string"><span class="delimiter">'</span><span class="content">required</span><span class="delimiter">'</span></span>: EMPTY_ITEM_ERROR}
+        }</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>That&#8217;s more than enough really&#8212;&#8203;a check of the default values of attributes
-on a freshly initialized model object is enough to sanity-check that we&#8217;ve
-probably set some fields up in <em>models.py</em>.  The "item is related to list" test
-is a real "belt and braces" test to make sure that our foreign key relationship
-works.</p>
-</div>
-<div class="paragraph">
-<p>While we&#8217;re at it, we can split this file out into tests for <code>Item</code> and tests
-for <code>List</code> (there&#8217;s only one of the latter, <code>test_get_absolute_url</code>:</p>
+<p>Rerun the tests to see they pass&#8230;&#8203;OK.  Now we change the test:</p>
 </div>
 <div class="listingblock sourcecode">
-<div class="title">lists/tests/test_models.py (ch12l011)</div>
+<div class="title">lists/tests/test_forms.py (ch11l012)</div>
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">class</span> <span class="class">ItemModelTest</span>(TestCase):
-
-    <span class="keyword">def</span> <span class="function">test_default_text</span>(<span class="predefined-constant">self</span>):
-        [...]
-
-
-
-<span class="keyword">class</span> <span class="class">ListModelTest</span>(TestCase):
-
-    <span class="keyword">def</span> <span class="function">test_get_absolute_url</span>(<span class="predefined-constant">self</span>):
-        [...]</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>That&#8217;s neater and tidier:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>$ <strong>python manage.py test lists</strong>
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> <span class="include">lists.forms</span> <span class="keyword">import</span> <span class="include">EMPTY_ITEM_ERROR</span>, <span class="include">ItemForm</span>
 [...]
-Ran 29 tests in 0.092s
-
-OK</pre>
-</div>
-</div>
-</div>
-<div class="sect3">
-<h4 id="_some_integrity_errors_do_show_up_on_save">Some Integrity Errors Do Show Up on Save</h4>
-<div class="paragraph">
-<p>
-
-A final aside before we move on. Do you remember I mentioned in
-<a href="/book/chapter_10.html">[manual-validation-chapter]</a> that some data integrity errors <em>are</em> picked up
-on save?  It all depends on whether the integrity constraint is actually being
-enforced by the database.</p>
-</div>
-<div class="paragraph">
-<p>Try running <code>makemigrations</code> and you&#8217;ll see that Django wants to add the
-<code>unique_together</code> constraint to the database itself, rather than just having
-it as an application-layer constraint:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>$ <strong>python manage.py makemigrations</strong>
-Migrations for 'lists':
-  lists/migrations/0005_auto_20140414_2038.py:
-    - Change Meta options on item
-    - Alter unique_together for item (1 constraint(s))</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Now if we change our duplicates test to do a <code>.save</code> instead of a
-<code>.full_clean</code>&#8230;&#8203;</p>
-</div>
-<div class="listingblock sourcecode">
-<div class="title">lists/tests/test_models.py</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="python">    <span class="keyword">def</span> <span class="function">test_duplicate_items_are_invalid</span>(<span class="predefined-constant">self</span>):
-        list_ = List.objects.create()
-        Item.objects.create(list=list_, text=<span class="string"><span class="delimiter">'</span><span class="content">bla</span><span class="delimiter">'</span></span>)
-        <span class="keyword">with</span> <span class="predefined-constant">self</span>.assertRaises(ValidationError):
-            item = Item(list=list_, text=<span class="string"><span class="delimiter">'</span><span class="content">bla</span><span class="delimiter">'</span></span>)
-            <span class="comment"># item.full_clean()</span>
-            item.save()</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>It gives:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>ERROR: test_duplicate_items_are_invalid (lists.tests.test_models.ItemModelTest)
-[...]
-    return Database.Cursor.execute(self, query, params)
-sqlite3.IntegrityError: UNIQUE constraint failed: lists_item.list_id,
-lists_item.text
-[...]
-django.db.utils.IntegrityError: UNIQUE constraint failed: lists_item.list_id,
-lists_item.text</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>You can see that the error bubbles up from SQLite, and it&#8217;s a different
-error to the one we want, an <code>IntegrityError</code> instead of a <code>ValidationError</code>.</p>
-</div>
-<div class="paragraph">
-<p>Let&#8217;s revert our changes to the test, and see them all passing again:</p>
-</div>
-<div class="listingblock dofirst-ch12l013">
-<div class="content">
-<pre>$ <strong>python manage.py test lists</strong>
-[...]
-Ran 29 tests in 0.092s
-OK</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>And now it&#8217;s time to commit our model-layer changes:</p>
-</div>
-<div class="listingblock small-code">
-<div class="content">
-<pre>$ <strong>git status</strong> # should show changes to tests + models and new migration
-# let's give our new migration a better name
-$ <strong>mv lists/migrations/0005_auto* lists/migrations/0005_list_item_unique_together.py</strong>
-$ <strong>git add lists</strong>
-$ <strong>git diff --staged</strong>
-$ <strong>git commit -am "Implement duplicate item validation at model layer"</strong></pre>
-</div>
-</div>
-</div>
-</div>
-<div class="sect2">
-<h3 id="_experimenting_with_duplicate_item_validation_at_the_views_layer">Experimenting with Duplicate Item Validation at the Views Layer</h3>
-<div class="paragraph">
-<p>
-Let&#8217;s try running our FT, just to see where we are:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>selenium.common.exceptions.NoSuchElementException: Message: Unable to locate
-element: {"method":"id","selector":"id_list_table"}</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>In case you didn&#8217;t see it as it flew past, the site is 500ing.<sup class="footnote">[<a id="_footnoteref_2" class="footnote" href="#_footnote_2" title="View footnote.">2</a>]</sup>
-A quick unit test at the view level ought to clear this up:</p>
-</div>
-<div class="listingblock sourcecode">
-<div class="title">lists/tests/test_views.py (ch12l014)</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">class</span> <span class="class">ListViewTest</span>(TestCase):
-    [...]
-
-    <span class="keyword">def</span> <span class="function">test_for_invalid_input_shows_error_on_page</span>(<span class="predefined-constant">self</span>):
-        [...]
-
-
-    <span class="keyword">def</span> <span class="function">test_duplicate_item_validation_errors_end_up_on_lists_page</span>(<span class="predefined-constant">self</span>):
-        list1 = List.objects.create()
-        item1 = Item.objects.create(list=list1, text=<span class="string"><span class="delimiter">'</span><span class="content">textey</span><span class="delimiter">'</span></span>)
-        response = <span class="predefined-constant">self</span>.client.post(
-            <span class="string"><span class="delimiter">'</span><span class="content">/lists/%d/</span><span class="delimiter">'</span></span> % (list1.id,),
-            data={<span class="string"><span class="delimiter">'</span><span class="content">text</span><span class="delimiter">'</span></span>: <span class="string"><span class="delimiter">'</span><span class="content">textey</span><span class="delimiter">'</span></span>}
-        )
-
-        expected_error = escape(<span class="string"><span class="delimiter">"</span><span class="content">You've already got this in your list</span><span class="delimiter">"</span></span>)
-        <span class="predefined-constant">self</span>.assertContains(response, expected_error)
-        <span class="predefined-constant">self</span>.assertTemplateUsed(response, <span class="string"><span class="delimiter">'</span><span class="content">list.html</span><span class="delimiter">'</span></span>)
-        <span class="predefined-constant">self</span>.assertEqual(Item.objects.all().count(), <span class="integer">1</span>)</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Gives:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>django.db.utils.IntegrityError: UNIQUE constraint failed: lists_item.list_id,
-lists_item.text</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>We want to avoid integrity errors! Ideally, we want the call to <code>is_valid</code> to
-somehow notice the duplication error before we even try to save, but to do
-that, our form will need to know what list it&#8217;s being used for, in advance.</p>
-</div>
-<div class="paragraph">
-<p>Let&#8217;s put a skip on that test for now:</p>
-</div>
-<div class="listingblock sourcecode">
-<div class="title">lists/tests/test_views.py (ch12l015)</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> <span class="include">unittest</span> <span class="keyword">import</span> <span class="include">skip</span>
-[...]
-
-    <span class="decorator">@skip</span>
-    <span class="keyword">def</span> <span class="function">test_duplicate_item_validation_errors_end_up_on_lists_page</span>(<span class="predefined-constant">self</span>):</code></pre>
-</div>
-</div>
-</div>
-<div class="sect2">
-<h3 id="_a_more_complex_form_to_handle_uniqueness_validation">A More Complex Form to Handle Uniqueness Validation</h3>
-<div class="paragraph">
-<p>The form to create a new list only needs to know one thing, the new item text.
-A form which validates that list items are unique needs to know the list too.
-Just like we overrode the save method on our <code>ItemForm</code>, this time we&#8217;ll
-override the constructor on our new form class so that it knows what list it
-applies to.</p>
-</div>
-<div class="paragraph">
-<p>We duplicate our tests for the previous form, tweaking them slightly:</p>
-</div>
-<div class="listingblock sourcecode">
-<div class="title">lists/tests/test_forms.py (ch12l016)</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> <span class="include">lists.forms</span> <span class="keyword">import</span> (
-    DUPLICATE_ITEM_ERROR, EMPTY_ITEM_ERROR,
-    ExistingListItemForm, ItemForm
-)
-[...]
-
-<span class="keyword">class</span> <span class="class">ExistingListItemFormTest</span>(TestCase):
-
-    <span class="keyword">def</span> <span class="function">test_form_renders_item_text_input</span>(<span class="predefined-constant">self</span>):
-        list_ = List.objects.create()
-        form = ExistingListItemForm(for_list=list_)
-        <span class="predefined-constant">self</span>.assertIn(<span class="string"><span class="delimiter">'</span><span class="content">placeholder="Enter a to-do item"</span><span class="delimiter">'</span></span>, form.as_p())
-
 
     <span class="keyword">def</span> <span class="function">test_form_validation_for_blank_items</span>(<span class="predefined-constant">self</span>):
-        list_ = List.objects.create()
-        form = ExistingListItemForm(for_list=list_, data={<span class="string"><span class="delimiter">'</span><span class="content">text</span><span class="delimiter">'</span></span>: <span class="string"><span class="delimiter">'</span><span class="delimiter">'</span></span>})
+        form = ItemForm(data={<span class="string"><span class="delimiter">'</span><span class="content">text</span><span class="delimiter">'</span></span>: <span class="string"><span class="delimiter">'</span><span class="delimiter">'</span></span>})
         <span class="predefined-constant">self</span>.assertFalse(form.is_valid())
-        <span class="predefined-constant">self</span>.assertEqual(form.errors[<span class="string"><span class="delimiter">'</span><span class="content">text</span><span class="delimiter">'</span></span>], [EMPTY_ITEM_ERROR])
-
-
-    <span class="keyword">def</span> <span class="function">test_form_validation_for_duplicate_items</span>(<span class="predefined-constant">self</span>):
-        list_ = List.objects.create()
-        Item.objects.create(list=list_, text=<span class="string"><span class="delimiter">'</span><span class="content">no twins!</span><span class="delimiter">'</span></span>)
-        form = ExistingListItemForm(for_list=list_, data={<span class="string"><span class="delimiter">'</span><span class="content">text</span><span class="delimiter">'</span></span>: <span class="string"><span class="delimiter">'</span><span class="content">no twins!</span><span class="delimiter">'</span></span>})
-        <span class="predefined-constant">self</span>.assertFalse(form.is_valid())
-        <span class="predefined-constant">self</span>.assertEqual(form.errors[<span class="string"><span class="delimiter">'</span><span class="content">text</span><span class="delimiter">'</span></span>], [DUPLICATE_ITEM_ERROR])</code></pre>
+        <span class="predefined-constant">self</span>.assertEqual(form.errors[<span class="string"><span class="delimiter">'</span><span class="content">text</span><span class="delimiter">'</span></span>], [EMPTY_ITEM_ERROR])</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>We can iterate through a few TDD cycles (I won&#8217;t show them all, but I&#8217;m sure
-you&#8217;ll do them, right? Remember, the Goat sees all.) until we get a form with a
-custom constructor, which just ignores its <code>for_list</code> argument:</p>
-</div>
-<div class="listingblock sourcecode">
-<div class="title">lists/forms.py (ch09l071)</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="python">DUPLICATE_ITEM_ERROR = <span class="string"><span class="delimiter">"</span><span class="content">You've already got this in your list</span><span class="delimiter">"</span></span>
-[...]
-<span class="keyword">class</span> <span class="class">ExistingListItemForm</span>(forms.models.ModelForm):
-    <span class="keyword">def</span> <span class="function">__init__</span>(<span class="predefined-constant">self</span>, for_list, *args, **kwargs):
-        <span class="predefined">super</span>().__init__(*args, **kwargs)</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Gives:</p>
+<p>And the tests still pass:</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>ValueError: ModelForm has no model class specified.</pre>
+<pre>OK</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>Now let&#8217;s see if making it inherit from our existing form helps:</p>
-</div>
-<div class="listingblock sourcecode">
-<div class="title">lists/forms.py (ch09l072)</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">class</span> <span class="class">ExistingListItemForm</span>(ItemForm):
-    <span class="keyword">def</span> <span class="function">__init__</span>(<span class="predefined-constant">self</span>, for_list, *args, **kwargs):
-        <span class="predefined">super</span>().__init__(*args, **kwargs)</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>That takes us down to just one failure:</p>
+<p>Great.  Totes committable:</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>FAIL: test_form_validation_for_duplicate_items
-(lists.tests.test_forms.ExistingListItemFormTest)
-    self.assertFalse(form.is_valid())
-AssertionError: True is not false</pre>
+<pre>$ <strong>git status</strong> # should show lists/forms.py and tests/test_forms.py
+$ <strong>git add lists</strong>
+$ <strong>git commit -m "new form for list items"</strong></pre>
 </div>
-</div>
-<div class="paragraph">
-<p>The next step requires a little knowledge of Django&#8217;s internals, but you
-can read up on it in the Django docs on
-<a href="https://docs.djangoproject.com/en/1.10/ref/models/instances/#validating-objects">model
-validation</a> and
-<a href="https://docs.djangoproject.com/en/1.10/ref/forms/validation/">form validation</a>.</p>
-</div>
-<div class="paragraph">
-<p>Django uses a method called <code>validate_unique</code>, both on forms and models, and
-we can use both, in conjunction with the <code>instance</code> attribute:</p>
-</div>
-<div class="listingblock sourcecode">
-<div class="title">lists/forms.py</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> <span class="include">django.core.exceptions</span> <span class="keyword">import</span> <span class="include">ValidationError</span>
-[...]
-
-<span class="keyword">class</span> <span class="class">ExistingListItemForm</span>(ItemForm):
-
-    <span class="keyword">def</span> <span class="function">__init__</span>(<span class="predefined-constant">self</span>, for_list, *args, **kwargs):
-        <span class="predefined">super</span>().__init__(*args, **kwargs)
-        <span class="predefined-constant">self</span>.instance.list = for_list
-
-
-    <span class="keyword">def</span> <span class="function">validate_unique</span>(<span class="predefined-constant">self</span>):
-        <span class="keyword">try</span>:
-            <span class="predefined-constant">self</span>.instance.validate_unique()
-        <span class="keyword">except</span> ValidationError <span class="keyword">as</span> e:
-            e.error_dict = {<span class="string"><span class="delimiter">'</span><span class="content">text</span><span class="delimiter">'</span></span>: [DUPLICATE_ITEM_ERROR]}
-            <span class="predefined-constant">self</span>._update_errors(e)</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>That&#8217;s a bit of Django voodoo right there, but we basically take the validation
-error, adjust its error message, and then pass it back into the form.
-
-
-And we&#8217;re there!  A quick commit:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>$ <strong>git diff</strong>
-$ <strong>git commit -a</strong></pre>
 </div>
 </div>
 </div>
 <div class="sect2">
-<h3 id="_using_the_existing_list_item_form_in_the_list_view">Using the Existing List Item Form in the List View</h3>
+<h3 id="_using_the_form_in_our_views">Using the Form in Our Views</h3>
 <div class="paragraph">
-<p>Now let&#8217;s see if we can put this form to work in our view.</p>
+<p>
+I had originally thought to extend this form to capture uniqueness validation
+as well as empty-item validation.  But there&#8217;s a sort of corollary to the
+"deploy as early as possible" lean methodology, which is "merge code as early
+as possible".  In other words: while building this bit of forms code, it would
+be easy to go on for ages, adding more and more functionality to the form&#8212;&#8203;I
+should know, because that&#8217;s exactly what I did during the drafting of this
+chapter, and I ended up doing all sorts of work making an all-singing,
+all-dancing form class before I realised it wouldn&#8217;t really work for our most
+basic use case.</p>
 </div>
 <div class="paragraph">
-<p>We remove the skip, and while we&#8217;re at it, we can use our new constant. Tidy.</p>
+<p>So, instead, try and use your new bit of code as soon as possible.  This makes
+sure you never have unused bits of code lying around, and that you start
+checking your code against "the real world" as soon as possible.</p>
+</div>
+<div class="paragraph">
+<p>We have a form class which can render some HTML and do validation of at
+least one kind of error&#8212;&#8203;let&#8217;s start using it!  We should be able to use
+it in our <em>base.html</em> template, and so in all of our views.</p>
+</div>
+<div class="sect3">
+<h4 id="_using_the_form_in_a_view_with_a_get_request">Using the Form in a View with a GET Request</h4>
+<div class="paragraph">
+<p>
+Let&#8217;s start in our unit tests for the home view. We&#8217;ll add a new method
+that checks whether we&#8217;re using the right kind of form:</p>
 </div>
 <div class="listingblock sourcecode">
-<div class="title">lists/tests/test_views.py (ch12l049)</div>
+<div class="title">lists/tests/test_views.py (ch11l013)</div>
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> <span class="include">lists.forms</span> <span class="keyword">import</span> (
-    DUPLICATE_ITEM_ERROR, EMPTY_ITEM_ERROR,
-    ExistingListItemForm, ItemForm,
-)
-[...]
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> <span class="include">lists.forms</span> <span class="keyword">import</span> <span class="include">ItemForm</span>
 
-    <span class="keyword">def</span> <span class="function">test_duplicate_item_validation_errors_end_up_on_lists_page</span>(<span class="predefined-constant">self</span>):
+<span class="keyword">class</span> <span class="class">HomePageTest</span>(TestCase):
+
+    <span class="keyword">def</span> <span class="function">test_uses_home_template</span>(<span class="predefined-constant">self</span>):
         [...]
-        expected_error = escape(DUPLICATE_ITEM_ERROR)</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>That brings back out integrity error:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>django.db.utils.IntegrityError: UNIQUE constraint failed: lists_item.list_id,
-lists_item.text</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Our fix for this is to switch to using the new form class.  Before we implement
-it, let&#8217;s find the tests where we check the form class, and adjust them:</p>
-</div>
-<div class="listingblock sourcecode">
-<div class="title">lists/tests/test_views.py (ch12l050)</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">class</span> <span class="class">ListViewTest</span>(TestCase):
-[...]
 
-    <span class="keyword">def</span> <span class="function">test_displays_item_form</span>(<span class="predefined-constant">self</span>):
-        list_ = List.objects.create()
-        response = <span class="predefined-constant">self</span>.client.get(<span class="string"><span class="delimiter">'</span><span class="content">/lists/%d/</span><span class="delimiter">'</span></span> % (list_.id,))
-        <span class="predefined-constant">self</span>.assertIsInstance(response.context[<span class="string"><span class="delimiter">'</span><span class="content">form</span><span class="delimiter">'</span></span>], ExistingListItemForm)
-        <span class="predefined-constant">self</span>.assertContains(response, <span class="string"><span class="delimiter">'</span><span class="content">name="text"</span><span class="delimiter">'</span></span>)
-
-    [...]
-
-    <span class="keyword">def</span> <span class="function">test_for_invalid_input_passes_form_to_template</span>(<span class="predefined-constant">self</span>):
-        response = <span class="predefined-constant">self</span>.post_invalid_input()
-        <span class="predefined-constant">self</span>.assertIsInstance(response.context[<span class="string"><span class="delimiter">'</span><span class="content">form</span><span class="delimiter">'</span></span>], ExistingListItemForm)</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>That gives us:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>AssertionError: &lt;ItemForm bound=False, valid=False, fields=(text)&gt; is not an
-instance of &lt;class 'lists.forms.ExistingListItemForm'&gt;</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>So we can adjust the view:</p>
-</div>
-<div class="listingblock sourcecode">
-<div class="title">lists/views.py (ch12l051)</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> <span class="include">lists.forms</span> <span class="keyword">import</span> <span class="include">ExistingListItemForm</span>, <span class="include">ItemForm</span>
-[...]
-<span class="keyword">def</span> <span class="function">view_list</span>(request, list_id):
-    list_ = List.objects.get(id=list_id)
-    form = ExistingListItemForm(for_list=list_)
-    <span class="keyword">if</span> request.method == <span class="string"><span class="delimiter">'</span><span class="content">POST</span><span class="delimiter">'</span></span>:
-        form = ExistingListItemForm(for_list=list_, data=request.POST)
-        <span class="keyword">if</span> form.is_valid():
-            form.save()
-            [...]</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>And that <em>almost</em> fixes everything, except for an unexpected fail:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>TypeError: save() missing 1 required positional argument: 'for_list'</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Our custom save method from the parent <code>ItemForm</code> is no longer needed.
-Let&#8217;s make a quick unit test for that:</p>
-</div>
-<div class="listingblock sourcecode">
-<div class="title">lists/tests/test_forms.py (ch12l053)</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">def</span> <span class="function">test_form_save</span>(<span class="predefined-constant">self</span>):
-    list_ = List.objects.create()
-    form = ExistingListItemForm(for_list=list_, data={<span class="string"><span class="delimiter">'</span><span class="content">text</span><span class="delimiter">'</span></span>: <span class="string"><span class="delimiter">'</span><span class="content">hi</span><span class="delimiter">'</span></span>})
-    new_item = form.save()
-    <span class="predefined-constant">self</span>.assertEqual(new_item, Item.objects.all()[<span class="integer">0</span>])</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>We can make our form call the grandparent save method:</p>
-</div>
-<div class="listingblock sourcecode">
-<div class="title">lists/forms.py (ch12l054)</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="python">    <span class="keyword">def</span> <span class="function">save</span>(<span class="predefined-constant">self</span>):
-        <span class="keyword">return</span> forms.models.ModelForm.save(<span class="predefined-constant">self</span>)</code></pre>
-</div>
-</div>
-<div class="admonitionblock note">
-<table>
-<tr>
-<td class="icon">
-<i class="fa icon-note" title="Note"></i>
-</td>
-<td class="content">
-Personal opinion here: I could have used <code>super</code>, but I prefer not to use
-<code>super</code> when it requires arguments, eg to get a grandparent method. I find
-Python 3&#8217;s <code>super()</code> with no args awesome to get the immediate parent. Anything
-else is too error-prone, and I find it ugly besides. YMMV.
-</td>
-</tr>
-</table>
-</div>
-<div class="paragraph">
-<p>And we&#8217;re there!  All the unit tests pass:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>$ <strong>python manage.py test lists</strong>
-[...]
-Ran 34 tests in 0.082s
-
-OK</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>And so does our FT for validation:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>$ <strong>python manage.py test functional_tests.test_list_item_validation</strong>
-Creating test database for alias 'default'...
-..
- ---------------------------------------------------------------------
-Ran 2 tests in 12.048s
-
-OK
-Destroying test database for alias 'default'...</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>As a final check, we rerun <em>all</em> the FTs:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>$ <strong>python manage.py test functional_tests</strong>
-Creating test database for alias 'default'...
-.....
- ---------------------------------------------------------------------
-Ran 5 tests in 19.048s
-
-OK
-Destroying test database for alias 'default'...</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Hooray! Time for a final commit, and a wrap-up of what we&#8217;ve learned about
-testing views over the last few chapters.
-
-
-</p>
-</div>
-<div class="sidebarblock">
-<div class="content">
-<div class="title">Recap: What to Test in Views</div>
-<div class="listingblock sourcecode skipme small-code">
-<div class="title">Partial listing showing all view tests and assertions</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">class</span> <span class="class">ListViewTest</span>(TestCase):
-    <span class="keyword">def</span> <span class="function">test_uses_list_template</span>(<span class="predefined-constant">self</span>):
-        response = <span class="predefined-constant">self</span>.client.get(<span class="string"><span class="delimiter">'</span><span class="content">/lists/%d/</span><span class="delimiter">'</span></span> % (list_.id,)) <i class="conum" data-value="1"></i><b>(1)</b>
-        <span class="predefined-constant">self</span>.assertTemplateUsed(response, <span class="string"><span class="delimiter">'</span><span class="content">list.html</span><span class="delimiter">'</span></span>) <i class="conum" data-value="2"></i><b>(2)</b>
-    <span class="keyword">def</span> <span class="function">test_passes_correct_list_to_template</span>(<span class="predefined-constant">self</span>):
-        <span class="predefined-constant">self</span>.assertEqual(response.context[<span class="string"><span class="delimiter">'</span><span class="content">list</span><span class="delimiter">'</span></span>], correct_list) <i class="conum" data-value="3"></i><b>(3)</b>
-    <span class="keyword">def</span> <span class="function">test_displays_item_form</span>(<span class="predefined-constant">self</span>):
-        <span class="predefined-constant">self</span>.assertIsInstance(response.context[<span class="string"><span class="delimiter">'</span><span class="content">form</span><span class="delimiter">'</span></span>], ExistingListItemForm) <i class="conum" data-value="4"></i><b>(4)</b>
-        <span class="predefined-constant">self</span>.assertContains(response, <span class="string"><span class="delimiter">'</span><span class="content">name="text"</span><span class="delimiter">'</span></span>)
-    <span class="keyword">def</span> <span class="function">test_displays_only_items_for_that_list</span>(<span class="predefined-constant">self</span>):
-        <span class="predefined-constant">self</span>.assertContains(response, <span class="string"><span class="delimiter">'</span><span class="content">itemey 1</span><span class="delimiter">'</span></span>) <i class="conum" data-value="5"></i><b>(5)</b>
-        <span class="predefined-constant">self</span>.assertContains(response, <span class="string"><span class="delimiter">'</span><span class="content">itemey 2</span><span class="delimiter">'</span></span>) <i class="conum" data-value="5"></i><b>(5)</b>
-        <span class="predefined-constant">self</span>.assertNotContains(response, <span class="string"><span class="delimiter">'</span><span class="content">other list item 1</span><span class="delimiter">'</span></span>) <i class="conum" data-value="5"></i><b>(5)</b>
-    <span class="keyword">def</span> <span class="function">test_can_save_a_POST_request_to_an_existing_list</span>(<span class="predefined-constant">self</span>):
-        <span class="predefined-constant">self</span>.assertEqual(Item.objects.count(), <span class="integer">1</span>) <i class="conum" data-value="6"></i><b>(6)</b>
-        <span class="predefined-constant">self</span>.assertEqual(new_item.text, <span class="string"><span class="delimiter">'</span><span class="content">A new item for an existing list</span><span class="delimiter">'</span></span>) <i class="conum" data-value="6"></i><b>(6)</b>
-    <span class="keyword">def</span> <span class="function">test_POST_redirects_to_list_view</span>(<span class="predefined-constant">self</span>):
-        <span class="predefined-constant">self</span>.assertRedirects(response, <span class="string"><span class="delimiter">'</span><span class="content">/lists/%d/</span><span class="delimiter">'</span></span> % (correct_list.id,)) <i class="conum" data-value="6"></i><b>(6)</b>
-    <span class="keyword">def</span> <span class="function">test_for_invalid_input_nothing_saved_to_db</span>(<span class="predefined-constant">self</span>):
-        <span class="predefined-constant">self</span>.assertEqual(Item.objects.count(), <span class="integer">0</span>) <i class="conum" data-value="6"></i><b>(6)</b>
-    <span class="keyword">def</span> <span class="function">test_for_invalid_input_renders_list_template</span>(<span class="predefined-constant">self</span>):
-        <span class="predefined-constant">self</span>.assertEqual(response.status_code, <span class="integer">200</span>)
-        <span class="predefined-constant">self</span>.assertTemplateUsed(response, <span class="string"><span class="delimiter">'</span><span class="content">list.html</span><span class="delimiter">'</span></span>) <i class="conum" data-value="6"></i><b>(6)</b>
-    <span class="keyword">def</span> <span class="function">test_for_invalid_input_passes_form_to_template</span>(<span class="predefined-constant">self</span>):
-        <span class="predefined-constant">self</span>.assertIsInstance(response.context[<span class="string"><span class="delimiter">'</span><span class="content">form</span><span class="delimiter">'</span></span>], ExistingListItemForm) <i class="conum" data-value="7"></i><b>(7)</b>
-    <span class="keyword">def</span> <span class="function">test_for_invalid_input_shows_error_on_page</span>(<span class="predefined-constant">self</span>):
-        <span class="predefined-constant">self</span>.assertContains(response, escape(EMPTY_ITEM_ERROR)) <i class="conum" data-value="7"></i><b>(7)</b>
-    <span class="keyword">def</span> <span class="function">test_duplicate_item_validation_errors_end_up_on_lists_page</span>(<span class="predefined-constant">self</span>):
-        <span class="predefined-constant">self</span>.assertContains(response, expected_error)
-        <span class="predefined-constant">self</span>.assertTemplateUsed(response, <span class="string"><span class="delimiter">'</span><span class="content">list.html</span><span class="delimiter">'</span></span>)
-        <span class="predefined-constant">self</span>.assertEqual(Item.objects.all().count(), <span class="integer">1</span>)</code></pre>
+    <span class="keyword">def</span> <span class="function">test_home_page_uses_item_form</span>(<span class="predefined-constant">self</span>):
+        response = <span class="predefined-constant">self</span>.client.get(<span class="string"><span class="delimiter">'</span><span class="content">/</span><span class="delimiter">'</span></span>)
+        <span class="predefined-constant">self</span>.assertIsInstance(response.context[<span class="string"><span class="delimiter">'</span><span class="content">form</span><span class="delimiter">'</span></span>], ItemForm)  <i class="conum" data-value="1"></i><b>(1)</b></code></pre>
 </div>
 </div>
 <div class="colist arabic">
 <table>
 <tr>
 <td><i class="conum" data-value="1"></i><b>1</b></td>
-<td>Use the Django test client.</td>
-</tr>
-<tr>
-<td><i class="conum" data-value="2"></i><b>2</b></td>
-<td>Check the template used.  Then, check each item in the template context.</td>
-</tr>
-<tr>
-<td><i class="conum" data-value="3"></i><b>3</b></td>
-<td>Check any objects are the right ones, or querysets have the
-correct items.</td>
-</tr>
-<tr>
-<td><i class="conum" data-value="4"></i><b>4</b></td>
-<td>Check any forms are of the correct class.</td>
-</tr>
-<tr>
-<td><i class="conum" data-value="5"></i><b>5</b></td>
-<td>Think about testing template logic:  any <code>for</code> or <code>if</code> could have a minimal test.</td>
-</tr>
-<tr>
-<td><i class="conum" data-value="6"></i><b>6</b></td>
-<td>For views that handle POST requests, make sure you test both the valid
-case and the invalid case.</td>
-</tr>
-<tr>
-<td><i class="conum" data-value="7"></i><b>7</b></td>
-<td>Optionally, sanity-check that your form is rendered, and its errors are
-displayed.</td>
+<td><code>assertIsInstance</code> checks that our form is of the correct class</td>
 </tr>
 </table>
 </div>
 <div class="paragraph">
-<p>Why these points?  Skip ahead to <a href="/book/appendix_II_Django_Class-Based_Views.html">[appendix2]</a>, and I&#8217;ll show how
-they are sufficient to ensure that our views are still correct if we refactor
-them to start using class-based views.</p>
+<p>That gives us:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>KeyError: 'form'</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>So we use the form in our home page view:</p>
+</div>
+<div class="listingblock sourcecode">
+<div class="title">lists/views.py (ch11l014)</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python">[...]
+<span class="keyword">from</span> <span class="include">lists.forms</span> <span class="keyword">import</span> <span class="include">ItemForm</span>
+<span class="keyword">from</span> <span class="include">lists.models</span> <span class="keyword">import</span> <span class="include">Item</span>, <span class="include">List</span>
+
+<span class="keyword">def</span> <span class="function">home_page</span>(request):
+    <span class="keyword">return</span> render(request, <span class="string"><span class="delimiter">'</span><span class="content">home.html</span><span class="delimiter">'</span></span>, {<span class="string"><span class="delimiter">'</span><span class="content">form</span><span class="delimiter">'</span></span>: ItemForm()})</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>OK, now let&#8217;s try using it in the template&#8212;&#8203;we replace the old <code>&lt;input ..&gt;</code>
+with <code>{{ form.text }}</code>:</p>
+</div>
+<div class="listingblock sourcecode">
+<div class="title">lists/templates/base.html (ch11l015)</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="html">    <span class="tag">&lt;form</span> <span class="attribute-name">method</span>=<span class="string"><span class="delimiter">"</span><span class="content">POST</span><span class="delimiter">"</span></span> <span class="attribute-name">action</span>=<span class="string"><span class="delimiter">"</span><span class="content">{% block form_action %}{% endblock %}</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>
+        {{ form.text }}
+        {% csrf_token %}
+        {% if error %}
+            <span class="tag">&lt;div</span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">"</span><span class="content">form-group has-error</span><span class="delimiter">"</span></span><span class="tag">&gt;</span></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p><code>{{ form.text }}</code> renders just the HTML input for the <code>text</code> field of the form.</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_a_big_find_and_replace">A Big Find and Replace</h4>
+<div class="paragraph">
+<p>One thing we have done, though, is changed our form&#8212;&#8203;it no longer uses
+the same <code>id</code> and <code>name</code> attributes.  You&#8217;ll see if we run our functional
+tests that they fail the first time they try and find the input box:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>selenium.common.exceptions.NoSuchElementException: Message: Unable to locate
+element: [id="id_new_item"]</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>We&#8217;ll need to fix this, and it&#8217;s going to involve a big find and replace.
+Before we do that, let&#8217;s do a commit, to keep the rename separate from
+the logic change:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>git diff</strong> # review changes in base.html, views.py and its tests
+$ <strong>git commit -am "use new form in home_page, simplify tests. NB breaks stuff"</strong></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Let&#8217;s fix the functional tests.  A quick <code>grep</code> shows us there are several
+places where we&#8217;re using <code>id_new_item</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>grep id_new_item functional_tests/test*</strong>
+functional_tests/test_layout_and_styling.py:        inputbox =
+self.browser.find_element_by_id('id_new_item')
+functional_tests/test_layout_and_styling.py:        inputbox =
+self.browser.find_element_by_id('id_new_item')
+functional_tests/test_list_item_validation.py:
+self.browser.find_element_by_id('id_new_item').send_keys(Keys.ENTER)
+[...]</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>That&#8217;s a good call for a refactor.  Let&#8217;s make a new helper method
+in <em>base.py</em>:</p>
+</div>
+<div class="listingblock sourcecode">
+<div class="title">functional_tests/base.py (ch11l018)</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">class</span> <span class="class">FunctionalTest</span>(StaticLiveServerTestCase):
+    [...]
+    <span class="keyword">def</span> <span class="function">get_item_input_box</span>(<span class="predefined-constant">self</span>):
+        <span class="keyword">return</span> <span class="predefined-constant">self</span>.browser.find_element_by_id(<span class="string"><span class="delimiter">'</span><span class="content">id_text</span><span class="delimiter">'</span></span>)</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>And then we use it throughout&#8212;&#8203;I had to make four changes in
+<em>test_simple_list_creation.py</em>, two in <em>test_layout_and_styling.py</em>, and four
+in <em>test_list_item_validation.py</em>, eg:</p>
+</div>
+<div class="listingblock sourcecode dofirst-ch11l020 currentcontents">
+<div class="title">functional_tests/test_simple_list_creation.py</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python">    <span class="comment"># She is invited to enter a to-do item straight away</span>
+    inputbox = <span class="predefined-constant">self</span>.get_item_input_box()</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Or:</p>
+</div>
+<div class="listingblock sourcecode currentcontents">
+<div class="title">functional_tests/test_list_item_validation.py</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python">    <span class="comment"># an empty list item. She hits Enter on the empty input box</span>
+    <span class="predefined-constant">self</span>.browser.get(<span class="predefined-constant">self</span>.server_url)
+    <span class="predefined-constant">self</span>.get_item_input_box().send_keys(Keys.ENTER)</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>I won&#8217;t show you every single one, I&#8217;m sure you can manage this for
+yourself!  You can redo the <code>grep</code> to check you&#8217;ve caught them all.</p>
+</div>
+<div class="paragraph">
+<p>We&#8217;re past the first step, but now we have to bring the rest of the application
+code in line with the change.  We need to find any occurrences of the old <code>id</code>
+(<code>id_new_item</code>) and <code>name</code> (<code>item_text</code>) and replace them too, with <code>id_text</code> and
+<code>text</code>, respectively:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>grep -r id_new_item lists/</strong>
+lists/static/base.css:#id_new_item {</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>That&#8217;s one change, and similarly for the <code>name</code>:</p>
+</div>
+<div class="listingblock dofirst-ch11l021">
+<div class="content">
+<pre>$ <strong>grep -Ir item_text lists</strong>
+[...]
+lists/views.py:    item = Item(text=request.POST['item_text'], list=list_)
+lists/views.py:            item = Item(text=request.POST['item_text'],
+list=list_)
+lists/tests/test_views.py:        self.client.post('/lists/new',
+data={'item_text': 'A new list item'})
+lists/tests/test_views.py:        response = self.client.post('/lists/new',
+data={'item_text': 'A new list item'})
+[...]
+lists/tests/test_views.py:            data={'item_text': ''}
+[...]</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Once we&#8217;re done, we rerun the unit tests to check everything still works:</p>
+</div>
+<div class="listingblock dofirst-ch11l022">
+<div class="content">
+<pre>$ <strong>python manage.py test lists</strong>
+Creating test database for alias 'default'...
+.................
+ ---------------------------------------------------------------------
+Ran 17 tests in 0.126s
+
+OK
+Destroying test database for alias 'default'...</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>And the functional tests too:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>python manage.py test functional_tests</strong>
+[...]
+  File "/.../superlists/functional_tests/test_simple_list_creation.py", line
+38, in test_can_start_a_list_for_one_user
+    return self.browser.find_element_by_id('id_text')
+  File "/.../superlists/functional_tests/base.py", line 56, in
+get_item_input_box
+    return self.browser.find_element_by_id('id_text')
+selenium.common.exceptions.NoSuchElementException: Message: Unable to locate
+element: [id="id_text"]
+[...]
+FAILED (errors=3)</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Not quite!  Let&#8217;s look at where this is happening&#8212;&#8203;if you check the line
+number from one of the failures, you&#8217;ll see that each time after we&#8217;ve
+submitted a first item, the input box has disappeared from the lists page.</p>
+</div>
+<div class="paragraph">
+<p>Checking <em>views.py</em> and the <code>new_list</code> view we can see it&#8217;s because if we
+detect a validation error, we&#8217;re not actually passing the form to the
+<em>home.html</em> template:</p>
+</div>
+<div class="listingblock sourcecode currentcontents">
+<div class="title">lists/views.py</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">except</span> ValidationError:
+    list_.delete()
+    error = <span class="string"><span class="delimiter">"</span><span class="content">You can't have an empty list item</span><span class="delimiter">"</span></span>
+    <span class="keyword">return</span> render(request, <span class="string"><span class="delimiter">'</span><span class="content">home.html</span><span class="delimiter">'</span></span>, {<span class="string"><span class="delimiter">"</span><span class="content">error</span><span class="delimiter">"</span></span>: error})</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>We&#8217;ll want to use the form in this view too. Before we make any more changes
+though, let&#8217;s do a commit:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>git status</strong>
+$ <strong>git commit -am "rename all item input ids and names. still broken"</strong></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_using_the_form_in_a_view_that_takes_post_requests">Using the Form in a View That Takes POST Requests</h3>
+<div class="paragraph">
+<p>
+Now we want to adjust the unit tests for the <code>new_list</code> view, especially the
+one that deals with validation. Let&#8217;s take a look at it now:</p>
+</div>
+<div class="listingblock sourcecode currentcontents">
+<div class="title">lists/tests/test_views.py</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">class</span> <span class="class">NewListTest</span>(TestCase):
+    [...]
+
+    <span class="keyword">def</span> <span class="function">test_validation_errors_are_sent_back_to_home_page_template</span>(<span class="predefined-constant">self</span>):
+        response = <span class="predefined-constant">self</span>.client.post(<span class="string"><span class="delimiter">'</span><span class="content">/lists/new</span><span class="delimiter">'</span></span>, data={<span class="string"><span class="delimiter">'</span><span class="content">text</span><span class="delimiter">'</span></span>: <span class="string"><span class="delimiter">'</span><span class="delimiter">'</span></span>})
+        <span class="predefined-constant">self</span>.assertEqual(response.status_code, <span class="integer">200</span>)
+        <span class="predefined-constant">self</span>.assertTemplateUsed(response, <span class="string"><span class="delimiter">'</span><span class="content">home.html</span><span class="delimiter">'</span></span>)
+        expected_error = escape(<span class="string"><span class="delimiter">"</span><span class="content">You can't have an empty list item</span><span class="delimiter">"</span></span>)
+        <span class="predefined-constant">self</span>.assertContains(response, expected_error)</code></pre>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_adapting_the_unit_tests_for_the_new_list_view">Adapting the Unit Tests for the new_list View</h4>
+<div class="paragraph">
+<p>For a start this test is testing too many things at once, so we&#8217;ve got
+an opportunity to clarify things here.  We should split out two different
+assertions:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>If there&#8217;s a validation error, we should render the home template, with a 200.</p>
+</li>
+<li>
+<p>If there&#8217;s a validation error, the response should contain our error text.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>And we can add a new one too:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>If there&#8217;s a validation error, we should pass our form object to the
+template.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>And while we&#8217;re at it, we&#8217;ll use our constant instead of the hardcoded string
+for that error message:</p>
+</div>
+<div class="listingblock sourcecode">
+<div class="title">lists/tests/test_views.py (ch11l023)</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> <span class="include">lists.forms</span> <span class="keyword">import</span> <span class="include">ItemForm</span>, <span class="include">EMPTY_ITEM_ERROR</span>
+[...]
+
+<span class="keyword">class</span> <span class="class">NewListTest</span>(TestCase):
+    [...]
+
+    <span class="keyword">def</span> <span class="function">test_for_invalid_input_renders_home_template</span>(<span class="predefined-constant">self</span>):
+        response = <span class="predefined-constant">self</span>.client.post(<span class="string"><span class="delimiter">'</span><span class="content">/lists/new</span><span class="delimiter">'</span></span>, data={<span class="string"><span class="delimiter">'</span><span class="content">text</span><span class="delimiter">'</span></span>: <span class="string"><span class="delimiter">'</span><span class="delimiter">'</span></span>})
+        <span class="predefined-constant">self</span>.assertEqual(response.status_code, <span class="integer">200</span>)
+        <span class="predefined-constant">self</span>.assertTemplateUsed(response, <span class="string"><span class="delimiter">'</span><span class="content">home.html</span><span class="delimiter">'</span></span>)
+
+
+    <span class="keyword">def</span> <span class="function">test_validation_errors_are_shown_on_home_page</span>(<span class="predefined-constant">self</span>):
+        response = <span class="predefined-constant">self</span>.client.post(<span class="string"><span class="delimiter">'</span><span class="content">/lists/new</span><span class="delimiter">'</span></span>, data={<span class="string"><span class="delimiter">'</span><span class="content">text</span><span class="delimiter">'</span></span>: <span class="string"><span class="delimiter">'</span><span class="delimiter">'</span></span>})
+        <span class="predefined-constant">self</span>.assertContains(response, escape(EMPTY_ITEM_ERROR))
+
+
+    <span class="keyword">def</span> <span class="function">test_for_invalid_input_passes_form_to_template</span>(<span class="predefined-constant">self</span>):
+        response = <span class="predefined-constant">self</span>.client.post(<span class="string"><span class="delimiter">'</span><span class="content">/lists/new</span><span class="delimiter">'</span></span>, data={<span class="string"><span class="delimiter">'</span><span class="content">text</span><span class="delimiter">'</span></span>: <span class="string"><span class="delimiter">'</span><span class="delimiter">'</span></span>})
+        <span class="predefined-constant">self</span>.assertIsInstance(response.context[<span class="string"><span class="delimiter">'</span><span class="content">form</span><span class="delimiter">'</span></span>], ItemForm)</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Much better.  Each test is now clearly testing one thing, and, with a
+bit of luck, just one will fail and tell us what to do:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>python manage.py test lists</strong>
+[...]
+======================================================================
+ERROR: test_for_invalid_input_passes_form_to_template
+(lists.tests.test_views.NewListTest)
+ ---------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/.../superlists/lists/tests/test_views.py", line 49, in
+test_for_invalid_input_passes_form_to_template
+    self.assertIsInstance(response.context['form'], ItemForm)
+[...]
+KeyError: 'form'
+
+ ---------------------------------------------------------------------
+Ran 19 tests in 0.041s
+
+FAILED (errors=1)</pre>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_using_the_form_in_the_view">Using the Form in the View</h4>
+<div class="paragraph">
+<p>And here&#8217;s how we use the form in the view:</p>
+</div>
+<div class="listingblock sourcecode">
+<div class="title">lists/views.py</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">def</span> <span class="function">new_list</span>(request):
+    form = ItemForm(data=request.POST)  <i class="conum" data-value="1"></i><b>(1)</b>
+    <span class="keyword">if</span> form.is_valid():  <i class="conum" data-value="2"></i><b>(2)</b>
+        list_ = List.objects.create()
+        Item.objects.create(text=request.POST[<span class="string"><span class="delimiter">'</span><span class="content">text</span><span class="delimiter">'</span></span>], list=list_)
+        <span class="keyword">return</span> redirect(list_)
+    <span class="keyword">else</span>:
+        <span class="keyword">return</span> render(request, <span class="string"><span class="delimiter">'</span><span class="content">home.html</span><span class="delimiter">'</span></span>, {<span class="string"><span class="delimiter">"</span><span class="content">form</span><span class="delimiter">"</span></span>: form})  <i class="conum" data-value="3"></i><b>(3)</b></code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>We pass the <code>request.POST</code> data into the form&#8217;s constructor.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>We use <code>form.is_valid()</code> to determine whether this is a good or a
+bad submission.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="3"></i><b>3</b></td>
+<td>In the invalid case, we pass the form down to the template, instead of
+our hardcoded error string.</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>That view is now looking much nicer!  And all our tests pass, except one:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>    self.assertContains(response, escape(EMPTY_ITEM_ERROR))
+[...]
+AssertionError: False is not true : Couldn't find 'You can&amp;#39;t have an empty
+list item' in response</pre>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_using_the_form_to_display_errors_in_the_template">Using the Form to Display Errors in the Template</h4>
+<div class="paragraph">
+<p>We&#8217;re failing because we&#8217;re not yet using the form to display errors in the
+template:</p>
+</div>
+<div class="listingblock sourcecode">
+<div class="title">lists/templates/base.html (ch11l026)</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="html">    <span class="tag">&lt;form</span> <span class="attribute-name">method</span>=<span class="string"><span class="delimiter">"</span><span class="content">POST</span><span class="delimiter">"</span></span> <span class="attribute-name">action</span>=<span class="string"><span class="delimiter">"</span><span class="content">{% block form_action %}{% endblock %}</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>
+        {{ form.text }}
+        {% csrf_token %}
+        {% if form.errors %}  <i class="conum" data-value="1"></i><b>(1)</b>
+            <span class="tag">&lt;div</span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">"</span><span class="content">form-group has-error</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>
+                <span class="tag">&lt;div</span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">"</span><span class="content">help-block</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>{{ form.text.errors }}<span class="tag">&lt;/div&gt;</span>  <i class="conum" data-value="2"></i><b>(2)</b>
+            <span class="tag">&lt;/div&gt;</span>
+        {% endif %}
+    <span class="tag">&lt;/form&gt;</span></code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td><code>form.errors</code> contains a list of all the errors for the form.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td><code>form.text.errors</code> is a list of just the errors for the <code>text</code> field.</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>What does that do to our tests?</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>FAIL: test_validation_errors_end_up_on_lists_page
+(lists.tests.test_views.ListViewTest)
+[...]
+AssertionError: False is not true : Couldn't find 'You can&amp;#39;t have an empty
+list item' in response</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>An unexpected failure&#8212;&#8203;it&#8217;s actually in the tests for our final view,
+<code>view_list</code>.  Because we&#8217;ve changed the way errors are displayed in <em>all</em>
+templates, we&#8217;re no longer showing the error that we manually pass into the
+template.</p>
+</div>
+<div class="paragraph">
+<p>That means we&#8217;re going to need to rework <code>view_list</code> as well, before we can
+get back to a working state.</p>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_using_the_form_in_the_other_view">Using the Form in the Other View</h3>
+<div class="paragraph">
+<p>
+This view handles both GET and POST requests.  Let&#8217;s start with checking
+the form is used in GET requests.  We can have a new test for that:</p>
+</div>
+<div class="listingblock sourcecode">
+<div class="title">lists/tests/test_views.py</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">class</span> <span class="class">ListViewTest</span>(TestCase):
+    [...]
+
+    <span class="keyword">def</span> <span class="function">test_displays_item_form</span>(<span class="predefined-constant">self</span>):
+        list_ = List.objects.create()
+        response = <span class="predefined-constant">self</span>.client.get(<span class="string"><span class="delimiter">'</span><span class="content">/lists/%d/</span><span class="delimiter">'</span></span> % (list_.id,))
+        <span class="predefined-constant">self</span>.assertIsInstance(response.context[<span class="string"><span class="delimiter">'</span><span class="content">form</span><span class="delimiter">'</span></span>], ItemForm)
+        <span class="predefined-constant">self</span>.assertContains(response, <span class="string"><span class="delimiter">'</span><span class="content">name="text"</span><span class="delimiter">'</span></span>)</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>That gives:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>KeyError: 'form'</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Here&#8217;s a minimal implementation:</p>
+</div>
+<div class="listingblock sourcecode">
+<div class="title">lists/views.py (ch11l028)</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">def</span> <span class="function">view_list</span>(request, list_id):
+    [...]
+    form = ItemForm()
+    <span class="keyword">return</span> render(request, <span class="string"><span class="delimiter">'</span><span class="content">list.html</span><span class="delimiter">'</span></span>, {
+        <span class="string"><span class="delimiter">'</span><span class="content">list</span><span class="delimiter">'</span></span>: list_, <span class="string"><span class="delimiter">"</span><span class="content">form</span><span class="delimiter">"</span></span>: form, <span class="string"><span class="delimiter">"</span><span class="content">error</span><span class="delimiter">"</span></span>: error
+    })</code></pre>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_a_helper_method_for_several_short_tests">A Helper Method for Several Short Tests</h4>
+<div class="paragraph">
+<p>
+Next we want to use the form errors in the second view.
+We&#8217;ll split our current single test for the
+invalid case (<code>test_validation_errors_end_up_on_lists_page</code>) into several
+separate ones:</p>
+</div>
+<div class="listingblock sourcecode">
+<div class="title">lists/tests/test_views.py (ch11l030)</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">class</span> <span class="class">ListViewTest</span>(TestCase):
+    [...]
+
+    <span class="keyword">def</span> <span class="function">post_invalid_input</span>(<span class="predefined-constant">self</span>):
+        list_ = List.objects.create()
+        <span class="keyword">return</span> <span class="predefined-constant">self</span>.client.post(
+            <span class="string"><span class="delimiter">'</span><span class="content">/lists/%d/</span><span class="delimiter">'</span></span> % (list_.id,),
+            data={<span class="string"><span class="delimiter">'</span><span class="content">text</span><span class="delimiter">'</span></span>: <span class="string"><span class="delimiter">'</span><span class="delimiter">'</span></span>}
+        )
+
+    <span class="keyword">def</span> <span class="function">test_for_invalid_input_nothing_saved_to_db</span>(<span class="predefined-constant">self</span>):
+        <span class="predefined-constant">self</span>.post_invalid_input()
+        <span class="predefined-constant">self</span>.assertEqual(Item.objects.count(), <span class="integer">0</span>)
+
+    <span class="keyword">def</span> <span class="function">test_for_invalid_input_renders_list_template</span>(<span class="predefined-constant">self</span>):
+        response = <span class="predefined-constant">self</span>.post_invalid_input()
+        <span class="predefined-constant">self</span>.assertEqual(response.status_code, <span class="integer">200</span>)
+        <span class="predefined-constant">self</span>.assertTemplateUsed(response, <span class="string"><span class="delimiter">'</span><span class="content">list.html</span><span class="delimiter">'</span></span>)
+
+    <span class="keyword">def</span> <span class="function">test_for_invalid_input_passes_form_to_template</span>(<span class="predefined-constant">self</span>):
+        response = <span class="predefined-constant">self</span>.post_invalid_input()
+        <span class="predefined-constant">self</span>.assertIsInstance(response.context[<span class="string"><span class="delimiter">'</span><span class="content">form</span><span class="delimiter">'</span></span>], ItemForm)
+
+    <span class="keyword">def</span> <span class="function">test_for_invalid_input_shows_error_on_page</span>(<span class="predefined-constant">self</span>):
+        response = <span class="predefined-constant">self</span>.post_invalid_input()
+        <span class="predefined-constant">self</span>.assertContains(response, escape(EMPTY_ITEM_ERROR))</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>By making a little helper function, <code>post_invalid_input</code>, we can make four
+separate tests without duplicating lots of lines of code.</p>
+</div>
+<div class="paragraph">
+<p>We&#8217;ve seen this several times now. It often feels more natural to write view
+tests as a single, monolithic block of assertions&#8212;&#8203;the view should do this
+and this and this then return that with this.  But breaking things out into
+multiple tests is definitely worthwhile; as we saw in previous chapters, it
+helps you isolate the exact problem you may have, when you later come and
+change your code and accidentally introduce a bug. Helper methods are one of
+the tools that lower the psychological barrier.</p>
+</div>
+<div class="paragraph">
+<p>For example, now we can see there&#8217;s just one failure, and it&#8217;s a clear one:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>FAIL: test_for_invalid_input_shows_error_on_page
+(lists.tests.test_views.ListViewTest)
+AssertionError: False is not true : Couldn't find 'You can&amp;#39;t have an empty
+list item' in response</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Now let&#8217;s see if we can properly rewrite the view to use our form.  Here&#8217;s a
+first cut:</p>
+</div>
+<div class="listingblock sourcecode">
+<div class="title">lists/views.py</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">def</span> <span class="function">view_list</span>(request, list_id):
+    list_ = List.objects.get(id=list_id)
+    form = ItemForm()
+    <span class="keyword">if</span> request.method == <span class="string"><span class="delimiter">'</span><span class="content">POST</span><span class="delimiter">'</span></span>:
+        form = ItemForm(data=request.POST)
+        <span class="keyword">if</span> form.is_valid():
+            Item.objects.create(text=request.POST[<span class="string"><span class="delimiter">'</span><span class="content">text</span><span class="delimiter">'</span></span>], list=list_)
+            <span class="keyword">return</span> redirect(list_)
+    <span class="keyword">return</span> render(request, <span class="string"><span class="delimiter">'</span><span class="content">list.html</span><span class="delimiter">'</span></span>, {<span class="string"><span class="delimiter">'</span><span class="content">list</span><span class="delimiter">'</span></span>: list_, <span class="string"><span class="delimiter">"</span><span class="content">form</span><span class="delimiter">"</span></span>: form})</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>That gets the unit tests passing:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>Ran 23 tests in 0.086s
+
+OK</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>How about the FTs?</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>ERROR: test_cannot_add_empty_list_items
+(functional_tests.test_list_item_validation.ItemValidationTest)
+ ---------------------------------------------------------------------
+Traceback (most recent call last):
+File "/.../superlists/functional_tests/test_list_item_validation.py", line
+15, in test_cannot_add_empty_list_items
+[...]
+selenium.common.exceptions.NoSuchElementException: Message: Unable to locate
+element: .has-error</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Nope.</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_an_unexpected_benefit_free_client_side_validation_from_html5">An unexpected benefit:  free client-side validation from HTML5</h4>
+<div class="paragraph">
+<p>What&#8217;s going on here?  Let&#8217;s add our usual <code>time.sleep</code> before the
+error, and take a look at what&#8217;s happening (or spin up the site
+manually with <code>manage.py runserver</code> if you prefer:</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="images/please_fill_out_this_field.png" alt="The input with a popup saying 'please fill out this field'">
+</div>
+<div class="title">Figure 1. HMTL5 validation says no</div>
+</div>
+<div class="paragraph">
+<p>It seems like the browser is preventing the user from even submitting
+the input when it&#8217;s empty.</p>
+</div>
+<div class="paragraph">
+<p>It&#8217;s because Django has add the <code>required</code> attribute to the HTML
+input<sup class="footnote">[<a id="_footnoteref_1" class="footnote" href="#_footnote_1" title="View footnote.">1</a>]</sup>
+(take another look at our <code>as_p()</code> printouts from earlier if you don&#8217;t
+believe me).  This is a
+<a href="https://developer.mozilla.org/en-US/docs/Web/HTML/Element/Input#attr-required">new feature of HTML5</a>,
+and browsers nowadays will do some validation at the client-side if they
+see it, preventing users from even submitting invalid input.</p>
+</div>
+<div class="paragraph">
+<p>Let&#8217;s change our FT to reflect that</p>
+</div>
+<div class="listingblock sourcecode">
+<div class="title">functional_tests/test_list_item_validation.py (ch11l032)</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python">    <span class="keyword">def</span> <span class="function">test_cannot_add_empty_list_items</span>(<span class="predefined-constant">self</span>):
+        <span class="comment"># Edith goes to the home page and accidentally tries to submit</span>
+        <span class="comment"># an empty list item. She hits Enter on the empty input box</span>
+        <span class="predefined-constant">self</span>.browser.get(<span class="predefined-constant">self</span>.server_url)
+        <span class="predefined-constant">self</span>.get_item_input_box().send_keys(Keys.ENTER)
+
+        <span class="comment"># The browser intercepts the request, and does not load the</span>
+        <span class="comment"># list page</span>
+        <span class="predefined-constant">self</span>.wait_for(<span class="keyword">lambda</span>: <span class="predefined-constant">self</span>.browser.find_elements_by_css_selector(
+            <span class="string"><span class="delimiter">'</span><span class="content">#id_text:invalid</span><span class="delimiter">'</span></span>  <i class="conum" data-value="1"></i><b>(1)</b>
+        ))
+
+        <span class="comment"># She starts typing some text for the new item and the error disappears</span>
+        <span class="predefined-constant">self</span>.get_item_input_box().send_keys(<span class="string"><span class="delimiter">'</span><span class="content">Buy milk</span><span class="delimiter">'</span></span>)
+        <span class="predefined-constant">self</span>.wait_for(<span class="keyword">lambda</span>: <span class="predefined-constant">self</span>.browser.find_elements_by_css_selector(
+            <span class="string"><span class="delimiter">'</span><span class="content">#id_text:valid</span><span class="delimiter">'</span></span>  <i class="conum" data-value="2"></i><b>(2)</b>
+        ))
+
+        <span class="comment"># And she can submit it successfully</span>
+        <span class="predefined-constant">self</span>.get_item_input_box().send_keys(Keys.ENTER)
+        <span class="predefined-constant">self</span>.wait_for_row_in_list_table(<span class="string"><span class="delimiter">'</span><span class="content">1: Buy milk</span><span class="delimiter">'</span></span>)
+
+        <span class="comment"># Perversely, she now decides to submit a second blank list item</span>
+        <span class="predefined-constant">self</span>.get_item_input_box().send_keys(Keys.ENTER)
+
+        <span class="comment"># Again, the browser will not comply</span>
+        <span class="predefined-constant">self</span>.wait_for_row_in_list_table(<span class="string"><span class="delimiter">'</span><span class="content">1: Buy milk</span><span class="delimiter">'</span></span>)
+        <span class="predefined-constant">self</span>.wait_for(<span class="keyword">lambda</span>: <span class="predefined-constant">self</span>.browser.find_elements_by_css_selector(
+            <span class="string"><span class="delimiter">'</span><span class="content">#id_text:invalid</span><span class="delimiter">'</span></span>
+        ))
+
+        <span class="comment"># And she can correct it by filling some text in</span>
+        <span class="predefined-constant">self</span>.get_item_input_box().send_keys(<span class="string"><span class="delimiter">'</span><span class="content">Make tea</span><span class="delimiter">'</span></span>)
+        <span class="predefined-constant">self</span>.wait_for(<span class="keyword">lambda</span>: <span class="predefined-constant">self</span>.browser.find_elements_by_css_selector(
+            <span class="string"><span class="delimiter">'</span><span class="content">#id_text:valid</span><span class="delimiter">'</span></span>
+        ))
+        <span class="predefined-constant">self</span>.get_item_input_box().send_keys(Keys.ENTER)
+        <span class="predefined-constant">self</span>.wait_for_row_in_list_table(<span class="string"><span class="delimiter">'</span><span class="content">1: Buy milk</span><span class="delimiter">'</span></span>)
+        <span class="predefined-constant">self</span>.wait_for_row_in_list_table(<span class="string"><span class="delimiter">'</span><span class="content">2: Make tea</span><span class="delimiter">'</span></span>)</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>Instead of checking for our custom error message, we check using the
+CSS pseudo-selector <code>:invalid</code>, which the browser applies to any
+HTML5 input that has invalid input</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>And its converse in the case of valid inputs.</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>See how useful and flexible our <code>self.wait_for</code> function is turning out to
+be?</p>
+</div>
+<div class="paragraph">
+<p>Our FT does look quite different from how it started though doesn&#8217;t it? I&#8217;m
+sure that&#8217;s raising a lot of questions in your mind right now. Put a pin in
+them for a moment, I promise we&#8217;ll talk, let&#8217;s first see if we&#8217;re back to
+passing tests:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>python manage.py test functional_tests</strong>
+Creating test database for alias 'default'...
+....
+ ---------------------------------------------------------------------
+Ran 4 tests in 12.154s
+
+OK
+Destroying test database for alias 'default'...</pre>
+</div>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_wait_have_we_wasted_a_lot_of_time">Wait, have we wasted a lot of time?</h3>
+<div class="paragraph">
+<p>Before we get into that, I want us to first give ourselves a massive pat on the
+back: we&#8217;ve just made a major change to our small app&#8212;&#8203;that input field, with
+its name and ID, is absolutely critical to making everything work.  We&#8217;ve
+touched seven or eight different files, doing a refactor that&#8217;s quite
+involved&#8230;&#8203;this is the kind of thing that, without tests, would seriously worry
+me.  In fact, I might well have decided that it wasn&#8217;t worth messing with code
+that works.  But, because we have a full tests suite, we can delve around ,
+tidying things up, safe in the knowledge that the tests are there to spot any
+mistakes we make.  It just makes it that much likelier that you&#8217;re going to
+keep refactoring, keep tidying up, keep gardening, keep tending your code, keep
+everything neat and tidy and clean and smooth and precise and concise and
+functional and good.</p>
+</div>
+<div class="sidebarblock scratchpad">
+<div class="content">
+<div class="ulist">
+<ul>
+<li>
+<p><em><span class="strikethrough line-through">Remove duplication of validation logic in
+views</span></em></p>
+</li>
+</ul>
 </div>
 </div>
 </div>
 <div class="paragraph">
-<p>Next we&#8217;ll try and make our data validation more friendly by using a bit
-of client-side code.  Uh-oh, you know what that means&#8230;&#8203;</p>
+<p>And it&#8217;s definitely time for a commit:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>git diff</strong>
+$ <strong>git commit -am "use form in all views, back to working state"</strong></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>But what about our custom error message?  What about all that effort
+rendering the form in our HTML template?  We&#8217;re not even passing those
+errors from Django to the user if the browser is intercepting the requests
+before the user even makes them?  And our FT isn&#8217;t even testing that stuff
+any more!</p>
+</div>
+<div class="paragraph">
+<p>Well, you&#8217;re quite right.  But there&#8217;s are two or three reasons all our time
+hasn&#8217;t been wasted.  Firstly we&#8217;ll be able to reuse our validation and forms
+code and actually use the <code>.has-error</code> classes in the next chapter, when we do
+some validation that isn&#8217;t picked up by HTML5 magic.  Also, not all browsers
+fully implement HTML5, so some users might still see our custom error message.
+And finally, if or when we come to letting users access our data via an API
+(see <a href="/book/appendix_VI_rest_api.html">[appendix-rest-api-backend]</a>), then our validation messages will come back
+into use.</p>
+</div>
+<div class="paragraph">
+<p>But you know, even if all that wasn&#8217;t true, you still can&#8217;t beat yourself up
+for occasionally going down a blind alley while you&#8217;re coding.  None of us
+can see the future, and we should concentrate on finding the better solution
+rather than the time "wasted" on the old solution.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_using_the_form_s_own_save_method">Using the Form&#8217;s Own Save Method</h3>
+<div class="paragraph">
+<p>
+There are a couple more things we can do to make our views even simpler.  I&#8217;ve
+mentioned that forms are supposed to be able to save data to the database for
+us.  Our case won&#8217;t quite work out of the box, because the item needs to know
+what list to save to, but it&#8217;s not hard to fix that.</p>
+</div>
+<div class="paragraph">
+<p>We start, as always, with a test.  Just to illustrate what the problem is,
+let&#8217;s see what happens if we just try to call <code>form.save()</code>:</p>
+</div>
+<div class="listingblock sourcecode">
+<div class="title">lists/tests/test_forms.py (ch11l033)</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python">    <span class="keyword">def</span> <span class="function">test_form_save_handles_saving_to_a_list</span>(<span class="predefined-constant">self</span>):
+        form = ItemForm(data={<span class="string"><span class="delimiter">'</span><span class="content">text</span><span class="delimiter">'</span></span>: <span class="string"><span class="delimiter">'</span><span class="content">do me</span><span class="delimiter">'</span></span>})
+        new_item = form.save()</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Django isn&#8217;t happy, because an item needs to belong to a list:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>django.db.utils.IntegrityError: NOT NULL constraint failed: lists_item.list_id</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Our solution is to tell the form&#8217;s save method what list it should save to:</p>
+</div>
+<div class="listingblock sourcecode">
+<div class="title">lists/tests/test_forms.py</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> <span class="include">lists.models</span> <span class="keyword">import</span> <span class="include">Item</span>, <span class="include">List</span>
+[...]
+
+    <span class="keyword">def</span> <span class="function">test_form_save_handles_saving_to_a_list</span>(<span class="predefined-constant">self</span>):
+        list_ = List.objects.create()
+        form = ItemForm(data={<span class="string"><span class="delimiter">'</span><span class="content">text</span><span class="delimiter">'</span></span>: <span class="string"><span class="delimiter">'</span><span class="content">do me</span><span class="delimiter">'</span></span>})
+        new_item = form.save(for_list=list_)
+        <span class="predefined-constant">self</span>.assertEqual(new_item, Item.objects.first())
+        <span class="predefined-constant">self</span>.assertEqual(new_item.text, <span class="string"><span class="delimiter">'</span><span class="content">do me</span><span class="delimiter">'</span></span>)
+        <span class="predefined-constant">self</span>.assertEqual(new_item.list, list_)</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>We then make sure that the item is correctly saved to the database, with
+the right attributes:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>TypeError: save() got an unexpected keyword argument 'for_list'</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>And here&#8217;s how we can implement our custom save method:</p>
+</div>
+<div class="listingblock sourcecode">
+<div class="title">lists/forms.py (ch11l035)</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python">    <span class="keyword">def</span> <span class="function">save</span>(<span class="predefined-constant">self</span>, for_list):
+        <span class="predefined-constant">self</span>.instance.list = for_list
+        <span class="keyword">return</span> <span class="predefined">super</span>().save()</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The <code>.instance</code> attribute on a form represents the database object that is
+being modified or created.  And I only learned that as I was writing this
+chapter!  There are other ways of getting this to work, including manually
+creating the object yourself, or using the <code>commit=False</code> argument to save,
+but this is the neatest I think.  We&#8217;ll explore a different way of making
+a form "know" what list it&#8217;s for in the next chapter:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>Ran 24 tests in 0.086s
+
+OK</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Finally we can refactor our views. <code>new_list</code> first:</p>
+</div>
+<div class="listingblock sourcecode">
+<div class="title">lists/views.py</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">def</span> <span class="function">new_list</span>(request):
+    form = ItemForm(data=request.POST)
+    <span class="keyword">if</span> form.is_valid():
+        list_ = List.objects.create()
+        form.save(for_list=list_)
+        <span class="keyword">return</span> redirect(list_)
+    <span class="keyword">else</span>:
+        <span class="keyword">return</span> render(request, <span class="string"><span class="delimiter">'</span><span class="content">home.html</span><span class="delimiter">'</span></span>, {<span class="string"><span class="delimiter">"</span><span class="content">form</span><span class="delimiter">"</span></span>: form})</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Rerun the test to check everything still passes:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>Ran 24 tests in 0.086s
+
+OK</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>And now <code>view_list</code>:</p>
+</div>
+<div class="listingblock sourcecode">
+<div class="title">lists/views.py</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">def</span> <span class="function">view_list</span>(request, list_id):
+    list_ = List.objects.get(id=list_id)
+    form = ItemForm()
+    <span class="keyword">if</span> request.method == <span class="string"><span class="delimiter">'</span><span class="content">POST</span><span class="delimiter">'</span></span>:
+        form = ItemForm(data=request.POST)
+        <span class="keyword">if</span> form.is_valid():
+            form.save(for_list=list_)
+            <span class="keyword">return</span> redirect(list_)
+    <span class="keyword">return</span> render(request, <span class="string"><span class="delimiter">'</span><span class="content">list.html</span><span class="delimiter">'</span></span>, {<span class="string"><span class="delimiter">'</span><span class="content">list</span><span class="delimiter">'</span></span>: list_, <span class="string"><span class="delimiter">"</span><span class="content">form</span><span class="delimiter">"</span></span>: form})</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>And we still have full passes:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>Ran 24 tests in 0.111s
+
+OK</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>and</p>
+</div>
+<div class="listingblock dofirst-ch11l037">
+<div class="content">
+<pre>Ran 4 tests in 14.367s
+
+OK</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Great!  Our two views are now looking very much like "normal" Django views:
+they take information from a user&#8217;s request, combine it with some custom logic
+or information from the URL (<code>list_id</code>), pass it to a form for validation
+and possible saving, and then redirect or render a template.
+</p>
+</div>
+<div class="paragraph">
+<p>Forms and validation are really important in Django, and in web programming in
+general, so let&#8217;s see if we can&#8217;t make a slightly more complicated one in the
+next chapter.
+</p>
+</div>
+<div class="sidebarblock">
+<div class="content">
+<div class="title">Tips</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">Thin views</dt>
+<dd>
+<p>If you find yourself looking at complex views, and having to write a lot of
+tests for them, it&#8217;s time to start thinking about whether that logic could
+be moved elsewhere: possibly to a form, like we&#8217;ve done here.
++
++
+Another possible place would be a custom method on the model class.
+And&#8212;&#8203;once the complexity of the app demands it&#8212;&#8203;out of Django-specific
+files and into your own classes and functions, that capture your core
+business logic.
+
+
+</p>
+</dd>
+<dt class="hdlist1">Each test should test one thing</dt>
+<dd>
+<p>The heuristic is to be suspicious if there&#8217;s more than one assertion in a
+test. Sometimes two assertions are closely related, so they belong
+together. But often your first draft of a test ends up testing multiple
+behaviours, and it&#8217;s worth rewriting it as several tests. Helper functions
+can keep them from getting too bloated.</p>
+</dd>
+</dl>
+</div>
+</div>
 </div>
 </div>
 </div>
@@ -1073,15 +1467,12 @@ of client-side code.  Uh-oh, you know what that means&#8230;&#8203;</p>
 <div id="footnotes">
 <hr>
 <div class="footnote" id="_footnote_1">
-<a href="#_footnoteref_1">1</a>. You could also check out <code>assertSequenceEqual</code> from <code>unittest</code>, and <code>assertQuerysetEqual</code> from Django&#8217;s test tools, although I confess when I last looked at <code>assertQuerysetEqual</code> I was quite baffled&#8230;&#8203;
-</div>
-<div class="footnote" id="_footnote_2">
-<a href="#_footnoteref_2">2</a>. It&#8217;s showing a server error, code 500.  Gotta get with the jargon!
+<a href="#_footnoteref_1">1</a>. this is a new feature in Django 1.10
 </div>
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2016-12-18 19:53:47 GMT
+Last updated 2017-02-01 17:18:42 GMT
 </div>
 </div>
 <div class="comments" style="padding: 20px">

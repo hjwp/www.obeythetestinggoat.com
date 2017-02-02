@@ -4,7 +4,7 @@
 <!--[if IE]><meta http-equiv="X-UA-Compatible" content="IE=edge"><![endif]-->
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="generator" content="Asciidoctor 1.5.4">
-<title>Continuous Integration (CI)</title>
+<title>Test Isolation, and "Listening to Your Tests"</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:300,300italic,400,400italic,600,600italic%7CNoto+Serif:400,400italic,700,700italic%7CDroid+Sans+Mono:400,700">
 <link rel="stylesheet" href="./asciidoctor.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.5.0/css/font-awesome.min.css">
@@ -31,27 +31,38 @@ httpRequest.send();
 </div>
 <div id="content">
 <div class="sect1">
-<h2 id="CI-chapter">Continuous Integration (CI)</h2>
+<h2 id="isolation-chapter">Test Isolation, and "Listening to Your Tests"</h2>
 <div class="sectionbody">
+<div class="admonitionblock warning">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-warning" title="Warning"></i>
+</td>
+<td class="content">
+Major update released for Selenium 3.
+    If you started this book on or before Jan 30th 2017,
+    be aware: chapters have been renumbered,
+    so check this is the one you think it is,
+    and have a look at the new <a href="/book/chapter_06.html">[explicit-waits-chapter]</a>
+    for an indication of the changes you&#8217;ll need in your FTs.
+    You should do a <code>pip install --upgrade selenium</code> too.
+</td>
+</tr>
+</table>
+</div>
 <div class="paragraph">
 <p>
 
-
-As our site grows, it takes longer and longer to run all of our functional
-tests.  If this continues, the danger is that we&#8217;re going to stop bothering.</p>
+In the last chapter, we made the decision to leave a unit test failing in
+the views layer while we proceeded to write more tests and more code at
+the models layer to get it to pass.</p>
 </div>
 <div class="paragraph">
-<p>Rather than let that happen, we can automate the running of functional tests
-by setting up a "Continuous Integration" or CI server.  That way, in day-to-day
-development, we can just run the FT that we&#8217;re working on at that time, and
-rely on the CI server to run all the tests automatically, and let us know if
-we&#8217;ve broken anything accidentally.  The unit tests should stay fast enough
-that we can keep running them every few seconds.</p>
-</div>
-<div class="paragraph">
-<p>The CI server of choice these days is called Jenkins. It&#8217;s a bit Java, a bit
-crashy, a bit ugly, but it&#8217;s what everyone uses, and it has a great plugin
-ecosystem, so let&#8217;s get it up and running.</p>
+<p>We got away with it because our app was simple, but I should stress that,
+in a more complex application, this would be a dangerous decision. Proceeding
+to work on lower levels while you&#8217;re not sure that the higher levels are
+<em>really</em> finished or not is a risky strategy.</p>
 </div>
 <div class="admonitionblock note">
 <table>
@@ -60,23 +71,82 @@ ecosystem, so let&#8217;s get it up and running.</p>
 <i class="fa icon-note" title="Note"></i>
 </td>
 <td class="content">
-this chapter has not yet been updated for the new edition. Some of the
-    specific problems discussed with Persona in CI may not be relevant, but
-    the basic lessons of the chapter are all still correct.
+I&#8217;m grateful to Gary Bernhardt, who took a look at an early draft of the
+    previous chapter, and encouraged me to get into a longer discussion of test
+    isolation.
+    
 </td>
 </tr>
 </table>
 </div>
+<div class="paragraph">
+<p>Ensuring isolation between layers does involve more effort (and more of the
+dreaded mocks!), but it can also help to drive out improved design, as we&#8217;ll
+see in this chapter.</p>
+</div>
 <div class="sect2">
-<h3 id="_installing_jenkins">Installing Jenkins</h3>
+<h3 id="_revisiting_our_decision_point_the_views_layer_depends_on_unwritten_models_code">Revisiting Our Decision Point: The Views Layer Depends on Unwritten Models Code</h3>
 <div class="paragraph">
 <p>
 
+Let&#8217;s revisit the point we were at half-way through the last chapter, when we
+couldn&#8217;t get the <code>new_list</code> view to work because lists didn&#8217;t have the <code>.owner</code>
+attribute yet.</p>
+</div>
+<div class="paragraph">
+<p>We&#8217;ll actually go back in time and check out the old codebase, so that we can
+see how things would have worked if we&#8217;d used more isolated tests.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>git checkout -b more-isolation</strong>  # a branch for this experiment
+$ <strong>git reset --hard revisit_this_point_with_isolated_tests</strong></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Here&#8217;s what our failing tests looks like:</p>
+</div>
+<div class="listingblock sourcecode currentcontents">
+<div class="title">lists/tests/test_views.py</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">class</span> <span class="class">NewListTest</span>(TestCase):
+    [...]
 
-There are several hosted-CI services out there that essentially provide you
-with a Jenkins server, ready to go.  I&#8217;ve come across Sauce Labs, Travis,
-Circle-CI, ShiningPanda, and there are probably lots more.  But I&#8217;m going to
-assume we&#8217;re installing everything on a server we control.</p>
+    <span class="keyword">def</span> <span class="function">test_list_owner_is_saved_if_user_is_authenticated</span>(<span class="predefined-constant">self</span>):
+        user = User.objects.create(email=<span class="string"><span class="delimiter">'</span><span class="content">a@b.com</span><span class="delimiter">'</span></span>)
+        <span class="predefined-constant">self</span>.client.force_login(user)
+        <span class="predefined-constant">self</span>.client.post(<span class="string"><span class="delimiter">'</span><span class="content">/lists/new</span><span class="delimiter">'</span></span>, data={<span class="string"><span class="delimiter">'</span><span class="content">text</span><span class="delimiter">'</span></span>: <span class="string"><span class="delimiter">'</span><span class="content">new item</span><span class="delimiter">'</span></span>})
+        list_ = List.objects.first()
+        <span class="predefined-constant">self</span>.assertEqual(list_.owner, user)</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>And here&#8217;s what our attempted solution looked like:</p>
+</div>
+<div class="listingblock sourcecode currentcontents">
+<div class="title">lists/views.py</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">def</span> <span class="function">new_list</span>(request):
+    form = ItemForm(data=request.POST)
+    <span class="keyword">if</span> form.is_valid():
+        list_ = List()
+        list_.owner = request.user
+        list_.save()
+        form.save(for_list=list_)
+        <span class="keyword">return</span> redirect(list_)
+    <span class="keyword">else</span>:
+        <span class="keyword">return</span> render(request, <span class="string"><span class="delimiter">'</span><span class="content">home.html</span><span class="delimiter">'</span></span>, {<span class="string"><span class="delimiter">"</span><span class="content">form</span><span class="delimiter">"</span></span>: form})</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>And at this point, the view test is failing because we don&#8217;t have the model
+layer yet:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>    self.assertEqual(list_.owner, user)
+AttributeError: 'List' object has no attribute 'owner'</pre>
+</div>
 </div>
 <div class="admonitionblock note">
 <table>
@@ -85,264 +155,334 @@ assume we&#8217;re installing everything on a server we control.</p>
 <i class="fa icon-note" title="Note"></i>
 </td>
 <td class="content">
-It&#8217;s not a good idea to install Jenkins on the same server as our
-staging or production servers.  Apart from anything else, we may want
-Jenkins to be able to reboot the staging server!
+You won&#8217;t see this error unless you actually check out the old code
+    and revert <em>lists/models.py</em>.  You should definitely do this, part of
+    the objective of this chapter is to see whether we really can write
+    tests for a models layer that doesn&#8217;t exist yet.
+</td>
+</tr>
+</table>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_a_first_attempt_at_using_mocks_for_isolation">A First Attempt at Using Mocks for Isolation</h3>
+<div class="paragraph">
+<p>
+
+
+
+Lists don&#8217;t have owners yet, but we can let the views layer tests pretend they
+do by using a bit of mocking:</p>
+</div>
+<div class="listingblock sourcecode">
+<div class="title">lists/tests/test_views.py (ch20l003)</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> <span class="include">unittest.mock</span> <span class="keyword">import</span> <span class="include">patch</span>
+[...]
+
+    <span class="decorator">@patch</span>(<span class="string"><span class="delimiter">'</span><span class="content">lists.views.List</span><span class="delimiter">'</span></span>)  <i class="conum" data-value="1"></i><b>(1)</b>
+    <span class="decorator">@patch</span>(<span class="string"><span class="delimiter">'</span><span class="content">lists.views.ItemForm</span><span class="delimiter">'</span></span>)  <i class="conum" data-value="2"></i><b>(2)</b>
+    <span class="keyword">def</span> <span class="function">test_list_owner_is_saved_if_user_is_authenticated</span>(
+        <span class="predefined-constant">self</span>, mockItemFormClass, mockListClass  <i class="conum" data-value="3"></i><b>(3)</b>
+    ):
+        user = User.objects.create(email=<span class="string"><span class="delimiter">'</span><span class="content">a@b.com</span><span class="delimiter">'</span></span>)
+        <span class="predefined-constant">self</span>.client.force_login(user)
+
+        <span class="predefined-constant">self</span>.client.post(<span class="string"><span class="delimiter">'</span><span class="content">/lists/new</span><span class="delimiter">'</span></span>, data={<span class="string"><span class="delimiter">'</span><span class="content">text</span><span class="delimiter">'</span></span>: <span class="string"><span class="delimiter">'</span><span class="content">new item</span><span class="delimiter">'</span></span>})
+
+        mock_list = mockListClass.return_value  <i class="conum" data-value="4"></i><b>(4)</b>
+        <span class="predefined-constant">self</span>.assertEqual(mock_list.owner, user)  <i class="conum" data-value="5"></i><b>(5)</b></code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>We mock out the <code>List</code> class to be able to get access to any lists
+that might be created by the view.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>We also mock out the <code>ItemForm</code>, because otherwise our form will
+raise an error when we call <code>form.save()</code>, because it can&#8217;t use a
+mock object as the foreign key for the Item it wants to create.
+Once you start mocking, it can be hard to stop!</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="3"></i><b>3</b></td>
+<td>The mock objects are injected into the test&#8217;s arguments in the
+opposite order to which they&#8217;re declared. Tests with lots of mocks
+often have this strange signature, with the dangling <code>):</code>.  You get
+used to it!</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="4"></i><b>4</b></td>
+<td>The list instance that the view will have access to
+will be the return value of the mocked List class.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="5"></i><b>5</b></td>
+<td>And we can make assertions about whether the <code>.owner</code> attribute is set on
+it.</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>If we try to run this test now, it should pass.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>python manage.py test lists</strong>
+[...]
+Ran 37 tests in 0.145s
+OK</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>If you don&#8217;t see a pass, make sure that your views code in <em>views.py</em> is
+exactly as I&#8217;ve shown it, using <code>List()</code>, not <code>List.objects.create</code>.</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+Using mocks does tie you to specific ways of using an API.  This is one
+    of the many trade-offs involved in the use of mock objects.
+</td>
+</tr>
+</table>
+</div>
+<div class="sect3">
+<h4 id="_using_mock_side_effects_to_check_the_sequence_of_events">Using Mock side_effects to Check the Sequence of Events</h4>
+<div class="paragraph">
+<p>
+The trouble with this test is that it can still let us get away with writing
+the wrong code by mistake.  Imagine if we accidentally call save before we
+we assign the owner:</p>
+</div>
+<div class="listingblock sourcecode">
+<div class="title">lists/views.py</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python">    <span class="keyword">if</span> form.is_valid():
+        list_ = List()
+        list_.save()
+        list_.owner = request.user
+        form.save(for_list=list_)
+        <span class="keyword">return</span> redirect(list_)</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The test, as it&#8217;s written now, still passes:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>OK</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>So we actually need to check, not just that the owner is assigned, but that
+it&#8217;s assigned <em>before</em> we call save on our list object.</p>
+</div>
+<div class="paragraph">
+<p>Here&#8217;s how we can test the sequence of events using mocks&#8212;&#8203;you can mock out
+a function, and use it as a spy to check on the state of the world at the
+moment it&#8217;s called:</p>
+</div>
+<div class="listingblock sourcecode">
+<div class="title">lists/tests/test_views.py (ch20l005)</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python">    <span class="decorator">@patch</span>(<span class="string"><span class="delimiter">'</span><span class="content">lists.views.List</span><span class="delimiter">'</span></span>)
+    <span class="decorator">@patch</span>(<span class="string"><span class="delimiter">'</span><span class="content">lists.views.ItemForm</span><span class="delimiter">'</span></span>)
+    <span class="keyword">def</span> <span class="function">test_list_owner_is_saved_if_user_is_authenticated</span>(
+        <span class="predefined-constant">self</span>, mockItemFormClass, mockListClass
+    ):
+        user = User.objects.create(email=<span class="string"><span class="delimiter">'</span><span class="content">a@b.com</span><span class="delimiter">'</span></span>)
+        <span class="predefined-constant">self</span>.client.force_login(user)
+        mock_list = mockListClass.return_value
+
+        <span class="keyword">def</span> <span class="function">check_owner_assigned</span>():  <i class="conum" data-value="1"></i><b>(1)</b>
+            <span class="predefined-constant">self</span>.assertEqual(mock_list.owner, user)
+        mock_list.save.side_effect = check_owner_assigned  <i class="conum" data-value="2"></i><b>(2)</b>
+
+        <span class="predefined-constant">self</span>.client.post(<span class="string"><span class="delimiter">'</span><span class="content">/lists/new</span><span class="delimiter">'</span></span>, data={<span class="string"><span class="delimiter">'</span><span class="content">text</span><span class="delimiter">'</span></span>: <span class="string"><span class="delimiter">'</span><span class="content">new item</span><span class="delimiter">'</span></span>})
+
+        mock_list.save.assert_called_once_with()  <i class="conum" data-value="3"></i><b>(3)</b></code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>We define a function that makes the assertion about the thing we
+want to happen first: checking the list&#8217;s owner has been set.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>We assign that check function as a <code>side_effect</code> to the thing we
+want to check happened second.  When the view calls our mocked
+save function, it will go through this assertion.  We make sure to
+set this up before we actually call the function we&#8217;re testing.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="3"></i><b>3</b></td>
+<td>Finally, we make sure that the function with the <code>side_effect</code> was
+actually triggered, ie we did <code>.save()</code>.  Otherwise our assertion
+may actually never have been run.</td>
+</tr>
+</table>
+</div>
+<div class="admonitionblock tip">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-tip" title="Tip"></i>
+</td>
+<td class="content">
+Two common mistakes when using mock side-effects are:  assigning the
+    side effect too late, i.e. <em>after</em> you call the function under test, and
+    forgetting to check that the side-effect function was actually called. And
+    by common, I mean, "I made both these mistakes several times <em>while writing
+    this chapter</em>".
 </td>
 </tr>
 </table>
 </div>
 <div class="paragraph">
-<p>We&#8217;ll install the latest version from the official Jenkins apt repo, because the
-Ubuntu default still has a few annoying bugs with locale/unicode support,
-and it also doesn&#8217;t set itself up to listen on the public Internet by default:</p>
+<p>At this point, if you&#8217;ve still got the "broken" code from above, where we
+assign the owner but call save in the wrong order, you should now see a
+fail:</p>
 </div>
-<div class="listingblock skipme">
+<div class="listingblock">
 <div class="content">
-<pre># instructions taken from jenkins site
-user@server:$ <strong>wget -q -O - https://pkg.jenkins.io/debian/jenkins-ci.org.key |\
-     sudo apt-key add -</strong>
-user@server:$ <strong>echo deb http://pkg.jenkins.io/debian-stable binary/ | sudo tee \
-    /etc/apt/sources.list.d/jenkins.list</strong>
-user@server:$ <strong>sudo apt-get update</strong>
-user@server:$ <strong>sudo apt-get install jenkins</strong></pre>
+<pre>FAIL: test_list_owner_is_saved_if_user_is_authenticated
+(lists.tests.test_views.NewListTest)
+[...]
+  File "/.../superlists/lists/views.py", line 17, in new_list
+    list_.save()
+[...]
+  File "/.../superlists/lists/tests/test_views.py", line 74, in
+check_owner_assigned
+    self.assertEqual(mock_list.owner, user)
+AssertionError: &lt;MagicMock name='List().owner' id='140691452447208'&gt; != &lt;User:
+User object&gt;</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>While we&#8217;re at we&#8217;ll install a few other dependencies:</p>
+<p>Notice how the failure happens when we try and save, and then go inside
+our <code>side_effect</code> function.</p>
 </div>
-<div class="listingblock skipme">
+<div class="paragraph">
+<p>We can get it passing again like this:</p>
+</div>
+<div class="listingblock sourcecode">
+<div class="title">lists/views.py</div>
 <div class="content">
-<pre>user@server:$ <strong>sudo apt-get install firefox python3-venv xvfb</strong></pre>
+<pre class="CodeRay highlight"><code data-lang="python">    <span class="keyword">if</span> form.is_valid():
+        list_ = List()
+        list_.owner = request.user
+        list_.save()
+        form.save(for_list=list_)
+        <span class="keyword">return</span> redirect(list_)</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>You should then be able to visit it at the URL for your server on port <code>8080</code>,
-as in <a href="#jenkin-welcome">A butler! How quaint&#8230;&#8203;</a>.</p>
+<p>&#8230;&#8203;</p>
 </div>
-<div id="jenkin-welcome" class="imageblock">
+<div class="listingblock">
 <div class="content">
-<img src="images/twdp_2001.png" alt="Jenkins' default welcome screen">
+<pre>OK</pre>
 </div>
-<div class="title">Figure 1. A butler! How quaint&#8230;&#8203;</div>
 </div>
-<div class="sect3">
-<h4 id="_configuring_jenkins_security">Configuring Jenkins Security</h4>
 <div class="paragraph">
-<p>
+<p>But, boy, that&#8217;s getting to be an ugly test!
 
-The first thing we&#8217;ll do is set up some authentication, since our server is
-available on the public Internet:</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p>Manage Jenkins &#8594; Configure Global Security &#8594; Enable security.</p>
-</li>
-<li>
-<p>Choose "Jenkins' own user database", "Matrix-based security".</p>
-</li>
-<li>
-<p>Disable all permissions for Anonymous.</p>
-</li>
-<li>
-<p>And add a user for yourself; give it all the permissions
-(<a href="#jenkins-security">Locking it down&#8230;&#8203;</a>).</p>
-</li>
-<li>
-<p>The next screen offers you the option to create an account that matches that
-  username, and set a password.<sup class="footnote">[<a id="_footnoteref_1" class="footnote" href="#_footnote_1" title="View footnote.">1</a>]</sup></p>
-</li>
-</ul>
-</div>
-<div id="jenkins-security" class="imageblock">
-<div class="content">
-<img src="images/twdp_2002.png" alt="Jenkins security config screnshot">
-</div>
-<div class="title">Figure 2. Locking it down&#8230;&#8203;</div>
-</div>
-</div>
-<div class="sect3">
-<h4 id="_adding_required_plugins">Adding Required Plugins</h4>
-<div class="paragraph">
-<p>
-
-Next we install a few plugins, to help us work with Git, Python, and virtual
-displays; see <a href="#installing-plugins">Installing plugins&#8230;&#8203;</a>:</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p>Manage Jenkins &#8594; Manage Plugins &#8594; Available</p>
-</li>
-</ul>
-</div>
-<div class="paragraph">
-<p>We&#8217;ll want the plugins for:</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p>Git</p>
-</li>
-<li>
-<p>ShiningPanda</p>
-</li>
-<li>
-<p>Xvfb</p>
-</li>
-</ul>
-</div>
-<div id="installing-plugins" class="imageblock">
-<div class="content">
-<img src="images/twdp_2003.png" alt="Jenkins installing plugins">
-</div>
-<div class="title">Figure 3. Installing plugins&#8230;&#8203;</div>
-</div>
-<div class="paragraph">
-<p>Restart afterwards using either the tick-box on that last screen, or
-from the command line with a <code>sudo service jenkins restart</code>.</p>
-</div>
-<div class="sect4">
-<h5 id="_telling_jenkins_where_to_find_python_3_and_xvfb">Telling Jenkins where to find Python 3 and Xvfb</h5>
-<div class="paragraph">
-<p>We need to tell the ShiningPanda plugin where Python 3 is installed
-(usually <em>/usr/bin/python3</em>, but you can check with a <code>which python3</code>):
-
-
-
-* Manage Jenkins &#8594; Configure System.</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p>Python &#8594; Python installations &#8594; Add Python (<a href="#add-python-to-jenkins">Where did I leave that Python?</a>).</p>
-</li>
-<li>
-<p>Xvfb installation &#8594; Add Xvfb installation; enter <strong><code>/usr/bin</code></strong> as the
-installation directory.</p>
-</li>
-</ul>
-</div>
-<div id="add-python-to-jenkins" class="imageblock">
-<div class="content">
-<img src="images/twdp_2004.png" alt="Adding Python 3">
-</div>
-<div class="title">Figure 4. Where did I leave that Python?</div>
-</div>
+</p>
 </div>
 </div>
 </div>
 <div class="sect2">
-<h3 id="_setting_up_our_project">Setting Up Our Project</h3>
+<h3 id="_listen_to_your_tests_ugly_tests_signal_a_need_to_refactor">Listen to Your Tests: Ugly Tests Signal a Need to Refactor</h3>
 <div class="paragraph">
 <p>
-Now we&#8217;ve got the basic Jenkins configured, let&#8217;s set up our project:</p>
+
+Whenever you find yourself having to write a test like this, and you&#8217;re finding
+it hard work, it&#8217;s likely that your tests are trying to tell you something.
+Nine lines of setup (three lines for the mock user, four more lines for
+the request object, and three for our side-effect function) is way too many.</p>
 </div>
-<div class="ulist">
-<ul>
-<li>
-<p>New Job &#8594; Build a free-style software project.</p>
-</li>
-<li>
-<p>Add the Git repo, as in <a href="#choose-git-repo">Get it from Git</a>.</p>
-</li>
-</ul>
+<div class="paragraph">
+<p>What this test is trying to tell us is that our view is doing too much work,
+dealing with creating a form, creating a new list object <em>and</em> deciding whether
+or not to save an owner for the list.</p>
 </div>
-<div id="choose-git-repo" class="imageblock">
+<div class="paragraph">
+<p>We&#8217;ve already seen that we can make our views simpler and easier to understand
+by pushing some of the work down to a form class. Why does the view need to
+create the list object?  Perhaps our <code>ItemForm.save</code> could do that?  And why
+does the view need to make decisions about whether or not to save the
+<code>request.user</code>?  Again, the form could do that.</p>
+</div>
+<div class="paragraph">
+<p>While we&#8217;re giving this form more responsibilities, it feels like it should
+probably get a new name too.  We could call <code>NewListForm</code> instead, since
+that&#8217;s a better representation of what it does&#8230;&#8203; something like this?</p>
+</div>
+<div class="listingblock sourcecode skipme">
+<div class="title">lists/views.py</div>
 <div class="content">
-<img src="images/twdp_2005.png" alt="Setting the git repo">
+<pre class="CodeRay highlight"><code data-lang="python"><span class="comment"># don't enter this code yet, we're only imagining it.</span>
+
+<span class="keyword">def</span> <span class="function">new_list</span>(request):
+    form = NewListForm(data=request.POST)
+    <span class="keyword">if</span> form.is_valid():
+        list_ = form.save(owner=request.user)  <span class="comment"># creates both List and Item</span>
+        <span class="keyword">return</span> redirect(list_)
+    <span class="keyword">else</span>:
+        <span class="keyword">return</span> render(request, <span class="string"><span class="delimiter">'</span><span class="content">home.html</span><span class="delimiter">'</span></span>, {<span class="string"><span class="delimiter">"</span><span class="content">form</span><span class="delimiter">"</span></span>: form})</code></pre>
 </div>
-<div class="title">Figure 5. Get it from Git</div>
 </div>
-<div class="ulist">
-<ul>
-<li>
-<p>Set it to poll every hour (<a href="#poll-hourly">Poll Github for changes</a>) (check out the help text here&#8212;&#8203;there are many other options for ways of triggering builds).</p>
-</li>
-</ul>
-</div>
-<div id="poll-hourly" class="imageblock">
-<div class="content">
-<img src="images/twdp_2006.png" alt="Config polling github">
-</div>
-<div class="title">Figure 6. Poll Github for changes</div>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p>Run the tests inside a Python 3 virtualenv.</p>
-</li>
-<li>
-<p>Run the unit tests and functional tests separately.  See
-<a href="#virtualenv-buildstep">Virtualenv build steps</a>.</p>
-</li>
-</ul>
-</div>
-<div id="virtualenv-buildstep" class="imageblock">
-<div class="content">
-<img src="images/twdp_2007.png" alt="Adding Python 3">
-</div>
-<div class="title">Figure 7. Virtualenv build steps</div>
+<div class="paragraph">
+<p>That would be neater!  Let&#8217;s see how we&#8217;d get to that state by using
+fully isolated tests.</p>
 </div>
 </div>
 <div class="sect2">
-<h3 id="_first_build">First Build!</h3>
-<div class="paragraph">
-<p>Hit "Build Now!", then go and take a look at the "Console Output". You
-should see something like this:</p>
-</div>
-<div class="listingblock skipme small-code">
-<div class="content">
-<pre>Started by user harry
-Building in workspace /var/lib/jenkins/jobs/Superlists/workspace
-Fetching changes from the remote Git repository
-Fetching upstream changes from https://github.com/hjwp/book-example.git
-Checking out Revision d515acebf7e173f165ce713b30295a4a6ee17c07 (origin/master)
-[workspace] $ /bin/sh -xe /tmp/shiningpanda7260707941304155464.sh
-+ pip install -r requirements.txt
-Requirement already satisfied (use --upgrade to upgrade): Django==1.10 in
-/var/lib/jenkins/shiningpanda/jobs/ddc1aed1/virtualenvs/d41d8cd9/lib/python3.3/site-packages
-(from -r requirements.txt (line 1))
-
-Requirement already satisfied (use --upgrade to upgrade): gunicorn==17.5 in
-/var/lib/jenkins/shiningpanda/jobs/ddc1aed1/virtualenvs/d41d8cd9/lib/python3.3/site-packages
-(from -r requirements.txt (line 3))
-Downloading/unpacking requests==2.0.0 (from -r requirements.txt (line 4))
-  Running setup.py egg_info for package requests
-
-Installing collected packages: requests
-  Running setup.py install for requests
-
-Successfully installed requests
-Cleaning up...
-+ python manage.py test lists accounts
-...................................................
- ---------------------------------------------------------------------
-Ran 51 tests in 0.323s
-
-OK
-Creating test database for alias 'default'...
-Destroying test database for alias 'default'...
-+ python manage.py test functional_tests
-ImportError: No module named 'selenium'
-Build step 'Virtualenv Builder' marked build as failure</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Ah.  We need Selenium in our virtualenv.</p>
-</div>
+<h3 id="_rewriting_our_tests_for_the_view_to_be_fully_isolated">Rewriting Our Tests for the View to Be Fully Isolated</h3>
 <div class="paragraph">
 <p>
-Let&#8217;s add a manual installation of Selenium to our build
-steps:<sup class="footnote">[<a id="_footnoteref_2" class="footnote" href="#_footnote_2" title="View footnote.">2</a>]</sup></p>
+Our first attempt at a test suite is for this view was highly <em>integrated</em>.  It
+needed the database layer and the forms layer to be fully functional in order
+for it to pass.   We&#8217;ve started trying to make it more isolated, let&#8217;s now go
+all the way.</p>
 </div>
-<div class="listingblock skipme">
+<div class="sect3">
+<h4 id="_keep_the_old_integrated_test_suite_around_as_a_sanity_check">Keep the Old Integrated Test Suite Around as a Sanity Check</h4>
+<div class="paragraph">
+<p>Let&#8217;s rename our old <code>NewListTest</code> class to <code>NewListViewIntegratedTest</code>,
+and throw away our attempt at a mocky test for saving the owner, putting
+back the integrated version, with a skip on it for now:</p>
+</div>
+<div class="listingblock sourcecode">
+<div class="title">lists/tests/test_views.py (ch20l008)</div>
 <div class="content">
-<pre>    pip install -r requirements.txt
-    pip install selenium==2.39
-    python manage.py test accounts lists
-    python manage.py test functional_tests</pre>
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">import</span> <span class="include">unittest</span>
+[...]
+
+<span class="keyword">class</span> <span class="class">NewListViewIntegratedTest</span>(TestCase):
+
+    <span class="keyword">def</span> <span class="function">test_can_save_a_POST_request</span>(<span class="predefined-constant">self</span>):
+        [...]
+
+    <span class="decorator">@unittest.skip</span>
+    <span class="keyword">def</span> <span class="function">test_list_owner_is_saved_if_user_is_authenticated</span>(<span class="predefined-constant">self</span>):
+        user = User.objects.create(email=<span class="string"><span class="delimiter">'</span><span class="content">a@b.com</span><span class="delimiter">'</span></span>)
+        <span class="predefined-constant">self</span>.client.force_login(user)
+        <span class="predefined-constant">self</span>.client.post(<span class="string"><span class="delimiter">'</span><span class="content">/lists/new</span><span class="delimiter">'</span></span>, data={<span class="string"><span class="delimiter">'</span><span class="content">text</span><span class="delimiter">'</span></span>: <span class="string"><span class="delimiter">'</span><span class="content">new item</span><span class="delimiter">'</span></span>})
+        list_ = List.objects.first()
+        <span class="predefined-constant">self</span>.assertEqual(list_.owner, user)</code></pre>
 </div>
 </div>
 <div class="admonitionblock tip">
@@ -352,395 +492,903 @@ steps:<sup class="footnote">[<a id="_footnoteref_2" class="footnote" href="#_foo
 <i class="fa icon-tip" title="Tip"></i>
 </td>
 <td class="content">
-Some people like to use a file called <em>test-requirements.txt</em> to specify
-packages that are needed for the tests, but not the main app.
+Have you heard the term "integration test" and are wondering what the
+    difference is with an "integrated test"?  Go and take a peek at the
+    definitions box in <a href="#hot-lava-chapter">[hot-lava-chapter]</a>.
+    
+    
 </td>
 </tr>
 </table>
 </div>
-<div class="paragraph">
-<p>Now what?</p>
-</div>
-<div class="listingblock skipme">
+<div class="listingblock">
 <div class="content">
-<pre>  File
-  "/var/lib/jenkins/shiningpanda/jobs/ddc1aed1/virtualenvs/d41d8cd9/lib/python3.
-  line 100, in _wait_until_connectable
-    self._get_firefox_output())
-selenium.common.exceptions.WebDriverException: Message: 'The browser appears to
-have exited before we could connect. The output was: b"\\n(process:19757):
-GLib-CRITICAL **: g_slice_set_config: assertion \'sys_page_size == 0\'
-failed\\nError: no display specified\\n"'</pre>
-</div>
-</div>
-</div>
-<div class="sect2">
-<h3 id="_setting_up_a_virtual_display_so_the_fts_can_run_headless">Setting Up a Virtual Display so the FTs Can Run Headless</h3>
-<div class="paragraph">
-<p>
-
-As you can see from the traceback, Firefox is unable to start because the
-server doesn&#8217;t have a display.</p>
-</div>
-<div class="paragraph">
-<p>
-
-There are two ways to deal with this problem. The first is to switch to using
-a headless browser, like PhantomJS or SlimerJS.  Those tools definitely have
-their place&#8212;&#8203;they&#8217;re faster, for one thing&#8212;&#8203;but they also have
-disadvantages.  The first is that they&#8217;re not "real" web browsers, so you can&#8217;t
-be sure you&#8217;re going to catch all the strange quirks and behaviours of the
-actual browsers your users use.  The second is that they behave quite
-differently inside Selenium, and will require substantial amounts of rewriting
-of FT code.</p>
-</div>
-<div class="admonitionblock tip">
-<table>
-<tr>
-<td class="icon">
-<i class="fa icon-tip" title="Tip"></i>
-</td>
-<td class="content">
-I would look into using headless browsers as a "dev-only" tool, to speed
-up the running of FTs on the developer&#8217;s machine, while the tests on the CI
-server use actual browsers.
-</td>
-</tr>
-</table>
-</div>
-<div class="paragraph">
-<p>
-The alternative is to set up a virtual display:  we get the server to pretend
-it has a screen attached to it, so Firefox runs happily. There&#8217;s a few tools
-out there to do this; we&#8217;ll use one called "Xvfb"
-(X Virtual Framebuffer)<sup class="footnote">[<a id="_footnoteref_3" class="footnote" href="#_footnote_3" title="View footnote.">3</a>]</sup>
-because it&#8217;s easy to install and use, and because it has a convenient Jenkins
-plugin.</p>
-</div>
-<div class="paragraph">
-<p>We go back to our project and hit "Configure" again, then find the section
-called "Build Environment".  Using the virtual display is as simple as
-ticking the box marked "Start Xvfb before the build, and shut it down after,"
-as in <a href="#xvfb-tickbox">Sometimes config is easy</a>.</p>
-</div>
-<div id="xvfb-tickbox" class="imageblock">
-<div class="content">
-<img src="images/twdp_2008.png" alt="Tickbox saying we want Xvfb">
-</div>
-<div class="title">Figure 8. Sometimes config is easy</div>
-</div>
-<div class="paragraph">
-<p>The build does much better now:</p>
-</div>
-<div class="listingblock skipme small-code">
-<div class="content">
-<pre>[...]
-Xvfb starting$ /usr/bin/Xvfb :2 -screen 0 1024x768x24 -fbdir
-/var/lib/jenkins/2013-11-04_03-27-221510012427739470928xvfb
+<pre>$ <strong>python manage.py test lists</strong>
 [...]
-+ python manage.py test lists accounts
-...................................................
- ---------------------------------------------------------------------
-Ran 51 tests in 0.410s
-
-OK
-Creating test database for alias 'default'...
-Destroying test database for alias 'default'...
-+ pip install selenium
-Requirement already satisfied (use --upgrade to upgrade): selenium in
-/var/lib/jenkins/shiningpanda/jobs/ddc1aed1/virtualenvs/d41d8cd9/lib/python3.5/site-packages
-Cleaning up...
-
-+ python manage.py test functional_tests
-......F.
-======================================================================
-FAIL: test_logged_in_users_lists_are_saved_as_my_lists
-(functional_tests.test_my_lists.MyListsTest)
- ---------------------------------------------------------------------
-Traceback (most recent call last):
-  File
-"/var/lib/jenkins/jobs/Superlists/.../functional_tests/test_my_lists.py",
-line 44, in test_logged_in_users_lists_are_saved_as_my_lists
-    self.assertEqual(self.browser.current_url, first_list_url)
-AssertionError: 'http://localhost:8081/accounts/edith@example.com/' !=
-'http://localhost:8081/lists/1/'
-- http://localhost:8081/accounts/edith@example.com/
-+ http://localhost:8081/lists/1/
-
- ---------------------------------------------------------------------
-Ran 8 tests in 89.275s
-
-FAILED (errors=1)
-Creating test database for alias 'default'...
-[{'secure': False, 'domain': 'localhost', 'name': 'sessionid', 'expiry':
-1920011311, 'path': '/', 'value': 'a8d8bbde33nreq6gihw8a7r1cc8bf02k'}]
-Destroying test database for alias 'default'...
-Build step 'Virtualenv Builder' marked build as failure
-Xvfb stopping
-Finished: FAILURE</pre>
+Ran 37 tests in 0.139s
+OK</pre>
 </div>
 </div>
+</div>
+<div class="sect3">
+<h4 id="_a_new_test_suite_with_full_isolation">A New Test Suite with Full Isolation</h4>
 <div class="paragraph">
-<p>
-Pretty close!  To debug that failure, we&#8217;ll need screenshots though.</p>
-</div>
-<div class="admonitionblock note">
-<table>
-<tr>
-<td class="icon">
-<i class="fa icon-note" title="Note"></i>
-</td>
-<td class="content">
-As we&#8217;ll see, this error is due to a race condition, which means it&#8217;s
-not always reproducible.  You may see a different error, or none at all. In
-any case, the tools below for taking screenshots and dealing with race
-conditions will come in useful. Read on!
-
-</td>
-</tr>
-</table>
-</div>
-</div>
-<div class="sect2">
-<h3 id="_taking_screenshots">Taking Screenshots</h3>
-<div class="paragraph">
-<p>
-
-
-To be able to debug unexpected failures that happen on a remote PC, it
-would be good to see a picture of the screen at the moment of the failure,
-and maybe also a dump of the HTML of the page.  We can do that using some
-custom logic in our FT class <code>tearDown</code>. We have to do a bit of introspection of
-<code>unittest</code> internals, a private attribute called <code>_outcomeForDoCleanups</code>, but
-this will work:</p>
+<p>Let&#8217;s start with a blank slate, and see if we can use isolated tests to drive
+a replacement of our <code>new_list</code> view.  We&#8217;ll call it <code>new_list2</code>, build it
+alongside the old view, and when we&#8217;re ready, we can swap it in and see if
+the old integrated tests all still pass.</p>
 </div>
 <div class="listingblock sourcecode">
-<div class="title">functional_tests/base.py (ch20l006)</div>
+<div class="title">lists/views.py (ch20l009)</div>
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">import</span> <span class="include">os</span>
-<span class="keyword">from</span> <span class="include">datetime</span> <span class="keyword">import</span> <span class="include">datetime</span>
-[...]
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">def</span> <span class="function">new_list</span>(request):
+    [...]
 
-SCREEN_DUMP_LOCATION = os.path.join(
-    os.path.dirname(os.path.abspath(__file__)), <span class="string"><span class="delimiter">'</span><span class="content">screendumps</span><span class="delimiter">'</span></span>
-)
-[...]
-
-    <span class="keyword">def</span> <span class="function">tearDown</span>(<span class="predefined-constant">self</span>):
-        <span class="keyword">if</span> <span class="predefined-constant">self</span>._test_has_failed():
-            <span class="keyword">if</span> <span class="keyword">not</span> os.path.exists(SCREEN_DUMP_LOCATION):
-                os.makedirs(SCREEN_DUMP_LOCATION)
-            <span class="keyword">for</span> ix, handle <span class="keyword">in</span> <span class="predefined">enumerate</span>(<span class="predefined-constant">self</span>.browser.window_handles):
-                <span class="predefined-constant">self</span>._windowid = ix
-                <span class="predefined-constant">self</span>.browser.switch_to_window(handle)
-                <span class="predefined-constant">self</span>.take_screenshot()
-                <span class="predefined-constant">self</span>.dump_html()
-        <span class="predefined-constant">self</span>.browser.quit()
-        <span class="predefined">super</span>().tearDown()
-
-
-    <span class="keyword">def</span> <span class="function">_test_has_failed</span>(<span class="predefined-constant">self</span>):
-        <span class="comment"># slightly obscure but couldn't find a better way!</span>
-        <span class="keyword">return</span> <span class="predefined">any</span>(error <span class="keyword">for</span> (method, error) <span class="keyword">in</span> <span class="predefined-constant">self</span>._outcome.errors)</code></pre>
+<span class="keyword">def</span> <span class="function">new_list2</span>(request):
+    <span class="keyword">pass</span></code></pre>
 </div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_thinking_in_terms_of_collaborators">Thinking in Terms of Collaborators</h4>
+<div class="paragraph">
+<p>
+In order to rewrite our tests to be fully isolated, we need to throw out our
+old way of thinking about the tests in terms of the "real" effects of the view
+on things like the database, and instead think of it in terms of the objects it
+collaborates with, and how it interacts with them.</p>
 </div>
 <div class="paragraph">
-<p>We first create a directory for our screenshots if necessary. Then we
-iterate through all the open browser tabs and pages, and use some Selenium
-methods, <code>get_screenshot_as_file</code> and <code>browser.page_source</code>, for our image and
-HTML dumps:</p>
+<p>In the new world, the view&#8217;s main collaborator will be a form object, so we
+mock that out in order to be able to fully control it, and in order to be able
+to define, by wishful thinking, the way we want our form to work.</p>
 </div>
 <div class="listingblock sourcecode">
-<div class="title">functional_tests/base.py (ch20l007)</div>
+<div class="title">lists/tests/test_views.py (ch20l010)</div>
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python">    <span class="keyword">def</span> <span class="function">take_screenshot</span>(<span class="predefined-constant">self</span>):
-        filename = <span class="predefined-constant">self</span>._get_filename() + <span class="string"><span class="delimiter">'</span><span class="content">.png</span><span class="delimiter">'</span></span>
-        print(<span class="string"><span class="delimiter">'</span><span class="content">screenshotting to</span><span class="delimiter">'</span></span>, filename)
-        <span class="predefined-constant">self</span>.browser.get_screenshot_as_file(filename)
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> <span class="include">unittest.mock</span> <span class="keyword">import</span> <span class="include">patch</span>
+<span class="keyword">from</span> <span class="include">django.http</span> <span class="keyword">import</span> <span class="include">HttpRequest</span>
+<span class="keyword">from</span> <span class="include">lists.views</span> <span class="keyword">import</span> <span class="include">new_list2</span>
+[...]
 
+<span class="decorator">@patch</span>(<span class="string"><span class="delimiter">'</span><span class="content">lists.views.NewListForm</span><span class="delimiter">'</span></span>)  <i class="conum" data-value="2"></i><b>(2)</b>
+<span class="keyword">class</span> <span class="class">NewListViewUnitTest</span>(unittest.TestCase):  <i class="conum" data-value="1"></i><b>(1)</b>
 
-    <span class="keyword">def</span> <span class="function">dump_html</span>(<span class="predefined-constant">self</span>):
-        filename = <span class="predefined-constant">self</span>._get_filename() + <span class="string"><span class="delimiter">'</span><span class="content">.html</span><span class="delimiter">'</span></span>
-        print(<span class="string"><span class="delimiter">'</span><span class="content">dumping page HTML to</span><span class="delimiter">'</span></span>, filename)
-        <span class="keyword">with</span> <span class="predefined">open</span>(filename, <span class="string"><span class="delimiter">'</span><span class="content">w</span><span class="delimiter">'</span></span>) <span class="keyword">as</span> f:
-            f.write(<span class="predefined-constant">self</span>.browser.page_source)</code></pre>
+    <span class="keyword">def</span> <span class="function">setUp</span>(<span class="predefined-constant">self</span>):
+        <span class="predefined-constant">self</span>.request = HttpRequest()
+        <span class="predefined-constant">self</span>.request.POST[<span class="string"><span class="delimiter">'</span><span class="content">text</span><span class="delimiter">'</span></span>] = <span class="string"><span class="delimiter">'</span><span class="content">new list item</span><span class="delimiter">'</span></span>  <i class="conum" data-value="3"></i><b>(3)</b>
+
+    <span class="keyword">def</span> <span class="function">test_passes_POST_data_to_NewListForm</span>(<span class="predefined-constant">self</span>, mockNewListForm):
+        new_list2(<span class="predefined-constant">self</span>.request)
+        mockNewListForm.assert_called_once_with(data=<span class="predefined-constant">self</span>.request.POST)  <i class="conum" data-value="4"></i><b>(4)</b></code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>The Django <code>TestCase</code> class makes it too easy to write integrated tests.
+As a way of making sure we&#8217;re writing "pure", isolated unit tests, we&#8217;ll
+only use <code>unittest.TestCase</code></td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>We mock out the NewListForm class (which doesn&#8217;t even exist yet). It&#8217;s
+going to be used in all the tests, so we mock it out at the class level.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="3"></i><b>3</b></td>
+<td>We set up a basic POST request in <code>setUp</code>, building up the request by
+hand rather than using the (overly integrated) Django Test Client.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="4"></i><b>4</b></td>
+<td>And we check the first thing about our new view: it initialises its
+collaborator, the <code>NewListForm</code>, with the correct constructor&#8212;&#8203;the
+data from the request.</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>That will start with a failure, saying we don&#8217;t have a <code>NewListForm</code> in
+our view yet.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>AttributeError: &lt;module 'lists.views' from '/.../superlists/lists/views.py'&gt;
+does not have the attribute 'NewListForm'</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>And finally here&#8217;s a way of generating a unique filename identifier, which
-includes the name of the test and its class, as well as a timestamp:</p>
+<p>Let&#8217;s create a placeholder for it:</p>
 </div>
-<div class="listingblock sourcecode small-code">
-<div class="title">functional_tests/base.py (ch20l008)</div>
+<div class="listingblock sourcecode">
+<div class="title">lists/views.py (ch20l011)</div>
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python">    <span class="keyword">def</span> <span class="function">_get_filename</span>(<span class="predefined-constant">self</span>):
-        timestamp = datetime.now().isoformat().replace(<span class="string"><span class="delimiter">'</span><span class="content">:</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">.</span><span class="delimiter">'</span></span>)[:<span class="integer">19</span>]
-        <span class="keyword">return</span> <span class="string"><span class="delimiter">'</span><span class="content">{folder}/{classname}.{method}-window{windowid}-{timestamp}</span><span class="delimiter">'</span></span>.format(
-            folder=SCREEN_DUMP_LOCATION,
-            classname=<span class="predefined-constant">self</span>.__class__.__name__,
-            method=<span class="predefined-constant">self</span>._testMethodName,
-            windowid=<span class="predefined-constant">self</span>._windowid,
-            timestamp=timestamp
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> <span class="include">lists.forms</span> <span class="keyword">import</span> <span class="include">ExistingListItemForm</span>, <span class="include">ItemForm</span>, <span class="include">NewListForm</span>
+[...]</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>and:</p>
+</div>
+<div class="listingblock sourcecode">
+<div class="title">lists/forms.py (ch20l012)</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">class</span> <span class="class">ItemForm</span>(forms.models.ModelForm):
+    [...]
+
+<span class="keyword">class</span> <span class="class">NewListForm</span>(<span class="predefined">object</span>):
+    <span class="keyword">pass</span>
+
+<span class="keyword">class</span> <span class="class">ExistingListItemForm</span>(ItemForm):
+    [...]</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Next we get a real failure:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>AssertionError: Expected 'NewListForm' to be called once. Called 0 times.</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>And we implement like this:</p>
+</div>
+<div class="listingblock sourcecode">
+<div class="title">lists/views.py (ch20l012-2)</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">def</span> <span class="function">new_list2</span>(request):
+    NewListForm(data=request.POST)</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>python manage.py test lists</strong>
+[...]
+Ran 38 tests in 0.143s
+OK</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Let&#8217;s continue.  If the form is valid, we want to call save on it:</p>
+</div>
+<div class="listingblock sourcecode">
+<div class="title">lists/tests/test_views.py (ch20l013)</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> <span class="include">unittest.mock</span> <span class="keyword">import</span> <span class="include">patch</span>, <span class="include">Mock</span>
+[...]
+
+<span class="decorator">@patch</span>(<span class="string"><span class="delimiter">'</span><span class="content">lists.views.NewListForm</span><span class="delimiter">'</span></span>)
+<span class="keyword">class</span> <span class="class">NewListViewUnitTest</span>(unittest.TestCase):
+
+    <span class="keyword">def</span> <span class="function">setUp</span>(<span class="predefined-constant">self</span>):
+        <span class="predefined-constant">self</span>.request = HttpRequest()
+        <span class="predefined-constant">self</span>.request.POST[<span class="string"><span class="delimiter">'</span><span class="content">text</span><span class="delimiter">'</span></span>] = <span class="string"><span class="delimiter">'</span><span class="content">new list item</span><span class="delimiter">'</span></span>
+        <span class="predefined-constant">self</span>.request.user = Mock()
+
+
+    <span class="keyword">def</span> <span class="function">test_passes_POST_data_to_NewListForm</span>(<span class="predefined-constant">self</span>, mockNewListForm):
+        new_list2(<span class="predefined-constant">self</span>.request)
+        mockNewListForm.assert_called_once_with(data=<span class="predefined-constant">self</span>.request.POST)
+
+
+    <span class="keyword">def</span> <span class="function">test_saves_form_with_owner_if_form_valid</span>(<span class="predefined-constant">self</span>, mockNewListForm):
+        mock_form = mockNewListForm.return_value
+        mock_form.is_valid.return_value = <span class="predefined-constant">True</span>
+        new_list2(<span class="predefined-constant">self</span>.request)
+        mock_form.save.assert_called_once_with(owner=<span class="predefined-constant">self</span>.request.user)</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>That takes us to this:</p>
+</div>
+<div class="listingblock sourcecode">
+<div class="title">lists/views.py (ch20l014)</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">def</span> <span class="function">new_list2</span>(request):
+    form = NewListForm(data=request.POST)
+    form.save(owner=request.user)</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>In the case where the form is valid, we want the view to return a redirect,
+to send us to see the object that the form has just created.  So we mock out
+another of the view&#8217;s collaborators, the <code>redirect</code> function:</p>
+</div>
+<div class="listingblock sourcecode">
+<div class="title">lists/tests/test_views.py (ch20l015)</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python">    <span class="decorator">@patch</span>(<span class="string"><span class="delimiter">'</span><span class="content">lists.views.redirect</span><span class="delimiter">'</span></span>)  <i class="conum" data-value="1"></i><b>(1)</b>
+    <span class="keyword">def</span> <span class="function">test_redirects_to_form_returned_object_if_form_valid</span>(
+        <span class="predefined-constant">self</span>, mock_redirect, mockNewListForm  <i class="conum" data-value="2"></i><b>(2)</b>
+    ):
+        mock_form = mockNewListForm.return_value
+        mock_form.is_valid.return_value = <span class="predefined-constant">True</span>  <i class="conum" data-value="3"></i><b>(3)</b>
+
+        response = new_list2(<span class="predefined-constant">self</span>.request)
+
+        <span class="predefined-constant">self</span>.assertEqual(response, mock_redirect.return_value)  <i class="conum" data-value="4"></i><b>(4)</b>
+        mock_redirect.assert_called_once_with(mock_form.save.return_value)  <i class="conum" data-value="5"></i><b>(5)</b></code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>We mock out the <code>redirect</code> function, this time at the method level.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td><code>patch</code> decorators are applied innermost first, so the new mock is injected
+to our method as before the <code>mockNewListForm</code>.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="3"></i><b>3</b></td>
+<td>We specify we&#8217;re testing the case where the form is valid.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="4"></i><b>4</b></td>
+<td>We check that the response from the view is the result of the <code>redirect</code>
+function.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="5"></i><b>5</b></td>
+<td>And we check that the redirect function was called with the object that
+the form returns on save.</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>That takes us to here:</p>
+</div>
+<div class="listingblock sourcecode">
+<div class="title">lists/views.py (ch20l016)</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">def</span> <span class="function">new_list2</span>(request):
+    form = NewListForm(data=request.POST)
+    list_ = form.save(owner=request.user)
+    <span class="keyword">return</span> redirect(list_)</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>python manage.py test lists</strong>
+[...]
+Ran 40 tests in 0.163s
+OK</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>
+And now the failure case&#8212;&#8203;if the form is invalid, we want to render
+the home page template:</p>
+</div>
+<div class="listingblock sourcecode">
+<div class="title">lists/tests/test_views.py (ch20l017)</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python">    <span class="decorator">@patch</span>(<span class="string"><span class="delimiter">'</span><span class="content">lists.views.render</span><span class="delimiter">'</span></span>)
+    <span class="keyword">def</span> <span class="function">test_renders_home_template_with_form_if_form_invalid</span>(
+        <span class="predefined-constant">self</span>, mock_render, mockNewListForm
+    ):
+        mock_form = mockNewListForm.return_value
+        mock_form.is_valid.return_value = <span class="predefined-constant">False</span>
+
+        response = new_list2(<span class="predefined-constant">self</span>.request)
+
+        <span class="predefined-constant">self</span>.assertEqual(response, mock_render.return_value)
+        mock_render.assert_called_once_with(
+            <span class="predefined-constant">self</span>.request, <span class="string"><span class="delimiter">'</span><span class="content">home.html</span><span class="delimiter">'</span></span>, {<span class="string"><span class="delimiter">'</span><span class="content">form</span><span class="delimiter">'</span></span>: mock_form}
         )</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>You can test this first locally by deliberately breaking one of the tests, with
-a <code>self.fail()</code> for example, and you&#8217;ll see something like this:</p>
+<p>That gives us:</p>
 </div>
-<div class="listingblock dofirst-ch20l009">
+<div class="listingblock">
 <div class="content">
-<pre>[...]
-screenshotting to /.../superlists/functional_tests/screendumps/MyListsTest.test
-_logged_in_users_lists_are_saved_as_my_lists-window0-2014-03-09T11.19.12.png
-dumping page HTML to /.../superlists/functional_tests/screendumps/MyListsTest.t
-est_logged_in_users_lists_are_saved_as_my_lists-window0-[...]</pre>
+<pre>AssertionError: &lt;HttpResponseRedirect status_code=302, "te[114 chars]%3E"&gt; !=
+&lt;MagicMock name='render()' id='140244627467408'&gt;</pre>
+</div>
+</div>
+<div class="admonitionblock tip">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-tip" title="Tip"></i>
+</td>
+<td class="content">
+When using assert methods on mocks, like <code>assert_called_</code> <code>once_with</code>,
+    it&#8217;s doubly important to make sure you run the test and see it fail.
+    It&#8217;s all too easy to make a typo in your assert function name and
+    end up calling a mock method that does nothing (mine was to write
+    <code>asssert_called_once_with</code> with three essses, try it!)
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>We make a deliberate mistake, just to make sure our tests are comprehensive:</p>
+</div>
+<div class="listingblock sourcecode">
+<div class="title">lists/views.py (ch20l018)</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">def</span> <span class="function">new_list2</span>(request):
+    form = NewListForm(data=request.POST)
+    list_ = form.save(owner=request.user)
+    <span class="keyword">if</span> form.is_valid():
+        <span class="keyword">return</span> redirect(list_)
+    <span class="keyword">return</span> render(request, <span class="string"><span class="delimiter">'</span><span class="content">home.html</span><span class="delimiter">'</span></span>, {<span class="string"><span class="delimiter">'</span><span class="content">form</span><span class="delimiter">'</span></span>: form})</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>Revert the <code>self.fail()</code>, then commit and push:</p>
+<p>That passes but it shouldn&#8217;t!  One more test then:</p>
 </div>
-<div class="listingblock dofirst-ch20l010">
+<div class="listingblock sourcecode">
+<div class="title">lists/tests/test_views.py (ch20l019)</div>
 <div class="content">
-<pre>$ <strong>git diff</strong>  # changes in base.py
-$ <strong>echo "functional_tests/screendumps" &gt;&gt; .gitignore</strong>
-$ <strong>git commit -am "add screenshot on failure to FT runner"</strong>
-$ <strong>git push</strong></pre>
+<pre class="CodeRay highlight"><code data-lang="python">    <span class="keyword">def</span> <span class="function">test_does_not_save_if_form_invalid</span>(<span class="predefined-constant">self</span>, mockNewListForm):
+        mock_form = mockNewListForm.return_value
+        mock_form.is_valid.return_value = <span class="predefined-constant">False</span>
+        new_list2(<span class="predefined-constant">self</span>.request)
+        <span class="predefined-constant">self</span>.assertFalse(mock_form.save.called)</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>And when we rerun the build on Jenkins, we see something like this:</p>
+<p>Which fails:</p>
 </div>
-<div class="listingblock skipme">
+<div class="listingblock">
 <div class="content">
-<pre>screenshotting to /var/lib/jenkins/jobs/Superlists/.../functional_tests/
-screendumps/LoginTest.test_login_with_persona-window0-2014-01-22T17.45.12.png
-dumping page HTML to /var/lib/jenkins/jobs/Superlists/.../functional_tests/
-screendumps/LoginTest.test_login_with_persona-window0-2014-01-22T17.45.12.html</pre>
+<pre>    self.assertFalse(mock_form.save.called)
+AssertionError: True is not false</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>We can go and visit these in the "workspace", which is the folder which Jenkins
-uses to store our source code and run the tests in, as in
-<a href="#screenshots-in-workspace">Visiting the project workspace</a>.</p>
-</div>
-<div id="screenshots-in-workspace" class="imageblock">
-<div class="content">
-<img src="images/twdp_2009.png" alt="workspace files including screenshot">
-</div>
-<div class="title">Figure 9. Visiting the project workspace</div>
-</div>
-<div class="paragraph">
-<p>And then we look at the screenshot, as shown in <a href="#normal-screenshot">Screenshot looking normal</a>.</p>
-</div>
-<div id="normal-screenshot" class="imageblock">
-<div class="content">
-<img src="images/twdp_2010.png" alt="Screenshot of site page">
-</div>
-<div class="title">Figure 10. Screenshot looking normal</div>
-</div>
-<div class="paragraph">
-<p>Well, that didn&#8217;t help much.
+<p>
 
-
-</p>
+And we get to to our neat, small finished view:</p>
+</div>
+<div class="listingblock sourcecode">
+<div class="title">lists/views.py</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">def</span> <span class="function">new_list2</span>(request):
+    form = NewListForm(data=request.POST)
+    <span class="keyword">if</span> form.is_valid():
+        list_ = form.save(owner=request.user)
+        <span class="keyword">return</span> redirect(list_)
+    <span class="keyword">return</span> render(request, <span class="string"><span class="delimiter">'</span><span class="content">home.html</span><span class="delimiter">'</span></span>, {<span class="string"><span class="delimiter">'</span><span class="content">form</span><span class="delimiter">'</span></span>: form})</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>&#8230;&#8203;</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>python manage.py test lists</strong>
+[...]
+Ran 42 tests in 0.163s
+OK</pre>
+</div>
+</div>
 </div>
 </div>
 <div class="sect2">
-<h3 id="_a_common_selenium_problem_race_conditions">A Common Selenium Problem: Race Conditions</h3>
+<h3 id="_moving_down_to_the_forms_layer">Moving Down to the Forms Layer</h3>
 <div class="paragraph">
 <p>
 
-
-Whenever you see an inexplicable failure in a Selenium test, one of the most
-likely explanations is a hidden race condition. Let&#8217;s look at the line that
-failed:</p>
-</div>
-<div class="listingblock sourcecode currentcontents">
-<div class="title">functional_tests/test_my_lists.py</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="python">    <span class="comment"># She sees that her list is in there, named according to its</span>
-    <span class="comment"># first list item</span>
-    <span class="predefined-constant">self</span>.browser.find_element_by_link_text(<span class="string"><span class="delimiter">'</span><span class="content">Reticulate splines</span><span class="delimiter">'</span></span>).click()
-    <span class="predefined-constant">self</span>.assertEqual(<span class="predefined-constant">self</span>.browser.current_url, first_list_url)</code></pre>
-</div>
+So we&#8217;ve built up our view function based on a "wishful thinking" version
+of a form called <code>NewListForm</code>, which doesn&#8217;t even exist yet.</p>
 </div>
 <div class="paragraph">
-<p>Immediately after we click the "Reticulate splines" link, we ask Selenium
-to check whether the current URL matches the URL for our first list.  But
-it doesn&#8217;t:</p>
+<p>We&#8217;ll need the form&#8217;s save method to create a new list, and a new item based on
+the text from the form&#8217;s validated POST data.  If we were to just dive in and
+use the ORM, the code might look something a bit like this:</p>
 </div>
 <div class="listingblock skipme">
 <div class="content">
-<pre>AssertionError: 'http://localhost:8081/accounts/edith@example.com/' !=
-'http://localhost:8081/lists/1/'</pre>
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">class</span> <span class="class">NewListForm</span>(models.Form):
+
+    <span class="keyword">def</span> <span class="function">save</span>(<span class="predefined-constant">self</span>, owner):
+        list_ = List()
+        <span class="keyword">if</span> owner:
+            list_.owner = owner
+        list_.save()
+        item = Item()
+        item.list = list_
+        item.text = <span class="predefined-constant">self</span>.cleaned_data[<span class="string"><span class="delimiter">'</span><span class="content">text</span><span class="delimiter">'</span></span>]
+        item.save()</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>It looks like the current URL is still the URL of the "My Lists" page.  What&#8217;s
-going on?</p>
+<p>This implementation depends on two classes from the model layer, <code>Item</code> and
+<code>List</code>.  So, what would a well isolated test look like?</p>
+</div>
+<div class="listingblock skipme">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">class</span> <span class="class">NewListFormTest</span>(unittest.TestCase):
+
+    <span class="decorator">@patch</span>(<span class="string"><span class="delimiter">'</span><span class="content">lists.forms.List</span><span class="delimiter">'</span></span>)  <i class="conum" data-value="1"></i><b>(1)</b>
+    <span class="decorator">@patch</span>(<span class="string"><span class="delimiter">'</span><span class="content">lists.forms.Item</span><span class="delimiter">'</span></span>)  <i class="conum" data-value="1"></i><b>(1)</b>
+    <span class="keyword">def</span> <span class="function">test_save_creates_new_list_and_item_from_post_data</span>(
+        <span class="predefined-constant">self</span>, mockItem, mockList  <i class="conum" data-value="1"></i><b>(1)</b>
+    ):
+        mock_item = mockItem.return_value
+        mock_list = mockList.return_value
+        user = Mock()
+        form = NewListForm(data={<span class="string"><span class="delimiter">'</span><span class="content">text</span><span class="delimiter">'</span></span>: <span class="string"><span class="delimiter">'</span><span class="content">new item text</span><span class="delimiter">'</span></span>})
+        form.is_valid() <i class="conum" data-value="2"></i><b>(2)</b>
+
+        <span class="keyword">def</span> <span class="function">check_item_text_and_list</span>():
+            <span class="predefined-constant">self</span>.assertEqual(mock_item.text, <span class="string"><span class="delimiter">'</span><span class="content">new item text</span><span class="delimiter">'</span></span>)
+            <span class="predefined-constant">self</span>.assertEqual(mock_item.list, mock_list)
+            <span class="predefined-constant">self</span>.assertTrue(mock_list.save.called)
+        mock_item.save.side_effect = check_item_text_and_list  <i class="conum" data-value="3"></i><b>(3)</b>
+
+        form.save(owner=user)
+
+        <span class="predefined-constant">self</span>.assertTrue(mock_item.save.called)  <i class="conum" data-value="4"></i><b>(4)</b></code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>We mock out the two collaborators for our form from the models layer below.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>We need to call <code>is_valid()</code> so that the form populates the <code>.cleaned_data</code>
+dictionary where it stores validated data.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="3"></i><b>3</b></td>
+<td>We use the <code>side_effect</code> method to make sure that, when we save the new
+item object, we&#8217;re doing so with a saved List and with the correct item
+text.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="4"></i><b>4</b></td>
+<td>As always, we double-check that our side-effect function was actually
+called.</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>Yuck!  What an ugly test!</p>
+</div>
+<div class="sect3">
+<h4 id="_keep_listening_to_your_tests_removing_orm_code_from_our_application">Keep Listening to Your Tests: Removing ORM Code from Our Application</h4>
+<div class="paragraph">
+<p>Again, these tests are trying to tell us something:  the Django ORM
+is hard to mock out, and our form class needs to know too much about
+how it works.  Programming by wishful thinking again, what would
+be a simpler API that our form could use?  How about something like
+this:</p>
+</div>
+<div class="listingblock skipme">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python">    <span class="keyword">def</span> <span class="function">save</span>(<span class="predefined-constant">self</span>):
+        List.create_new(first_item_text=<span class="predefined-constant">self</span>.cleaned_data[<span class="string"><span class="delimiter">'</span><span class="content">text</span><span class="delimiter">'</span></span>])</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Our wishful thinking says: how about we had a helper method that
+would live on the List
+class<sup class="footnote">[<a id="_footnoteref_1" class="footnote" href="#_footnote_1" title="View footnote.">1</a>]</sup>
+and it will encapsulate all the logic of saving a new list object and
+its associated first item.</p>
+</div>
+<div class="paragraph">
+<p>So let&#8217;s write a test for that instead:</p>
+</div>
+<div class="listingblock sourcecode">
+<div class="title">lists/tests/test_forms.py (ch20l021)</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">import</span> <span class="include">unittest</span>
+<span class="keyword">from</span> <span class="include">unittest.mock</span> <span class="keyword">import</span> <span class="include">patch</span>, <span class="include">Mock</span>
+<span class="keyword">from</span> <span class="include">django.test</span> <span class="keyword">import</span> <span class="include">TestCase</span>
+
+<span class="keyword">from</span> <span class="include">lists.forms</span> <span class="keyword">import</span> (
+    DUPLICATE_ITEM_ERROR, EMPTY_ITEM_ERROR,
+    ExistingListItemForm, ItemForm, NewListForm
+)
+<span class="keyword">from</span> <span class="include">lists.models</span> <span class="keyword">import</span> <span class="include">Item</span>, <span class="include">List</span>
+[...]
+
+
+<span class="keyword">class</span> <span class="class">NewListFormTest</span>(unittest.TestCase):
+
+    <span class="decorator">@patch</span>(<span class="string"><span class="delimiter">'</span><span class="content">lists.forms.List.create_new</span><span class="delimiter">'</span></span>)
+    <span class="keyword">def</span> <span class="function">test_save_creates_new_list_from_post_data_if_user_not_authenticated</span>(
+        <span class="predefined-constant">self</span>, mock_List_create_new
+    ):
+        user = Mock(is_authenticated=<span class="predefined-constant">False</span>)
+        form = NewListForm(data={<span class="string"><span class="delimiter">'</span><span class="content">text</span><span class="delimiter">'</span></span>: <span class="string"><span class="delimiter">'</span><span class="content">new item text</span><span class="delimiter">'</span></span>})
+        form.is_valid()
+        form.save(owner=user)
+        mock_List_create_new.assert_called_once_with(
+            first_item_text=<span class="string"><span class="delimiter">'</span><span class="content">new item text</span><span class="delimiter">'</span></span>
+        )</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>And while we&#8217;re at it we can test the case where the user is an authenticated
+user too:</p>
+</div>
+<div class="listingblock sourcecode">
+<div class="title">lists/tests/test_forms.py (ch20l022)</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python">    <span class="decorator">@patch</span>(<span class="string"><span class="delimiter">'</span><span class="content">lists.forms.List.create_new</span><span class="delimiter">'</span></span>)
+    <span class="keyword">def</span> <span class="function">test_save_creates_new_list_with_owner_if_user_authenticated</span>(
+        <span class="predefined-constant">self</span>, mock_List_create_new
+    ):
+        user = Mock(is_authenticated=<span class="predefined-constant">True</span>)
+        form = NewListForm(data={<span class="string"><span class="delimiter">'</span><span class="content">text</span><span class="delimiter">'</span></span>: <span class="string"><span class="delimiter">'</span><span class="content">new item text</span><span class="delimiter">'</span></span>})
+        form.is_valid()
+        form.save(owner=user)
+        mock_List_create_new.assert_called_once_with(
+            first_item_text=<span class="string"><span class="delimiter">'</span><span class="content">new item text</span><span class="delimiter">'</span></span>, owner=user
+        )</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>You can see this is a much more readable test. Let&#8217;s start implementing
+our new form.  We start with the import:</p>
+</div>
+<div class="listingblock sourcecode">
+<div class="title">lists/forms.py (ch20l023)</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> <span class="include">lists.models</span> <span class="keyword">import</span> <span class="include">Item</span>, <span class="include">List</span></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Now mock tells us to create a placeholder for our <code>create_new</code> method:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>AttributeError: &lt;class 'lists.models.List'&gt; does not have the attribute
+'create_new'</pre>
+</div>
+</div>
+<div class="listingblock sourcecode">
+<div class="title">lists/models.py</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">class</span> <span class="class">List</span>(models.Model):
+
+    <span class="keyword">def</span> <span class="function">get_absolute_url</span>(<span class="predefined-constant">self</span>):
+        <span class="keyword">return</span> reverse(<span class="string"><span class="delimiter">'</span><span class="content">view_list</span><span class="delimiter">'</span></span>, args=[<span class="predefined-constant">self</span>.id])
+
+    <span class="keyword">def</span> <span class="function">create_new</span>():
+        <span class="keyword">pass</span></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>And after a few steps, we should end up with a form save method like this:</p>
+</div>
+<div class="listingblock sourcecode small-code">
+<div class="title">lists/forms.py (ch20l025)</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">class</span> <span class="class">NewListForm</span>(ItemForm):
+
+    <span class="keyword">def</span> <span class="function">save</span>(<span class="predefined-constant">self</span>, owner):
+        <span class="keyword">if</span> owner.is_authenticated:
+            List.create_new(first_item_text=<span class="predefined-constant">self</span>.cleaned_data[<span class="string"><span class="delimiter">'</span><span class="content">text</span><span class="delimiter">'</span></span>], owner=owner)
+        <span class="keyword">else</span>:
+            List.create_new(first_item_text=<span class="predefined-constant">self</span>.cleaned_data[<span class="string"><span class="delimiter">'</span><span class="content">text</span><span class="delimiter">'</span></span>])</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>And passing tests:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>python manage.py test lists</strong>
+Ran 44 tests in 0.192s
+OK</pre>
+</div>
 </div>
 <div class="paragraph">
 <p>
-
-Do you remember that we set an <code>implicitly_wait</code> on the browser, way back in
-<a href="/book/chapter_02.html">[chapter-2]</a>?  Do you remember I mentioned it was unreliable?</p>
+</p>
+</div>
+<div class="sidebarblock">
+<div class="content">
+<div class="title">Hiding ORM Code Behind Helper Methods</div>
+<div class="paragraph">
+<p>One of the techniques that emerged from our use of isolated tests was the
+"ORM helper method".</p>
 </div>
 <div class="paragraph">
-<p><code>implicitly_wait</code> works reasonably well for any calls to any of the
-Selenium <code>find_element_</code> calls, but it doesn&#8217;t apply to <code>browser.current_url</code>.
-Selenium doesn&#8217;t "wait" after you tell it to click an element, so what&#8217;s
-happened is that the browser hasn&#8217;t finished loading the new page yet, so
-<code>current_url</code> is still the old page.  We need to use some more wait code, like
-we did for the various Persona pages.</p>
+<p>Django&#8217;s ORM lets you get things done quickly with a reasonably readable
+syntax (it&#8217;s certainly much nicer than raw SQL!).  But some people like to
+try and minimise the amount of ORM code in the application&#8212;&#8203;particularly
+removing it from the views and forms layers.</p>
 </div>
 <div class="paragraph">
-<p>At this point it&#8217;s time for a "wait for" helper function. To see how this
-is going to work, it helps to see how I expect to use it (outside-in!):</p>
+<p>One reason is that it makes it much easier to test those layers.  But another
+is that it forces us to build helper functions that express our domain
+logic more clearly. Compare:</p>
+</div>
+<div class="listingblock skipme">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python">        list_ = List()
+        list_.save()
+        item = Item()
+        item.list = list_
+        item.text = <span class="predefined-constant">self</span>.cleaned_data[<span class="string"><span class="delimiter">'</span><span class="content">text</span><span class="delimiter">'</span></span>]
+        item.save()</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>With:</p>
+</div>
+<div class="listingblock skipme">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python">    List.create_new(first_item_text=<span class="predefined-constant">self</span>.cleaned_data[<span class="string"><span class="delimiter">'</span><span class="content">text</span><span class="delimiter">'</span></span>])</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>This also applies to read queries as well as write. Imagine something like
+this:</p>
+</div>
+<div class="listingblock skipme">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python">    Book.objects.filter(in_print=<span class="predefined-constant">True</span>, pub_date__lte=datetime.today())</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Versus a helper method, like:</p>
+</div>
+<div class="listingblock skipme">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python">    Book.all_available_books()</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>When we build helper functions, we can give them names that express what we
+are doing in terms of the business domain, which can actually make our code
+more legible, as well as giving us the benefit of keeping all ORM calls at
+the model layer, and thus making our whole application more loosely coupled.
+</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_finally_moving_down_to_the_models_layer">Finally, Moving Down to the Models Layer</h3>
+<div class="paragraph">
+<p>
+At the models layer, we no longer need to write isolated tests&#8212;&#8203;the whole
+point of the models layer is to integrate with the database, so it&#8217;s appropriate
+to write integrated tests:
+</p>
 </div>
 <div class="listingblock sourcecode">
-<div class="title">functional_tests/test_my_lists.py (ch20l012)</div>
+<div class="title">lists/tests/test_models.py (ch20l026)</div>
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python">    <span class="comment"># She sees that her list is in there, named according to its</span>
-    <span class="comment"># first list item</span>
-    <span class="predefined-constant">self</span>.browser.find_element_by_link_text(<span class="string"><span class="delimiter">'</span><span class="content">Reticulate splines</span><span class="delimiter">'</span></span>).click()
-    <span class="predefined-constant">self</span>.wait_for(
-        <span class="keyword">lambda</span>: <span class="predefined-constant">self</span>.assertEqual(<span class="predefined-constant">self</span>.browser.current_url, first_list_url)
-    )</code></pre>
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">class</span> <span class="class">ListModelTest</span>(TestCase):
+
+    <span class="keyword">def</span> <span class="function">test_get_absolute_url</span>(<span class="predefined-constant">self</span>):
+        list_ = List.objects.create()
+        <span class="predefined-constant">self</span>.assertEqual(list_.get_absolute_url(), <span class="string"><span class="delimiter">'</span><span class="content">/lists/%d/</span><span class="delimiter">'</span></span> % (list_.id,))
+
+
+    <span class="keyword">def</span> <span class="function">test_create_new_creates_list_and_first_item</span>(<span class="predefined-constant">self</span>):
+        List.create_new(first_item_text=<span class="string"><span class="delimiter">'</span><span class="content">new item text</span><span class="delimiter">'</span></span>)
+        new_item = Item.objects.first()
+        <span class="predefined-constant">self</span>.assertEqual(new_item.text, <span class="string"><span class="delimiter">'</span><span class="content">new item text</span><span class="delimiter">'</span></span>)
+        new_list = List.objects.first()
+        <span class="predefined-constant">self</span>.assertEqual(new_item.list, new_list)</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>We&#8217;re going to take our <code>assertEqual</code> call and turn it into a lambda function,
-then pass it into our <code>wait_for</code> helper.</p>
+<p>Which gives:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>TypeError: create_new() got an unexpected keyword argument 'first_item_text'</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>And that will take us to a first cut implementation that looks like this:</p>
 </div>
 <div class="listingblock sourcecode">
-<div class="title">functional_tests/base.py (ch20l013)</div>
+<div class="title">lists/models.py (ch20l027)</div>
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">import</span> <span class="include">time</span>
-[...]
-<span class="keyword">from</span> <span class="include">selenium.common.exceptions</span> <span class="keyword">import</span> <span class="include">WebDriverException</span>
-[...]
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">class</span> <span class="class">List</span>(models.Model):
 
-    <span class="keyword">def</span> <span class="function">wait_for</span>(<span class="predefined-constant">self</span>, function_with_assertion, timeout=DEFAULT_WAIT):
-        start_time = time.time()
-        <span class="keyword">while</span> time.time() - start_time &lt; timeout:
-            <span class="keyword">try</span>:
-                <span class="keyword">return</span> function_with_assertion()
-            <span class="keyword">except</span> (<span class="exception">AssertionError</span>, WebDriverException):
-                time.sleep(<span class="float">0.1</span>)
-        <span class="comment"># one more try, which will raise any errors if they are outstanding</span>
-        <span class="keyword">return</span> function_with_assertion()</code></pre>
+    <span class="keyword">def</span> <span class="function">get_absolute_url</span>(<span class="predefined-constant">self</span>):
+        <span class="keyword">return</span> reverse(<span class="string"><span class="delimiter">'</span><span class="content">view_list</span><span class="delimiter">'</span></span>, args=[<span class="predefined-constant">self</span>.id])
+
+    <span class="decorator">@staticmethod</span>
+    <span class="keyword">def</span> <span class="function">create_new</span>(first_item_text):
+        list_ = List.objects.create()
+        Item.objects.create(text=first_item_text, list=list_)</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p><code>wait_for</code> then tries to execute that function, but instead of letting the
-test fail if the assertion fails, it catches the <code>AssertionError</code> that
-<code>assertEqual</code> would ordinarily raise, waits for a brief moment, and then loops
-around retrying it.  The <code>while</code> loop lasts until a given timeout.  It also catches any
-<code>WebDriverException</code> that might happen if, say, an element hasn&#8217;t appeared on
-the page yet.  It tries one last time after the timeout has expired, this time
-without the <code>try/except</code>, so that if there really is still an <code>AssertionError</code>, the
-test will fail appropriately.</p>
+<p>Notice we&#8217;ve been able to get all the way down to the models layer,
+driving a nice design for the views and forms layers, and the List
+model still doesn&#8217;t support having an owner!</p>
+</div>
+<div class="paragraph">
+<p>Now let&#8217;s test the case where the list should have an owner, and
+add:</p>
+</div>
+<div class="listingblock sourcecode">
+<div class="title">lists/tests/test_models.py (ch20l028)</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> <span class="include">django.contrib.auth</span> <span class="keyword">import</span> <span class="include">get_user_model</span>
+User = get_user_model()
+[...]
+
+    <span class="keyword">def</span> <span class="function">test_create_new_optionally_saves_owner</span>(<span class="predefined-constant">self</span>):
+        user = User.objects.create()
+        List.create_new(first_item_text=<span class="string"><span class="delimiter">'</span><span class="content">new item text</span><span class="delimiter">'</span></span>, owner=user)
+        new_list = List.objects.first()
+        <span class="predefined-constant">self</span>.assertEqual(new_list.owner, user)</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>And while we&#8217;re at it, we can write the tests for the new owner attribute:</p>
+</div>
+<div class="listingblock sourcecode">
+<div class="title">lists/tests/test_models.py (ch20l029)</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">class</span> <span class="class">ListModelTest</span>(TestCase):
+    [...]
+
+    <span class="keyword">def</span> <span class="function">test_lists_can_have_owners</span>(<span class="predefined-constant">self</span>):
+        List(owner=User())  <span class="comment"># should not raise</span>
+
+
+    <span class="keyword">def</span> <span class="function">test_list_owner_is_optional</span>(<span class="predefined-constant">self</span>):
+        List().full_clean()  <span class="comment"># should not raise</span></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>These two are almost exactly the same tests we used in the last chapter,
+but I&#8217;ve re-written them slightly so they don&#8217;t actually save objects&#8212;&#8203;just
+having them as in-memory objects is enough to for this test.</p>
+</div>
+<div class="admonitionblock tip">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-tip" title="Tip"></i>
+</td>
+<td class="content">
+Use in-memory (unsaved) model objects in your tests whenever you can, it
+    makes your tests faster.
+    
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>That gives:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>python manage.py test lists</strong>
+[...]
+ERROR: test_create_new_optionally_saves_owner
+TypeError: create_new() got an unexpected keyword argument 'owner'
+[...]
+ERROR: test_lists_can_have_owners (lists.tests.test_models.ListModelTest)
+TypeError: 'owner' is an invalid keyword argument for this function
+[...]
+Ran 48 tests in 0.204s
+FAILED (errors=2)</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>We implement, just like we did in the last chapter:</p>
+</div>
+<div class="listingblock sourcecode">
+<div class="title">lists/models.py (ch20l030-1)</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> <span class="include">django.conf</span> <span class="keyword">import</span> <span class="include">settings</span>
+[...]
+
+
+<span class="keyword">class</span> <span class="class">List</span>(models.Model):
+    owner = models.ForeignKey(settings.AUTH_USER_MODEL, blank=<span class="predefined-constant">True</span>, null=<span class="predefined-constant">True</span>)
+    [...]</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>That will give us the usual integrity failures, until we do a migration:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>django.db.utils.OperationalError: no such column: lists_list.owner_id</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Building the migration will get us down to three failures:</p>
+</div>
+<div class="listingblock dofirst-ch20l030-2">
+<div class="content">
+<pre>ERROR: test_create_new_optionally_saves_owner
+TypeError: create_new() got an unexpected keyword argument 'owner'
+[...]
+ValueError: Cannot assign "&lt;SimpleLazyObject:
+&lt;django.contrib.auth.models.AnonymousUser object at 0x7f5b2380b4e0&gt;&gt;":
+"List.owner" must be a "User" instance.
+ValueError: Cannot assign "&lt;SimpleLazyObject:
+&lt;django.contrib.auth.models.AnonymousUser object at 0x7f5b237a12e8&gt;&gt;":
+"List.owner" must be a "User" instance.</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Let&#8217;s deal with the first one, which is for our <code>create_new</code> method:</p>
+</div>
+<div class="listingblock sourcecode">
+<div class="title">lists/models.py (ch20l030-3)</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python">    <span class="decorator">@staticmethod</span>
+    <span class="keyword">def</span> <span class="function">create_new</span>(first_item_text, owner=<span class="predefined-constant">None</span>):
+        list_ = List.objects.create(owner=owner)
+        Item.objects.create(text=first_item_text, list=list_)</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p></p>
+</div>
+<div class="sect3">
+<h4 id="_back_to_views">Back to Views</h4>
+<div class="paragraph">
+<p>
+
+Two of our old integrated tests for the views layer are failing. What&#8217;s happening?</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>ValueError: Cannot assign "&lt;SimpleLazyObject:
+&lt;django.contrib.auth.models.AnonymousUser object at 0x7fbad1cb6c10&gt;&gt;":
+"List.owner" must be a "User" instance.</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Ah, the old view isn&#8217;t discerning enough about what it does with list
+owners yet:</p>
+</div>
+<div class="listingblock sourcecode currentcontents">
+<div class="title">lists/views.py</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python">    <span class="keyword">if</span> form.is_valid():
+        list_ = List()
+        list_.owner = request.user
+        list_.save()</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>This is the point at which we realise that our old code wasn&#8217;t fit for purpose.
+Let&#8217;s fix it to get all our tests passing:</p>
+</div>
+<div class="listingblock sourcecode">
+<div class="title">lists/views.py (ch20l031)</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">def</span> <span class="function">new_list</span>(request):
+    form = ItemForm(data=request.POST)
+    <span class="keyword">if</span> form.is_valid():
+        list_ = List()
+        <span class="keyword">if</span> request.user.is_authenticated:
+            list_.owner = request.user
+        list_.save()
+        form.save(for_list=list_)
+        <span class="keyword">return</span> redirect(list_)
+    <span class="keyword">else</span>:
+        <span class="keyword">return</span> render(request, <span class="string"><span class="delimiter">'</span><span class="content">home.html</span><span class="delimiter">'</span></span>, {<span class="string"><span class="delimiter">"</span><span class="content">form</span><span class="delimiter">"</span></span>: form})
+
+
+<span class="keyword">def</span> <span class="function">new_list2</span>(request):
+    [...]</code></pre>
+</div>
 </div>
 <div class="admonitionblock note">
 <table>
@@ -749,396 +1397,801 @@ test will fail appropriately.</p>
 <i class="fa icon-note" title="Note"></i>
 </td>
 <td class="content">
-We&#8217;ve seen that Selenium provides <code>WebdriverWait</code> as a tool for doing
-waits, but it&#8217;s a little restrictive.  This hand-rolled version lets us pass a
-function that does a <code>unittest</code> assertion, with all the benefits of the
-readable error messages that it gives us.
+One of the benefits of integrated tests is that they help you to catch
+    less predictable interactions like this.  We&#8217;d forgotten to write a test
+    for the case where the user is not authenticated, but because the
+    integrated tests use the stack all the way down, errors from the model
+    layer came up to let us know we&#8217;d forgotten something:
 </td>
 </tr>
 </table>
 </div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>python manage.py test lists</strong>
+[...]
+Ran 48 tests in 0.175s
+OK</pre>
+</div>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_the_moment_of_truth_and_the_risks_of_mocking">The Moment of Truth (and the Risks of Mocking)</h3>
 <div class="paragraph">
-<p>I&#8217;ve added the timeout there as an optional argument, and I&#8217;m basing it on
-a constant we&#8217;ll add to <em>base.py</em>.  We&#8217;ll also use it in our original
-<code>implicitly_wait</code>:</p>
+<p>
+So let&#8217;s try switching out our old view, and activating our new view. We
+can make the swap in <em>urls.py</em>:</p>
 </div>
 <div class="listingblock sourcecode">
-<div class="title">functional_tests/base.py (ch20l014)</div>
+<div class="title">lists/urls.py</div>
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="python">[...]
-DEFAULT_WAIT = <span class="integer">5</span>
-SCREEN_DUMP_LOCATION = os.path.join(
-    os.path.dirname(os.path.abspath(__file__)), <span class="string"><span class="delimiter">'</span><span class="content">screendumps</span><span class="delimiter">'</span></span>
-)
+    url(<span class="string"><span class="modifier">r</span><span class="delimiter">'</span><span class="content">^new$</span><span class="delimiter">'</span></span>, views.new_list2, name=<span class="string"><span class="delimiter">'</span><span class="content">new_list</span><span class="delimiter">'</span></span>),</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>We should also remove the <code>unittest.skip</code> from our integrated test class, to
+see if our new code for list owners really works:</p>
+</div>
+<div class="listingblock sourcecode">
+<div class="title">lists/tests/test_views.py (ch20l033)</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">class</span> <span class="class">NewListViewIntegratedTest</span>(TestCase):
+
+    <span class="keyword">def</span> <span class="function">test_can_save_a_POST_request</span>(<span class="predefined-constant">self</span>):
+        [...]
+
+    <span class="keyword">def</span> <span class="function">test_list_owner_is_saved_if_user_is_authenticated</span>(<span class="predefined-constant">self</span>):
+        [...]
+        <span class="predefined-constant">self</span>.assertEqual(list_.owner, user)</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>So what happens when we run our tests? Oh no!</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>ERROR: test_list_owner_is_saved_if_user_is_authenticated
+[...]
+ERROR: test_can_save_a_POST_request
+[...]
+ERROR: test_redirects_after_POST
+(lists.tests.test_views.NewListViewIntegratedTest)
+  File "/.../superlists/lists/views.py", line 30, in new_list2
+    return redirect(list_)
+[...]
+TypeError: argument of type 'NoneType' is not iterable
+
+FAILED (errors=3)</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Here&#8217;s an important lesson to learn about test isolation: it might help you
+to drive out good design for individual layers, but it won&#8217;t automatically
+verify the integration <em>between</em> your layers.</p>
+</div>
+<div class="paragraph">
+<p>What&#8217;s happened here is that the view was expecting the form to return
+a list item:</p>
+</div>
+<div class="listingblock sourcecode currentcontents">
+<div class="title">lists/views.py</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python">        list_ = form.save(owner=request.user)
+        <span class="keyword">return</span> redirect(list_)</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>But we forgot to make it return anything:</p>
+</div>
+<div class="listingblock sourcecode currentcontents small-code">
+<div class="title">lists/forms.py</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python">    <span class="keyword">def</span> <span class="function">save</span>(<span class="predefined-constant">self</span>, owner):
+        <span class="keyword">if</span> owner.is_authenticated:
+            List.create_new(first_item_text=<span class="predefined-constant">self</span>.cleaned_data[<span class="string"><span class="delimiter">'</span><span class="content">text</span><span class="delimiter">'</span></span>], owner=owner)
+        <span class="keyword">else</span>:
+            List.create_new(first_item_text=<span class="predefined-constant">self</span>.cleaned_data[<span class="string"><span class="delimiter">'</span><span class="content">text</span><span class="delimiter">'</span></span>])</code></pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_thinking_of_interactions_between_layers_as_contracts">Thinking of Interactions Between Layers as "Contracts"</h3>
+<div class="paragraph">
+<p>
+Ultimately, even if we had been writing nothing but isolated unit tests, our
+functional tests would have picked up this particular slip-up.  But ideally
+we&#8217;d want our feedback cycle to be quicker&#8212;&#8203;functional tests may take a
+couple of minutes to run, or even a few hours once your app starts to grow.  Is
+there any way to avoid this sort of problem before it happens?</p>
+</div>
+<div class="paragraph">
+<p>Methodologically, the way to do it is to think about the interaction between
+your layers in terms of contracts.  Whenever we mock out the behaviour of one
+layer, we have to make a mental note that there is now an implicit contract
+between the layers, and that a mock on one layer should probably translate into
+a test at the layer below.</p>
+</div>
+<div class="paragraph">
+<p>Here&#8217;s the part of the contract that we missed:</p>
+</div>
+<div class="listingblock sourcecode currentcontents">
+<div class="title">lists/tests/test_views.py</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python">    <span class="decorator">@patch</span>(<span class="string"><span class="delimiter">'</span><span class="content">lists.views.redirect</span><span class="delimiter">'</span></span>)
+    <span class="keyword">def</span> <span class="function">test_redirects_to_form_returned_object_if_form_valid</span>(
+        <span class="predefined-constant">self</span>, mock_redirect, mockNewListForm
+    ):
+        mock_form = mockNewListForm.return_value
+        mock_form.is_valid.return_value = <span class="predefined-constant">True</span>
+
+        response = new_list2(<span class="predefined-constant">self</span>.request)
+
+        <span class="predefined-constant">self</span>.assertEqual(response, mock_redirect.return_value)
+        mock_redirect.assert_called_once_with(mock_form.save.return_value)  <i class="conum" data-value="1"></i><b>(1)</b></code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>The mocked <code>form.save</code> function is returning an object, which we expect
+our view to be able to use.</td>
+</tr>
+</table>
+</div>
+<div class="sect3">
+<h4 id="_identifying_implicit_contracts">Identifying Implicit Contracts</h4>
+<div class="paragraph">
+<p>
+
+It&#8217;s worth reviewing each of the tests in <code>NewListViewUnitTest</code> and seeing
+what each mock is saying about the implicit contract:</p>
+</div>
+<div class="listingblock sourcecode currentcontents">
+<div class="title">lists/tests/test_views.py</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python">    <span class="keyword">def</span> <span class="function">test_passes_POST_data_to_NewListForm</span>(<span class="predefined-constant">self</span>, mockNewListForm):
+        [...]
+        mockNewListForm.assert_called_once_with(data=<span class="predefined-constant">self</span>.request.POST)  <i class="conum" data-value="1"></i><b>(1)</b>
 
 
-<span class="keyword">class</span> <span class="class">FunctionalTest</span>(StaticLiveServerTestCase):
+    <span class="keyword">def</span> <span class="function">test_saves_form_with_owner_if_form_valid</span>(<span class="predefined-constant">self</span>, mockNewListForm):
+        mock_form = mockNewListForm.return_value
+        mock_form.is_valid.return_value = <span class="predefined-constant">True</span>  <i class="conum" data-value="2"></i><b>(2)</b>
+        new_list2(<span class="predefined-constant">self</span>.request)
+        mock_form.save.assert_called_once_with(owner=<span class="predefined-constant">self</span>.request.user)  <i class="conum" data-value="3"></i><b>(3)</b>
 
+
+    <span class="keyword">def</span> <span class="function">test_does_not_save_if_form_invalid</span>(<span class="predefined-constant">self</span>, mockNewListForm):
+        [...]
+        mock_form.is_valid.return_value = <span class="predefined-constant">False</span>  <i class="conum" data-value="2"></i><b>(2)</b>
+        [...]
+
+
+    <span class="decorator">@patch</span>(<span class="string"><span class="delimiter">'</span><span class="content">lists.views.redirect</span><span class="delimiter">'</span></span>)
+    <span class="keyword">def</span> <span class="function">test_redirects_to_form_returned_object_if_form_valid</span>(
+        <span class="predefined-constant">self</span>, mock_redirect, mockNewListForm
+    ):
+        [...]
+        mock_redirect.assert_called_once_with(mock_form.save.return_value)  <i class="conum" data-value="4"></i><b>(4)</b>
+
+
+    <span class="decorator">@patch</span>(<span class="string"><span class="delimiter">'</span><span class="content">lists.views.render</span><span class="delimiter">'</span></span>)
+    <span class="keyword">def</span> <span class="function">test_renders_home_template_with_form_if_form_invalid</span>(
+        [...]</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>We need to be able to initialise our form by passing it a POST request
+as data.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>It should have an <code>is_valid()</code> function which returns True or False
+appropriately, based on the input data.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="3"></i><b>3</b></td>
+<td>The form should have a <code>.save</code> method which will accept a <code>request.user</code>,
+which may or may not be a logged-in user, and deal with it appropriately.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="4"></i><b>4</b></td>
+<td>The form&#8217;s <code>.save</code> method should return a new list object, for our view
+to redirect the user to.</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>If we have a look through our form tests, we&#8217;ll see that, actually, only item %3%
+is tested explicitly.  On items %1% and %2% we were lucky&#8212;&#8203;they&#8217;re default
+features of a Django <code>ModelForm</code>, and they are actually covered by our
+tests for the parent <code>ItemForm</code> class.</p>
+</div>
+<div class="paragraph">
+<p>But contract clause number &#10125; managed to slip through the net.</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+When doing outside-in TDD with isolated tests, you need to keep track of
+    each test&#8217;s implicit assumptions about the contract which the next layer
+    should implement, and remember to test each of those in turn later.  You
+    could use our scratchpad for this, or create a placeholder test with
+    a <code>self.fail</code>.
+</td>
+</tr>
+</table>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_fixing_the_oversight">Fixing the Oversight</h4>
+<div class="paragraph">
+<p>Let&#8217;s add a new test that our form should return the new saved list:</p>
+</div>
+<div class="listingblock sourcecode">
+<div class="title">lists/tests/test_forms.py (ch20l038-1)</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python">    <span class="decorator">@patch</span>(<span class="string"><span class="delimiter">'</span><span class="content">lists.forms.List.create_new</span><span class="delimiter">'</span></span>)
+    <span class="keyword">def</span> <span class="function">test_save_returns_new_list_object</span>(<span class="predefined-constant">self</span>, mock_List_create_new):
+        user = Mock(is_authenticated=<span class="predefined-constant">True</span>)
+        form = NewListForm(data={<span class="string"><span class="delimiter">'</span><span class="content">text</span><span class="delimiter">'</span></span>: <span class="string"><span class="delimiter">'</span><span class="content">new item text</span><span class="delimiter">'</span></span>})
+        form.is_valid()
+        response = form.save(owner=user)
+        <span class="predefined-constant">self</span>.assertEqual(response, mock_List_create_new.return_value)</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>And, actually, this is a good example&#8212;&#8203;we have an implicit contract
+with the <code>List.create_new</code>, we want it to return the new list object.
+Let&#8217;s add a placeholder test for that.</p>
+</div>
+<div class="listingblock sourcecode">
+<div class="title">lists/tests/test_models.py (ch20l038-2)</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">class</span> <span class="class">ListModelTest</span>(TestCase):
     [...]
 
-    <span class="keyword">def</span> <span class="function">setUp</span>(<span class="predefined-constant">self</span>):
-        <span class="predefined-constant">self</span>.browser = webdriver.Firefox()
-        <span class="predefined-constant">self</span>.browser.implicitly_wait(DEFAULT_WAIT)</code></pre>
+    <span class="keyword">def</span> <span class="function">test_create_returns_new_list_object</span>(<span class="predefined-constant">self</span>):
+        <span class="predefined-constant">self</span>.fail()</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>Now we can rerun the test to confirm it still works locally:</p>
+<p>So, we have one test failures that&#8217;s telling us to fix the form save:</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>$ <strong>python manage.py test functional_tests.test_my_lists</strong>
-[...]
-.
+<pre>AssertionError: None != &lt;MagicMock name='create_new()' id='139802647565536'&gt;
+FAILED (failures=2, errors=3)</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Like this:</p>
+</div>
+<div class="listingblock sourcecode small-code">
+<div class="title">lists/forms.py (ch20l039-1)</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">class</span> <span class="class">NewListForm</span>(ItemForm):
 
-Ran 1 test in 9.594s
+    <span class="keyword">def</span> <span class="function">save</span>(<span class="predefined-constant">self</span>, owner):
+        <span class="keyword">if</span> owner.is_authenticated:
+            <span class="keyword">return</span> List.create_new(first_item_text=<span class="predefined-constant">self</span>.cleaned_data[<span class="string"><span class="delimiter">'</span><span class="content">text</span><span class="delimiter">'</span></span>], owner=owner)
+        <span class="keyword">else</span>:
+            <span class="keyword">return</span> List.create_new(first_item_text=<span class="predefined-constant">self</span>.cleaned_data[<span class="string"><span class="delimiter">'</span><span class="content">text</span><span class="delimiter">'</span></span>])</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>That&#8217;s a start, now we should look at our placeholder test:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>[...]
+FAIL: test_create_returns_new_list_object
+    self.fail()
+AssertionError: None
+
+FAILED (failures=1, errors=3)</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>We flesh it out:</p>
+</div>
+<div class="listingblock sourcecode">
+<div class="title">lists/tests/test_models.py (ch20l039-2)</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python">    <span class="keyword">def</span> <span class="function">test_create_returns_new_list_object</span>(<span class="predefined-constant">self</span>):
+        returned = List.create_new(first_item_text=<span class="string"><span class="delimiter">'</span><span class="content">new item text</span><span class="delimiter">'</span></span>)
+        new_list = List.objects.first()
+        <span class="predefined-constant">self</span>.assertEqual(returned, new_list)</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>&#8230;&#8203;</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>AssertionError: None != &lt;List: List object&gt;</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>And we add our return value:</p>
+</div>
+<div class="listingblock sourcecode">
+<div class="title">lists/models.py (ch20l039-3)</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python">    <span class="decorator">@staticmethod</span>
+    <span class="keyword">def</span> <span class="function">create_new</span>(first_item_text, owner=<span class="predefined-constant">None</span>):
+        list_ = List.objects.create(owner=owner)
+        Item.objects.create(text=first_item_text, list=list_)
+        <span class="keyword">return</span> list_</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>And that gets us to a fully passing test suite:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>python manage.py test lists</strong>
+[...]
+Ran 50 tests in 0.169s
 
 OK</pre>
 </div>
 </div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_one_more_test">One More Test</h3>
 <div class="paragraph">
-<p>And, just to be sure, we&#8217;ll deliberately break our test to see it fail
-too:</p>
-</div>
-<div class="listingblock sourcecode">
-<div class="title">functional_tests/test_my_lists.py (ch20l015)</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="python">    <span class="predefined-constant">self</span>.wait_for(
-        <span class="keyword">lambda</span>: <span class="predefined-constant">self</span>.assertEqual(<span class="predefined-constant">self</span>.browser.current_url, <span class="string"><span class="delimiter">'</span><span class="content">barf</span><span class="delimiter">'</span></span>)
-    )</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Sure enough, that gives:</p>
+<p>That&#8217;s our code for saving list owners test-driven all the way down and
+working.  But our functional test isn&#8217;t passing quite yet:</p>
 </div>
 <div class="listingblock">
 <div class="content">
 <pre>$ <strong>python manage.py test functional_tests.test_my_lists</strong>
-[...]
-AssertionError: 'http://localhost:8081/lists/1/' != 'barf'</pre>
+selenium.common.exceptions.NoSuchElementException: Message: Unable to locate
+element: Reticulate splines</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>And we see it pause on the page for three seconds.  Let&#8217;s revert that last
-change, and then commit our changes:</p>
-</div>
-<div class="listingblock dofirst-ch20l016">
-<div class="content">
-<pre>$ <strong>git diff</strong> # base.py, test_my_lists.py
-$ <strong>git commit -am "use wait_for function for URL checks in my_lists"</strong>
-$ <strong>git push</strong></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>
-
-Then we can rerun the build on Jenkins using "Build now", and confirm it now
-works, as in <a href="#outlook-brighter">The outlook is brighter</a>.</p>
-</div>
-<div id="outlook-brighter" class="imageblock">
-<div class="content">
-<img src="images/twdp_2011.png" alt="Build showing a recent pass and sun-peeking-through-clouds logo">
-</div>
-<div class="title">Figure 11. The outlook is brighter</div>
-</div>
-<div class="paragraph">
-<p>Jenkins uses blue to indicate passing builds rather than green, which is a bit
-disappointing, but look at the sun peeking through the clouds:  that&#8217;s cheery!
-It&#8217;s an indicator of a moving average ratio of passing builds to failing
-builds.  Things are looking up!
-
-
-</p>
-</div>
-</div>
-<div class="sect2">
-<h3 id="_running_our_qunit_javascript_tests_in_jenkins_with_phantomjs">Running Our QUnit JavaScript Tests in Jenkins with PhantomJS</h3>
-<div class="paragraph">
-<p>
-
-
-There&#8217;s a set of tests we almost forgot&#8212;&#8203;the JavaScript tests. Currently
-our "test runner" is an actual web browser.  To get Jenkins to run them, we
-need a command-line test runner.  Here&#8217;s a chance to use PhantomJS.</p>
-</div>
-<div class="sect3">
-<h4 id="_installing_node">Installing node</h4>
-<div class="paragraph">
-<p>It&#8217;s time to stop pretending we&#8217;re not in the JavaScript game.  We&#8217;re doing
-web development.  That means we do JavaScript.  That means we&#8217;re going to end
-up with node.js on our computers.  It&#8217;s just the way it has to be.</p>
-</div>
-<div class="paragraph">
-<p>Follow the instructions on the <a href="http://nodejs.org/download/">node.js download
-page</a>. There are installers for Windows and Mac, and repositories for popular
-Linux distros.<sup class="footnote">[<a id="_footnoteref_4" class="footnote" href="#_footnote_4" title="View footnote.">4</a>]</sup></p>
-</div>
-<div class="paragraph">
-<p>Once we have node, we can install phantom:</p>
-</div>
-<div class="listingblock skipme">
-<div class="content">
-<pre>$ <strong>npm install -g phantomjs</strong>  # the -g means "system-wide". May need sudo.</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Next we pull down a QUnit/PhantomJS test runner.  There are several out there
-(I even wrote a basic one to be able to test the QUnit listings in this book),
-but the best one to get is probably the one that&#8217;s linked from the
-<a href="http://qunitjs.com/plugins/">QUnit plugins page</a>. At the time of writing, its
-repo was at <a href="https://github.com/jonkemp/qunit-phantomjs-runner" class="bare">https://github.com/jonkemp/qunit-phantomjs-runner</a>.  The only file
-you need is <em>runner.js</em>.</p>
-</div>
-<div class="paragraph">
-<p>You should end up with this:</p>
-</div>
-<div class="listingblock dofirst-ch20l017">
-<div class="content">
-<pre>$ <strong>tree lists/static/tests/</strong>
-lists/static/tests/
-&#9500;&#9472;&#9472; qunit-2.0.1.css
-&#9500;&#9472;&#9472; qunit-2.0.1.js
-&#9500;&#9472;&#9472; runner.js
-&#9492;&#9472;&#9472; tests.html
-
-0 directories, 4 files</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Let&#8217;s try it out:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>$ <strong>phantomjs lists/static/tests/runner.js lists/static/tests/tests.html</strong>
-Took 24ms to run 2 tests. 2 passed, 0 failed.</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Just to be sure, let&#8217;s deliberately break something:</p>
+<p>It&#8217;s because we have one last feature to implement, the <code>.name</code> attribute on list
+objects.  Again, we can grab the test and code from the last chapter:</p>
 </div>
 <div class="listingblock sourcecode">
-<div class="title">lists/static/list.js (ch20l019)</div>
+<div class="title">lists/tests/test_models.py (ch20l040)</div>
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="javascript">  <span class="predefined">$</span>(<span class="string"><span class="delimiter">'</span><span class="content">input[name="text"]</span><span class="delimiter">'</span></span>).on(<span class="string"><span class="delimiter">'</span><span class="content">keypress</span><span class="delimiter">'</span></span>, <span class="keyword">function</span> () {
-    <span class="comment">// $('.has-error').hide();</span>
-  });</code></pre>
+<pre class="CodeRay highlight"><code data-lang="python">    <span class="keyword">def</span> <span class="function">test_list_name_is_first_item_text</span>(<span class="predefined-constant">self</span>):
+        list_ = List.objects.create()
+        Item.objects.create(list=list_, text=<span class="string"><span class="delimiter">'</span><span class="content">first item</span><span class="delimiter">'</span></span>)
+        Item.objects.create(list=list_, text=<span class="string"><span class="delimiter">'</span><span class="content">second item</span><span class="delimiter">'</span></span>)
+        <span class="predefined-constant">self</span>.assertEqual(list_.name, <span class="string"><span class="delimiter">'</span><span class="content">first item</span><span class="delimiter">'</span></span>)</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>Sure enough:</p>
+<p>(Again, since this is a model-layer test, it&#8217;s OK to use the ORM. You could
+conceivably write this test using mocks, but there wouldn&#8217;t be much point).</p>
+</div>
+<div class="listingblock sourcecode">
+<div class="title">lists/models.py (ch20l041)</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python">    <span class="decorator">@property</span>
+    <span class="keyword">def</span> <span class="function">name</span>(<span class="predefined-constant">self</span>):
+        <span class="keyword">return</span> <span class="predefined-constant">self</span>.item_set.first().text</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>And that gets us to a passing FT!</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>$ <strong>phantomjs lists/static/tests/runner.js lists/static/tests/tests.html</strong>
+<pre>$ <strong>python manage.py test functional_tests.test_my_lists</strong>
 
-Test failed: errors should be hidden on keypress
-    Failed assertion: expected: false, but was: true
-file:///.../superlists/lists/static/tests/tests.html:27:15
-
-Took 27ms to run 2 tests. 1 passed, 1 failed.</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>All right!  Let&#8217;s unbreak that, commit and push the runner, and then add it to
-our Jenkins build:</p>
-</div>
-<div class="listingblock dofirst-ch20l020">
-<div class="content">
-<pre>$ <strong>git checkout lists/static/list.js</strong>
-$ <strong>git add lists/static/tests/runner.js</strong>
-$ <strong>git commit -m "Add phantomjs test runner for javascript tests"</strong>
-$ <strong>git push</strong></pre>
-</div>
-</div>
-</div>
-<div class="sect3">
-<h4 id="_adding_the_build_steps_to_jenkins">Adding the Build Steps to Jenkins</h4>
-<div class="paragraph">
-<p>Edit the project configuration again, and add a step for each set of
-JavaScript tests, as per <a href="#js-unit-tests-jenkey">Add a build step for our JavaScript unit tests</a>.</p>
-</div>
-<div id="js-unit-tests-jenkey" class="imageblock">
-<div class="content">
-<img src="images/twdp_2012.png" alt="Jenkins' default welcome screen">
-</div>
-<div class="title">Figure 12. Add a build step for our JavaScript unit tests</div>
-</div>
-<div class="paragraph">
-<p>You&#8217;ll also need to install PhantomJS on the server:</p>
-</div>
-<div class="listingblock skipme">
-<div class="content">
-<pre>elspeth@server:$ <strong>sudo add-apt-repository -y ppa:chris-lea/node.js</strong>
-elspeth@server:$ <strong>sudo apt-get update</strong>
-elspeth@server:$ <strong>sudo apt-get install nodejs</strong>
-elspeth@server:$ <strong>sudo npm install -g phantomjs</strong></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>And there we are!  A complete CI build featuring all of our tests!</p>
-</div>
-<div class="listingblock skipme">
-<div class="content">
-<pre>Started by user harry
-Building in workspace /var/lib/jenkins/jobs/Superlists/workspace
-Fetching changes from the remote Git repository
-Fetching upstream changes from https://github.com/hjwp/book-example.git
-Checking out Revision 936a484038194b289312ff62f10d24e6a054fb29 (origin/chapter_1
-Xvfb starting$ /usr/bin/Xvfb :1 -screen 0 1024x768x24 -fbdir /var/lib/jenkins/20
-[workspace] $ /bin/sh -xe /tmp/shiningpanda7092102504259037999.sh
-
-+ pip install -r requirements.txt
-[...]
-
-+ python manage.py test lists
-.................................
- ---------------------------------------------------------------------
-Ran 33 tests in 0.229s
-
-OK
-Creating test database for alias 'default'...
-Destroying test database for alias 'default'...
-
-+ python manage.py test accounts
-..................
- ---------------------------------------------------------------------
-Ran 18 tests in 0.078s
-
-OK
-Creating test database for alias 'default'...
-Destroying test database for alias 'default'...
-
-[workspace] $ /bin/sh -xe /tmp/hudson2967478575201471277.sh
-+ phantomjs lists/static/tests/runner.js lists/static/tests/tests.html
-Took 32ms to run 2 tests. 2 passed, 0 failed.
-+ phantomjs lists/static/tests/runner.js accounts/static/tests/tests.html
-Took 47ms to run 11 tests. 11 passed, 0 failed.
-
-[workspace] $ /bin/sh -xe /tmp/shiningpanda7526089957247195819.sh
-+ pip install selenium
-Requirement already satisfied (use --upgrade to upgrade): selenium in /var/lib/
-
-Cleaning up...
-[workspace] $ /bin/sh -xe /tmp/shiningpanda2420240268202055029.sh
-+ python manage.py test functional_tests
-........
- ---------------------------------------------------------------------
-Ran 8 tests in 76.804s
+Ran 1 test in 21.428s
 
 OK</pre>
 </div>
 </div>
+</div>
+<div class="sect2">
+<h3 id="_tidy_up_what_to_keep_from_our_integrated_test_suite">Tidy Up: What to Keep from Our Integrated Test Suite</h3>
 <div class="paragraph">
 <p>
+Now everything is working, we can remove some redundant tests, and decide
+whether we want to keep any of our old integrated tests.</p>
+</div>
+<div class="sect3">
+<h4 id="_removing_redundant_code_at_the_forms_layer">Removing Redundant Code at the Forms Layer</h4>
+<div class="paragraph">
+<p>We can get rid of the test for the old save method on the <code>ItemForm</code>:</p>
+</div>
+<div class="listingblock sourcecode">
+<div class="title">lists/tests/test_forms.py</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="diff"><span class="line head"><span class="head">--- </span><span class="filename">a/lists/tests/test_forms.py</span></span>
+<span class="line head"><span class="head">+++ </span><span class="filename">b/lists/tests/test_forms.py</span></span>
+<span class="change"><span class="change">@@</span> -23,14 +23,6 <span class="change">@@</span></span> <span class="keyword">class</span> <span class="class">ItemFormTest</span>(TestCase):
+
+         <span class="predefined-constant">self</span>.assertEqual(form.errors[<span class="string"><span class="delimiter">'</span><span class="content">text</span><span class="delimiter">'</span></span>], [EMPTY_ITEM_ERROR])
 
 
-Nice to know that, no matter how lazy I get about running the full test suite
-on my own machine, the CI server will catch me.  Another one of the Testing
-Goat&#8217;s agents in cyberspace, watching over us&#8230;&#8203;
+<span class="line delete"><span class="delete">-</span>    <span class="keyword">def</span> <span class="function">test_form_save_handles_saving_to_a_list</span>(<span class="predefined-constant">self</span>):</span>
+<span class="line delete"><span class="delete">-</span>        list_ = List.objects.create()</span>
+<span class="line delete"><span class="delete">-</span>        form = ItemForm(data={<span class="string"><span class="delimiter">'</span><span class="content">text</span><span class="delimiter">'</span></span>: <span class="string"><span class="delimiter">'</span><span class="content">do me</span><span class="delimiter">'</span></span>})</span>
+<span class="line delete"><span class="delete">-</span>        new_item = form.save(for_list=list_)</span>
+<span class="line delete"><span class="delete">-</span>        <span class="predefined-constant">self</span>.assertEqual(new_item, Item.objects.first())</span>
+<span class="line delete"><span class="delete">-</span>        <span class="predefined-constant">self</span>.assertEqual(new_item.text, <span class="string"><span class="delimiter">'</span><span class="content">do me</span><span class="delimiter">'</span></span>)</span>
+<span class="line delete"><span class="delete">-</span>        <span class="predefined-constant">self</span>.assertEqual(new_item.list, list_)</span>
+<span class="line delete"><span class="delete">-</span></span></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>And in our actual code, we can get rid of two redundant save methods in
+<em>forms.py</em>:</p>
+</div>
+<div class="listingblock sourcecode">
+<div class="title">lists/forms.py</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="diff"><span class="line head"><span class="head">--- </span><span class="filename">a/lists/forms.py</span></span>
+<span class="line head"><span class="head">+++ </span><span class="filename">b/lists/forms.py</span></span>
+<span class="change"><span class="change">@@</span> -22,11 +22,6 <span class="change">@@</span></span> <span class="keyword">class</span> <span class="class">ItemForm</span>(forms.models.ModelForm):
+
+         <span class="predefined-constant">self</span>.fields[<span class="string"><span class="delimiter">'</span><span class="content">text</span><span class="delimiter">'</span></span>].error_messages[<span class="string"><span class="delimiter">'</span><span class="content">required</span><span class="delimiter">'</span></span>] = EMPTY_ITEM_ERROR
+
+
+<span class="line delete"><span class="delete">-</span>    <span class="keyword">def</span> <span class="function">save</span>(<span class="predefined-constant">self</span>, for_list):</span>
+<span class="line delete"><span class="delete">-</span>        <span class="predefined-constant">self</span>.instance.list = for_list</span>
+<span class="line delete"><span class="delete">-</span>        <span class="keyword">return</span> <span class="predefined">super</span>().save()</span>
+<span class="line delete"><span class="delete">-</span></span>
+<span class="line delete"><span class="delete">-</span></span>
+
+ <span class="keyword">class</span> <span class="class">NewListForm</span>(ItemForm):
+
+<span class="change"><span class="change">@@</span> -52,8 +47,3 <span class="change">@@</span></span> <span class="keyword">class</span> <span class="class">ExistingListItemForm</span>(ItemForm):
+
+             e.error_dict = {<span class="string"><span class="delimiter">'</span><span class="content">text</span><span class="delimiter">'</span></span>: [DUPLICATE_ITEM_ERROR]}
+             <span class="predefined-constant">self</span>._update_errors(e)
+<span class="line delete"><span class="delete">-</span></span>
+<span class="line delete"><span class="delete">-</span></span>
+<span class="line delete"><span class="delete">-</span>    <span class="keyword">def</span> <span class="function">save</span>(<span class="predefined-constant">self</span>):</span>
+<span class="line delete"><span class="delete">-</span>        <span class="keyword">return</span> forms.models.ModelForm.save(<span class="predefined-constant">self</span>)</span>
+<span class="line delete"><span class="delete">-</span></span></code></pre>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_removing_the_old_implementation_of_the_view">Removing the Old Implementation of the View</h4>
+<div class="paragraph">
+<p>We can now completely remove the old <code>new_list</code> view, and rename <code>new_list2</code> to
+<code>new_list</code>:</p>
+</div>
+<div class="listingblock sourcecode skipme">
+<div class="title">lists/tests/test_views.py</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="diff"><span class="line delete"><span class="delete">-</span>from lists.views import new_list<span class="eyecatcher">, new_list2</span></span>
+<span class="line insert"><span class="insert">+</span>from lists.views import new_list</span>
+
+
+ class HomePageTest(TestCase):
+<span class="change"><span class="change">@@</span> -75,7 +75,7 <span class="change">@@</span></span> class NewListViewIntegratedTest(TestCase):
+         request = HttpRequest()
+         request.user = User.objects.create(email='a@b.com')
+         request.POST['text'] = 'new list item'
+<span class="line delete"><span class="delete">-</span>        new_list<span class="eyecatcher">2</span>(request)</span>
+<span class="line insert"><span class="insert">+</span>        new_list(request)</span>
+         list_ = List.objects.first()
+         self.assertEqual(list_.owner, request.user)
+
+<span class="change"><span class="change">@@</span> -91,21 +91,21 <span class="change">@@</span></span> class NewListViewUnitTest(unittest.TestCase):
+
+     def test_passes_POST_data_to_NewListForm(self, mockNewListForm):
+<span class="line delete"><span class="delete">-</span>        new_list<span class="eyecatcher">2</span>(self.request)</span>
+<span class="line insert"><span class="insert">+</span>        new_list(self.request)</span>
+
+<span class="line comment">[.. several more]</span></code></pre>
+</div>
+</div>
+<div class="listingblock sourcecode dofirst-ch20l045">
+<div class="title">lists/urls.py</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="diff"><span class="line head"><span class="head">--- </span><span class="filename">a/lists/urls.py</span></span>
+<span class="line head"><span class="head">+++ </span><span class="filename">b/lists/urls.py</span></span>
+<span class="change"><span class="change">@@</span> -3,7 +3,7 <span class="change">@@</span></span> <span class="keyword">from</span> <span class="include">django.conf.urls</span> <span class="keyword">import</span> <span class="include">url</span>
+ <span class="keyword">from</span> <span class="include">lists</span> <span class="keyword">import</span> <span class="include">views</span>
+
+ urlpatterns = [
+<span class="line delete"><span class="delete">-</span>    url(<span class="string"><span class="modifier">r</span><span class="delimiter">'</span><span class="content">^new$</span><span class="delimiter">'</span></span>, views.new_list<span class="eyecatcher">2</span>, name=<span class="string"><span class="delimiter">'</span><span class="content">new_list</span><span class="delimiter">'</span></span>),</span>
+<span class="line insert"><span class="insert">+</span>    url(<span class="string"><span class="modifier">r</span><span class="delimiter">'</span><span class="content">^new$</span><span class="delimiter">'</span></span>, views.new_list, name=<span class="string"><span class="delimiter">'</span><span class="content">new_list</span><span class="delimiter">'</span></span>),</span>
+     url(<span class="string"><span class="modifier">r</span><span class="delimiter">'</span><span class="content">^(</span><span class="content">\d</span><span class="content">+)/$</span><span class="delimiter">'</span></span>, views.view_list, name=<span class="string"><span class="delimiter">'</span><span class="content">view_list</span><span class="delimiter">'</span></span>),
+     url(<span class="string"><span class="modifier">r</span><span class="delimiter">'</span><span class="content">^users/(.+)/$</span><span class="delimiter">'</span></span>, views.my_lists, name=<span class="string"><span class="delimiter">'</span><span class="content">my_lists</span><span class="delimiter">'</span></span>),
+ ]</code></pre>
+</div>
+</div>
+<div class="listingblock sourcecode">
+<div class="title">lists/views.py (ch20l047)</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">def</span> <span class="function">new_list</span>(request):
+    form = NewListForm(data=request.POST)
+    <span class="keyword">if</span> form.is_valid():
+        list_ = form.save(owner=request.user)
+        [...]</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>And a quick check that all the tests still pass:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>OK</pre>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_removing_redundant_code_at_the_forms_layer_2">Removing Redundant Code at the Forms Layer</h4>
+<div class="paragraph">
+<p>Finally, we have to decide what (if anything) to keep from our integrated test
+suite.</p>
+</div>
+<div class="paragraph">
+<p>One option is to throw them all away, and decide that the FTs will pick up any
+integration problems.  That&#8217;s perfectly valid.</p>
+</div>
+<div class="paragraph">
+<p>On the other hand, we saw how integrated tests can warn you when you&#8217;ve made
+small mistakes in integrating your layers.  We could keep just a couple of
+tests around as "sanity-checks", to give us a quicker feedback cycle.</p>
+</div>
+<div class="paragraph">
+<p>How about these three:</p>
+</div>
+<div class="listingblock sourcecode">
+<div class="title">lists/tests/test_views.py (ch20l048)</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">class</span> <span class="class">NewListViewIntegratedTest</span>(TestCase):
+
+    <span class="keyword">def</span> <span class="function">test_can_save_a_POST_request</span>(<span class="predefined-constant">self</span>):
+        <span class="predefined-constant">self</span>.client.post(<span class="string"><span class="delimiter">'</span><span class="content">/lists/new</span><span class="delimiter">'</span></span>, data={<span class="string"><span class="delimiter">'</span><span class="content">text</span><span class="delimiter">'</span></span>: <span class="string"><span class="delimiter">'</span><span class="content">A new list item</span><span class="delimiter">'</span></span>})
+        <span class="predefined-constant">self</span>.assertEqual(Item.objects.count(), <span class="integer">1</span>)
+        new_item = Item.objects.first()
+        <span class="predefined-constant">self</span>.assertEqual(new_item.text, <span class="string"><span class="delimiter">'</span><span class="content">A new list item</span><span class="delimiter">'</span></span>)
+
+
+    <span class="keyword">def</span> <span class="function">test_for_invalid_input_doesnt_save_but_shows_errors</span>(<span class="predefined-constant">self</span>):
+        response = <span class="predefined-constant">self</span>.client.post(<span class="string"><span class="delimiter">'</span><span class="content">/lists/new</span><span class="delimiter">'</span></span>, data={<span class="string"><span class="delimiter">'</span><span class="content">text</span><span class="delimiter">'</span></span>: <span class="string"><span class="delimiter">'</span><span class="delimiter">'</span></span>})
+        <span class="predefined-constant">self</span>.assertEqual(List.objects.count(), <span class="integer">0</span>)
+        <span class="predefined-constant">self</span>.assertContains(response, escape(EMPTY_ITEM_ERROR))
+
+
+    <span class="keyword">def</span> <span class="function">test_list_owner_is_saved_if_user_is_authenticated</span>(<span class="predefined-constant">self</span>):
+        user = User.objects.create(email=<span class="string"><span class="delimiter">'</span><span class="content">a@b.com</span><span class="delimiter">'</span></span>)
+        <span class="predefined-constant">self</span>.client.force_login(user)
+        <span class="predefined-constant">self</span>.client.post(<span class="string"><span class="delimiter">'</span><span class="content">/lists/new</span><span class="delimiter">'</span></span>, data={<span class="string"><span class="delimiter">'</span><span class="content">text</span><span class="delimiter">'</span></span>: <span class="string"><span class="delimiter">'</span><span class="content">new item</span><span class="delimiter">'</span></span>})
+        list_ = List.objects.first()
+        <span class="predefined-constant">self</span>.assertEqual(list_.owner, user)</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>If you&#8217;re going to keep any intermediate-level tests at all,  I like these
+three because they feel like they&#8217;re doing the most "integration" jobs:  they
+test the full stack, from the request down to the actual database, and they
+cover the three most important use cases of our view.
 </p>
 </div>
 </div>
 </div>
 <div class="sect2">
-<h3 id="_more_things_to_do_with_a_ci_server">More Things to Do with a CI Server</h3>
-<div class="paragraph">
-<p>I&#8217;ve only scratched the surface of what you can do with Jenkins and CI servers.
-For example, you can make it much smarter about how it monitors your repo for
-new commits.</p>
-</div>
+<h3 id="_conclusions_when_to_write_isolated_versus_integrated_tests">Conclusions: When to Write Isolated Versus Integrated Tests</h3>
 <div class="paragraph">
 <p>
 
-Perhaps more interestingly, you can use your CI server to automate your staging
-tests as well as your normal functional tests.  If all the FTs pass, you can
-add a build step that deploys the code to staging, and then reruns the FTs
-against that&#8212;&#8203;automating one more step of the process, and ensuring that your
-staging server is automatically kept up to date with the latest code.</p>
+
+Django&#8217;s testing tools make it very easy to quickly put together integrated
+tests.  The test runner helpfully creates a fast, in-memory version of your
+database and resets it for you in between each tests.  The <code>TestCase</code> class
+and the Test Client make it easy to test your views, from checking whether
+database objects are modified, confirming that your URL mappings work, and
+inspecting the rendering of the templates.  This lets you get started with
+testing very easily and get good coverage across your whole stack.</p>
 </div>
 <div class="paragraph">
-<p>Some people even use a CI server as the way of deploying their production
-releases!</p>
+<p>On the other hand, these kinds of integrated tests won&#8217;t necessarily deliver
+the full benefit that rigorous unit testing and outside-in TDD are meant to
+confer in terms of design.</p>
+</div>
+<div class="paragraph">
+<p>If we look at the example in this chapter, compare the code we had before and
+after:</p>
+</div>
+<div class="listingblock sourcecode skipme">
+<div class="title">Before</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">def</span> <span class="function">new_list</span>(request):
+    form = ItemForm(data=request.POST)
+    <span class="keyword">if</span> form.is_valid():
+        list_ = List()
+        <span class="keyword">if</span> <span class="keyword">not</span> <span class="predefined">isinstance</span>(request.user, AnonymousUser):
+            list_.owner = request.user
+        list_.save()
+        form.save(for_list=list_)
+        <span class="keyword">return</span> redirect(list_)
+    <span class="keyword">else</span>:
+        <span class="keyword">return</span> render(request, <span class="string"><span class="delimiter">'</span><span class="content">home.html</span><span class="delimiter">'</span></span>, {<span class="string"><span class="delimiter">"</span><span class="content">form</span><span class="delimiter">"</span></span>: form})</code></pre>
+</div>
+</div>
+<div class="listingblock sourcecode skipme">
+<div class="title">After</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">def</span> <span class="function">new_list</span>(request):
+    form = NewListForm(data=request.POST)
+    <span class="keyword">if</span> form.is_valid():
+        list_ = form.save(owner=request.user)
+        <span class="keyword">return</span> redirect(list_)
+    <span class="keyword">return</span> render(request, <span class="string"><span class="delimiter">'</span><span class="content">home.html</span><span class="delimiter">'</span></span>, {<span class="string"><span class="delimiter">'</span><span class="content">form</span><span class="delimiter">'</span></span>: form})</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>If we hadn&#8217;t bothered to go down the isolation route, would we have bothered to
+refactor the view function?  I know I didn&#8217;t in the first draft of this book.
+I&#8217;d like to think I would have "in real life", but it&#8217;s hard to be sure.  But
+writing isolated tests does make you very aware of where the complexities in
+your code lie.
+
+</p>
+</div>
+<div class="sect3">
+<h4 id="_let_complexity_be_your_guide">Let Complexity Be Your Guide</h4>
+<div class="paragraph">
+<p>
+I&#8217;d say the point at which isolated tests start to become worth it is to do
+with complexity.  The example in this book is extremely simple, so it&#8217;s not
+often been worth it so far.  Even in the example in this chapter, I can
+convince myself I didn&#8217;t really <em>need</em> to write those isolated tests.</p>
+</div>
+<div class="paragraph">
+<p>But once an application gains a little more complexity&#8212;&#8203;if it starts growing
+any more layers between views and models, if you find yourself writing  helper
+methods, or your own classes, then you will probably gain from writing more
+isolated tests.</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_should_you_do_both">Should You Do Both?</h4>
+<div class="paragraph">
+<p>We already have our suite of functional tests, which will serve the purpose
+of telling us if we ever make any mistakes in integrating the different parts
+of our code together.  Writing isolated tests can help us to drive out better
+design for our code, and to verify correctness in finer detail.  Would a
+middle layer of integration tests serve any additional purpose?</p>
+</div>
+<div class="paragraph">
+<p>I think the answer is potentially yes, if they can provide a faster feedback
+cycle, and help you identify more clearly what integration problems you suffer
+from&#8212;&#8203;their tracebacks may provide you with better debug information than you
+would get from a functional test, for example.</p>
+</div>
+<div class="paragraph">
+<p>There may even be a case for building them as a separate test suite&#8212;&#8203;you
+could have one suite of fast, isolated unit tests that don&#8217;t even use
+<code>manage.py</code>, because they don&#8217;t need any of the database cleanup and teardown
+that the Django test runner gives you, and then the intermediate layer that
+uses Django, and finally the functional tests layer that, say, talks to a
+staging server.  It may be worth it if each layer delivers incremental
+benefits.</p>
+</div>
+<div class="paragraph">
+<p>It&#8217;s a judgement call.  I hope that, by going through this chapter, I&#8217;ve given
+you a feel for what the trade-offs are.</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_onwards">Onwards!</h4>
+<div class="paragraph">
+<p>We&#8217;re happy with our new version, so let&#8217;s bring them across to master:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>git add .</strong>
+$ <strong>git commit -m "add list owners via forms. more isolated tests"</strong>
+$ <strong>git checkout master</strong>
+$ <strong>git checkout -b master-noforms-noisolation-bak</strong> # optional backup
+$ <strong>git checkout master</strong>
+$ <strong>git reset --hard more-isolation</strong>  # reset master to our branch.</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>In the meantime&#8212;&#8203;those FTs are taking an annoyingly long time to run.  I
+wonder if there&#8217;s something we can do about that?
+
+</p>
 </div>
 <div class="sidebarblock">
 <div class="content">
-<div class="title">Tips on CI and Selenium Best Practices</div>
+<div class="title">On the Pros and Cons of Different Types of Test, and Decoupling ORM code</div>
 <div class="dlist">
 <dl>
-<dt class="hdlist1">Set up CI as soon as possible for your project</dt>
+<dt class="hdlist1">Functional tests</dt>
 <dd>
-<p>As soon as your functional tests take more than a few seconds to run,
-you&#8217;ll find yourself avoiding running them all. Give this job to a CI
-server, to make sure that all your tests are getting run somewhere.
-</p>
-</dd>
-<dt class="hdlist1">Set up screenshots and HTML dumps for failures</dt>
-<dd>
-<p>Debugging test failures is easier if you can see what the page looked
-at when the failure occurs.  This is particularly useful for debugging
-CI failures, but it&#8217;s also very useful for tests that you run locally.</p>
-</dd>
-<dt class="hdlist1">Use waits in Selenium tests</dt>
-<dd>
-<p>Selenium&#8217;s <code>implicitly_wait</code> only applies to uses of its <code>find_element</code>
-functions, and even that can be unreliable (it can find an element that&#8217;s
-still on the old page).  Build a <code>wait_for</code> helper function, and alternate
-between actions on the site, and then some sort of wait to see that they&#8217;ve
-taken effect.
-
+<div class="ulist">
+<ul>
+<li>
+<p>Provide the best guarantee that your application really works correctly,
+from the point of view of the user.</p>
+</li>
+<li>
+<p>But: it&#8217;s a slower feedback cycle,</p>
+</li>
+<li>
+<p>And they don&#8217;t necessarily help you write clean code.
 
 </p>
+</li>
+</ul>
+</div>
 </dd>
-<dt class="hdlist1">Look in to hooking up CI and staging</dt>
+<dt class="hdlist1">Integrated tests (reliant on, e.g., the ORM or the Django Test Client)</dt>
 <dd>
-<p>Tests that use <code>LiveServerTestCase</code> are all very well for dev boxes,
-but the true reassurance comes from running your tests against a real
-server.  Look into getting your CI server to deploy to your staging server,
-and run the functional tests against that instead.  It has the side benefit
-of testing your automated deploy scripts.
+<div class="ulist">
+<ul>
+<li>
+<p>Are quick to write,</p>
+</li>
+<li>
+<p>Easy to understand,</p>
+</li>
+<li>
+<p>Will warn you of any integration issues,</p>
+</li>
+<li>
+<p>But may not always drive good design (that&#8217;s up to you!).</p>
+</li>
+<li>
+<p>And are usually slower than isolated tests
+</p>
+</li>
+</ul>
+</div>
+</dd>
+<dt class="hdlist1">Isolated ("mocky") tests</dt>
+<dd>
+<div class="ulist">
+<ul>
+<li>
+<p>These involve the most hard work.</p>
+</li>
+<li>
+<p>They can be harder to read and understand,</p>
+</li>
+<li>
+<p>But: these are the best ones for guiding you towards better design.</p>
+</li>
+<li>
+<p>And they run the fastest.
+</p>
+</li>
+</ul>
+</div>
+</dd>
+<dt class="hdlist1">Decoupling our application from ORM code</dt>
+<dd>
+<p>When striving to write isolated tests, one of the consequences is that we
+find ourselves forced to remove ORM code from places like views and forms,
+by hiding it behind helper functions or methods.  This can be beneficial in
+terms of decoupling your application from the ORM, but also just because it
+makes your code more readable. As with all things, it&#8217;s a judgement call as
+to whether the additional effort is worth it in particular circumstances.
 </p>
 </dd>
 </dl>
 </div>
 </div>
-</div>
-</div>
-<div class="sect2">
-<h3 id="_notes_for_latest_jenkins">Notes for latest jenkins</h3>
-<div class="ulist">
-<ul>
-<li>
-<p>follow screens to set up user</p>
-</li>
-<li>
-<p>nginx + self signed cert guides</p>
-</li>
-</ul>
-</div>
-<div class="paragraph">
-<p><a href="https://wiki.jenkins-ci.org/display/JENKINS/Installing+Jenkins+on+Ubuntu" class="bare">https://wiki.jenkins-ci.org/display/JENKINS/Installing+Jenkins+on+Ubuntu</a></p>
-</div>
-<div class="paragraph">
-<p><a href="https://www.digitalocean.com/community/tutorials/how-to-create-an-ssl-certificate-on-nginx-for-ubuntu-14-04" class="bare">https://www.digitalocean.com/community/tutorials/how-to-create-an-ssl-certificate-on-nginx-for-ubuntu-14-04</a></p>
-</div>
-<div class="paragraph">
-<p><a href="http://serverfault.com/questions/250476/how-to-force-or-redirect-to-ssl-in-nginx#424016" class="bare">http://serverfault.com/questions/250476/how-to-force-or-redirect-to-ssl-in-nginx#424016</a></p>
-</div>
-<div class="literalblock">
-<div class="content">
-<pre>curl -L 'https://download.mozilla.org/?product=firefox-45.4.0esr-SSL&amp;os=linux64&amp;lang=en-US' | tar -xvj -C /usr/share</pre>
-</div>
-</div>
-<div class="literalblock">
-<div class="content">
-<pre>apt-get remove firefox  # otherwise it found the old one somehow
-ln -s /usr/share/firefox/firefox /usr/bin/firefox</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Global Tool Configuration -&#8594; add python3</p>
-</div>
-<div class="literalblock">
-<div class="content">
-<pre>apt-get install python3-venv python-virtualenv</pre>
 </div>
 </div>
 </div>
@@ -1148,21 +2201,12 @@ ln -s /usr/share/firefox/firefox /usr/bin/firefox</pre>
 <div id="footnotes">
 <hr>
 <div class="footnote" id="_footnote_1">
-<a href="#_footnoteref_1">1</a>. If you miss that screen, you can still hit "signup", and as long as you use the same username you specified earlier, you&#8217;ll have an account set up.
-</div>
-<div class="footnote" id="_footnote_2">
-<a href="#_footnoteref_2">2</a>. At the time of writing, the latest Selenium (2.41) was causing me <a href="https://code.google.com/p/selenium/issues/detail?id=7073">some trouble</a>, so that&#8217;s why I&#8217;m pinning it to 2.39 here.  By all means experiment with newer versions!
-</div>
-<div class="footnote" id="_footnote_3">
-<a href="#_footnoteref_3">3</a>. Check out <a href="https://pypi.python.org/pypi/PyVirtualDisplay">pyvirtualdisplay</a> as a way of controlling virtual displays from Python.
-</div>
-<div class="footnote" id="_footnote_4">
-<a href="#_footnoteref_4">4</a>. Make sure you get the latest version. On Ubuntu, use the PPA rather than the default package.
+<a href="#_footnoteref_1">1</a>. It could easily just be a standalone function, but hanging it on the model class is a nice way to keep track of where it lives, and gives a bit more of a hint as to what it will do.
 </div>
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2017-01-01 16:27:23 GMT
+Last updated 2017-02-01 17:18:42 GMT
 </div>
 </div>
 <div class="comments" style="padding: 20px">

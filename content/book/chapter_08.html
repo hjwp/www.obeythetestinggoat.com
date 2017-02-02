@@ -4,7 +4,7 @@
 <!--[if IE]><meta http-equiv="X-UA-Compatible" content="IE=edge"><![endif]-->
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="generator" content="Asciidoctor 1.5.4">
-<title>Testing Deployment Using a Staging Site</title>
+<title>Prettification: Layout and Styling, and What to Test About It</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:300,300italic,400,400italic,600,600italic%7CNoto+Serif:400,400italic,700,700italic%7CDroid+Sans+Mono:400,700">
 <link rel="stylesheet" href="./asciidoctor.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.5.0/css/font-awesome.min.css">
@@ -31,52 +31,34 @@ httpRequest.send();
 </div>
 <div id="content">
 <div class="sect1">
-<h2 id="deployment-chapter">Testing Deployment Using a Staging Site</h2>
+<h2 id="_prettification_layout_and_styling_and_what_to_test_about_it">Prettification: Layout and Styling, and What to Test About It</h2>
 <div class="sectionbody">
-<div class="quoteblock">
-<blockquote>
 <div class="paragraph">
-<p>Is all fun and game until you are need of put it in production.</p>
-</div>
-</blockquote>
-<div class="attribution">
-&#8212; <a href="https://twitter.com/DEVOPS_BORAT/status/192271992253190144">Devops Borat</a>
-</div>
+<p>
+WARNING: Major update released for Selenium 3.
+    If you started this book on or before Jan 30th 2017,
+    be aware: chapters have been renumbered,
+    so check this is the one you think it is,
+    and have a look at the new <a href="/book/chapter_06.html">[explicit-waits-chapter]</a>
+    for an indication of the changes you&#8217;ll need in your FTs.
+    You should do a <code>pip install --upgrade selenium</code> too.</p>
 </div>
 <div class="paragraph">
 <p>
-It&#8217;s time to deploy the first version of our site and make it public.  They say
-that if you wait until you feel ready to ship, then you&#8217;ve waited too long.</p>
+
+We&#8217;re starting to think about releasing the first version of our site, but
+we&#8217;re a bit embarrassed by how ugly it looks at the moment.  In this
+chapter, we&#8217;ll cover some of the basics of styling, including integrating an
+HTML/CSS framework called Bootstrap.  We&#8217;ll learn how static files work
+in Django, and what we need to do about testing them.</p>
 </div>
+<div class="sect2">
+<h3 id="_what_to_functionally_test_about_layout_and_style">What to Functionally Test About Layout and Style</h3>
 <div class="paragraph">
-<p>Is our site usable?  Is it better than nothing? Can we make lists on it? Yes,
-yes, yes.</p>
-</div>
-<div class="paragraph">
-<p>No, you can&#8217;t log in yet.  No, you can&#8217;t mark tasks as completed.  But do we
-really need any of that stuff? Not really&#8212;&#8203;and you can never be sure what
-your users are <em>actually</em> going to do with your site once they get their
-hands on it. We think our users want to use the site for to-do lists, but maybe
-they actually want to use it to make "top 10 best fly-fishing spots" lists, for
-which you don&#8217;t need any kind of &#8220;mark completed&#8221; function. We won&#8217;t know
-until we put it out there.</p>
-</div>
-<div class="paragraph">
-<p>In this chapter we&#8217;re going to go through and actually deploy our site to a
-real, live web server.</p>
-</div>
-<div class="paragraph">
-<p>You might be tempted to skip this chapter&#8212;&#8203;there&#8217;s lots of daunting stuff
-in it, and maybe you think this isn&#8217;t what you signed up for. But I <em>strongly</em>
-urge you to give it a go.  This is one of the chapters I&#8217;m most pleased with,
-and it&#8217;s one that people often write to me saying they were really glad they
-stuck through it.</p>
-</div>
-<div class="paragraph">
-<p>If you&#8217;ve never done a server deployment before, it will demystify a whole
-world for you, and there&#8217;s nothing like the feeling of seeing your site live on
-the actual Internet. Give it a buzzword name like "DevOps" if that&#8217;s what it
-takes to convince you it&#8217;s worth it.</p>
+<p>
+
+Our site is undeniably a bit unattractive at the moment
+(<a href="#homepage-looking-ugly">Our homepage, looking a little ugly&#8230;&#8203;</a>).</p>
 </div>
 <div class="admonitionblock note">
 <table>
@@ -85,1722 +67,1080 @@ takes to convince you it&#8217;s worth it.</p>
 <i class="fa icon-note" title="Note"></i>
 </td>
 <td class="content">
-Why not ping me a note once your site is live on the web, and send me
-    the URL? It always gives me a warm and fuzzy feeling&#8230;&#8203;
-    <a href="mailto:obeythetestinggoat@gmail.com">obeythetestinggoat@gmail.com</a>.
+If you spin up your dev server with <code>manage.py runserver</code>, you
+    may run into a database error "table lists_item has no column named
+    list_id". You need to update your local database to reflect the changes we
+    made in <em>models.py</em>.  Use <code>manage.py migrate</code>.  If it gives you any
+    grief about <code>IntegrityErrors</code>, just
+    delete<sup class="footnote">[<a id="_footnoteref_1" class="footnote" href="#_footnote_1" title="View footnote.">1</a>]</sup>
+    the database file and try again.
 </td>
 </tr>
 </table>
 </div>
-<div class="sect2">
-<h3 id="_tdd_and_the_danger_areas_of_deployment">TDD and the Danger Areas of Deployment</h3>
 <div class="paragraph">
-<p>Deploying a site to a live web server can be a tricky topic.  Oft-heard is the
-forlorn cry&#8212;"<em>but it works on my machine!</em>".</p>
-</div>
-<div class="paragraph">
-<p>
-Some of the danger areas of deployment include:</p>
-</div>
-<div class="dlist">
-<dl>
-<dt class="hdlist1">Static files (CSS, JavaScript, images, etc.)</dt>
-<dd>
-<p>Web servers usually need special configuration for serving these.
-</p>
-</dd>
-<dt class="hdlist1">The database</dt>
-<dd>
-<p>There can be permissions and path issues, and we need to be careful about
-preserving data between deploys.
-</p>
-</dd>
-<dt class="hdlist1">Dependencies</dt>
-<dd>
-<p>We need to make sure that the packages our software relies on are installed
-on the server, and have the correct versions.
-
-</p>
-</dd>
-</dl>
-</div>
-<div class="paragraph">
-<p>But there are solutions to all of these.  In order:</p>
+<p>We can&#8217;t be adding to Python&#8217;s reputation for being
+<a href="http://grokcode.com/746/dear-python-why-are-you-so-ugly/">ugly</a>,
+so let&#8217;s do a tiny bit of polishing.  Here&#8217;s a few things we might want:</p>
 </div>
 <div class="ulist">
 <ul>
 <li>
-<p>Using a <em>staging site</em>, on the same infrastructure as the production site,
-can help us test out our deployments and get things right before we go to
-the "real" site.
-</p>
+<p>A nice large input field for adding new and existing lists</p>
 </li>
 <li>
-<p>We can also <em>run our functional tests against the staging site</em>. That will
-reassure us that we have the right code and packages on the server, and
-since we now have a "smoke test" for our site layout, we&#8217;ll know that the
-CSS is loaded correctly.
-</p>
-</li>
-<li>
-<p>Just like on our own PC, a <em>Virtualenv</em> is useful on the server for
-managing packages and dependencies when you might be running more than one
-Python application.
-</p>
-</li>
-<li>
-<p>And finally, <em>automation, automation, automation</em>.  By using an automated
-script to deploy new versions, and by using the same script to deploy to
-staging and production, we can reassure ourselves that staging is as much
-like live as
-possible.<sup class="footnote">[<a id="_footnoteref_1" class="footnote" href="#_footnote_1" title="View footnote.">1</a>]</sup>
-
-</p>
+<p>A large, attention-grabbing, centered box to put it in</p>
 </li>
 </ul>
 </div>
 <div class="paragraph">
-<p>Over the next few pages I&#8217;m going to go through <em>a</em> deployment procedure.  It
-isn&#8217;t meant to be the <em>perfect</em> deployment procedure, so please don&#8217;t take
-it as being best practice, or a recommendation&#8212;&#8203;it&#8217;s meant to be an
-illustration, to show the kinds of issues involved in deployment and where
-testing fits in.</p>
+<p>How do we apply TDD to these things?  Most people will tell you you
+shouldn&#8217;t test aesthetics, and they&#8217;re right.  It&#8217;s a bit like testing a
+constant, in that tests usually wouldn&#8217;t add any value.</p>
 </div>
-<div class="sidebarblock">
+<div id="homepage-looking-ugly" class="imageblock">
 <div class="content">
-<div class="title">Chapter Overview</div>
-<div class="paragraph">
-<p>
-There&#8217;s lots of stuff in this chapter, so here&#8217;s an overview to help you keep
-your bearings:</p>
+<img src="images/twdp_0701.png" alt="Our homepage, looking a little ugly.">
 </div>
-<div class="olist arabic">
-<ol class="arabic">
-<li>
-<p>Adapt our FTs so they can run against a staging server.</p>
-</li>
-<li>
-<p>Spin up a server, install all the required software on it, and point our
-staging and live domains at it.</p>
-</li>
-<li>
-<p>Upload our code to the server using Git.</p>
-</li>
-<li>
-<p>Try and get a quick &amp; dirty version of our site running on the staging domain
-using the Django dev server.</p>
-</li>
-<li>
-<p>Manually set up a virtualenv on the server (without virtualenvwrapper).</p>
-</li>
-<li>
-<p>As we go, we&#8217;ll keep running our FT, to tell us what&#8217;s working and what&#8217;s
-not.</p>
-</li>
-<li>
-<p>Move from our quick &amp; dirty version to a production-ready configuration,
-using Gunicorn, Systemd, and domain sockets.</p>
-</li>
-<li>
-<p>Once we have a working config, we&#8217;ll write a script to automate the process
-we&#8217;ve just been through manually, so that we can deploy our site
-automatically in future.</p>
-</li>
-<li>
-<p>Finally we&#8217;ll use this script to deploy the production version of our site
-on its real domain.</p>
-</li>
-</ol>
+<div class="title">Figure 1. Our homepage, looking a little ugly&#8230;&#8203;</div>
 </div>
-</div>
-</div>
-</div>
-<div class="sect2">
-<h3 id="_as_always_start_with_a_test">As Always, Start with a Test</h3>
 <div class="paragraph">
 <p>
 
-Let&#8217;s adapt our functional tests slightly so that it can be run against
-a staging site. We&#8217;ll do it by slightly hacking an argument that is normally
-used to change the address which the test&#8217;s temporary server gets run on:</p>
+But we can test the implementation of our aesthetics&#8212;&#8203;just enough to
+reassure ourselves that things are working.  For example, we&#8217;re going to use
+Cascading Style Sheets (CSS) for our styling, and they are loaded as static
+files.  Static files can be a bit tricky to configure (especially, as we&#8217;ll see
+later, when you move off your own PC and onto a hosting site), so we&#8217;ll want
+some kind of simple "smoke test" that the CSS has loaded.  We don&#8217;t have to
+test fonts and colours and every single pixel, but we can do a quick check that
+the main input box is aligned the way we want it on each page, and that will
+give us confidence that the rest of the styling for that page is probably
+loaded too.</p>
+</div>
+<div class="paragraph">
+<p>We start with a new test method inside our functional test:</p>
 </div>
 <div class="listingblock sourcecode">
 <div class="title">functional_tests/tests.py (ch08l001)</div>
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">import</span> <span class="include">sys</span>
-[...]
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">class</span> <span class="class">NewVisitorTest</span>(LiveServerTestCase):
+    [...]
 
-<span class="keyword">class</span> <span class="class">NewVisitorTest</span>(StaticLiveServerTestCase):
-
-    <span class="decorator">@classmethod</span>
-    <span class="keyword">def</span> <span class="function">setUpClass</span>(cls):  <i class="conum" data-value="1"></i><b>(1)</b>
-        <span class="keyword">for</span> arg <span class="keyword">in</span> sys.argv:  <i class="conum" data-value="2"></i><b>(2)</b>
-            <span class="keyword">if</span> <span class="string"><span class="delimiter">'</span><span class="content">liveserver</span><span class="delimiter">'</span></span> <span class="keyword">in</span> arg:  <i class="conum" data-value="2"></i><b>(2)</b>
-                cls.server_url = <span class="string"><span class="delimiter">'</span><span class="content">http://</span><span class="delimiter">'</span></span> + arg.split(<span class="string"><span class="delimiter">'</span><span class="content">=</span><span class="delimiter">'</span></span>)[<span class="integer">1</span>]  <i class="conum" data-value="3"></i><b>(3)</b>
-                <span class="keyword">return</span>  <i class="conum" data-value="3"></i><b>(3)</b>
-        <span class="predefined">super</span>().setUpClass()  <i class="conum" data-value="4"></i><b>(4)</b>
-        cls.server_url = cls.live_server_url
-
-
-    <span class="keyword">def</span> <span class="function">setUp</span>(<span class="predefined-constant">self</span>):
-        [...]</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>OK, when I said slightly hacking, I meant seriously hacking. Do you remember I
-said that <code>LiveServerTestCase</code> had certain limitations?  Well, one is that it
-always assumes you want to use its own test server.  I still want to be able to
-do that sometimes, but I also want to be able to selectively tell it not to
-bother, and to use a real server instead.</p>
-</div>
-<div class="colist arabic">
-<table>
-<tr>
-<td><i class="conum" data-value="1"></i><b>1</b></td>
-<td><code>setUpClass</code> is a similar method to <code>setUp</code>, also provided by <code>unittest</code>,
-which is used to do test setup for the whole class&#8212;&#8203;that means it only
-gets executed once, rather than before every test method. This is where
-<code>LiveServerTestCase</code>/<code>StaticLiveServerTestCase</code> usually starts up its test
-server.
-</td>
-</tr>
-<tr>
-<td><i class="conum" data-value="2"></i><b>2</b></td>
-<td>We look for the <code>liveserver</code> command-line argument (which is found in
-<code>sys.argv</code>).</td>
-</tr>
-<tr>
-<td><i class="conum" data-value="3"></i><b>3</b></td>
-<td>If we find it, we tell our test class to skip the normal <code>setUpClass</code>, and
-just store away our staging server URL in a variable called <code>server_url</code>
-instead.</td>
-</tr>
-<tr>
-<td><i class="conum" data-value="4"></i><b>4</b></td>
-<td>And if the <code>for</code> loop completes <em>without</em> finding a <code>liveserver</code> argument
-on the command-line, we do the normal
-superclass<sup class="footnote">[<a id="_footnoteref_2" class="footnote" href="#_footnote_2" title="View footnote.">2</a>]</sup>
-setup, and use the normal
-<code>live_server_url</code>.  Be careful with the indentation here!</td>
-</tr>
-</table>
-</div>
-<div class="paragraph">
-<p>This means we also need to change the four places we used to use
-<code>self.live_server_url</code>:</p>
-</div>
-<div class="listingblock sourcecode">
-<div class="title">functional_tests/tests.py (ch08l002)</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="python">    <span class="keyword">def</span> <span class="function">test_can_start_a_list_and_retrieve_it_later</span>(<span class="predefined-constant">self</span>):
-        <span class="comment"># Edith has heard about a cool new online to-do app. She goes</span>
-        <span class="comment"># to check out its homepage</span>
-        <span class="predefined-constant">self</span>.browser.get(<span class="predefined-constant">self</span>.server_url)
-        [...]
-        <span class="comment"># Francis visits the home page.  There is no sign of Edith's</span>
-        <span class="comment"># list</span>
-        <span class="predefined-constant">self</span>.browser.get(<span class="predefined-constant">self</span>.server_url)
-        [...]
 
     <span class="keyword">def</span> <span class="function">test_layout_and_styling</span>(<span class="predefined-constant">self</span>):
         <span class="comment"># Edith goes to the home page</span>
-        <span class="predefined-constant">self</span>.browser.get(<span class="predefined-constant">self</span>.server_url)</code></pre>
+        <span class="predefined-constant">self</span>.browser.get(<span class="predefined-constant">self</span>.live_server_url)
+        <span class="predefined-constant">self</span>.browser.set_window_size(<span class="integer">1024</span>, <span class="integer">768</span>)
+
+        <span class="comment"># She notices the input box is nicely centered</span>
+        inputbox = <span class="predefined-constant">self</span>.browser.find_element_by_id(<span class="string"><span class="delimiter">'</span><span class="content">id_new_item</span><span class="delimiter">'</span></span>)
+        <span class="predefined-constant">self</span>.assertAlmostEqual(
+            inputbox.location[<span class="string"><span class="delimiter">'</span><span class="content">x</span><span class="delimiter">'</span></span>] + inputbox.size[<span class="string"><span class="delimiter">'</span><span class="content">width</span><span class="delimiter">'</span></span>] / <span class="integer">2</span>,
+            <span class="integer">512</span>,
+            delta=<span class="integer">5</span>
+        )</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>We test that our little hack hasn&#8217;t broken anything by running the functional
-tests "normally":</p>
+<p>A few new things here.  We start by setting the window size to a fixed
+size. We then find the input element, look at its size and location, and
+do a little maths to check whether it seems to be positioned in the middle
+of the page.  <code>assertAlmostEqual</code> helps us to deal with rounding errors by
+letting us specify that we want our arithmetic to work to within plus or
+minus five pixels.</p>
+</div>
+<div class="paragraph">
+<p>If we run the functional tests, we get:</p>
 </div>
 <div class="listingblock">
 <div class="content">
 <pre>$ <strong>python manage.py test functional_tests</strong>
-[...]
-Ran 3 tests in 8.544s
-
-OK</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>And now we can try them against our staging server URL.  I&#8217;m hosting my staging
-server at <em>superlists-staging.ottg.eu</em>:</p>
-</div>
-<div class="listingblock skipme">
-<div class="content">
-<pre>$ <strong>python manage.py test functional_tests --liveserver=superlists-staging.ottg.eu</strong>
 Creating test database for alias 'default'...
-FE
-======================================================================
-FAIL: test_can_start_a_list_and_retrieve_it_later
-(functional_tests.tests.NewVisitorTest)
- ---------------------------------------------------------------------
-Traceback (most recent call last):
-  File "/.../superlists/functional_tests/tests.py", line 42, in
-test_can_start_a_list_and_retrieve_it_later
-    self.assertIn('To-Do', self.browser.title)
-AssertionError: 'To-Do' not found in 'Domain name registration | Domain names
-| Web Hosting | 123-reg'
-
+.F.
 ======================================================================
 FAIL: test_layout_and_styling (functional_tests.tests.NewVisitorTest)
  ---------------------------------------------------------------------
 Traceback (most recent call last):
-  File
-"/.../superlists/functional_tests/tests.py", line 114, in
+  File "/.../superlists/functional_tests/tests.py", line 129, in
 test_layout_and_styling
-    inputbox = self.browser.find_element_by_id('id_new_item')
-[...]
-selenium.common.exceptions.NoSuchElementException: Message: Unable to locate
-element: {"method":"id","selector":"id_new_item"}
-[...]
- ---------------------------------------------------------------------
-Ran 2 tests in 16.480s:
+    delta=5
+AssertionError: 107.0 != 512 within 5 delta
 
-FAILED (failures=2)
+ ---------------------------------------------------------------------
+Ran 3 tests in 9.188s
+
+FAILED (failures=1)
 Destroying test database for alias 'default'...</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>You can see that both tests are failing, as expected, since I haven&#8217;t
-actually set up my staging site yet. In fact, you can see from the
-first traceback that the test is actually ending up on the home page of
-my domain registrar.</p>
+<p>That&#8217;s the expected failure.  Still, this kind of FT is easy to get wrong, so
+let&#8217;s use a quick-and-dirty "cheat" solution, to check that the FT also passes
+when the input box is centered.  We&#8217;ll delete this code again almost as soon
+as we&#8217;ve used it to check the FT:</p>
+</div>
+<div class="listingblock sourcecode small-code">
+<div class="title">lists/templates/home.html (ch08l002)</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="html"><span class="tag">&lt;form</span> <span class="attribute-name">method</span>=<span class="string"><span class="delimiter">"</span><span class="content">POST</span><span class="delimiter">"</span></span> <span class="attribute-name">action</span>=<span class="string"><span class="delimiter">"</span><span class="content">/lists/new</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>
+    <span class="tag">&lt;p</span> <span class="attribute-name">style</span>=<span class="string"><span class="delimiter">"</span><span class="key">text-align</span>: <span class="value">center</span>;<span class="delimiter">"</span></span><span class="tag">&gt;</span>
+        <span class="tag">&lt;input</span> <span class="attribute-name">name</span>=<span class="string"><span class="delimiter">"</span><span class="content">item_text</span><span class="delimiter">"</span></span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">"</span><span class="content">id_new_item</span><span class="delimiter">"</span></span> <span class="attribute-name">placeholder</span>=<span class="string"><span class="delimiter">"</span><span class="content">Enter a to-do item</span><span class="delimiter">"</span></span> <span class="tag">/&gt;</span>
+    <span class="tag">&lt;/p&gt;</span>
+    {% csrf_token %}
+<span class="tag">&lt;/form&gt;</span></code></pre>
+</div>
 </div>
 <div class="paragraph">
-<p>The FT seems to be testing the right things though, so let&#8217;s commit:</p>
+<p>That passes, which means the FT works.  Let&#8217;s extend it to make sure that the
+input box is also center-aligned on the page for a new list:</p>
+</div>
+<div class="listingblock sourcecode">
+<div class="title">functional_tests/tests.py (ch08l003)</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python">    <span class="comment"># She starts a new list and sees the input is nicely</span>
+    <span class="comment"># centered there too</span>
+    inputbox.send_keys(<span class="string"><span class="delimiter">'</span><span class="content">testing</span><span class="delimiter">'</span></span>)
+    inputbox.send_keys(Keys.ENTER)
+    <span class="predefined-constant">self</span>.wait_for_row_in_list_table(<span class="string"><span class="delimiter">'</span><span class="content">1: testing</span><span class="delimiter">'</span></span>)
+    inputbox = <span class="predefined-constant">self</span>.browser.find_element_by_id(<span class="string"><span class="delimiter">'</span><span class="content">id_new_item</span><span class="delimiter">'</span></span>)
+    <span class="predefined-constant">self</span>.assertAlmostEqual(
+        inputbox.location[<span class="string"><span class="delimiter">'</span><span class="content">x</span><span class="delimiter">'</span></span>] + inputbox.size[<span class="string"><span class="delimiter">'</span><span class="content">width</span><span class="delimiter">'</span></span>] / <span class="integer">2</span>,
+        <span class="integer">512</span>,
+        delta=<span class="integer">5</span>
+    )</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>That gives us another test failure:</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>$ <strong>git diff</strong> # should show changes to functional_tests.py
-$ <strong>git commit -am "Hack FT runner to be able to test staging"</strong></pre>
-</div>
-</div>
-</div>
-<div class="sect2">
-<h3 id="_getting_a_domain_name">Getting a Domain Name</h3>
-<div class="paragraph">
-<p>
-
-
-We&#8217;re going to need a couple of domain names at this point in the book&#8212;&#8203;they
-can both be subdomains of a single domain.  I&#8217;m going to use
-<em>superlists.ottg.eu</em> and <em>superlists-staging.ottg.eu</em>.
-If you don&#8217;t already own a domain, this is the time to register one! Again,
-this is something I really want you to <em>actually</em> do.  If you&#8217;ve never
-registered a domain before, just pick any old registrar and buy a cheap one&#8212;&#8203;it
-should only cost you $5 or so, and you can even find free ones.
-I promise seeing your site on a "real" web site will be a thrill.</p>
-</div>
-</div>
-<div class="sect2">
-<h3 id="_manually_provisioning_a_server_to_host_our_site">Manually Provisioning a Server to Host Our Site</h3>
-<div class="paragraph">
-<p>
-
-
-
-We can separate out "deployment" into two tasks:</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p><em>Provisioning</em> a new server to be able to host the code</p>
-</li>
-<li>
-<p><em>Deploying</em> a new version of the code to an existing server</p>
-</li>
-</ul>
-</div>
-<div class="paragraph">
-<p>Some people like to use a brand new server for every deployment&#8212;&#8203;it&#8217;s what we
-do at PythonAnywhere.  That&#8217;s only necessary for larger, more complex sites
-though, or major changes to an existing site. For a simple site like ours, it
-makes sense to separate the two tasks.  And, although we eventually want both
-to be completely automated, we can probably live with a manual provisioning
-system for now.</p>
-</div>
-<div class="paragraph">
-<p>As you go through this chapter, you should be aware that provisioning is
-something that varies a lot, and that as a result there are few universal
-best practices for deployment.  So, rather than trying to remember the
-specifics of what I&#8217;m doing here, you should be trying to understand the
-rationale, so that you can apply the same kind of thinking in the
-specific future circumstances you encounter.</p>
-</div>
-<div class="sect3">
-<h4 id="_choosing_where_to_host_our_site">Choosing Where to Host Our Site</h4>
-<div class="paragraph">
-<p>
-There are loads of different solutions out there these days, but they broadly
-fall into two camps:</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p>Running your own (possibly virtual) server</p>
-</li>
-<li>
-<p>Using a Platform-As-A-Service (PaaS) offering like Heroku, DotCloud,
-OpenShift, or PythonAnywhere</p>
-</li>
-</ul>
-</div>
-<div class="paragraph">
-<p>
-
-
-Particularly for small sites, a PaaS offers a lot of advantages, and I would
-definitely recommend looking into them.  We&#8217;re not going to use a PaaS in this
-book however, for several reasons.  Firstly, I have a conflict of interest, in
-that I think PythonAnywhere is the best, but then again I would say that
-because I work there.  Secondly, all the PaaS offerings are quite different,
-and the procedures to deploy to each vary a lot&#8212;&#8203;learning about one doesn&#8217;t
-necessarily tell you about the others. Any one of them might change their
-process radically, or simply go out of business by the time you get to read
-this book.</p>
-</div>
-<div class="paragraph">
-<p>Instead, we&#8217;ll learn just a tiny bit of good old-fashioned server admin,
-including SSH and web server config.  They&#8217;re unlikely to ever go away, and
-knowing a bit about them will get you some respect from all the grizzled
-dinosaurs out there.</p>
-</div>
-<div class="paragraph">
-<p>What I have done is to try and set up a server in such a way that it&#8217;s a lot
-like the environment you get from a PaaS, so you should be able to apply the
-lessons we learn in the deployment section, no matter what provisioning
-solution you choose.</p>
-</div>
-</div>
-<div class="sect3">
-<h4 id="_spinning_up_a_server">Spinning Up a Server</h4>
-<div class="paragraph">
-<p>
-
-I&#8217;m not going to dictate how you do this&#8212;&#8203;whether you choose Amazon AWS,
-Rackspace, Digital Ocean, your own server in your own data centre or a
-Raspberry Pi in a cupboard behind the stairs, any solution should be fine, as
-long as:</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p>Your server is running Ubuntu 16.04 (aka "Xenial/LTS")</p>
-</li>
-<li>
-<p>You have root access to it.</p>
-</li>
-<li>
-<p>It&#8217;s on the public Internet.</p>
-</li>
-<li>
-<p>You can SSH into it.</p>
-</li>
-</ul>
-</div>
-<div class="paragraph">
-<p>I&#8217;m recommending Ubuntu as a distro because it has Python 3.5 and it has some
-specific ways of configuring Nginx, which I&#8217;m going to make use of next.  If
-you know what you&#8217;re doing, you can probably get away with using something
-else, but you&#8217;re on your own.</p>
-</div>
-<div class="admonitionblock note">
-<table>
-<tr>
-<td class="icon">
-<i class="fa icon-note" title="Note"></i>
-</td>
-<td class="content">
-Some people get to this chapter, and are tempted to skip the domain bit,
-and the "getting a real server" bit, and just use a VM on their own PC.  Don&#8217;t
-do this. It&#8217;s <em>not</em> the same, and you&#8217;ll have more difficulty following the
-instructions, which are complicated enough as it is.  If you&#8217;re worried about
-cost, dig around and you&#8217;ll find free options for both. Email me if you need
-further pointers, I&#8217;m always happy to help.
-</td>
-</tr>
-</table>
-</div>
-</div>
-<div class="sect3">
-<h4 id="_user_accounts_ssh_and_privileges">User Accounts, SSH, and Privileges</h4>
-<div class="paragraph">
-<p>
-In these instructions, I&#8217;m assuming that you have a nonroot user account set
-up that has "sudo" privileges, so whenever we need to do something that
-requires root access, we use sudo, and I&#8217;m explicit about that in the various
-instructions below. If you need to create a nonroot user, here&#8217;s how:</p>
-</div>
-<div class="listingblock skipme">
-<div class="content">
-<pre># these commands must be run as root
-root@server:$ <strong>useradd -m -s /bin/bash elspeth</strong> # add user named elspeth
-# -m creates a home folder, -s sets elspeth to use bash by default
-root@server:$ <strong>usermod -a -G sudo elspeth</strong> # add elspeth to the sudoers group
-root@server:$ <strong>passwd elspeth</strong> # set password for elspeth
-root@server:$ <strong>su - elspeth</strong> # switch-user to being elspeth!
-elspeth@server:$</pre>
+<pre>  File "/.../superlists/functional_tests/tests.py", line 141, in
+test_layout_and_styling
+    delta=5
+AssertionError: 107.0 != 512 within 5 delta</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>
-Name your own user whatever you like! I also recommend learning up how to use
-private key authentication rather than passwords for SSH.  It&#8217;s a matter of
-taking the public key from your own PC, and appending it to
-<em>~/.ssh/authorized_keys</em> in the user account on the server. You probably went
-through a similar procedure if you signed up for Bitbucket or Github.</p>
-</div>
-<div class="paragraph">
-<p>There are some good instructions
-<a href="https://library.linode.com/security/ssh-keys">here</a> (note that <code>ssh-keygen</code> <em>is</em>
-available as part of Git-Bash on Windows).</p>
-</div>
-<div class="admonitionblock tip">
-<table>
-<tr>
-<td class="icon">
-<i class="fa icon-tip" title="Tip"></i>
-</td>
-<td class="content">
-Look out for that <code>elspeth@server</code> in the command-line listings in this
-    chapter. It indicates commands that must be run on the server, as opposed
-    to commands you run on your own PC.
-</td>
-</tr>
-</table>
-</div>
-</div>
-<div class="sect3">
-<h4 id="_installing_nginx">Installing Nginx</h4>
-<div class="paragraph">
-<p>
-We&#8217;ll need a web server, and all the cool kids are using Nginx these days,
-so we will too.  Having fought with Apache for many years, I can tell
-you it&#8217;s a blessed relief in terms of the readability of its config files,
-if nothing else!</p>
-</div>
-<div class="paragraph">
-<p>Installing Nginx on my server was a matter of doing an <code>apt-get</code>, and I could
-then see the default Nginx "Hello World" screen:</p>
-</div>
-<div class="listingblock server-commands">
-<div class="content">
-<pre>elspeth@server:$ <strong>sudo apt-get install nginx</strong>
-elspeth@server:$ <strong>sudo systemctl start nginx</strong></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>(You may need to do an <code>apt-get update</code> and/or an <code>apt-get upgrade</code> first.)</p>
-</div>
-<div class="paragraph">
-<p>You should be able to go to the IP address of your server, and see the
-"Welcome to nginx" page at this point, as in <a href="#nginx-it-works">Nginx&#8212;&#8203;it works!</a>.</p>
-</div>
-<div class="paragraph">
-<p>If you don&#8217;t see it, it may be because your firewall does not open port 80 to
-the world. On AWS for example, you may need to configure the "security group"
-for your server to open port 80.</p>
-</div>
-<div class="paragraph">
-<p>While we&#8217;ve got root access, let&#8217;s make sure the server has the key
-pieces of software we need at the system level: Python, Git, pip, and virtualenv.</p>
-</div>
-<div class="listingblock server-commands">
-<div class="content">
-<pre>elspeth@server:$ <strong>sudo apt-get install git python3 python3-venv</strong></pre>
-</div>
-</div>
-<div id="nginx-it-works" class="imageblock">
-<div class="content">
-<img src="images/twdp_0801.png" alt="The default 'Welcome to nginx!' page">
-</div>
-<div class="title">Figure 1. Nginx&#8212;&#8203;it works!</div>
-</div>
-</div>
-<div class="sect3">
-<h4 id="_configuring_domains_for_staging_and_live">Configuring Domains for Staging and Live</h4>
-<div class="paragraph">
-<p>We don&#8217;t want to be messing about with IP addresses all the time, so we should
-point our staging and live domains to the server. At my registrar, the control
-screens looked a bit like <a href="#registrar-control-screens">Domain setup</a>.</p>
-</div>
-<div id="registrar-control-screens" class="imageblock">
-<div class="content">
-<img src="images/twdp_0802.png" alt="Registrar control screens for two domains">
-</div>
-<div class="title">Figure 2. Domain setup</div>
-</div>
-<div class="paragraph">
-<p>In the DNS system, pointing a domain at a specific IP address is called an
-"A-Record".  All registrars are slightly different, but a bit of clicking
-around should get you to the right screen in yours.</p>
-</div>
-</div>
-<div class="sect3">
-<h4 id="_using_the_ft_to_confirm_the_domain_works_and_nginx_is_running">Using the FT to Confirm the Domain Works and Nginx Is Running</h4>
-<div class="paragraph">
-<p>
-
-To confirm  this works, we can rerun our functional tests and see that their
-failure messages have changed slightly&#8212;&#8203;one of them in particular should
-now mention Nginx:</p>
+<p>Let&#8217;s commit just the FT:</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>$ <strong>python manage.py test functional_tests --liveserver=superlists-staging.ottg.eu</strong>
-[...]
-selenium.common.exceptions.NoSuchElementException: Message: Unable to locate
-element: {"method":"id","selector":"id_new_item"}
-[...]
-AssertionError: 'To-Do' not found in 'Welcome to nginx!'</pre>
+<pre>$ <strong>git add functional_tests/tests.py</strong>
+$ <strong>git commit -m "first steps of FT for layout + styling"</strong></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>Progress!
-
-
-
+<p>Now it feels like we&#8217;re justified in finding a "proper" solution to our need
+for some better styling for our site.  We can back out our hacky
+<code>&lt;p style="text-align: center"&gt;</code>:
 </p>
 </div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>git reset --hard</strong></pre>
+</div>
+</div>
+<div class="admonitionblock warning">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-warning" title="Warning"></i>
+</td>
+<td class="content">
+<code>git reset --hard</code> is the "take off and nuke the site from orbit" Git
+    command, so be careful with it&#8212;&#8203;it blows away all your un-committed
+    changes. Unlike almost everything else you can do with Git, there&#8217;s no way
+    of going back after this one.
+    
+</td>
+</tr>
+</table>
 </div>
 </div>
 <div class="sect2">
-<h3 id="_deploying_our_code_manually">Deploying Our Code Manually</h3>
+<h3 id="_prettification_using_a_css_framework">Prettification: Using a CSS Framework</h3>
 <div class="paragraph">
-<p>The next step is to get a copy of the staging site up and running, just to
-check whether we can get Nginx and Django to talk to each other.  As we do so,
-we&#8217;re starting to move into doing "deployment" rather than provisioning, so we
-should be thinking about how we can automate the process, as we go.</p>
-</div>
-<div class="admonitionblock note">
-<table>
-<tr>
-<td class="icon">
-<i class="fa icon-note" title="Note"></i>
-</td>
-<td class="content">
-One rule of thumb for distinguishing provisioning from deployment is
-that you tend to need root permissions for the former, but we don&#8217;t for the
-latter.
+<p>
 
-
-</td>
-</tr>
-</table>
+Design is hard, and doubly so now that we have to deal with mobile, tablets, and
+so forth.  That&#8217;s why many programmers, particularly lazy ones like me, are
+turning to CSS frameworks to solve some of those problems for them.  There are
+lots of frameworks out there, but one of the earliest and most popular is
+Twitter&#8217;s Bootstrap.  Let&#8217;s use that.</p>
 </div>
 <div class="paragraph">
-<p>We need a directory for the source to live in.  Let&#8217;s assume we have a home
-folder for a nonroot user; in my case it would be at <em>/home/elspeth</em> (this is
-likely to be the setup on any shared hosting system, but you should always run
-your web apps as a nonroot user, in any case). I&#8217;m going to set up my
-sites like this:</p>
+<p>
+You can find bootstrap at <a href="http://getbootstrap.com/" class="bare">http://getbootstrap.com/</a>.</p>
+</div>
+<div class="paragraph">
+<p>We&#8217;ll download it and put it in a new folder called <em>static</em> inside the <code>lists</code>
+app:<sup class="footnote">[<a id="_footnoteref_2" class="footnote" href="#_footnote_2" title="View footnote.">2</a>]</sup></p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>wget -O bootstrap.zip https://github.com/twbs/bootstrap/releases/download/\
+v3.3.4/bootstrap-3.3.4-dist.zip</strong>
+$ <strong>unzip bootstrap.zip</strong>
+$ <strong>mkdir lists/static</strong>
+$ <strong>mv bootstrap-3.3.4-dist lists/static/bootstrap</strong>
+$ <strong>rm bootstrap.zip</strong></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Bootstrap comes with a plain, uncustomised installation in the <em>dist</em> folder.
+We&#8217;re going to use that for now, but you should really never do this for a
+real site&#8212;&#8203;vanilla Bootstrap is instantly recognisable, and a big signal
+to anyone in the know that you couldn&#8217;t be bothered to style your site. Learn
+how to use LESS and change the font, if nothing else!  There is info in
+Bootstrap&#8217;s docs, or there&#8217;s a
+<a href="http://coding.smashingmagazine.com/2013/03/12/customizing-bootstrap/">good guide here</a>.</p>
+</div>
+<div class="paragraph">
+<p>Our <em>lists</em> folder will end up looking like this:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>tree lists</strong>
+lists
+&#9500;&#9472;&#9472; __init__.py
+&#9500;&#9472;&#9472; __pycache__
+&#9474;&#160;&#160; &#9492;&#9472;&#9472; [...]
+&#9500;&#9472;&#9472; admin.py
+&#9500;&#9472;&#9472; models.py
+&#9500;&#9472;&#9472; static
+&#9474;&#160;&#160; &#9492;&#9472;&#9472; bootstrap
+&#9474;&#160;&#160;     &#9500;&#9472;&#9472; css
+&#9474;&#160;&#160;     &#9474;&#160;&#160; &#9500;&#9472;&#9472; bootstrap.css
+&#9474;&#160;&#160;     &#9474;&#160;&#160; &#9500;&#9472;&#9472; bootstrap.css.map
+&#9474;&#160;&#160;     &#9474;&#160;&#160; &#9500;&#9472;&#9472; bootstrap.min.css
+&#9474;&#160;&#160;     &#9474;&#160;&#160; &#9500;&#9472;&#9472; bootstrap-theme.css
+&#9474;&#160;&#160;     &#9474;&#160;&#160; &#9500;&#9472;&#9472; bootstrap-theme.css.map
+&#9474;&#160;&#160;     &#9474;&#160;&#160; &#9492;&#9472;&#9472; bootstrap-theme.min.css
+&#9474;&#160;&#160;     &#9500;&#9472;&#9472; fonts
+&#9474;&#160;&#160;     &#9474;&#160;&#160; &#9500;&#9472;&#9472; glyphicons-halflings-regular.eot
+&#9474;&#160;&#160;     &#9474;&#160;&#160; &#9500;&#9472;&#9472; glyphicons-halflings-regular.svg
+&#9474;&#160;&#160;     &#9474;&#160;&#160; &#9500;&#9472;&#9472; glyphicons-halflings-regular.ttf
+&#9474;&#160;&#160;     &#9474;&#160;&#160; &#9500;&#9472;&#9472; glyphicons-halflings-regular.woff
+&#9474;&#160;&#160;     &#9474;&#160;&#160; &#9492;&#9472;&#9472; glyphicons-halflings-regular.woff2
+&#9474;&#160;&#160;     &#9492;&#9472;&#9472; js
+&#9474;&#160;&#160;         &#9500;&#9472;&#9472; bootstrap.js
+&#9474;&#160;&#160;         &#9500;&#9472;&#9472; bootstrap.min.js
+&#9474;&#160;&#160;         &#9492;&#9472;&#9472; npm.js
+&#9500;&#9472;&#9472; templates
+&#9474;&#160;&#160; &#9500;&#9472;&#9472; home.html
+&#9474;&#160;&#160; &#9492;&#9472;&#9472; list.html
+&#9500;&#9472;&#9472; tests.py
+&#9500;&#9472;&#9472; urls.py
+&#9492;&#9472;&#9472; views.py</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>If we have a look at the "Getting Started" section of the
+<a href="http://getbootstrap.com/getting-started/#template">Bootstrap documentation</a>,
+you&#8217;ll see it wants our HTML template to include something like this:</p>
 </div>
 <div class="listingblock skipme">
 <div class="content">
-<pre>/home/elspeth
-&#9500;&#9472;&#9472; sites
-&#9474;&#160;&#160; &#9500;&#9472;&#9472; www.live.my-website.com
-&#9474;&#160;&#160; &#9474;    &#9500;&#9472;&#9472; database
-&#9474;&#160;&#160; &#9474;    &#9474;     &#9492;&#9472;&#9472; db.sqlite3
-&#9474;&#160;&#160; &#9474;    &#9500;&#9472;&#9472; source
-&#9474;&#160;&#160; &#9474;    &#9474;    &#9500;&#9472;&#9472; manage.py
-&#9474;&#160;&#160; &#9474;    &#9474;    &#9500;&#9472;&#9472; superlists
-&#9474;&#160;&#160; &#9474;    &#9474;    &#9500;&#9472;&#9472; etc...
-&#9474;&#160;&#160; &#9474;    &#9474;
-&#9474;&#160;&#160; &#9474;    &#9500;&#9472;&#9472; static
-&#9474;&#160;&#160; &#9474;    &#9474;    &#9500;&#9472;&#9472; base.css
-&#9474;&#160;&#160; &#9474;    &#9474;    &#9500;&#9472;&#9472; etc...
-&#9474;&#160;&#160; &#9474;    &#9474;
-&#9474;&#160;&#160; &#9474;    &#9492;&#9472;&#9472; virtualenv
-&#9474;&#160;&#160; &#9474;         &#9500;&#9472;&#9472; lib
-&#9474;&#160;&#160; &#9474;         &#9500;&#9472;&#9472; etc...
-&#9474;&#160;&#160; &#9474;
-&#9474;&#160;&#160; &#9500;&#9472;&#9472; www.staging.my-website.com
-&#9474;&#160;&#160; &#9474;    &#9500;&#9472;&#9472; database
-&#9474;&#160;&#160; &#9474;    &#9500;&#9472;&#9472; etc...</pre>
+<pre class="CodeRay highlight"><code data-lang="html">    <span class="doctype">&lt;!DOCTYPE html&gt;</span>
+    <span class="tag">&lt;html&gt;</span>
+      <span class="tag">&lt;head&gt;</span>
+        <span class="tag">&lt;meta</span> <span class="attribute-name">charset</span>=<span class="string"><span class="delimiter">"</span><span class="content">utf-8</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>
+        <span class="tag">&lt;meta</span> <span class="attribute-name">http-equiv</span>=<span class="string"><span class="delimiter">"</span><span class="content">X-UA-Compatible</span><span class="delimiter">"</span></span> <span class="attribute-name">content</span>=<span class="string"><span class="delimiter">"</span><span class="content">IE=edge</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>
+        <span class="tag">&lt;meta</span> <span class="attribute-name">name</span>=<span class="string"><span class="delimiter">"</span><span class="content">viewport</span><span class="delimiter">"</span></span> <span class="attribute-name">content</span>=<span class="string"><span class="delimiter">"</span><span class="content">width=device-width, initial-scale=1</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>
+        <span class="tag">&lt;title&gt;</span>Bootstrap 101 Template<span class="tag">&lt;/title&gt;</span>
+        <span class="comment">&lt;!-- Bootstrap --&gt;</span>
+        <span class="tag">&lt;link</span> <span class="attribute-name">href</span>=<span class="string"><span class="delimiter">"</span><span class="content">css/bootstrap.min.css</span><span class="delimiter">"</span></span> <span class="attribute-name">rel</span>=<span class="string"><span class="delimiter">"</span><span class="content">stylesheet</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>
+      <span class="tag">&lt;/head&gt;</span>
+      <span class="tag">&lt;body&gt;</span>
+        <span class="tag">&lt;h1&gt;</span>Hello, world!<span class="tag">&lt;/h1&gt;</span>
+        <span class="tag">&lt;script</span> <span class="attribute-name">src</span>=<span class="string"><span class="delimiter">"</span><span class="content">http://code.jquery.com/jquery.js</span><span class="delimiter">"</span></span><span class="tag">&gt;</span><span class="tag">&lt;/script&gt;</span>
+        <span class="tag">&lt;script</span> <span class="attribute-name">src</span>=<span class="string"><span class="delimiter">"</span><span class="content">js/bootstrap.min.js</span><span class="delimiter">"</span></span><span class="tag">&gt;</span><span class="tag">&lt;/script&gt;</span>
+      <span class="tag">&lt;/body&gt;</span>
+    <span class="tag">&lt;/html&gt;</span></code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>Each site (staging, live, or any other website) has its own folder. Within that
-we have a separate folder for the source code, the database, and the static
-files.  The logic is that, while the source code might change from one version
-of the site to the next, the database will stay the same.  The static folder
-is in the same relative location, <em>../static</em>, that we set up at the end of
-the last chapter. Finally, the virtualenv gets its own subfolder too (on the
-server, there&#8217;s no need to use virtualenvwrapper, we&#8217;ll create a virtualenv
-manually).</p>
+<p>We already have two HTML templates.  We don&#8217;t want to be adding a whole load
+of boilerplate code to each, so now feels like the right time to apply
+the "Don&#8217;t repeat yourself" rule, and bring all the common parts together.
+Thankfully, the Django template language makes that easy using something
+called template inheritance.</p>
 </div>
-<div class="sect3">
-<h4 id="_adjusting_the_database_location">Adjusting the Database Location</h4>
+</div>
+<div class="sect2">
+<h3 id="_django_template_inheritance">Django Template Inheritance</h3>
 <div class="paragraph">
 <p>
 
-First let&#8217;s change the location of our database in <em>settings.py</em>, and make sure
-we can get that working on our local PC:</p>
+Let&#8217;s have a little review of what the differences are between <em>home.html</em> and
+<em>list.html</em>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>diff lists/templates/home.html lists/templates/list.html</strong>
+&lt;         &lt;h1&gt;Start a new To-Do list&lt;/h1&gt;
+&lt;         &lt;form method="POST" action="/lists/new"&gt;
+---
+&gt;         &lt;h1&gt;Your To-Do list&lt;/h1&gt;
+&gt;         &lt;form method="POST" action="/lists/{{ list.id }}/add_item"&gt;
+[...]
+&gt;         &lt;table id="id_list_table"&gt;
+&gt;             {% for item in list.item_set.all %}
+&gt;                 &lt;tr&gt;&lt;td&gt;{{ forloop.counter }}: {{ item.text }}&lt;/td&gt;&lt;/tr&gt;
+&gt;             {% endfor %}
+&gt;         &lt;/table&gt;</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>They have different header texts, and their forms use different URLs. On top
+of that, <em>list.html</em> has the additional <code>&lt;table&gt;</code> element.</p>
+</div>
+<div class="paragraph">
+<p>Now that we&#8217;re clear on what&#8217;s in common and what&#8217;s not, we can make the two
+templates inherit from a common "superclass" template.  We&#8217;ll start by
+making a copy of <em>home.html</em>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>cp lists/templates/home.html lists/templates/base.html</strong></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>We make this into a base template which just contains the common boilerplate,
+and mark out the "blocks", places where child templates can customise it:</p>
+</div>
+<div class="listingblock sourcecode small-code">
+<div class="title">lists/templates/base.html</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="html"><span class="tag">&lt;html&gt;</span>
+<span class="tag">&lt;head&gt;</span>
+    <span class="tag">&lt;title&gt;</span>To-Do lists<span class="tag">&lt;/title&gt;</span>
+<span class="tag">&lt;/head&gt;</span>
+
+<span class="tag">&lt;body&gt;</span>
+    <span class="tag">&lt;h1&gt;</span>{% block header_text %}{% endblock %}<span class="tag">&lt;/h1&gt;</span>
+    <span class="tag">&lt;form</span> <span class="attribute-name">method</span>=<span class="string"><span class="delimiter">"</span><span class="content">POST</span><span class="delimiter">"</span></span> <span class="attribute-name">action</span>=<span class="string"><span class="delimiter">"</span><span class="content">{% block form_action %}{% endblock %}</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>
+        <span class="tag">&lt;input</span> <span class="attribute-name">name</span>=<span class="string"><span class="delimiter">"</span><span class="content">item_text</span><span class="delimiter">"</span></span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">"</span><span class="content">id_new_item</span><span class="delimiter">"</span></span> <span class="attribute-name">placeholder</span>=<span class="string"><span class="delimiter">"</span><span class="content">Enter a to-do item</span><span class="delimiter">"</span></span> <span class="tag">/&gt;</span>
+        {% csrf_token %}
+    <span class="tag">&lt;/form&gt;</span>
+    {% block table %}
+    {% endblock %}
+<span class="tag">&lt;/body&gt;</span>
+<span class="tag">&lt;/html&gt;</span></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The base template defines a series of areas called "blocks", which will be
+places that other templates can hook in and add their own content.  Let&#8217;s
+see how that works in practice, by changing <em>home.html</em> so that it "inherits
+from" <em>base.html</em>:</p>
 </div>
 <div class="listingblock sourcecode">
-<div class="title">superlists/settings.py (ch08l003)</div>
+<div class="title">lists/templates/home.html</div>
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="comment"># Build paths inside the project like this: os.path.join(BASE_DIR, ...)</span>
-<span class="keyword">import</span> <span class="include">os</span>
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-[...]
+<pre class="CodeRay highlight"><code data-lang="html">{% extends 'base.html' %}
 
-DATABASES = {
-    <span class="string"><span class="delimiter">'</span><span class="content">default</span><span class="delimiter">'</span></span>: {
-        <span class="string"><span class="delimiter">'</span><span class="content">ENGINE</span><span class="delimiter">'</span></span>: <span class="string"><span class="delimiter">'</span><span class="content">django.db.backends.sqlite3</span><span class="delimiter">'</span></span>,
-        <span class="string"><span class="delimiter">'</span><span class="content">NAME</span><span class="delimiter">'</span></span>: os.path.join(BASE_DIR, <span class="string"><span class="delimiter">'</span><span class="content">../database/db.sqlite3</span><span class="delimiter">'</span></span>),
-    }
-}</code></pre>
-</div>
-</div>
-<div class="admonitionblock tip">
-<table>
-<tr>
-<td class="icon">
-<i class="fa icon-tip" title="Tip"></i>
-</td>
-<td class="content">
-Check out the way <code>BASE_DIR</code> is defined, further up in <em>settings.py</em>.
-Notice the <code>abspath</code> gets done first (i.e., innermost).  Always follow this
-pattern when path-wrangling, otherwise you can see strange things happening
-depending on how the file is imported.  Thanks to
-<a href="https://github.com/CleanCut/green">Green Nathan</a> for that tip!
-</td>
-</tr>
-</table>
-</div>
-<div class="paragraph">
-<p>Now let&#8217;s try it locally:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>$ <strong>mkdir ../database</strong>
-$ <strong>python manage.py migrate --noinput</strong>
-Creating tables ...
-[...]
-$ <strong>ls ../database/</strong>
-db.sqlite3</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>That seems to work.  Let&#8217;s commit it:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>$ <strong>git diff</strong> # should show changes in settings.py
-$ <strong>git commit -am "move sqlite database outside of main source tree"</strong></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>To get our code onto the server, we&#8217;ll use Git and go via one of the code
-sharing sites.  If you haven&#8217;t already, push your code up to GitHub, BitBucket,
-or similar.  They all have excellent instructions for beginners on how to
-do that.</p>
-</div>
-<div class="paragraph">
-<p>
-Here&#8217;s some bash commands that will set this all up. If you&#8217;re not familiar
-with it, note the <code>export</code> command which lets me set up a "local variable"
-in bash:</p>
-</div>
-<div class="listingblock server-commands">
-<div class="content">
-<pre>elspeth@server:$ <strong>export SITENAME=superlists-staging.ottg.eu</strong>
-elspeth@server:$ <strong>mkdir -p ~/sites/$SITENAME/database</strong>
-elspeth@server:$ <strong>mkdir -p ~/sites/$SITENAME/static</strong>
-elspeth@server:$ <strong>mkdir -p ~/sites/$SITENAME/virtualenv</strong>
-# you should replace the URL in the next line with the URL for your own repo
-elspeth@server:$ <strong>git clone https://github.com/hjwp/book-example.git \
-~/sites/$SITENAME/source</strong>
-Resolving deltas: 100% [...]</pre>
-</div>
-</div>
-<div class="admonitionblock note">
-<table>
-<tr>
-<td class="icon">
-<i class="fa icon-note" title="Note"></i>
-</td>
-<td class="content">
-A bash variable defined using <code>export</code> only lasts as long as that console
-session. If you log out of the server and log back in again, you&#8217;ll need to
-redefine it. It&#8217;s devious because Bash won&#8217;t error, it will just substitute
-the empty string for the variable, which will lead to weird results&#8230;&#8203;if in
-doubt, do a quick <strong><code>echo $SITENAME</code></strong>.
-</td>
-</tr>
-</table>
-</div>
-<div class="paragraph">
-<p>Now we&#8217;ve got the site installed, let&#8217;s just try running the dev server&#8212;&#8203;this
-is a smoke test, to see if all the moving parts are connected:</p>
-</div>
-<div class="listingblock server-commands">
-<div class="content">
-<pre>elspeth@server:$ $ <strong>cd ~/sites/$SITENAME/source</strong>
-$ <strong>python manage.py runserver</strong>
-Traceback (most recent call last):
-  File "manage.py", line 8, in &lt;module&gt;
-    from django.core.management import execute_from_command_line
-ImportError: No module named django.core.management</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Ah. Django isn&#8217;t installed on the server.</p>
-</div>
-</div>
-<div class="sect3">
-<h4 id="_creating_a_virtualenv_manually_and_using_requirements_txt">Creating a Virtualenv manually, and using requirements.txt</h4>
-<div class="paragraph">
-<p>
-To "save" the list of packages we need in our virtualenv, and be able to
-re-create it on the server, we create a <em>requirements.txt</em> file:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>$ <strong>echo "Django==1.10.4" &gt; requirements.txt</strong>
-$ <strong>git add requirements.txt</strong>
-$ <strong>git commit -m "Add requirements.txt for virtualenv"</strong></pre>
-</div>
-</div>
-<div class="admonitionblock note">
-<table>
-<tr>
-<td class="icon">
-<i class="fa icon-note" title="Note"></i>
-</td>
-<td class="content">
-You may be wondering why we didn&#8217;t add our other dependency,
-    selenium, to our requirements.  The reason is that selenium is
-    only a dependency for the tests, not the application code.  Some
-    people like to also create a file called <em>test-requirements.txt</em>.
-</td>
-</tr>
-</table>
-</div>
-<div class="paragraph">
-<p>Now we do a <code>git push</code> to send our updates up to our code-sharing site:</p>
-</div>
-<div class="listingblock skipme">
-<div class="content">
-<pre>$ <strong>git push</strong></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>And we can pull those changes down to the server:</p>
-</div>
-<div class="listingblock server-commands">
-<div class="content">
-<pre>elspeth@server:$ <strong>git pull</strong>  # may ask you to do some git config first</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Creating a virtualenv "manually" (ie, without virtualenvwraper) involves
-using the standard library "venv" module, and specifying the path you
-want the virtualenv to go in:</p>
-</div>
-<div class="listingblock server-commands">
-<div class="content">
-<pre>elspeth@server:$ <strong>python3 -m venv ../virtualenv</strong>
-elspeth@server:$ <strong>ls ../virtualenv/bin</strong>
-activate      activate.fish  easy_install-3.5  pip3    python
-activate.csh  easy_install   pip               pip3.5  python3</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>If we wanted to activate the virtualenv, we could do so with
-<code>source ../virtualenv/bin/activate</code>, but we don&#8217;t need to do
-that.  We can actually do everything we want to by calling the versions
-of Python, pip, and the other executables in the virtualenv&#8217;s <em>bin</em>
-directory, as we&#8217;ll see.</p>
-</div>
-<div class="paragraph">
-<p>To install our requirements into the virtualenv, we use the virtualenv
-pip:</p>
-</div>
-<div class="listingblock server-commands">
-<div class="content">
-<pre>elspeth@server:$ <strong>../virtualenv/bin/pip install -r requirements.txt</strong>
-Downloading/unpacking Django==1.10.4 (from -r requirements.txt (line 1))
-[...]
-Successfully installed Django</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>And to run Python in the virtualenv, we use the virtualenv <code>python</code>
-binary:</p>
-</div>
-<div class="listingblock server-commands">
-<div class="content">
-<pre>elspeth@server:$ <strong>../virtualenv/bin/python manage.py runserver</strong>
-Validating models...
-0 errors found
-[...]</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>That looks like it&#8217;s running happily.  We can Ctrl-C it for now.
-</p>
-</div>
-</div>
-<div class="sect3">
-<h4 id="_simple_nginx_configuration">Simple Nginx Configuration</h4>
-<div class="paragraph">
-<p>
+{% block header_text %}Start a new To-Do list{% endblock %}
 
-Next we create an Nginx config file to tell it to send requests for our staging
-site along to Django. A minimal config looks like this:</p>
+{% block form_action %}/lists/new{% endblock %}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>You can see that lots of the boilerplate HTML disappears, and we just
+concentrate on the bits we want to customise. We do the same for <em>list.html</em>:</p>
 </div>
 <div class="listingblock sourcecode">
-<div class="title">server: /etc/nginx/sites-available/superlists-staging.ottg.eu</div>
+<div class="title">lists/templates/list.html</div>
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="nginx">server {
-    listen 80;
-    server_name superlists-staging.ottg.eu;
+<pre class="CodeRay highlight"><code data-lang="html">{% extends 'base.html' %}
 
-    location / {
-        proxy_pass http://localhost:8000;
-    }
-}</code></pre>
+{% block header_text %}Your To-Do list{% endblock %}
+
+{% block form_action %}/lists/{{ list.id }}/add_item{% endblock %}
+
+{% block table %}
+    <span class="tag">&lt;table</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">"</span><span class="content">id_list_table</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>
+        {% for item in list.item_set.all %}
+            <span class="tag">&lt;tr&gt;</span><span class="tag">&lt;td&gt;</span>{{ forloop.counter }}: {{ item.text }}<span class="tag">&lt;/td&gt;</span><span class="tag">&lt;/tr&gt;</span>
+        {% endfor %}
+    <span class="tag">&lt;/table&gt;</span>
+{% endblock %}</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>This config says it will only work for our staging domain, and will "proxy"
-all requests to the local port 8000 where it expects to find Django
-waiting to respond to requests.</p>
-</div>
-<div class="paragraph">
-<p>I
-saved<sup class="footnote">[<a id="_footnoteref_3" class="footnote" href="#_footnote_3" title="View footnote.">3</a>]</sup>
-this to a file called <em>superlists-staging.ottg.eu</em>
-inside <em>/etc/nginx/sites-available</em> folder, and then added it to the enabled
-sites for the server by creating a symlink to it:</p>
-</div>
-<div class="listingblock server-commands">
-<div class="content">
-<pre>elspeth@server:$ <strong>echo $SITENAME</strong> # check this still has our site in
-superlists-staging.ottg.eu
-elspeth@server:$ <strong>sudo ln -s ../sites-available/$SITENAME \
-/etc/nginx/sites-enabled/$SITENAME</strong>
-elspeth@server:$ <strong>ls -l /etc/nginx/sites-enabled</strong> # check our symlink is there</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>That&#8217;s the Debian/Ubuntu preferred way of saving Nginx configurations&#8212;&#8203;the real
-config file in <em>sites-available</em>, and a symlink in <em>sites-enabled</em>; the idea is
-that it makes it easier to switch sites on or off.</p>
-</div>
-<div class="paragraph">
-<p>We also may as well remove the default "Welcome to nginx" config, to avoid any
-confusion:</p>
-</div>
-<div class="listingblock server-commands">
-<div class="content">
-<pre>elspeth@server:$ <strong>sudo rm /etc/nginx/sites-enabled/default</strong></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>And now to test it:</p>
-</div>
-<div class="listingblock server-commands">
-<div class="content">
-<pre>elspeth@server:$ <strong>sudo systemctl reload nginx</strong>
-elspeth@server:$ <strong>../virtualenv/bin/python3 manage.py runserver</strong></pre>
-</div>
-</div>
-<div class="admonitionblock note">
-<table>
-<tr>
-<td class="icon">
-<i class="fa icon-note" title="Note"></i>
-</td>
-<td class="content">
-I also had to edit <em>/etc/nginx/nginx.conf</em> and uncomment a line saying
-<code>server_names_hash_bucket_size 64;</code> to get my long domain name to work.  You
-may not have this problem; Nginx will warn you when you do a <code>reload</code> if it has
-any trouble with its config files.
-</td>
-</tr>
-</table>
-</div>
-<div class="paragraph">
-<p>A quick visual inspection confirms&#8212;&#8203;the site is up (<a href="#staging-is-up">The staging site is up!</a>)!</p>
-</div>
-<div id="staging-is-up" class="imageblock">
-<div class="content">
-<img src="images/twdp_0803.png" alt="The front page of the site, at least, is up">
-</div>
-<div class="title">Figure 3. The staging site is up!</div>
-</div>
-<div class="admonitionblock tip">
-<table>
-<tr>
-<td class="icon">
-<i class="fa icon-tip" title="Tip"></i>
-</td>
-<td class="content">
-If you ever find Nginx isn&#8217;t behaving as expected, try the command
-<code>sudo nginx -t</code>, which does a config test, and will warn you of any
-problems in your configuration files.
-</td>
-</tr>
-</table>
-</div>
-<div class="paragraph">
-<p>Let&#8217;s see what our functional tests say:</p>
+<p>That&#8217;s a refactor of the way our templates work.  We rerun the FTs to make
+sure we haven&#8217;t broken anything&#8230;&#8203;</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>$ <strong>python manage.py test functional_tests --liveserver=superlists-staging.ottg.eu</strong>
-[...]
-selenium.common.exceptions.NoSuchElementException: Message: Unable to locate
-[...]
-AssertionError: 0.0 != 512 within 3 delta</pre>
+<pre>AssertionError: 107.0 != 512 within 5 delta</pre>
 </div>
 </div>
 <div class="paragraph">
 <p>
 
-The tests are failing as soon as they try and submit a new item, because we
-haven&#8217;t set up the database. You&#8217;ll probably have spotted the yellow Django
-debug page (<a href="#django-debug-screen">But the database isn&#8217;t</a>) telling us as much as the tests went
-through, or if you tried it manually.</p>
-</div>
-<div class="admonitionblock note">
-<table>
-<tr>
-<td class="icon">
-<i class="fa icon-note" title="Note"></i>
-</td>
-<td class="content">
-The tests saved us from potential embarrassment there.  The site <em>looked</em>
-fine when we loaded its front page.  If we&#8217;d been a little hasty, we might have
-thought we were done, and it would have been the first users that discovered
-that nasty Django DEBUG page.  Okay, slight exaggeration for effect, maybe we
-<em>would</em> have checked, but what happens as the site gets bigger and more
-complex? You can&#8217;t check everything. The tests can.
-
-
-</td>
-</tr>
-</table>
-</div>
-<div id="django-debug-screen" class="imageblock">
-<div class="content">
-<img src="images/twdp_0804.png" alt="Django DEBUG page showing database error">
-</div>
-<div class="title">Figure 4. But the database isn&#8217;t</div>
-</div>
-</div>
-<div class="sect3">
-<h4 id="_creating_the_database_with_migrate">Creating the Database with migrate</h4>
-<div class="paragraph">
-<p>
-
-We run <code>migrate</code> using the <code>--noinput</code> argument to suppress the two little "are
-you sure" prompts:</p>
-</div>
-<div class="listingblock server-commands">
-<div class="content">
-<pre>elspeth@server:$ <strong>python manage.py migrate --noinput</strong>
-Creating tables ...
-[...]
-elspeth@server:$ <strong>ls ../database/</strong>
-db.sqlite3
-elspeth@server:$ <strong>python manage.py runserver</strong></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Let&#8217;s try the FTs again:</p>
+Sure enough, they&#8217;re still getting to exactly where they were before.  That&#8217;s
+worthy of a commit:</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>$ <strong>python manage.py test functional_tests --liveserver=superlists-staging.ottg.eu</strong>
-Creating test database for alias 'default'...
-...
- ---------------------------------------------------------------------
-Ran 3 tests in 10.718s
-
-OK
-Destroying test database for alias 'default'...</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>It&#8217;s great to see the site up and running!  We might reward ourselves with a
-well-earned tea break at this point, before moving on to the next section&#8230;&#8203;</p>
-</div>
-<div class="admonitionblock tip">
-<table>
-<tr>
-<td class="icon">
-<i class="fa icon-tip" title="Tip"></i>
-</td>
-<td class="content">
-If you see a "502 - Bad Gateway", it&#8217;s probably because you forgot to
-restart the dev server with <code>manage.py runserver</code> after the <code>migrate</code>.
-</td>
-</tr>
-</table>
+<pre>$ <strong>git diff -b</strong>
+# the -b means ignore whitespace, useful since we've changed some html indenting
+$ <strong>git status</strong>
+$ <strong>git add lists/templates</strong> # leave static, for now
+$ <strong>git commit -m "refactor templates to use a base template"</strong></pre>
 </div>
 </div>
 </div>
 <div class="sect2">
-<h3 id="_getting_to_a_production_ready_deployment">Getting to a Production-Ready Deployment</h3>
+<h3 id="_integrating_bootstrap">Integrating Bootstrap</h3>
 <div class="paragraph">
-<p>
-We&#8217;re at least reassured that the basic piping works, but we really can&#8217;t be
-using the Django dev server in production.  We also can&#8217;t be relying on
-manually starting it up with <code>runserver</code>.</p>
-</div>
-<div class="sect3">
-<h4 id="_switching_to_gunicorn">Switching to Gunicorn</h4>
-<div class="paragraph">
-<p>
-
-Do you know why the Django mascot is a pony?  The story is that Django
-comes with so many things you want: an ORM, all sorts of middleware,
-the admin site&#8230;&#8203; "What else do you want, a pony?" Well, Gunicorn stands
-for "Green Unicorn", which I guess is what you&#8217;d want next if you already
-had a pony&#8230;&#8203;</p>
-</div>
-<div class="listingblock server-commands">
-<div class="content">
-<pre>elspeth@server:$ <strong>../virtualenv/bin/pip install gunicorn</strong></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Gunicorn will need to know a path to a WSGI server, which is usually
-a function called <code>application</code>.  Django provides one in <em>superlists/wsgi.py</em>:</p>
-</div>
-<div class="listingblock server-commands">
-<div class="content">
-<pre>elspeth@server:$ <strong>../virtualenv/bin/gunicorn superlists.wsgi:application</strong>
-2013-05-27 16:22:01 [10592] [INFO] Starting gunicorn 0.19.6
-2013-05-27 16:22:01 [10592] [INFO] Listening at: http://127.0.0.1:8000 (10592)
-[...]</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>If you now take a look at the site, you&#8217;ll find the CSS is all broken, as in
-<a href="#site-with-broken-css">Broken CSS</a>.</p>
-</div>
-<div class="paragraph">
-<p>
-And if we run the functional tests, you&#8217;ll see they confirm that something
-is wrong. The test for adding list items passes happily, but the test for
-layout + styling fails.  Good job tests!</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>$ <strong>python manage.py test functional_tests --liveserver=superlists-staging.ottg.eu</strong>
-[...]
-AssertionError: 125.0 != 512 within 3 delta
-FAILED (failures=1)</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>The reason that the CSS is broken is that although the Django dev server will
-serve static files magically for you, Gunicorn doesn&#8217;t.  Now is the time to
-tell Nginx to do it instead.</p>
-</div>
-<div id="site-with-broken-css" class="imageblock">
-<div class="content">
-<img src="images/twdp_0805.png" alt="The site is up, but CSS is broken">
-</div>
-<div class="title">Figure 5. Broken CSS</div>
-</div>
-</div>
-<div class="sect3">
-<h4 id="_getting_nginx_to_serve_static_files">Getting Nginx to Serve Static Files</h4>
-<div class="paragraph">
-<p>
-
-First we run <code>collectstatic</code> to copy all the static files to a folder where
-Nginx can find them:</p>
-</div>
-<div class="listingblock server-commands">
-<div class="content">
-<pre>elspeth@server:$ <strong>../virtualenv/bin/python manage.py collectstatic --noinput</strong>
-elspeth@server:$ <strong>ls ../static/</strong>
-base.css  bootstrap</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Now we tell Nginx to start serving those static files for us:</p>
+<p>Now it&#8217;s much easier to integrate the boilerplate code that Bootstrap wants&#8212;&#8203;we
+won&#8217;t add the JavaScript yet, just the CSS:</p>
 </div>
 <div class="listingblock sourcecode">
-<div class="title">server: /etc/nginx/sites-available/superlists-staging.ottg.eu</div>
+<div class="title">lists/templates/base.html (ch08l006)</div>
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="nginx">server {
-    listen 80;
-    server_name superlists-staging.ottg.eu;
+<pre class="CodeRay highlight"><code data-lang="html"><span class="doctype">&lt;!DOCTYPE html&gt;</span>
+<span class="tag">&lt;html</span> <span class="attribute-name">lang</span>=<span class="string"><span class="delimiter">"</span><span class="content">en</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>
 
-    location /static {
-        alias /home/elspeth/sites/superlists-staging.ottg.eu/static;
-    }
-
-    location / {
-        proxy_pass http://localhost:8000;
-    }
-}</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Reload Nginx and restart Gunicorn&#8230;&#8203;</p>
-</div>
-<div class="listingblock server-commands">
-<div class="content">
-<pre>elspeth@server:$ <strong>sudo systemctl reload nginx</strong>
-elspeth@server:$ <strong>../virtualenv/bin/gunicorn superlists.wsgi:application</strong></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>And if we take another look at the site, things are looking much healthier. We
-can rerun our FTs:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>$ <strong>python manage.py test functional_tests --liveserver=superlists-staging.ottg.eu</strong>
-Creating test database for alias 'default'...
-...
- ---------------------------------------------------------------------
-Ran 3 tests in 10.718s
-
-OK
-Destroying test database for alias 'default'...</pre>
-</div>
-</div>
-</div>
-<div class="sect3">
-<h4 id="_switching_to_using_unix_sockets">Switching to Using Unix Sockets</h4>
-<div class="paragraph">
-<p>
-When we want to serve both staging and live, we can&#8217;t have both servers trying
-to use port 8000.  We could decide to allocate different ports, but that&#8217;s a
-bit arbitrary, and it would be dangerously easy to get it wrong and start
-the staging server on the live port, or vice versa.</p>
-</div>
-<div class="paragraph">
-<p>A better solution is to use Unix domain sockets&#8212;&#8203;they&#8217;re like files on disk,
-but can be used by Nginx and Gunicorn to talk to each other.  We&#8217;ll put our
-sockets in <em>/tmp</em>.  Let&#8217;s change the proxy settings in Nginx:</p>
-</div>
-<div class="listingblock sourcecode">
-<div class="title">server: /etc/nginx/sites-available/superlists-staging.ottg.eu</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="nginx">[...]
-    location / {
-        proxy_set_header Host $host;
-        proxy_pass http://unix:/tmp/superlists-staging.ottg.eu.socket;
-    }
-}</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p><code>proxy_set_header</code> is used to make sure Gunicorn and Django know what domain
-it&#8217;s running on.  We need that for the <code>ALLOWED_HOSTS</code> security feature, which
-we&#8217;re about to switch on.</p>
-</div>
-<div class="paragraph">
-<p>Now we restart Gunicorn, but this time telling it to listen on a socket instead
-of on the default port:</p>
-</div>
-<div class="listingblock server-commands">
-<div class="content">
-<pre>elspeth@server:$ <strong>sudo systemctl reload nginx</strong>
-elspeth@server:$ <strong>../virtualenv/bin/gunicorn --bind \
-    unix:/tmp/superlists-staging.ottg.eu.socket superlists.wsgi:application</strong></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>And again, we rerun the functional test again, to make sure things still pass:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>$ <strong>python manage.py test functional_tests --liveserver=superlists-staging.ottg.eu</strong>
-OK</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>A couple more steps!</p>
-</div>
-</div>
-<div class="sect3">
-<h4 id="_switching_debug_to_false_and_setting_allowed_hosts">Switching DEBUG to False and Setting ALLOWED_HOSTS</h4>
-<div class="paragraph">
-<p>
-
-
-Django&#8217;s DEBUG mode is all very well for hacking about on your own server, but
-leaving those pages full of tracebacks available
-<a href="http://bit.ly/SuvluV">isn&#8217;t secure</a>.</p>
-</div>
-<div class="paragraph">
-<p>You&#8217;ll find the <code>DEBUG</code> setting at the top of <em>settings.py</em>. When we set this
-to <code>False</code>, we also need to set another setting called <code>ALLOWED_HOSTS</code>. This
-was
-<a href="https://docs.djangoproject.com/en/1.10/ref/settings/#std:setting-ALLOWED_HOSTS">added
-as a security feature</a> in Django 1.5.  Unfortunately it doesn&#8217;t have a helpful
-comment in the default <em>settings.py</em>, but we can add one ourselves.  Do this on
-the server:</p>
-</div>
-<div class="listingblock sourcecode">
-<div class="title">server: superlists/settings.py</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="comment"># SECURITY WARNING: don't run with debug turned on in production!</span>
-DEBUG = <span class="predefined-constant">False</span>
-
-TEMPLATE_DEBUG = DEBUG
-
-<span class="comment"># Needed when DEBUG=False</span>
-ALLOWED_HOSTS = [<span class="string"><span class="delimiter">'</span><span class="content">superlists-staging.ottg.eu</span><span class="delimiter">'</span></span>]
+<span class="tag">&lt;head&gt;</span>
+    <span class="tag">&lt;meta</span> <span class="attribute-name">charset</span>=<span class="string"><span class="delimiter">"</span><span class="content">utf-8</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>
+    <span class="tag">&lt;meta</span> <span class="attribute-name">http-equiv</span>=<span class="string"><span class="delimiter">"</span><span class="content">X-UA-Compatible</span><span class="delimiter">"</span></span> <span class="attribute-name">content</span>=<span class="string"><span class="delimiter">"</span><span class="content">IE=edge</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>
+    <span class="tag">&lt;meta</span> <span class="attribute-name">name</span>=<span class="string"><span class="delimiter">"</span><span class="content">viewport</span><span class="delimiter">"</span></span> <span class="attribute-name">content</span>=<span class="string"><span class="delimiter">"</span><span class="content">width=device-width, initial-scale=1</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>
+    <span class="tag">&lt;title&gt;</span>To-Do lists<span class="tag">&lt;/title&gt;</span>
+    <span class="tag">&lt;link</span> <span class="attribute-name">href</span>=<span class="string"><span class="delimiter">"</span><span class="content">css/bootstrap.min.css</span><span class="delimiter">"</span></span> <span class="attribute-name">rel</span>=<span class="string"><span class="delimiter">"</span><span class="content">stylesheet</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>
+<span class="tag">&lt;/head&gt;</span>
 [...]</code></pre>
 </div>
 </div>
+<div class="sect3">
+<h4 id="_rows_and_columns">Rows and Columns</h4>
 <div class="paragraph">
-<p>And, once again, we restart Gunicorn and run the FT to check things still work.</p>
+<p>
+Finally, let&#8217;s actually use some of the Bootstrap magic! You&#8217;ll have to read
+the documentation yourself, but should be able to use a combination
+of the grid system and the <code>text-center</code> class to get what we want:</p>
 </div>
-<div class="admonitionblock note">
+<div class="listingblock sourcecode small-code">
+<div class="title">lists/templates/base.html (ch08l007)</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="html"><span class="tag">&lt;body&gt;</span>
+<span class="tag">&lt;div</span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">"</span><span class="content">container</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>
+
+    <span class="tag">&lt;div</span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">"</span><span class="content">row</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>
+        <span class="tag">&lt;div</span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">"</span><span class="content">col-md-6 col-md-offset-3</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>
+            <span class="tag">&lt;div</span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">"</span><span class="content">text-center</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>
+                <span class="tag">&lt;h1&gt;</span>{% block header_text %}{% endblock %}<span class="tag">&lt;/h1&gt;</span>
+                <span class="tag">&lt;form</span> <span class="attribute-name">method</span>=<span class="string"><span class="delimiter">"</span><span class="content">POST</span><span class="delimiter">"</span></span> <span class="attribute-name">action</span>=<span class="string"><span class="delimiter">"</span><span class="content">{% block form_action %}{% endblock %}</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>
+                    <span class="tag">&lt;input</span> <span class="attribute-name">name</span>=<span class="string"><span class="delimiter">"</span><span class="content">item_text</span><span class="delimiter">"</span></span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">"</span><span class="content">id_new_item</span><span class="delimiter">"</span></span>
+                           <span class="attribute-name">placeholder</span>=<span class="string"><span class="delimiter">"</span><span class="content">Enter a to-do item</span><span class="delimiter">"</span></span>
+                    <span class="tag">/&gt;</span>
+                    {% csrf_token %}
+                <span class="tag">&lt;/form&gt;</span>
+            <span class="tag">&lt;/div&gt;</span>
+        <span class="tag">&lt;/div&gt;</span>
+    <span class="tag">&lt;/div&gt;</span>
+
+    <span class="tag">&lt;div</span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">"</span><span class="content">row</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>
+        <span class="tag">&lt;div</span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">"</span><span class="content">col-md-6 col-md-offset-3</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>
+            {% block table %}
+            {% endblock %}
+        <span class="tag">&lt;/div&gt;</span>
+    <span class="tag">&lt;/div&gt;</span>
+
+<span class="tag">&lt;/div&gt;</span>
+<span class="tag">&lt;/body&gt;</span></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>(If you&#8217;ve never seen an HTML tag broken up over several lines, that <code>&lt;input&gt;</code>
+may be a little shocking. It is definitely valid, but you don&#8217;t have to use
+it if you find it offensive. ;)</p>
+</div>
+<div class="admonitionblock tip">
 <table>
 <tr>
 <td class="icon">
-<i class="fa icon-note" title="Note"></i>
+<i class="fa icon-tip" title="Tip"></i>
 </td>
 <td class="content">
-Don&#8217;t commit these changes on the server. At the moment this is just a
-hack to get things working, not a change we want to keep in our repo. In
-general, to keep things simple, I&#8217;m only going to do Git commits from the local
-PC, using <code>git push</code> and <code>git pull</code> when I need to sync them up to the server.
+Take the time to browse through the <a href="http://getbootstrap.com/">Bootstrap
+documentation</a>, if you&#8217;ve never seen it before.  It&#8217;s a shopping trolley
+brimming full of useful tools to use in your site.
 </td>
 </tr>
 </table>
 </div>
-</div>
-<div class="sect3">
-<h4 id="_using_systemd_to_make_sure_gunicorn_starts_on_boot">Using Systemd to Make Sure Gunicorn Starts on Boot</h4>
 <div class="paragraph">
-<p>
-Our final step is to make sure that the server starts up Gunicorn automatically
-on boot, and reloads it automatically if it crashes.  On Ubuntu, the way to do
-this is using Systemd:</p>
-</div>
-<div class="listingblock sourcecode">
-<div class="title">server: /etc/systemd/system/gunicorn-superlists-staging.ottg.eu.service</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="bash">[Unit]
-Description=Gunicorn server for superlists-staging.ottg.eu
-
-[Service]
-Restart=on-failure  <i class="conum" data-value="1"></i><b>(1)</b>
-User=elspeth  <i class="conum" data-value="2"></i><b>(2)</b>
-WorkingDirectory=/home/elspeth/sites/superlists-staging.ottg.eu/source  <i class="conum" data-value="3"></i><b>(3)</b>
-ExecStart=/home/elspeth/sites/superlists-staging.ottg.eu/virtualenv/bin/gunicorn \
-    --bind unix:/tmp/superlists-staging.ottg.eu.socket \
-    superlists.wsgi:application  <i class="conum" data-value="4"></i><b>(4)</b>
-
-[Install]
-WantedBy=multi-user.target <i class="conum" data-value="5"></i><b>(5)</b></code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Systemd is joyously simple to configure (especially if you&#8217;ve ever had the
-dubious pleasure of writing an <code>init.d</code> script), and is fairly
-self-explanatory.</p>
-</div>
-<div class="colist arabic">
-<table>
-<tr>
-<td><i class="conum" data-value="1"></i><b>1</b></td>
-<td><code>Restart=on-failure</code> will restart the process automatically if it crashes.</td>
-</tr>
-<tr>
-<td><i class="conum" data-value="2"></i><b>2</b></td>
-<td><code>User=elspeth</code> makes the process run as the "elspeth" user.</td>
-</tr>
-<tr>
-<td><i class="conum" data-value="3"></i><b>3</b></td>
-<td><code>WorkingDirectory</code> sets the working directory.</td>
-</tr>
-<tr>
-<td><i class="conum" data-value="4"></i><b>4</b></td>
-<td><code>ExecStart</code> is the actual process to execute.  We use the `\ ` line
-continuation characters to split the full command over multiple lines,
-for readability, but it could all go on one line.</td>
-</tr>
-<tr>
-<td><i class="conum" data-value="5"></i><b>5</b></td>
-<td><code>WantedBy</code> in the <code>[Install]</code> section is what tells Systemd we want this
-service to start on boot.</td>
-</tr>
-</table>
-</div>
-<div class="paragraph">
-<p>Systemd scripts live in <em>/etc/systemd/system</em>, and their names must end in
-<em>.service</em>.</p>
-</div>
-<div class="paragraph">
-<p>Now we tell Systemd to start Gunicorn with the <code>systemctl</code> command:</p>
-</div>
-<div class="listingblock server-commands">
-<div class="content">
-<pre># this command is necessary to tell Systemd to load our new config file
-elspeth@server:$ <strong>sudo systemctl daemon-reload</strong>
-# this command tells Systemd to always load our service on boot
-elspeth@server:$ <strong>sudo systemctl enable gunicorn-superlists-staging.ottg.eu</strong>
-# this command actually starts our service
-elspeth@server:$ <strong>sudo systemctl start gunicorn-superlists-staging.ottg.eu</strong></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>(you should find the <code>systemctl</code> command responds to tab-completion, including
-of the service name, by the way)</p>
-</div>
-<div class="paragraph">
-<p>Now we can rerun the FTs to see that everything still works. You can even test
-that the site comes back up if you reboot the server!</p>
-</div>
-<div class="sidebarblock">
-<div class="content">
-<div class="title">Debugging Tips</div>
-<div class="paragraph">
-<p>Deployments are tricky!  If ever things don&#8217;t go exactly as expected, here are
-a few tips and things to look out for:
-</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p>I&#8217;m sure you already have, but double-check that each file is exactly where
-it should be and has the right contents&#8212;&#8203;a single stray character can make
-all the difference.</p>
-</li>
-<li>
-<p>Nginx error logs go into <em>/var/log/nginx/error.log</em>.</p>
-</li>
-<li>
-<p>You can ask Nginx to "check" its config using the -t flag:</p>
-<div class="literalblock">
-<div class="content">
-<pre>nginx -t</pre>
-</div>
-</div>
-</li>
-<li>
-<p>You can ask Ubuntu to check the validity of your init script with
-<a href="http://manpages.ubuntu.com/manpages/precise/man8/init-checkconf.8.html">init-checkconf</a></p>
-</li>
-<li>
-<p>Check the Systemd logs for using
-<code>sudo journalctl -u gunicorn-superlists-staging.ottg.eu</code></p>
-</li>
-<li>
-<p>Remember to restart both services whenever you make changes.</p>
-</li>
-<li>
-<p>If you make changes to the Systemd config file, you need to
-run <code>daemon-reload</code> before <code>systemctl restart</code> to see the effect
-of your changes.</p>
-</li>
-<li>
-<p>Make sure your browser isn&#8217;t caching an out-of-date response.  Use
-Ctrl+Refresh, or start a new private browser window.</p>
-</li>
-<li>
-<p>This may be clutching at straws, but I&#8217;ve sometimes seen inexplicable
-behaviour on the server that&#8217;s only been resolved when I fully restarted it
-with a <code>sudo reboot</code>.</p>
-</li>
-</ul>
-</div>
-<div class="paragraph">
-<p>If you ever get completely stuck, there&#8217;s always the option of blowing away
-your server and starting again from scratch!  It should go faster the second
-time&#8230;&#8203;</p>
-</div>
-</div>
-</div>
-</div>
-<div class="sect3">
-<h4 id="_saving_our_changes_adding_gunicorn_to_our_requirements_txt">Saving Our Changes: Adding Gunicorn to Our requirements.txt</h4>
-<div class="paragraph">
-<p>Back in the <em>local</em> copy of your repo, we should add Gunicorn to the list
-of packages we need in our virtualenvs:</p>
+<p>Does that work?</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>$ <strong>pip install gunicorn</strong>
-$ <strong>pip freeze | grep gunicorn &gt;&gt; requirements.txt</strong>
-$ <strong>git commit -am "Add gunicorn to virtualenv requirements"</strong>
-$ <strong>git push</strong></pre>
+<pre>AssertionError: 107.0 != 512 within 5 delta</pre>
 </div>
 </div>
 <div class="paragraph">
-<p></p>
-</div>
-<div class="admonitionblock note">
-<table>
-<tr>
-<td class="icon">
-<i class="fa icon-note" title="Note"></i>
-</td>
-<td class="content">
-On Windows, at the time of writing, Gunicorn would pip install quite
-    happily, but it wouldn&#8217;t actually work if you tried to use it.  Thankfully
-    we only ever run it on the server, so that&#8217;s not a problem. And, Windows
-    support is
-    <a href="http://stackoverflow.com/questions/11087682/does-gunicorn-run-on-windows">being discussed</a>&#8230;&#8203;
-</td>
-</tr>
-</table>
+<p>Hmm. No.  Why isn&#8217;t our CSS loading?</p>
 </div>
 </div>
 </div>
 <div class="sect2">
-<h3 id="_automating">Automating</h3>
+<h3 id="_static_files_in_django">Static Files in Django</h3>
 <div class="paragraph">
 <p>
 
 
-Let&#8217;s recap our provisioning and deployment procedures:</p>
+Django, and indeed any web server, needs to know two things to deal with static
+files:</p>
 </div>
-<div class="dlist">
-<dl>
-<dt class="hdlist1">Provisioning</dt>
-<dd>
 <div class="olist arabic">
 <ol class="arabic">
 <li>
-<p>Assume we have a user account and home folder</p>
+<p>How to tell when a URL request is for a static file, as opposed to for some
+HTML that&#8217;s going to be served via a view function</p>
 </li>
 <li>
-<p><code>apt-get install nginx git python3 python3-venv</code></p>
-</li>
-<li>
-<p>Add Nginx config for virtual host</p>
-</li>
-<li>
-<p>Add Systemd job for Gunicorn</p>
+<p>Where to find the static file the user wants</p>
 </li>
 </ol>
 </div>
-</dd>
-<dt class="hdlist1">Deployment</dt>
-<dd>
-<div class="olist arabic">
-<ol class="arabic">
-<li>
-<p>Create directory structure in <em>~/sites</em></p>
-</li>
-<li>
-<p>Pull down source code into folder named <em>source</em></p>
-</li>
-<li>
-<p>Start virtualenv in <em>../virtualenv</em></p>
-</li>
-<li>
-<p><code>pip install -r requirements.txt</code></p>
-</li>
-<li>
-<p><code>manage.py migrate</code> for database</p>
-</li>
-<li>
-<p><code>collectstatic</code> for static files</p>
-</li>
-<li>
-<p>Set DEBUG = False and ALLOWED_HOSTS in <em>settings.py</em></p>
-</li>
-<li>
-<p>Restart Gunicorn job</p>
-</li>
-<li>
-<p>Run FTs to check everything works</p>
-</li>
-</ol>
-</div>
-</dd>
-</dl>
+<div class="paragraph">
+<p>In other words, static files are a mapping from URLs to files on disk.</p>
 </div>
 <div class="paragraph">
-<p>Assuming we&#8217;re not ready to entirely automate our provisioning process, how
-should we save the results of our investigation so far?  I would say that
-the Nginx and Systemd config files should probably be saved somewhere, in
-a way that makes it easy to reuse them later.  Let&#8217;s save them in a new
-subfolder in our repo:</p>
+<p>For item 1, Django lets us define a URL "prefix" to say that any URLs which
+start with that prefix should be treated as requests for static files.  By
+default, the prefix is <code>/static/</code>. It&#8217;s defined in <em>settings.py</em>:</p>
 </div>
-<div class="listingblock">
+<div class="listingblock sourcecode currentcontents">
+<div class="title">superlists/settings.py</div>
 <div class="content">
-<pre>$ <strong>mkdir deploy_tools</strong></pre>
-</div>
-</div>
-<div class="listingblock sourcecode">
-<div class="title">deploy_tools/nginx.template.conf</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="nginx">server {
-    listen 80;
-    server_name SITENAME;
+<pre class="CodeRay highlight"><code data-lang="python">[...]
 
-    location /static {
-        alias /home/elspeth/sites/SITENAME/static;
-    }
+<span class="comment"># Static files (CSS, JavaScript, Images)</span>
+<span class="comment"># https://docs.djangoproject.com/en/1.10/howto/static-files/</span>
 
-    location / {
-        proxy_set_header Host $host;
-        proxy_pass http://unix:/tmp/SITENAME.socket;
-    }
-}</code></pre>
-</div>
-</div>
-<div class="listingblock sourcecode">
-<div class="title">deploy_tools/gunicorn-systemd.template.service</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="bash">[Unit]
-Description=Gunicorn server for SITENAME
-
-[Service]
-Restart=on-failure
-User=elspeth
-WorkingDirectory=/home/elspeth/sites/SITENAME/source
-ExecStart=/home/elspeth/sites/SITENAME/virtualenv/bin/gunicorn \
-    --bind unix:/tmp/SITENAME.socket \
-    superlists.wsgi:application
-
-[Install]
-WantedBy=multi-user.target</code></pre>
+STATIC_URL = <span class="string"><span class="delimiter">'</span><span class="content">/static/</span><span class="delimiter">'</span></span></code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>Then it&#8217;s easy for us to use those two files to generate
-a new site, by doing a find &amp; replace on  <code>SITENAME</code>.</p>
+<p>The rest of the settings we will add to this section are all to do with item 2:
+finding the actual static files on disk.</p>
 </div>
 <div class="paragraph">
-<p>For the rest, just keeping a few notes is OK. Why not keep
-them in a file in the repo too?</p>
+<p>While we&#8217;re using the Django development server (<code>manage.py runserver</code>), we can
+rely on Django to magically find static files for us&#8212;&#8203;it&#8217;ll just look in any
+subfolder of one of our apps called <em>static</em>.</p>
 </div>
-<div class="listingblock sourcecode">
-<div class="title">deploy_tools/provisioning_notes.md</div>
+<div class="paragraph">
+<p>You now see why we put all the Bootstrap static files into
+<em>lists/static</em>.  So why are they not working at the moment?  It&#8217;s because we&#8217;re
+not using the <code>/static/</code> URL prefix.  Have another look at the link to the CSS
+in <em>base.html</em>:</p>
+</div>
+<div class="listingblock sourcecode currentcontents">
+<div class="title">lists/templates/base.html</div>
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="rst">Provisioning a new site
-=======================
-
-## Required packages:
-
-* nginx
-* Python 3
-* Git
-* pip
-* virtualenv
-
-e.g.,, on Ubuntu:
-
-    sudo apt-get install nginx git python3 python3-venv
-
-## Nginx Virtual Host config
-
-* see nginx.template.conf
-* replace SITENAME with, e.g., staging.my-domain.com
-
-## Systemd service
-
-* see gunicorn-systemd.template.service
-* replace SITENAME with, e.g., staging.my-domain.com
-
-## Folder structure:
-Assume we have a user account at /home/username
-
-/home/username
-&#9492;&#9472;&#9472; sites
- &#160;&#160; &#9492;&#9472;&#9472; SITENAME
- &#160;&#160;      &#9500;&#9472;&#9472; database
- &#160;&#160;      &#9500;&#9472;&#9472; source
- &#160;&#160;      &#9500;&#9472;&#9472; static
- &#160;&#160;      &#9492;&#9472;&#9472; virtualenv</code></pre>
+<pre class="CodeRay highlight"><code data-lang="html"><span class="tag">&lt;link</span> <span class="attribute-name">href</span>=<span class="string"><span class="delimiter">"</span><span class="content">css/bootstrap.min.css</span><span class="delimiter">"</span></span> <span class="attribute-name">rel</span>=<span class="string"><span class="delimiter">"</span><span class="content">stylesheet</span><span class="delimiter">"</span></span><span class="tag">&gt;</span></code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>We can do a commit for those:</p>
+<p>To get this to work, we need to change it to:</p>
 </div>
-<div class="listingblock">
+<div class="listingblock sourcecode small-code">
+<div class="title">lists/templates/base.html</div>
 <div class="content">
-<pre>$ <strong>git add deploy_tools</strong>
-$ <strong>git status</strong> # see three new files
-$ <strong>git commit -m "Notes and template config files for provisioning"</strong></pre>
+<pre class="CodeRay highlight"><code data-lang="html"><span class="tag">&lt;link</span> <span class="attribute-name">href</span>=<span class="string"><span class="delimiter">"</span><span class="content">/static/bootstrap/css/bootstrap.min.css</span><span class="delimiter">"</span></span> <span class="attribute-name">rel</span>=<span class="string"><span class="delimiter">"</span><span class="content">stylesheet</span><span class="delimiter">"</span></span><span class="tag">&gt;</span></code></pre>
 </div>
 </div>
+<div class="paragraph">
+<p>When <code>runserver</code> sees the request, it knows that it&#8217;s for a static file because
+it begins with <code>/static/</code>.  It then tries to find a file called
+<code>bootstrap/css/bootstrap.min.css</code>, looking in each of our app folders for
+subfolders called <em>static</em>, and it should find it at
+<em>lists/static/bootstrap/css/bootstrap.min.css</em>.</p>
+</div>
+<div class="paragraph">
+<p>So if you take a look manually, you should see it works, as in
+<a href="#list-page-centered">Our site starts to look a little better&#8230;&#8203;</a>.</p>
+</div>
+<div id="list-page-centered" class="imageblock">
+<div class="content">
+<img src="images/twdp_0702.png" alt="The list page with centered header.">
+</div>
+<div class="title">Figure 2. Our site starts to look a little better&#8230;&#8203;</div>
+</div>
+<div class="sect3">
+<h4 id="_switching_to_staticliveservertestcase">Switching to StaticLiveServerTestCase</h4>
 <div class="paragraph">
 <p>
 
-Our source tree will now look something like this:</p>
+If you run the FT though, it won&#8217;t pass:</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>$ tree -I __pycache__
-.
-&#9500;&#9472;&#9472; deploy_tools
-&#9474;&#160;&#160; &#9500;&#9472;&#9472; gunicorn-systemd.template.service
-&#9474;&#160;&#160; &#9500;&#9472;&#9472; nginx.template.conf
-&#9474;&#160;&#160; &#9492;&#9472;&#9472; provisioning_notes.md
-&#9500;&#9472;&#9472; functional_tests
-&#9474;&#160;&#160; &#9500;&#9472;&#9472; __init__.py
-&#9474;&#160;&#160; &#9500;&#9472;&#9472; [...]
-&#9500;&#9472;&#9472; lists
-&#9474;&#160;&#160; &#9500;&#9472;&#9472; __init__.py
-&#9474;&#160;&#160; &#9500;&#9472;&#9472; models.py
-&#9474;&#160;&#160; &#9500;&#9472;&#9472; static
-&#9474;&#160;&#160; &#9474;   &#9500;&#9472;&#9472; base.css
-&#9474;&#160;&#160; &#9474;   &#9500;&#9472;&#9472; [...]
-&#9474;&#160;&#160; &#9500;&#9472;&#9472; templates
-&#9474;&#160;&#160; &#9474;   &#9500;&#9472;&#9472; base.html
-&#9474;&#160;&#160; &#9474;   &#9500;&#9472;&#9472; [...]
-&#9500;&#9472;&#9472; manage.py
-&#9500;&#9472;&#9472; requirements.txt
-&#9492;&#9472;&#9472; superlists
- &#160;&#160; &#9500;&#9472;&#9472; [...]</pre>
+<pre>AssertionError: 107.0 != 512 within 5 delta</pre>
 </div>
 </div>
-<div class="sidebarblock">
+<div class="paragraph">
+<p>That&#8217;s because, although <code>runserver</code> automagically finds static files,
+<code>LiveServerTestCase</code> doesn&#8217;t.  Never fear though, the Django developers have
+made a more magical test class called <code>StaticLiveServerTestCase</code> (see
+<a href="http://bit.ly/Suv4Ip">the
+docs</a>).</p>
+</div>
+<div class="paragraph">
+<p>Let&#8217;s switch to that:</p>
+</div>
+<div class="listingblock sourcecode">
+<div class="title">functional_tests/tests.py</div>
 <div class="content">
-<div class="title">Test-Driving Server Configuration and Deployment</div>
-<div class="dlist">
-<dl>
-<dt class="hdlist1">Tests take some of the uncertainty out of deployment</dt>
-<dd>
-<p>As developers, server administration is always "fun", by which I mean, a
-process full of uncertainty and surprises. My aim during this chapter was
-to show a functional test suite can take some of the uncertainty out of the
-process.
+<pre class="CodeRay highlight"><code data-lang="diff"><span class="line change"><span class="change">@@</span> -1,14 +1,14 <span class="change">@@</span></span>
+<span class="line delete"><span class="delete">-</span>from django.<span class="eyecatcher">test import </span>LiveServerTestCase</span>
+<span class="line insert"><span class="insert">+</span>from django.<span class="eyecatcher">contrib.staticfiles.testing import Static</span>LiveServerTestCase</span>
+ from selenium import webdriver
+ from selenium.common.exceptions import WebDriverException
+ from selenium.webdriver.common.keys import Keys
+ import time
 
-</p>
-</dd>
-<dt class="hdlist1">Typical pain points&#8212;&#8203;database, static files, dependencies, custom settings</dt>
-<dd>
-<p>The things that you need to keep an eye out on any deployment include
-your database configuration, static files, software dependencies, and
-custom settings that differ between development and production.  You&#8217;ll
-need to think through each of these for your own deployments.</p>
-</dd>
-<dt class="hdlist1">Tests allow us to experiment</dt>
-<dd>
-<p>Whenever we make a change to our server configuration, we can rerun the
-test suite, and be confident that everything works as well as it did
-before.  It allows us to experiment with our setup with less fear.</p>
-</dd>
-</dl>
+ MAX_WAIT = 5
+
+
+<span class="line delete"><span class="delete">-</span>class NewVisitorTest(LiveServerTestCase):</span>
+<span class="line insert"><span class="insert">+</span>class NewVisitorTest(<span class="eyecatcher">Static</span>LiveServerTestCase):</span>
+
+     def setUp(self):</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>And now it will now find the new CSS, which will get our test to pass:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>python manage.py test functional_tests</strong>
+Creating test database for alias 'default'...
+...
+ ---------------------------------------------------------------------
+Ran 3 tests in 9.764s</pre>
+</div>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+At this point, Windows users may see some (harmless, but distracting)
+    error messages that say <code>socket.error: [WinError 10054] An existing
+    connection was forcibly closed by the remote host</code>.  Add a
+    <code>self.browser.refresh()</code> just before the <code>self.browser.quit()</code> in
+    <code>tearDown</code> to get rid of them.  The issue is being tracked in this
+    <a href="https://code.djangoproject.com/ticket/21227">bug on the Django tracker</a>.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>Hooray!</p>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_using_bootstrap_components_to_improve_the_look_of_the_site">Using Bootstrap Components to Improve the Look of the Site</h3>
+<div class="paragraph">
+<p>Let&#8217;s see if we can do even better, using some of the other tools in
+Bootstrap&#8217;s panoply.</p>
+</div>
+<div class="sect3">
+<h4 id="_jumbotron">Jumbotron!</h4>
+<div class="paragraph">
+<p>
+
+Bootstrap has a class called <code>jumbotron</code> for things that are meant to be
+particularly prominent on the page.  Let&#8217;s use that to embiggen the main
+page header and the input form:</p>
+</div>
+<div class="listingblock sourcecode">
+<div class="title">lists/templates/base.html (ch08l009)</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="html">    <span class="tag">&lt;div</span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">"</span><span class="content">col-md-6 col-md-offset-3 jumbotron</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>
+        <span class="tag">&lt;div</span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">"</span><span class="content">text-center</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>
+            <span class="tag">&lt;h1&gt;</span>{% block header_text %}{% endblock %}<span class="tag">&lt;/h1&gt;</span>
+            <span class="tag">&lt;form</span> <span class="attribute-name">method</span>=<span class="string"><span class="delimiter">"</span><span class="content">POST</span><span class="delimiter">"</span></span> <span class="attribute-name">action</span>=<span class="string"><span class="delimiter">"</span><span class="content">{% block form_action %}{% endblock %}</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>
+                [...]</code></pre>
+</div>
+</div>
+<div class="admonitionblock tip">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-tip" title="Tip"></i>
+</td>
+<td class="content">
+When hacking about with design and layout, it&#8217;s best to have a window open
+    that we can hit refresh on, frequently.  Use <code>python manage.py runserver</code>
+    to spin up the dev server, and then browse to <em><a href="http://localhost:8000" class="bare">http://localhost:8000</a></em> to
+    see your work as we go.
+</td>
+</tr>
+</table>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_large_inputs">Large Inputs</h4>
+<div class="paragraph">
+<p>
+
+The jumbotron is a good start, but now the input box has tiny text compared to
+everything else.  Thankfully, Bootstrap&#8217;s form control classes offer an option
+to set an input to be "large":</p>
+</div>
+<div class="listingblock sourcecode">
+<div class="title">lists/templates/base.html (ch08l010)</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="html"><span class="tag">&lt;input</span> <span class="attribute-name">name</span>=<span class="string"><span class="delimiter">"</span><span class="content">item_text</span><span class="delimiter">"</span></span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">"</span><span class="content">id_new_item</span><span class="delimiter">"</span></span>
+       <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">"</span><span class="content">form-control input-lg</span><span class="delimiter">"</span></span>
+       <span class="attribute-name">placeholder</span>=<span class="string"><span class="delimiter">"</span><span class="content">Enter a to-do item</span><span class="delimiter">"</span></span>
+<span class="tag">/&gt;</span></code></pre>
 </div>
 </div>
 </div>
 <div class="sect3">
-<h4 id="__saving_your_progress">"Saving Your Progress"</h4>
+<h4 id="_table_styling">Table Styling</h4>
 <div class="paragraph">
 <p>
-Being able to run our FTs against a staging server can be very reassuring.
-But, in most cases, you don&#8217;t want to run your FTs against your "real" server.
-In order to "save our work", and reassure ourselves that the production server
-will work just as well as the real server, we need to make our deployment
-process repeatable.</p>
+
+
+
+The table text also looks too small compared to the rest of the page now.
+Adding the Bootstrap <code>table</code> class improves things:</p>
+</div>
+<div class="listingblock sourcecode">
+<div class="title">lists/templates/list.html (ch08l011)</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="html">    <span class="tag">&lt;table</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">"</span><span class="content">id_list_table</span><span class="delimiter">"</span></span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">"</span><span class="content">table</span><span class="delimiter">"</span></span><span class="tag">&gt;</span></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_using_our_own_css">Using Our Own CSS</h3>
+<div class="paragraph">
+<p>
+
+Finally I&#8217;d like to just offset the input from the title text slightly. There&#8217;s
+no ready-made fix for that in Bootstrap, so we&#8217;ll make one ourselves.  That
+will require specifying our own CSS file:</p>
+</div>
+<div class="listingblock sourcecode">
+<div class="title">lists/templates/base.html</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="html">[...]
+    <span class="tag">&lt;title&gt;</span>To-Do lists<span class="tag">&lt;/title&gt;</span>
+    <span class="tag">&lt;link</span> <span class="attribute-name">href</span>=<span class="string"><span class="delimiter">"</span><span class="content">/static/bootstrap/css/bootstrap.min.css</span><span class="delimiter">"</span></span> <span class="attribute-name">rel</span>=<span class="string"><span class="delimiter">"</span><span class="content">stylesheet</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>
+    <span class="tag">&lt;link</span> <span class="attribute-name">href</span>=<span class="string"><span class="delimiter">"</span><span class="content">/static/base.css</span><span class="delimiter">"</span></span> <span class="attribute-name">rel</span>=<span class="string"><span class="delimiter">"</span><span class="content">stylesheet</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>
+<span class="tag">&lt;/head&gt;</span></code></pre>
+</div>
 </div>
 <div class="paragraph">
-<p>Automation is the answer, and it&#8217;s the topic of the next chapter.
+<p>We create a new file at <em>lists/static/base.css</em>, with our new CSS rule.
+We&#8217;ll use the <code>id</code> of the input element, <code>id_new_item</code>, to find it and give it
+some styling:</p>
+</div>
+<div class="listingblock sourcecode">
+<div class="title">lists/static/base.css</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="html">#id_new_item {
+    margin-top: 2ex;
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>All that took me a few goes, but I&#8217;m reasonably happy with it now
+(<a href="#homepage-looking-better">The lists page, with all big chunks&#8230;&#8203;</a>).</p>
+</div>
+<div class="paragraph">
+<p>If you want to go further with customising Bootstrap, you need to get into
+compiling LESS. I <em>definitely</em> recommend taking the time to do that some
+day. LESS and other pseudo-CSS-alikes like Sass are a great improvement on
+plain old CSS, and a useful tool even if you don&#8217;t use Bootstrap. I won&#8217;t cover
+it in this book, but you can find resources on the Internets.
+<a href="http://coding.smashingmagazine.com/2013/03/12/customizing-bootstrap/">Here&#8217;s one</a>,
+for example.</p>
+</div>
+<div class="paragraph">
+<p>
+A last run of the functional tests, to see if everything still works OK?</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>python manage.py test functional_tests</strong>
+Creating test database for alias 'default'...
+...
+ ---------------------------------------------------------------------
+Ran 3 tests in 10.084s
+
+OK
+Destroying test database for alias 'default'...</pre>
+</div>
+</div>
+<div id="homepage-looking-better" class="imageblock">
+<div class="content">
+<img src="images/twdp_0703.png" alt="Screenshot of lists page with big styling.">
+</div>
+<div class="title">Figure 3. The lists page, with all big chunks&#8230;&#8203;</div>
+</div>
+<div class="paragraph">
+<p>That&#8217;s it! Definitely time for a commit:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>git status</strong> # changes tests.py, base.html, list.html + untracked lists/static
+$ <strong>git add .</strong>
+$ <strong>git status</strong> # will now show all the bootstrap additions
+$ <strong>git commit -m "Use Bootstrap to improve layout"</strong></pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_what_we_glossed_over_collectstatic_and_other_static_directories">What We Glossed Over: collectstatic and Other Static Directories</h3>
+<div class="paragraph">
+<p>
+
+
+
+We saw earlier that the Django dev server will magically find all your static
+files inside app folders, and serve them for you. That&#8217;s fine during
+development, but when you&#8217;re running on a real web server, you don&#8217;t want
+Django serving your static content&#8212;&#8203;using Python to serve raw files is
+slow and inefficient, and a web server like Apache or Nginx can do this all for
+you. You might even decide to upload all your static files to a CDN, instead
+of hosting them yourself.</p>
+</div>
+<div class="paragraph">
+<p>For these reasons, you want to be able to gather up all your static files from
+inside their various app folders, and copy them into a single location, ready
+for deployment. This is what the <code>collectstatic</code> command is for.</p>
+</div>
+<div class="paragraph">
+<p>The destination, the place where the collected static files go, is defined in
+<em>settings.py</em> as <code>STATIC_ROOT</code>. In the next chapter we&#8217;ll be doing some
+deployment, so let&#8217;s actually experiment with that now.  We&#8217;ll change its value
+to a folder just outside our repo&#8212;&#8203;I&#8217;m going to make it a folder just next to
+the main source folder:</p>
+</div>
+<div class="listingblock skipme">
+<div class="content">
+<pre>workspace
+&#9474;&#160;&#160;  &#9500;&#9472;&#9472; superlists
+&#9474;&#160;&#160;  &#9474;    &#9500;&#9472;&#9472; lists
+&#9474;&#160;&#160;  &#9474;    &#9474;     &#9500;&#9472;&#9472; models.py
+&#9474;&#160;&#160;  &#9474;    &#9474;
+&#9474;&#160;&#160;  &#9474;    &#9500;&#9472;&#9472; manage.py
+&#9474;&#160;&#160;  &#9474;    &#9500;&#9472;&#9472; superlists
+&#9474;&#160;&#160;  &#9474;
+&#9474;&#160;&#160;  &#9500;&#9472;&#9472; static
+&#9474;&#160;&#160;  &#9474;    &#9500;&#9472;&#9472; base.css
+&#9474;&#160;&#160;  &#9474;    &#9500;&#9472;&#9472; etc...</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The logic is that the static files folder shouldn&#8217;t be a part of your
+repository&#8212;&#8203;we don&#8217;t want to put it under source control, because it&#8217;s a
+duplicate of all the files that are inside <em>lists/static</em>.</p>
+</div>
+<div class="paragraph">
+<p>Here&#8217;s a neat way of specifying that folder, making it relative to the location
+of project base directory:</p>
+</div>
+<div class="listingblock sourcecode">
+<div class="title">superlists/settings.py (ch08l018)</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python"><span class="comment"># Static files (CSS, JavaScript, Images)</span>
+<span class="comment"># https://docs.djangoproject.com/en/1.10/howto/static-files/</span>
+
+STATIC_URL = <span class="string"><span class="delimiter">'</span><span class="content">/static/</span><span class="delimiter">'</span></span>
+STATIC_ROOT = os.path.abspath(os.path.join(BASE_DIR, <span class="string"><span class="delimiter">'</span><span class="content">../static</span><span class="delimiter">'</span></span>))</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Take a look at the top of the settings file, and you&#8217;ll see how that <code>BASE_DIR</code>
+variable is helpfully defined for us, using <code>__file__</code> (which itself is a
+really, really useful Python built-in).</p>
+</div>
+<div class="paragraph">
+<p>Anyway, let&#8217;s try running <code>collectstatic</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>python manage.py collectstatic</strong>
+
+You have requested to collect static files at the destination
+location as specified in your settings:
+
+/.../static
+
+This will overwrite existing files!
+Are you sure you want to do this?
+
+Type 'yes' to continue, or 'no' to cancel:
+<strong>yes</strong>
+
+[...]
+Copying '/.../superlists/lists/static/bootstrap/css/bootstrap-theme.css'
+Copying '/.../superlists/lists/static/bootstrap/css/bootstrap.min.css'
+
+
+76 static files copied to '/.../static'.</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>And if we look in <em>../static</em>, we&#8217;ll find all our CSS files:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>tree ../static/</strong>
+../static/
+&#9500;&#9472;&#9472; admin
+&#9474;&#160;&#160; &#9500;&#9472;&#9472; css
+&#9474;&#160;&#160; &#9474;&#160;&#160; &#9500;&#9472;&#9472; base.css
+
+[...]
+
+&#9474;&#160;&#160;             &#9492;&#9472;&#9472; xregexp.min.js
+&#9500;&#9472;&#9472; base.css
+&#9492;&#9472;&#9472; bootstrap
+    &#9500;&#9472;&#9472; css
+    &#9474;&#160;&#160; &#9500;&#9472;&#9472; bootstrap.css
+    &#9474;&#160;&#160; &#9500;&#9472;&#9472; bootstrap.css.map
+    &#9474;&#160;&#160; &#9500;&#9472;&#9472; bootstrap.min.css
+    &#9474;&#160;&#160; &#9500;&#9472;&#9472; bootstrap-theme.css
+    &#9474;&#160;&#160; &#9500;&#9472;&#9472; bootstrap-theme.css.map
+    &#9474;&#160;&#160; &#9492;&#9472;&#9472; bootstrap-theme.min.css
+    &#9500;&#9472;&#9472; fonts
+    &#9474;&#160;&#160; &#9500;&#9472;&#9472; glyphicons-halflings-regular.eot
+    &#9474;&#160;&#160; &#9500;&#9472;&#9472; glyphicons-halflings-regular.svg
+    &#9474;&#160;&#160; &#9500;&#9472;&#9472; glyphicons-halflings-regular.ttf
+    &#9474;&#160;&#160; &#9500;&#9472;&#9472; glyphicons-halflings-regular.woff
+    &#9474;&#160;&#160; &#9492;&#9472;&#9472; glyphicons-halflings-regular.woff2
+    &#9492;&#9472;&#9472; js
+        &#9500;&#9472;&#9472; bootstrap.js
+        &#9500;&#9472;&#9472; bootstrap.min.js
+        &#9492;&#9472;&#9472; npm.js
+
+
+14 directories, 76 files</pre>
+</div>
+</div>
+<div class="paragraph">
+<p><code>collectstatic</code> has also picked up all the CSS for the admin site. It&#8217;s one of
+Django&#8217;s powerful features, and we&#8217;ll find out all about it one day, but we&#8217;re
+not ready to use that yet, so let&#8217;s disable it for now:</p>
+</div>
+<div class="listingblock sourcecode">
+<div class="title">superlists/settings.py</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python">INSTALLED_APPS = [
+    <span class="comment">#'django.contrib.admin',</span>
+    <span class="string"><span class="delimiter">'</span><span class="content">django.contrib.auth</span><span class="delimiter">'</span></span>,
+    <span class="string"><span class="delimiter">'</span><span class="content">django.contrib.contenttypes</span><span class="delimiter">'</span></span>,
+    <span class="string"><span class="delimiter">'</span><span class="content">django.contrib.sessions</span><span class="delimiter">'</span></span>,
+    <span class="string"><span class="delimiter">'</span><span class="content">django.contrib.messages</span><span class="delimiter">'</span></span>,
+    <span class="string"><span class="delimiter">'</span><span class="content">django.contrib.staticfiles</span><span class="delimiter">'</span></span>,
+    <span class="string"><span class="delimiter">'</span><span class="content">lists</span><span class="delimiter">'</span></span>,
+]</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>And we try again:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>rm -rf ../static/</strong>
+$ <strong>python manage.py collectstatic --noinput</strong>
+Copying '/.../superlists/lists/static/base.css'
+[...]
+Copying '/.../superlists/lists/static/bootstrap/css/bootstrap-theme.css'
+Copying '/.../superlists/lists/static/bootstrap/css/bootstrap.min.css'
+
+
+15 static files copied to '/.../static'.</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Much better.
+
+
 </p>
+</div>
+<div class="paragraph">
+<p>Anyway, now we know how to collect all the static files into a single folder,
+where it&#8217;s easy for a web server to find them. We&#8217;ll find out all about that,
+including how to test it, in the next chapter!</p>
+</div>
+<div class="paragraph">
+<p>For now let&#8217;s save our changes to <em>settings.py</em>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>git diff</strong> # should show changes in settings.py*
+$ <strong>git commit -am "set STATIC_ROOT in settings and disable admin"</strong></pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_a_few_things_that_didn_t_make_it">A Few Things That Didn&#8217;t Make It</h3>
+<div class="paragraph">
+<p>Inevitably this was only a whirlwind tour of styling and CSS, and there were
+several topics that I&#8217;d hoped to cover in more depth that didn&#8217;t make it.
+Here&#8217;s a few candidates for further study:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Customising bootstrap with LESS</p>
+</li>
+<li>
+<p>The <code>{% static %}</code> template tag, for more DRY and less hard-coded URLs</p>
+</li>
+<li>
+<p>Client-side packaging tools, like <code>npm</code> and <code>bower</code>.
+
+</p>
+</li>
+</ul>
+</div>
+<div class="sidebarblock">
+<div class="content">
+<div class="title">Recap: On Testing Design and Layout</div>
+<div class="paragraph">
+<p>
+The short answer is: you shouldn&#8217;t write tests for design and layout.  It&#8217;s too
+much like testing a constant, and any tests you write are likely to be brittle.</p>
+</div>
+<div class="paragraph">
+<p>With that said, the <em>implementation</em> of design and layout involves something
+quite tricky: CSS and static files.   As a result, it is valuable to have some
+kind of minimal "smoke test" which checks that your static files and CSS are
+working.  As we&#8217;ll see in the next chapter, it can help pick up problems when
+you deploy your code to production.</p>
+</div>
+<div class="paragraph">
+<p>Similarly, if a particular piece of styling required a lot of client-side
+JavaScript code to get it to work (dynamic resizing is one I&#8217;ve spent a bit
+of time on), you&#8217;ll definitely want some tests for that.</p>
+</div>
+<div class="paragraph">
+<p>So be aware that this is a dangerous area.  Try and write the minimal tests
+that will give you confidence that your design and layout is working, without
+testing <em>what</em> it actually is.  Try and leave yourself in a position where you
+can freely make changes to the design and layout, without having to go back and
+adjust tests all the time.</p>
+</div>
 </div>
 </div>
 </div>
@@ -1810,18 +1150,15 @@ process repeatable.</p>
 <div id="footnotes">
 <hr>
 <div class="footnote" id="_footnote_1">
-<a href="#_footnoteref_1">1</a>. What I&#8217;m calling a "staging" server, some people would call a "development" server, and some others would also like to distinguish "preproduction" servers.  Whatever we call it, the point is to have somewhere we can try our code out in an environment that&#8217;s as similar as possible to the real production server.
+<a href="#_footnoteref_1">1</a>. What? Delete the database?  Are you crazy?  Not completely.     The local dev database often gets out of sync with its migrations as we     go back and forth in our development, and it doesn&#8217;t have any important     data in it, so it&#8217;s OK to blow it away now and again.  We&#8217;ll be much more     careful once we have a "production" database on the server.  More on this     in <a href="/book/appendix_IV_testing_migrations.html">[data-migrations-appendix]</a>
 </div>
 <div class="footnote" id="_footnote_2">
-<a href="#_footnoteref_2">2</a>. If you&#8217;re not familiar <code>super()</code> and the way Python inheritance works, you can go away and spend a bit of time researching it now if you like.  Learn Python the Hard Way has <a href="http://learnpythonthehardway.org/book/ex44.html">a good chapter on it</a>. Or just take it on faith!
-</div>
-<div class="footnote" id="_footnote_3">
-<a href="#_footnoteref_3">3</a>. Not sure how to edit a file on the server?  There&#8217;s always vi, which I&#8217;ll keep encouraging you to learn a bit of. Alternatively, try the relatively beginner-friendly <code>nano</code>. Note you&#8217;ll also need to use <code>sudo</code> because the file is in a system folder.
+<a href="#_footnoteref_2">2</a>. On Windows, you may not have <code>wget</code> and <code>unzip</code>, but I&#8217;m sure you can figure out how to download Bootstrap, unzip it, and put the contents of the <em>dist</em> folder into the <em>lists/static/bootstrap</em> folder.
 </div>
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2016-12-29 13:03:56 GMT
+Last updated 2017-02-01 17:18:42 GMT
 </div>
 </div>
 <div class="comments" style="padding: 20px">

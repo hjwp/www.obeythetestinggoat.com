@@ -4,7 +4,7 @@
 <!--[if IE]><meta http-equiv="X-UA-Compatible" content="IE=edge"><![endif]-->
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="generator" content="Asciidoctor 1.5.4">
-<title>Using Mocks to Test External Dependencies or Reduce Duplication</title>
+<title>User Authentication, Spiking and De-Spiking</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:300,300italic,400,400italic,600,600italic%7CNoto+Serif:400,400italic,700,700italic%7CDroid+Sans+Mono:400,700">
 <link rel="stylesheet" href="./asciidoctor.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.5.0/css/font-awesome.min.css">
@@ -31,32 +31,54 @@ httpRequest.send();
 </div>
 <div id="content">
 <div class="sect1">
-<h2 id="python-mocks-chapter">Using Mocks to Test External Dependencies or Reduce Duplication</h2>
+<h2 id="Persona-clientside-chapter">User Authentication, Spiking and De-Spiking</h2>
 <div class="sectionbody">
-<div class="paragraph">
-<p>In this chapter we&#8217;ll start testing the parts of our code that send emails.
-In the FT, you saw that Django gives us a way of retrieving any emails it
-sends by using the <code>mail.outbox</code> attribute.  But in this chapter, I want
-to demonstrate a very important testing technique called <em>mocking</em>, so for
-the purpose of these unit tests, we&#8217;ll pretend that this nice Django shortcut
-doesn&#8217;t exist.</p>
-</div>
-<div class="admonitionblock note">
+<div class="admonitionblock warning">
 <table>
 <tr>
 <td class="icon">
-<i class="fa icon-note" title="Note"></i>
+<i class="fa icon-warning" title="Warning"></i>
 </td>
 <td class="content">
-Am I telling you not to use Django&#8217;s <code>mail.outbox</code>?  No; use it, it&#8217;s a
-    neat shortcut.  But I want to teach mocks because they&#8217;re a useful
-    general-purpose tool for unit testing external dependencies.  You
-    may not always be using Django! And even if you are, you may not
-    be sending email&#8212;&#8203;any interaction with a third-party API is a good
-    candidate for testing with mocks.
+Major update released for Selenium 3.
+    If you started this book on or before Jan 30th 2017,
+    be aware: chapters have been renumbered,
+    so check this is the one you think it is,
+    and have a look at the new <a href="/book/chapter_06.html">[explicit-waits-chapter]</a>
+    for an indication of the changes you&#8217;ll need in your FTs.
+    You should do a <code>pip install --upgrade selenium</code> too.
 </td>
 </tr>
 </table>
+</div>
+<div class="paragraph">
+<p>
+
+Our beautiful lists site has been live for a few days, and our users are
+starting to come back to us with feedback.  "We love the site", they say, "but
+we keep losing our lists.  Manually remembering URLs is hard. It&#8217;d be great if
+it could remember what lists we&#8217;d started".</p>
+</div>
+<div class="paragraph">
+<p>Remember Henry Ford and faster horses. Whenever you hear a user requirement,
+it&#8217;s important to dig a little deeper and think&#8212;&#8203;what is the real requirement
+here?  And how can I make it involve a cool new technology I&#8217;ve been wanting
+to try out?</p>
+</div>
+<div class="paragraph">
+<p>Clearly the requirement here is that people want to have some kind of user
+account on the site.  So, without further ado, let&#8217;s dive into authentication.</p>
+</div>
+<div class="paragraph">
+<p>Naturally we&#8217;re not going to mess about with remembering passwords
+ourselves&#8212;&#8203;besides being <em>so</em> '90s, secure storage of user passwords is a
+security nightmare we&#8217;d rather leave to someone else.  We&#8217;ll use something
+fun called passwordless auth instead.</p>
+</div>
+<div class="paragraph">
+<p>(If you <em>insist</em> on storing your own passwords, Django&#8217;s default auth
+module is ready and waiting for you. It&#8217;s nice and straightforward, and I&#8217;ll
+leave it to you to discover on your own.)</p>
 </div>
 <div class="admonitionblock note">
 <table>
@@ -66,545 +88,294 @@ Am I telling you not to use Django&#8217;s <code>mail.outbox</code>?  No; use it
 </td>
 <td class="content">
 This chapter has been substantially rewritten for the new edition, so
-    let me know via <a href="mailto:obeythetestinggoat@gmail.com">obeythetestinggoat@gmail.com</a> if you have any suggestions.
-    I&#8217;m not quite happy with the order yet, and as you&#8217;ll see there are some
-    notes, todos, and leftover bits.  Thanks for your patience!
+let me know via <a href="mailto:obeythetestinggoat@gmail.com">obeythetestinggoat@gmail.com</a> if you feel there&#8217;s
+any particular sections where I don&#8217;t explain things well, or where I&#8217;m
+going too fast.
 </td>
 </tr>
 </table>
 </div>
 <div class="sect2">
-<h3 id="_before_we_start_getting_the_basic_plumbing_in">Before we start: getting the basic plumbing in</h3>
+<h3 id="_passwordless_auth">Passwordless Auth</h3>
 <div class="paragraph">
-<p>Let&#8217;s just get a basic view and URL set up first.  We can do so with a simple
-test that our new URL for sending the login email should eventually redirect
-back to the home page:</p>
-</div>
-<div class="listingblock sourcecode dofirst-ch16l001">
-<div class="title">accounts/tests/test_views.py</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> <span class="include">django.test</span> <span class="keyword">import</span> <span class="include">TestCase</span>
+<p>
 
-
-<span class="keyword">class</span> <span class="class">SendLoginEmailViewTest</span>(TestCase):
-
-    <span class="keyword">def</span> <span class="function">test_redirects_to_home_page</span>(<span class="predefined-constant">self</span>):
-        response = <span class="predefined-constant">self</span>.client.post(<span class="string"><span class="delimiter">'</span><span class="content">/accounts/send_login_email</span><span class="delimiter">'</span></span>, data={
-            <span class="string"><span class="delimiter">'</span><span class="content">email</span><span class="delimiter">'</span></span>: <span class="string"><span class="delimiter">'</span><span class="content">edith@example.com</span><span class="delimiter">'</span></span>
-        })
-        <span class="predefined-constant">self</span>.assertRedirects(response, <span class="string"><span class="delimiter">'</span><span class="content">/</span><span class="delimiter">'</span></span>)</code></pre>
-</div>
+What authentication system could we use to avoid storing passwords ourselves?
+Oauth?  Openid?  "Login with Facebook"?   Ugh.  For me those all have
+unacceptable creepy overtones; why should Google or Facebook know what sites
+you&#8217;re logging into and when?</p>
 </div>
 <div class="paragraph">
-<p>Wire up the <code>include</code> in <em>superlists/urls.py</em>, plus the url to
-<em>accounts/urls.py</em>, and get the test passing with something a bit like this:</p>
-</div>
-<div class="listingblock sourcecode dofirst-ch16l002">
-<div class="title">accounts/views.py</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> <span class="include">django.core.mail</span> <span class="keyword">import</span> <span class="include">send_mail</span>
-<span class="keyword">from</span> <span class="include">django.shortcuts</span> <span class="keyword">import</span> <span class="include">redirect</span>
-
-<span class="keyword">def</span> <span class="function">send_login_email</span>(request):
-    <span class="keyword">return</span> redirect(<span class="string"><span class="delimiter">'</span><span class="content">/</span><span class="delimiter">'</span></span>)</code></pre>
-</div>
+<p>In the first edition I used an experimental project called "Persona",
+cooked up by a few remaining techno-hippy-idealists at Mozilla, but sadly
+that project was discontinued.</p>
 </div>
 <div class="paragraph">
-<p>I&#8217;ve added the import of the <code>send_mail</code> function as a placeholder for now.</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>$ <strong>python manage.py test accounts</strong>
-[...]
-Ran 3 tests in 0.015s
-
-OK</pre>
-</div>
+<p>Instead I&#8217;ve found a fun approach to authentication that goes by the name
+of "Passwordless", but you might call it "just use email".</p>
 </div>
 <div class="paragraph">
-<p>OK now we have a starting point, let&#8217;s get mocking!</p>
+<p>The system was invented by someone annoyed at having to create
+new passwords for so many websites, who found himself just using random,
+throwaway passwords, not even trying to remember them, and using the
+"forgot my password" feature whenever he needed to log in again. You can
+<a href="https://medium.com/@ninjudd/passwords-are-obsolete-9ed56d483eb#.cx8iber30">read all about it here</a></p>
+</div>
+<div class="paragraph">
+<p>So the concept is:  just use email to verify someone&#8217;s identity.  If you&#8217;re
+going to have a "forgot my password" feature, then you&#8217;re trusting email
+anyway, so why not just go the whole hog?  Whenever someone wants to log in,
+we generate a unique URL for them to use, email it to them, and they then
+click through that to get into the site.</p>
+</div>
+<div class="paragraph">
+<p>It&#8217;s by no means a perfect system, and in fact there are lots of subtleties
+to be thought through before it would really make a good login solution for
+a production website, but this is just a fun toy project so let&#8217;s give it a go.</p>
 </div>
 </div>
 <div class="sect2">
-<h3 id="_mocking_manually_aka_monkey_patching">Mocking manually, aka monkey-patching</h3>
-<div class="paragraph">
-<p>When we call <code>send_mail</code> in real life we expect Django to be making a
-connection to our email provider, and sending an actual email across
-the public Internet.  That&#8217;s not something we want to happen in our tests.
-It&#8217;s a similar problem whenever you have code that has external side-effects&#8201;&#8212;&#8201;calling an API, sending out a tweet or an SMS or whatever it may be. In
-our unit tests, we don&#8217;t want to be sending out real tweets or API calls across
-the internet.  But we would still like a way of testing that our code is
-correct. Mocks<sup class="footnote">[<a id="_footnoteref_1" class="footnote" href="#_footnote_1" title="View footnote.">1</a>]</sup></p>
-</div>
+<h3 id="_exploratory_coding_aka_spiking">Exploratory Coding, aka "Spiking"</h3>
 <div class="paragraph">
 <p>
-Actually one of the great things about Python is that its dynamic nature makes
-it very easy to do things like mocking, or what&#8217;s sometimes called
-<a href="https://en.wikipedia.org/wiki/Monkey_patch">monkeypatching</a>.  Let&#8217;s suppose
-that, as a first step, we want to get to some code that invokes <code>send_mail</code>
-with the right subject line, from address, and to address.  That would look
-something like this:</p>
+
+Before I wrote this chapter all I knew about passwordless auth was the outline
+I&#8217;d read above.  I&#8217;d never seen any code for it, and didn&#8217;t really know where
+to start in building it.</p>
 </div>
-<div class="listingblock sourcecode skipme">
-<div class="title">accounts/views.py</div>
+<div class="paragraph">
+<p>In <a href="/book/chapter_11.html">[manual-validation-chapter]</a> and <a href="/book/chapter_12.html">[simple-form-chapter]</a> we saw that you
+can use a unit test as a way of exploring a new API or tool, but sometimes you
+just want to hack something together without any
+tests at all, just to see if it works, to learn it or get a feel for it.
+That&#8217;s absolutely fine.  When learning a new tool or exploring a new possible
+solution, it&#8217;s often appropriate to leave the rigorous TDD process to one side,
+and build a little prototype without tests, or perhaps with very few tests.
+The goat doesn&#8217;t mind looking the other way for a bit.</p>
+</div>
+<div class="paragraph">
+<p>This kind of prototyping activity is often called a "spike", for
+<a href="http://stackoverflow.com/questions/249969/why-are-tdd-spikes-called-spikes">reasons
+best known</a>.</p>
+</div>
+<div class="paragraph">
+<p>The first thing I did was take a look at existing Python and Django authentication
+packages, like <a href="http://www.intenct.nl/projects/django-allauth/">django-allauth</a>
+and <a href="https://github.com/omab/python-social-auth">python-social-auth</a>, but both of
+them looked overcomplicated for this stage (and I was quietly relieved since I
+was rather looking forward to writing my own code for this!)</p>
+</div>
+<div class="paragraph">
+<p>So instead I dived in and hacked about, and after a few dead ends and wrong turns,
+I had something which just about works.  I&#8217;ll take you on a tour, and then
+we&#8217;ll go through and "de-spike" the implementation - i.e. replace the prototype
+with tested, production-ready code.</p>
+</div>
+<div class="paragraph">
+<p>You should go ahead and add this code to your own site too, and then you can
+have a play with it, try logging in with your own email address, and convince
+yourself that it really does work.</p>
+</div>
+<div class="sect3">
+<h4 id="_starting_a_branch_for_the_spike">Starting a Branch for the Spike</h4>
+<div class="paragraph">
+<p>Before embarking on a spike, it&#8217;s a good idea to start a new branch, so you
+can still use your VCS without worrying about your spike commits getting mixed
+up with your production code:</p>
+</div>
+<div class="listingblock">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">def</span> <span class="function">send_login_email</span>(request):
-    email = request.POST[<span class="string"><span class="delimiter">'</span><span class="content">email</span><span class="delimiter">'</span></span>]
-    <span class="comment"># send_mail(</span>
-    <span class="comment">#     'Your login link for Superlists',</span>
-    <span class="comment">#     'body text tbc',</span>
-    <span class="comment">#     'noreply@superlists',</span>
-    <span class="comment">#     [email],</span>
-    <span class="comment"># )</span>
-    <span class="keyword">return</span> redirect(<span class="string"><span class="delimiter">'</span><span class="content">/</span><span class="delimiter">'</span></span>)</code></pre>
+<pre>$ <strong>git checkout -b passwordless-spike</strong></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>How can we test this, without calling the <em>real</em> <code>send_mail</code> function?  The
-answer is that we can tell Python to replace the <code>send_mail</code> function with
-a fake version of it, at runtime, before we invoke the <code>send_login_email</code> view.
-Check this out:</p>
+<p>Let&#8217;s keep track of some of the things we&#8217;re hoping to learn from the
+spike</p>
+</div>
+<div class="sidebarblock scratchpad">
+<div class="content">
+<div class="ulist">
+<ul>
+<li>
+<p><em>How to send emails</em></p>
+</li>
+<li>
+<p><em>Generating and recognising unique tokens</em></p>
+</li>
+<li>
+<p><em>How to authenticate someone in Django</em></p>
+</li>
+<li>
+<p><em>What steps will the user have to go through?</em></p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_front_end_log_in_ui">Front-end Log in UI</h4>
+<div class="paragraph">
+<p>
+Let&#8217;s start with the front-end, hack in an actual form to be able to
+enter your email address into the navbar, and a log-out link for
+users who are already authenticated:</p>
 </div>
 <div class="listingblock sourcecode">
-<div class="title">accounts/tests/test_views.py (ch16l005)</div>
+<div class="title">lists/templates/base.html (ch16l001)</div>
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> <span class="include">django.test</span> <span class="keyword">import</span> <span class="include">TestCase</span>
-<span class="keyword">import</span> <span class="include">accounts.views</span>  <i class="conum" data-value="2"></i><b>(2)</b>
+<pre class="CodeRay highlight"><code data-lang="html"><span class="tag">&lt;body&gt;</span>
+<span class="tag">&lt;div</span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">"</span><span class="content">container</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>
 
-<span class="keyword">class</span> <span class="class">SendLoginEmailViewTest</span>(TestCase):
-    [...]
+    <span class="tag">&lt;div</span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">"</span><span class="content">navbar</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>
+        {% if user.is_authenticated %}
+            <span class="tag">&lt;p&gt;</span>Logged in as {{ user.email}}<span class="tag">&lt;/p&gt;</span>
+            <span class="tag">&lt;p&gt;</span><span class="tag">&lt;a</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">"</span><span class="content">id_logout</span><span class="delimiter">"</span></span> <span class="attribute-name">href</span>=<span class="string"><span class="delimiter">"</span><span class="content">{% url 'logout' %}</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>Log out<span class="tag">&lt;/a&gt;</span><span class="tag">&lt;/p&gt;</span>
+        {% else %}
+          <span class="tag">&lt;form</span> <span class="attribute-name">method</span>=<span class="string"><span class="delimiter">"</span><span class="content">POST</span><span class="delimiter">"</span></span> <span class="attribute-name">action</span> =<span class="string"><span class="delimiter">"</span><span class="content">{% url 'send_login_email' %}</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>
+            Enter email to log in: <span class="tag">&lt;input</span> <span class="attribute-name">name</span>=<span class="string"><span class="delimiter">"</span><span class="content">email</span><span class="delimiter">"</span></span> <span class="attribute-name">type</span>=<span class="string"><span class="delimiter">"</span><span class="content">text</span><span class="delimiter">"</span></span> <span class="tag">/&gt;</span>
+            {% csrf_token %}
+          <span class="tag">&lt;/form&gt;</span>
+        {% endif %}
+    <span class="tag">&lt;/div&gt;</span>
 
-    <span class="keyword">def</span> <span class="function">test_sends_mail_to_address_from_post</span>(<span class="predefined-constant">self</span>):
-        <span class="predefined-constant">self</span>.send_mail_called = <span class="predefined-constant">False</span>
-
-        <span class="keyword">def</span> <span class="function">fake_send_mail</span>(subject, body, from_email, to_list):  <i class="conum" data-value="1"></i><b>(1)</b>
-            <span class="predefined-constant">self</span>.send_mail_called = <span class="predefined-constant">True</span>
-            <span class="predefined-constant">self</span>.subject = subject
-            <span class="predefined-constant">self</span>.body = body
-            <span class="predefined-constant">self</span>.from_email = from_email
-            <span class="predefined-constant">self</span>.to_list = to_list
-
-        accounts.views.send_mail = fake_send_mail  <i class="conum" data-value="2"></i><b>(2)</b>
-
-        <span class="predefined-constant">self</span>.client.post(<span class="string"><span class="delimiter">'</span><span class="content">/accounts/send_login_email</span><span class="delimiter">'</span></span>, data={
-            <span class="string"><span class="delimiter">'</span><span class="content">email</span><span class="delimiter">'</span></span>: <span class="string"><span class="delimiter">'</span><span class="content">edith@example.com</span><span class="delimiter">'</span></span>
-        })
-
-
-        <span class="predefined-constant">self</span>.assertTrue(<span class="predefined-constant">self</span>.send_mail_called)
-        <span class="predefined-constant">self</span>.assertEqual(<span class="predefined-constant">self</span>.subject, <span class="string"><span class="delimiter">'</span><span class="content">Your login link for Superlists</span><span class="delimiter">'</span></span>)
-        <span class="predefined-constant">self</span>.assertEqual(<span class="predefined-constant">self</span>.from_email, <span class="string"><span class="delimiter">'</span><span class="content">noreply@superlists</span><span class="delimiter">'</span></span>)
-        <span class="predefined-constant">self</span>.assertEqual(<span class="predefined-constant">self</span>.to_list, [<span class="string"><span class="delimiter">'</span><span class="content">edith@example.com</span><span class="delimiter">'</span></span>])</code></pre>
+    <span class="tag">&lt;div</span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">"</span><span class="content">row</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>
+    [...]</code></pre>
 </div>
 </div>
-<div class="colist arabic">
-<table>
-<tr>
-<td><i class="conum" data-value="1"></i><b>1</b></td>
-<td>We define a <code>fake_send_mail</code> function, which looks like the real
-<code>send_mail</code> function, but all it does is save some information
-about how it was called, using some variables on <code>self</code>.</td>
-</tr>
-<tr>
-<td><i class="conum" data-value="2"></i><b>2</b></td>
-<td>Then, before we execute the code under test by doing the <code>self.client.post</code>,
-we swap out the real <code>accounts.views.send_mail</code> with our fake version&#8201;&#8212;&#8201;it&#8217;s as simple as just assigning it.</td>
-</tr>
-</table>
 </div>
+<div class="sect3">
+<h4 id="_sending_emails_from_django">Sending emails from Django</h4>
 <div class="paragraph">
-<p>It&#8217;s important to realise that there isn&#8217;t really anything magical going on here,
-we&#8217;re just taking advantage of Python&#8217;s dynamic nature and scoping rules.</p>
-</div>
-<div class="paragraph">
-<p>Up until we actually invoke a function, we can modify the variables it has
-access to, as long as we get into the right namespace (that&#8217;s why we import the
-top-level accounts module, to be able to get down to the <code>acccounts.views</code> module,
-which is the scope that the <code>accounts.views.send_login_email</code> function will run
-in).</p>
-</div>
-<div class="paragraph">
-<p>This isn&#8217;t even something that only works inside unit tests.  You can do this
-kind of "monkeypatching" in any kind of Python code!</p>
-</div>
-<div class="paragraph">
-<p>That may take a little time to sink in.  See if you can convince yourself that
-it&#8217;s not all totally crazy, before reading a couple of bits of further detail.</p>
+<p>The login theory will be something like this:</p>
 </div>
 <div class="ulist">
 <ul>
 <li>
-<p>Why do we use <code>self</code> as a way of passing information around? It&#8217;s just a
-convenient variable that&#8217;s available both inside the scope of the
-<code>fake_send_mail</code> function and outside of it.   We could use any mutable
-object, like a list or a dictionary, as long as we are making in-place
-changes to an existing variable that exists outside our fake function.
-(feel free to have a play around with different ways of doing this, if
-you&#8217;re curious, and see what works and doesn&#8217;t work.)</p>
+<p>When someone wants to log in, we generate a unique secret token for them,
+store it in the database linked to their email, and send it to them</p>
 </li>
 <li>
-<p>The "before" is critical! I can&#8217;t tell you how many times I&#8217;ve sat
-there, wondering why a mock isn&#8217;t working, only to realise that I didn&#8217;t
-mock <em>before</em> I called the code under test.</p>
+<p>They then check their email, which will have a link to a url that includes
+that token</p>
+</li>
+<li>
+<p>When they click on that link, we check whether the token exists in database,
+and if so, they are logged in as the associated user.</p>
 </li>
 </ul>
 </div>
 <div class="paragraph">
-<p>Let&#8217;s see if our hand-rolled mock object will let us test-drive some code:</p>
+<p>
+
+
+First we prep an app for our accounts stuff:</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>$ <strong>python manage.py test accounts</strong>
-[...]
-    self.assertTrue(self.send_mail_called)
-AssertionError: False is not true</pre>
+<pre>$ <strong>python manage.py startapp accounts</strong></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>So let&#8217;s call send_mail, naively:</p>
+<p>And we&#8217;ll wire up <em>urls.py</em> with at least one URL.  In the top-level <em>superlists/urls.py</em>&#8230;&#8203;</p>
 </div>
 <div class="listingblock sourcecode">
-<div class="title">accounts/views.py</div>
+<div class="title">superlists/urls.py (ch16l003)</div>
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">def</span> <span class="function">send_login_email</span>(request):
-    send_mail()
-    <span class="keyword">return</span> redirect(<span class="string"><span class="delimiter">'</span><span class="content">/</span><span class="delimiter">'</span></span>)</code></pre>
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> <span class="include">django.conf.urls</span> <span class="keyword">import</span> <span class="include">include</span>, <span class="include">url</span>
+<span class="keyword">from</span> <span class="include">lists</span> <span class="keyword">import</span> <span class="include">views</span> <span class="keyword">as</span> list_views
+<span class="keyword">from</span> <span class="include">lists</span> <span class="keyword">import</span> <span class="include">urls</span> <span class="keyword">as</span> list_urls
+<span class="keyword">from</span> <span class="include">accounts</span> <span class="keyword">import</span> <span class="include">urls</span> <span class="keyword">as</span> accounts_urls
+
+urlpatterns = [
+    url(<span class="string"><span class="modifier">r</span><span class="delimiter">'</span><span class="content">^$</span><span class="delimiter">'</span></span>, list_views.home_page, name=<span class="string"><span class="delimiter">'</span><span class="content">home</span><span class="delimiter">'</span></span>),
+    url(<span class="string"><span class="modifier">r</span><span class="delimiter">'</span><span class="content">^lists/</span><span class="delimiter">'</span></span>, include(list_urls)),
+    url(<span class="string"><span class="modifier">r</span><span class="delimiter">'</span><span class="content">^accounts/</span><span class="delimiter">'</span></span>, include(accounts_urls)),
+]</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>That gives:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>TypeError: fake_send_mail() missing 4 required positional arguments: 'subject',
-'body', 'from_email', and 'to_list'</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Looks like our monkeypatch is working!  We&#8217;ve called <code>send_mail</code>, and it&#8217;s gone
-into our <code>fake_send_mail</code> function, which wants more arguments.  Let&#8217;s try
-this:</p>
+<p>And in the accounts module&#8217;s <em>urls.py</em>:</p>
 </div>
 <div class="listingblock sourcecode">
-<div class="title">accounts/views.py</div>
+<div class="title">accounts/urls.py (ch16l004)</div>
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">def</span> <span class="function">send_login_email</span>(request):
-    send_mail(<span class="string"><span class="delimiter">'</span><span class="content">subject</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">body</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">from_email</span><span class="delimiter">'</span></span>, [<span class="string"><span class="delimiter">'</span><span class="content">to email</span><span class="delimiter">'</span></span>])
-    <span class="keyword">return</span> redirect(<span class="string"><span class="delimiter">'</span><span class="content">/</span><span class="delimiter">'</span></span>)</code></pre>
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> <span class="include">django.conf.urls</span> <span class="keyword">import</span> <span class="include">url</span>
+<span class="keyword">from</span> <span class="include">accounts</span> <span class="keyword">import</span> <span class="include">views</span>
+
+urlpatterns = [
+    url(<span class="string"><span class="modifier">r</span><span class="delimiter">'</span><span class="content">^send_email$</span><span class="delimiter">'</span></span>, views.send_login_email, name=<span class="string"><span class="delimiter">'</span><span class="content">send_login_email</span><span class="delimiter">'</span></span>),
+]</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>That gives:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>    self.assertEqual(self.subject, 'Your login link for Superlists')
-AssertionError: 'subject' != 'Your login link for Superlists'</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>That&#8217;s working pretty well.  And now we can work all the way through to
-something like this:</p>
+<p>Here&#8217;s the view that&#8217;s in charge of creating a token associated with the email
+address a user puts in our login form:</p>
 </div>
 <div class="listingblock sourcecode">
-<div class="title">accounts/views.py</div>
+<div class="title">accounts/views.py (ch16l005)</div>
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">def</span> <span class="function">send_login_email</span>(request):
-    email = request.POST[<span class="string"><span class="delimiter">'</span><span class="content">email</span><span class="delimiter">'</span></span>]
-    send_mail(
-        <span class="string"><span class="delimiter">'</span><span class="content">Your login link for Superlists</span><span class="delimiter">'</span></span>,
-        <span class="string"><span class="delimiter">'</span><span class="content">body text tbc</span><span class="delimiter">'</span></span>,
-        <span class="string"><span class="delimiter">'</span><span class="content">noreply@superlists</span><span class="delimiter">'</span></span>,
-        [email]
-    )
-    <span class="keyword">return</span> redirect(<span class="string"><span class="delimiter">'</span><span class="content">/</span><span class="delimiter">'</span></span>)</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>and passing tests!</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>$ <strong>python manage.py test accounts</strong>
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">import</span> <span class="include">uuid</span>
+<span class="keyword">import</span> <span class="include">sys</span>
+<span class="keyword">from</span> <span class="include">django.shortcuts</span> <span class="keyword">import</span> <span class="include">render</span>
+<span class="keyword">from</span> <span class="include">django.core.mail</span> <span class="keyword">import</span> <span class="include">send_mail</span>
 
-Ran 4 tests in 0.016s
+<span class="keyword">from</span> <span class="include">accounts.models</span> <span class="keyword">import</span> <span class="include">Token</span>
 
-OK</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Brilliant!  We&#8217;ve managed to write tests for some code, that
-ordinarily<sup class="footnote">[<a id="_footnoteref_2" class="footnote" href="#_footnote_2" title="View footnote.">2</a>]</sup> would go out and try and send real emails across the internet,
-and by "mocking out" the <code>send_email</code> function, we&#8217;re able to write
-the tests and code all the same.</p>
-</div>
-</div>
-<div class="sect2">
-<h3 id="_the_python_mock_library">The Python Mock Library</h3>
-<div class="paragraph">
-<p>The popular <em>mock</em> package was added to the standard library as part of Python
-3.3.<sup class="footnote">[<a id="_footnoteref_3" class="footnote" href="#_footnote_3" title="View footnote.">3</a>]</sup>
-It provides a magical object called a <code>Mock</code>; try this out in a Python shell:</p>
-</div>
-<div class="listingblock skipme">
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="python">&gt;&gt;&gt; <span class="keyword">from</span> <span class="include">unittest.mock</span> <span class="keyword">import</span> <span class="include">Mock</span>
-&gt;&gt;&gt; m = Mock()
-&gt;&gt;&gt; m.any_attribute
-&lt;Mock name=<span class="string"><span class="delimiter">'</span><span class="content">mock.any_attribute</span><span class="delimiter">'</span></span> id=<span class="string"><span class="delimiter">'</span><span class="content">140716305179152</span><span class="delimiter">'</span></span>&gt;
-&gt;&gt;&gt; <span class="predefined">type</span>(m.any_attribute)
-&lt;<span class="keyword">class</span> <span class="string"><span class="delimiter">'</span><span class="content">unittest.mock.Mock</span><span class="delimiter">'</span></span>&gt;
-&gt;&gt;&gt; m.any_method()
-&lt;Mock name=<span class="string"><span class="delimiter">'</span><span class="content">mock.any_method()</span><span class="delimiter">'</span></span> id=<span class="string"><span class="delimiter">'</span><span class="content">140716331211856</span><span class="delimiter">'</span></span>&gt;
-&gt;&gt;&gt; m.foo()
-&lt;Mock name=<span class="string"><span class="delimiter">'</span><span class="content">mock.foo()</span><span class="delimiter">'</span></span> id=<span class="string"><span class="delimiter">'</span><span class="content">140716331251600</span><span class="delimiter">'</span></span>&gt;
-&gt;&gt;&gt; m.called
-<span class="predefined-constant">False</span>
-&gt;&gt;&gt; m.foo.called
-<span class="predefined-constant">True</span>
-&gt;&gt;&gt; m.bar.return_value = <span class="integer">1</span>
-&gt;&gt;&gt; m.bar(<span class="integer">42</span>, var=<span class="string"><span class="delimiter">'</span><span class="content">thing</span><span class="delimiter">'</span></span>)
-<span class="integer">1</span>
-&gt;&gt;&gt; m.bar.call_args
-call(<span class="integer">42</span>, var=<span class="string"><span class="delimiter">'</span><span class="content">thing</span><span class="delimiter">'</span></span>)</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>A magical object, that responds to any request for an attribute or method call
-with other mocks, that you can configure to return specific values for its
-calls, and that allows you to inspect what it was called with?  Sounds like a
-useful thing to be able to use in our unit tests!</p>
-</div>
-<div class="sect3">
-<h4 id="_using_code_unittest_patch_code">Using <code>unittest.patch</code></h4>
-<div class="paragraph">
-<p>And as if that weren&#8217;t enough, the <code>mock</code> module also provides a helper
-function called <code>patch</code>, which we can use to do the monkeypatching we did
-by hand earlier.</p>
-</div>
-<div class="listingblock sourcecode">
-<div class="title">accounts/tests/test_views.py (ch16l007)</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> <span class="include">django.test</span> <span class="keyword">import</span> <span class="include">TestCase</span>
-<span class="keyword">from</span> <span class="include">unittest.mock</span> <span class="keyword">import</span> <span class="include">patch</span>
-[...]
-
-    <span class="decorator">@patch</span>(<span class="string"><span class="delimiter">'</span><span class="content">accounts.views.send_mail</span><span class="delimiter">'</span></span>)
-    <span class="keyword">def</span> <span class="function">test_sends_mail_to_address_from_post</span>(<span class="predefined-constant">self</span>, mock_send_mail):
-        <span class="predefined-constant">self</span>.client.post(<span class="string"><span class="delimiter">'</span><span class="content">/accounts/send_login_email</span><span class="delimiter">'</span></span>, data={
-            <span class="string"><span class="delimiter">'</span><span class="content">email</span><span class="delimiter">'</span></span>: <span class="string"><span class="delimiter">'</span><span class="content">edith@example.com</span><span class="delimiter">'</span></span>
-        })
-
-        <span class="predefined-constant">self</span>.assertEqual(mock_send_mail.called, <span class="predefined-constant">True</span>)
-        (subject, body, from_email, to_list), kwargs = mock_send_mail.call_args
-        <span class="predefined-constant">self</span>.assertEqual(subject, <span class="string"><span class="delimiter">'</span><span class="content">Your login link for Superlists</span><span class="delimiter">'</span></span>)
-        <span class="predefined-constant">self</span>.assertEqual(from_email, <span class="string"><span class="delimiter">'</span><span class="content">noreply@superlists</span><span class="delimiter">'</span></span>)
-        <span class="predefined-constant">self</span>.assertEqual(to_list, [<span class="string"><span class="delimiter">'</span><span class="content">edith@example.com</span><span class="delimiter">'</span></span>])</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>If you re-run the tests, you&#8217;ll see they still pass.  And since we&#8217;re always
-suspicious of any test that still passes after a big change, let&#8217;s deliberately
-break it just to see:</p>
-</div>
-<div class="listingblock sourcecode">
-<div class="title">accounts/tests/test_views.py (ch16l008)</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="python">        <span class="predefined-constant">self</span>.assertEqual(to_list, [<span class="string"><span class="delimiter">'</span><span class="content">schmedith@example.com</span><span class="delimiter">'</span></span>])</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>And let&#8217;s add a little debug print to our view</p>
-</div>
-<div class="listingblock sourcecode">
-<div class="title">accounts/views.py (ch16l009)</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">def</span> <span class="function">send_login_email</span>(request):
-    email = request.POST[<span class="string"><span class="delimiter">'</span><span class="content">email</span><span class="delimiter">'</span></span>]
-    print(<span class="predefined">type</span>(send_mail))
-    send_mail(
-        [...]</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>And run the tests again:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>$ <strong>python manage.py test accounts</strong>
-Creating test database for alias 'default'...
-[...]
-&lt;class 'function'&gt;
-&lt;class 'unittest.mock.MagicMock'&gt;
-[...]
-AssertionError: Lists differ: ['edith@example.com'] !=
-['schmedith@example.com']
-[...]
-
-Ran 4 tests in 0.024s
-
-FAILED (failures=1)</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Sure enough, the tests fail.  And we can see just before the failure
-message, that when we print the <code>type</code> of the <code>send_mail</code> function,
-in the first unit test it&#8217;s a normal function, but in the second unit
-test we&#8217;re seeing a mock object.</p>
-</div>
-<div class="paragraph">
-<p>Let&#8217;s reset our code back to where it was and do a little recap:</p>
-</div>
-<div class="listingblock sourcecode dofirst-ch16l010">
-<div class="title">accounts/tests/test_views.py (ch16l011)</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="decorator">@patch</span>(<span class="string"><span class="delimiter">'</span><span class="content">accounts.views.send_mail</span><span class="delimiter">'</span></span>)  <i class="conum" data-value="1"></i><b>(1)</b>
-<span class="keyword">def</span> <span class="function">test_sends_mail_to_address_from_post</span>(<span class="predefined-constant">self</span>, mock_send_mail):  <i class="conum" data-value="2"></i><b>(2)</b>
-    <span class="predefined-constant">self</span>.client.post(<span class="string"><span class="delimiter">'</span><span class="content">/accounts/send_login_email</span><span class="delimiter">'</span></span>, data={
-        <span class="string"><span class="delimiter">'</span><span class="content">email</span><span class="delimiter">'</span></span>: <span class="string"><span class="delimiter">'</span><span class="content">edith@example.com</span><span class="delimiter">'</span></span>  <i class="conum" data-value="3"></i><b>(3)</b>
-    })
-
-    <span class="predefined-constant">self</span>.assertEqual(mock_send_mail.called, <span class="predefined-constant">True</span>)  <i class="conum" data-value="4"></i><b>(4)</b>
-    (subject, body, from_email, to_list), kwargs = mock_send_mail.call_args  <i class="conum" data-value="5"></i><b>(5)</b>
-    <span class="predefined-constant">self</span>.assertEqual(subject, <span class="string"><span class="delimiter">'</span><span class="content">Your login link for Superlists</span><span class="delimiter">'</span></span>)
-    <span class="predefined-constant">self</span>.assertEqual(from_email, <span class="string"><span class="delimiter">'</span><span class="content">noreply@superlists</span><span class="delimiter">'</span></span>)
-    <span class="predefined-constant">self</span>.assertEqual(to_list, [<span class="string"><span class="delimiter">'</span><span class="content">edith@example.com</span><span class="delimiter">'</span></span>])</code></pre>
-</div>
-</div>
-<div class="colist arabic">
-<table>
-<tr>
-<td><i class="conum" data-value="1"></i><b>1</b></td>
-<td>the <code>patch</code> decorator takes a dot-notation name of an object to monkeypatch.
-That&#8217;s the equivalent of manually replacing the <code>send_mail</code> in
-<code>accounts.views</code>.  The advantage of the decorator is that, firstly, it
-automatically replaces the target with a mock.  And secondly, it
-automatically puts the original object back at the end!  (otherwise, the
-object stays monkeypatched for the rest of the test run, which might cause
-problems in other tests)</td>
-</tr>
-<tr>
-<td><i class="conum" data-value="2"></i><b>2</b></td>
-<td><code>patch</code> then injects the mocked object into the test as an argument to
-the test method.  We can choose whatever name we want for it, but I
-usually use a convention of <code>mock_</code> plus the original name of the
-object.</td>
-</tr>
-<tr>
-<td><i class="conum" data-value="3"></i><b>3</b></td>
-<td>We call our function under test as usual, but everything inside this
-test method has our mock applied to it, so the view won&#8217;t call the
-real <code>send_mail</code> object, it&#8217;ll be seeing <code>mock_send_mail</code> instead.</td>
-</tr>
-<tr>
-<td><i class="conum" data-value="4"></i><b>4</b></td>
-<td>And we can now make assertions about what happened to that mock object
-during the test.  We can see it was called&#8230;&#8203;</td>
-</tr>
-<tr>
-<td><i class="conum" data-value="5"></i><b>5</b></td>
-<td>And we can also unpack its various positional and keyword call arguments,
-and examine what it was called with. (We&#8217;ll discuss call_args in a bit
-more detail later).</td>
-</tr>
-</table>
-</div>
-<div class="paragraph">
-<p>All crystal-clear? No? Don&#8217;t worry, we&#8217;ll do a couple more tests with mocks, to
-see if they start to make more sense as we use them more.</p>
-</div>
-</div>
-<div class="sect3">
-<h4 id="_getting_the_ft_a_little_farther_along">Getting the FT a little farther along</h4>
-<div class="paragraph">
-<p>First let&#8217;s get back to our FT and see where it&#8217;s failing.</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>$ <strong>python manage.py test functional_tests.test_login</strong>
-[...]
-AssertionError: 'Check your email' not found in 'Superlists\nEnter email to log
-in:\nStart a new To-Do list'</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Submitting the email address currently has no effect, because the form isn&#8217;t
-sending the data anywhere.  Let&#8217;s wire it up in <em>base.html</em></p>
-</div>
-<div class="listingblock sourcecode small-code">
-<div class="title">lists/templates/base.html</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="html"><span class="tag">&lt;form</span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">"</span><span class="content">navbar-form navbar-right</span><span class="delimiter">"</span></span> <span class="attribute-name">method</span>=<span class="string"><span class="delimiter">"</span><span class="content">POST</span><span class="delimiter">"</span></span> <span class="attribute-name">action</span>=<span class="string"><span class="delimiter">"</span><span class="content">{% url 'send_login_email' %}</span><span class="delimiter">"</span></span><span class="tag">&gt;</span></code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Does that help?  Nope, same error.  Why?  Because we&#8217;re not actually displaying
-a success message after we send the user an email.   Let&#8217;s add a test for that:</p>
-</div>
-</div>
-<div class="sect3">
-<h4 id="_testing_the_django_messages_framework">Testing the Django messages framework</h4>
-<div class="paragraph">
-<p>We&#8217;ll use Django&#8217;s "messages framework", which is often used to display
-ephemeral "success" or "warning" messages to show the results of an action.
-Have a look at the
-<a href="https://docs.djangoproject.com/en/1.10/ref/contrib/messages/">django messages docs</a>
-if you haven&#8217;t come across it already.</p>
-</div>
-<div class="paragraph">
-<p>Testing Django messages is a bit contorted&#8212;&#8203;we have to pass <code>follow=True</code> to
-the test client to tell it to get the page after the 302-redirect, and examine
-its context for a list of messages (which we have to listify before it&#8217;ll
-play nicely).  Here&#8217;s what it looks like:</p>
-</div>
-<div class="listingblock sourcecode">
-<div class="title">accounts/tests/test_views.py (ch16l013)</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="python">    <span class="keyword">def</span> <span class="function">test_adds_success_message</span>(<span class="predefined-constant">self</span>):
-        response = <span class="predefined-constant">self</span>.client.post(<span class="string"><span class="delimiter">'</span><span class="content">/accounts/send_login_email</span><span class="delimiter">'</span></span>, data={
-            <span class="string"><span class="delimiter">'</span><span class="content">email</span><span class="delimiter">'</span></span>: <span class="string"><span class="delimiter">'</span><span class="content">edith@example.com</span><span class="delimiter">'</span></span>
-        }, follow=<span class="predefined-constant">True</span>)
-
-        message = <span class="predefined">list</span>(response.context[<span class="string"><span class="delimiter">'</span><span class="content">messages</span><span class="delimiter">'</span></span>])[<span class="integer">0</span>]
-        <span class="predefined-constant">self</span>.assertEqual(
-            message.message,
-            <span class="string"><span class="delimiter">"</span><span class="content">Check your email, we've sent you a link you can use to log in.</span><span class="delimiter">"</span></span>
-        )
-        <span class="predefined-constant">self</span>.assertEqual(message.tags, <span class="string"><span class="delimiter">"</span><span class="content">success</span><span class="delimiter">"</span></span>)</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>That gives:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>$ <strong>python manage.py test accounts</strong>
-[...]
-    message = list(response.context['messages'])[0]
-IndexError: list index out of range</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>And we can get it passing with:</p>
-</div>
-<div class="listingblock sourcecode">
-<div class="title">accounts/views.py (ch16l014)</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> <span class="include">django.contrib</span> <span class="keyword">import</span> <span class="include">messages</span>
-[...]
 
 <span class="keyword">def</span> <span class="function">send_login_email</span>(request):
-    [...]
-    messages.success(
-        request,
-        <span class="string"><span class="delimiter">"</span><span class="content">Check your email, we've sent you a link you can use to log in.</span><span class="delimiter">"</span></span>
+    email = request.POST[<span class="string"><span class="delimiter">'</span><span class="content">email</span><span class="delimiter">'</span></span>]
+    uid = <span class="predefined">str</span>(uuid.uuid4())
+    Token.objects.create(email=email, uid=uid)
+    print(<span class="string"><span class="delimiter">'</span><span class="content">saving uid</span><span class="delimiter">'</span></span>, uid, <span class="string"><span class="delimiter">'</span><span class="content">for email</span><span class="delimiter">'</span></span>, email, file=sys.stderr)
+    url = request.build_absolute_uri(
+        <span class="string"><span class="delimiter">'</span><span class="content">/accounts/login?uid={uid}</span><span class="delimiter">'</span></span>.format(uid=uid)
     )
-    <span class="keyword">return</span> redirect(<span class="string"><span class="delimiter">'</span><span class="content">/</span><span class="delimiter">'</span></span>)</code></pre>
+    send_mail(
+        <span class="string"><span class="delimiter">'</span><span class="content">Your login link for Superlists</span><span class="delimiter">'</span></span>,
+        <span class="string"><span class="delimiter">'</span><span class="content">Use this link to log in:</span><span class="char">\n</span><span class="char">\n</span><span class="content">{url}</span><span class="delimiter">'</span></span>.format(url=url),
+        <span class="string"><span class="delimiter">'</span><span class="content">noreply@superlists</span><span class="delimiter">'</span></span>,
+        [email],
+    )
+    <span class="keyword">return</span> render(request, <span class="string"><span class="delimiter">'</span><span class="content">login_email_sent.html</span><span class="delimiter">'</span></span>)</code></pre>
 </div>
 </div>
-<div id="mocks-tightly-coupled-sidebar" class="sidebarblock">
+<div class="paragraph">
+<p>For that to work we&#8217;ll need a placeholder message confirming the email was
+sent:</p>
+</div>
+<div class="listingblock sourcecode">
+<div class="title">accounts/templates/login_email_sent.html (ch16l006)</div>
 <div class="content">
-<div class="title">Mocks can leave you tightly coupled to the implementation</div>
+<pre class="CodeRay highlight"><code data-lang="html"><span class="tag">&lt;html&gt;</span>
+<span class="tag">&lt;h1&gt;</span>Email sent<span class="tag">&lt;/h1&gt;</span>
+
+<span class="tag">&lt;p&gt;</span>Check your email, you'll find a message with a link that will log you into
+the site.<span class="tag">&lt;/p&gt;</span>
+
+<span class="tag">&lt;/html&gt;</span></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>(You can see how hacky this code is&#8201;&#8212;&#8201;we&#8217;d want to integrate this template
+with our <em>base.html</em> in the real version)</p>
+</div>
+<div class="paragraph">
+<p>More importantly, for the Django <code>send_mail</code> function to work, we need to tell
+Django our email server address.  I&#8217;m just using my
+gmail<sup class="footnote">[<a id="_footnoteref_1" class="footnote" href="#_footnote_1" title="View footnote.">1</a>]</sup>
+account for now.  You can use any email provider you like, as long as they
+support SMTP.</p>
+</div>
+<div class="listingblock sourcecode">
+<div class="title">superlists/settings.py (ch16l007)</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python">EMAIL_HOST = <span class="string"><span class="delimiter">'</span><span class="content">smtp.gmail.com</span><span class="delimiter">'</span></span>
+EMAIL_HOST_USER = <span class="string"><span class="delimiter">'</span><span class="content">obeythetestinggoat@gmail.com</span><span class="delimiter">'</span></span>
+EMAIL_HOST_PASSWORD = os.environ.get(<span class="string"><span class="delimiter">'</span><span class="content">EMAIL_PASSWORD</span><span class="delimiter">'</span></span>)
+EMAIL_USE_TLS = <span class="predefined-constant">True</span></code></pre>
+</div>
+</div>
 <div class="admonitionblock tip">
 <table>
 <tr>
@@ -612,353 +383,235 @@ IndexError: list index out of range</pre>
 <i class="fa icon-tip" title="Tip"></i>
 </td>
 <td class="content">
-This sidebar is an intermediate-level testing tip.  If it goes over your
-head the first time around, come back and take another look when you&#8217;ve
-finished this chapter, and <a href="/book/chapter_19.html">[isolation-chapter]</a>.
+If you want to use gmail as well, you&#8217;ll probably have to visit your
+    google account security settings page.  If you&#8217;re using two-factor auth,
+    you&#8217;ll want to set up an "app-specific password".  Even if you&#8217;re not,
+    Google might reject SMTP requests it doesn&#8217;t recognise, until you mark
+    them as authorised.
 </td>
 </tr>
 </table>
 </div>
+</div>
+<div class="sect3">
+<h4 id="_using_environment_variables_to_avoid_secrets_in_source_code">Using environment variables to avoid secrets in source code</h4>
 <div class="paragraph">
-<p>I said testing messages is a bit contorted; it took me several goes to get it
-right.  In fact, at work, we gave up on testing them like this, and just
-decided to just use mocks.  Let&#8217;s see what that would look like in this case:</p>
+<p>Sooner or later every project needs to figure out a way to deal with
+"secrets", things like email passwords or API keys that you don&#8217;t want
+to share with the whole wide world.  If your repo is private, it might
+be fine to just store it in git, but often that&#8217;s not the case.  This
+also intersects with the need to have different settings in dev and in
+production. (Remember how we dealt with the django SECRET_KEY setting
+in <a href="/book/chapter_10.html">[fabric-chapter]</a>?)</p>
+</div>
+<div class="paragraph">
+<p>A <a href="https://12factor.net/config">common pattern</a> is to use environment variables
+for this sort of configuration setting, which is what I&#8217;m doing with the
+<code>os.environ.get</code>.</p>
+</div>
+<div class="paragraph">
+<p>To get this to work, I need to set the environment variable in the shell
+that&#8217;s running my dev server.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>export EMAIL_PASSWORD="sekrit"</strong></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Later we&#8217;ll see about adding that to the staging server as well.</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_storing_tokens_in_the_database">Storing tokens in the database</h4>
+<div class="paragraph">
+<p>How are we doing?</p>
+</div>
+<div class="sidebarblock scratchpad">
+<div class="content">
+<div class="ulist">
+<ul>
+<li>
+<p><em><span class="strikethrough line-through">How to send emails</span></em></p>
+</li>
+<li>
+<p><em>Generating and recognising unique tokens</em></p>
+</li>
+<li>
+<p><em>How to authenticate someone in Django</em></p>
+</li>
+<li>
+<p><em>What steps will the user have to go through?</em></p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>We&#8217;ll need a model to store our tokens in the database&#8201;&#8212;&#8201;they link an
+email address with a unique id.  Pretty simple.</p>
 </div>
 <div class="listingblock sourcecode">
-<div class="title">accounts/tests/test_views.py (ch16l014-2)</div>
+<div class="title">accounts/models.py (ch16l008)</div>
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> <span class="include">unittest.mock</span> <span class="keyword">import</span> <span class="include">patch</span>, <span class="include">call</span>
-[...]
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> <span class="include">django.db</span> <span class="keyword">import</span> <span class="include">models</span>
 
-    <span class="decorator">@patch</span>(<span class="string"><span class="delimiter">'</span><span class="content">accounts.views.messages</span><span class="delimiter">'</span></span>)
-    <span class="keyword">def</span> <span class="function">test_adds_success_message_with_mocks</span>(<span class="predefined-constant">self</span>, mock_messages):
-        response = <span class="predefined-constant">self</span>.client.post(<span class="string"><span class="delimiter">'</span><span class="content">/accounts/send_login_email</span><span class="delimiter">'</span></span>, data={
-            <span class="string"><span class="delimiter">'</span><span class="content">email</span><span class="delimiter">'</span></span>: <span class="string"><span class="delimiter">'</span><span class="content">edith@example.com</span><span class="delimiter">'</span></span>
-        })
-
-        expected = <span class="string"><span class="delimiter">"</span><span class="content">Check your email, we've sent you a link you can use to log in.</span><span class="delimiter">"</span></span>
-        <span class="predefined-constant">self</span>.assertEqual(
-            mock_messages.success.call_args,
-            call(response.wsgi_request, expected),
-        )</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>We mock out the <code>messages</code> module, and check that <code>messages.success</code> was
-called with the right args: the original request, and the message we want.</p>
-</div>
-<div class="paragraph">
-<p>And you could get it passing by using the exact same code as above.  Here&#8217;s
-the problem though:  the messages framework gives you more than one way to
-achieve the same result.  I could write the code like this:</p>
-</div>
-<div class="listingblock sourcecode">
-<div class="title">accounts/views.py (ch16l014-3)</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="python">    messages.add_message(
-        request,
-        messages.SUCCESS,
-        <span class="string"><span class="delimiter">"</span><span class="content">Check your email, we've sent you a link you can use to log in.</span><span class="delimiter">"</span></span>
-    )</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>And the original, non-mocky test would still pass.  But our mocky test will
-fail, because we&#8217;re no longer calling <code>messages.success</code>, we&#8217;re calling
-<code>messages.add_message</code>. Even though the end result is the same and our code
-is "correct", the test is broken.</p>
-</div>
-<div class="paragraph">
-<p>This is what people mean when they say that using mocks can leave you "tightly
-coupled with the implementation".   We usually say it&#8217;s better to test behaviour,
-not implementation details; test what happens, not how you do it.  Mocks often
-end up erring too much on the side of the "how" rather than the "what".</p>
-</div>
-<div class="paragraph">
-<p>There&#8217;s more detailed discussion of the pros and cons of mocks in
-<a href="/book/chapter_19.html">later chapters</a>.</p>
-</div>
+<span class="keyword">class</span> <span class="class">Token</span>(models.Model):
+    email = models.EmailField()
+    uid = models.CharField(max_length=<span class="integer">255</span>)</code></pre>
 </div>
 </div>
 </div>
 <div class="sect3">
-<h4 id="_adding_messages_to_our_html">Adding messages to our HTML</h4>
-<div class="paragraph">
-<p>What happens next in the functional test?  Ah.  Still nothing.  We
-need to actually add the messages to the page.  Something like this:</p>
-</div>
-<div class="listingblock sourcecode dofirst-ch16l014-4">
-<div class="title">lists/templates/base.html (ch16l015)</div>
+<h4 id="_custom_authentication_models">Custom authentication models</h4>
+<div class="sidebarblock scratchpad">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="html">      [...]
-      <span class="tag">&lt;/nav&gt;</span>
-
-      {% if messages %}
-        <span class="tag">&lt;div</span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">"</span><span class="content">row</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>
-          <span class="tag">&lt;div</span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">"</span><span class="content">col-md-8</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>
-            {% for message in messages %}
-              {% if message.level_tag == 'success' %}
-                <span class="tag">&lt;div</span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">"</span><span class="content">alert alert-success</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>{{ message }}<span class="tag">&lt;/div&gt;</span>
-              {% else %}
-                <span class="tag">&lt;div</span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">"</span><span class="content">alert alert-warning</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>{{ message }}<span class="tag">&lt;/div&gt;</span>
-              {% endif %}
-            {% endfor %}
-          <span class="tag">&lt;/div&gt;</span>
-        <span class="tag">&lt;/div&gt;</span>
-      {% endif %}</code></pre>
+<div class="ulist">
+<ul>
+<li>
+<p><em><span class="strikethrough line-through">How to send emails</span></em></p>
+</li>
+<li>
+<p><em><span class="strikethrough line-through">Generating</span> and recognising unique tokens</em></p>
+</li>
+<li>
+<p><em>How to authenticate someone in Django</em></p>
+</li>
+<li>
+<p><em>What steps will the user have to go through?</em></p>
+</li>
+</ul>
 </div>
-</div>
-<div class="paragraph">
-<p>Now do we get a little further?  Yes!</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>$ <strong>python manage.py test accounts</strong>
-[...]
-Ran 5 tests in 0.023s
-
-OK
-
-$ <strong>python manage.py test functional_tests.test_login</strong>
-[...]
-AssertionError: 'Use this link to log in' not found in 'body text tbc'</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>We need to fill out the body text of the email, with a link that the
-user can use to log in.</p>
-</div>
-<div class="paragraph">
-<p>Let&#8217;s just cheat for now though, by changing the value in the view:</p>
+<p>While we&#8217;re messing about with models, let&#8217;s start experimenting with
+authentication in Django.  The first thing we&#8217;ll need is a user model.
+When I first wrote this, custom user models were a new thing in
+Django, so I dived into the
+<a href="https://docs.djangoproject.com/en/1.10/topics/auth/customizing/">Django
+auth documentation</a> and tried to hack in the simplest possible one:</p>
 </div>
 <div class="listingblock sourcecode">
-<div class="title">accounts/views.py</div>
+<div class="title">accounts/models.py (ch16l009)</div>
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python">    send_mail(
-        <span class="string"><span class="delimiter">'</span><span class="content">Your login link for Superlists</span><span class="delimiter">'</span></span>,
-        <span class="string"><span class="delimiter">'</span><span class="content">Use this link to log in</span><span class="delimiter">'</span></span>,
-        <span class="string"><span class="delimiter">'</span><span class="content">noreply@superlists</span><span class="delimiter">'</span></span>,
-        [email]
-    )</code></pre>
+<pre class="CodeRay highlight"><code data-lang="python">[...]
+<span class="keyword">from</span> <span class="include">django.contrib.auth.models</span> <span class="keyword">import</span> (
+    AbstractBaseUser, BaseUserManager, PermissionsMixin
+)
+
+
+<span class="keyword">class</span> <span class="class">ListUser</span>(AbstractBaseUser, PermissionsMixin):
+    email = models.EmailField(primary_key=<span class="predefined-constant">True</span>)
+    USERNAME_FIELD = <span class="string"><span class="delimiter">'</span><span class="content">email</span><span class="delimiter">'</span></span>
+    <span class="comment">#REQUIRED_FIELDS = ['email', 'height']</span>
+
+    objects = ListUserManager()
+
+    <span class="decorator">@property</span>
+    <span class="keyword">def</span> <span class="function">is_staff</span>(<span class="predefined-constant">self</span>):
+        <span class="keyword">return</span> <span class="predefined-constant">self</span>.email == <span class="string"><span class="delimiter">'</span><span class="content">harry.percival@example.com</span><span class="delimiter">'</span></span>
+
+    <span class="decorator">@property</span>
+    <span class="keyword">def</span> <span class="function">is_active</span>(<span class="predefined-constant">self</span>):
+        <span class="keyword">return</span> <span class="predefined-constant">True</span></code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>That gets the FT a little further,</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>$ <strong>python manage.py test functional_tests.test_login</strong>
-[...]
-AssertionError: Could not find url in email body:
-Use this link to log in</pre>
-</div>
+<p>That&#8217;s what I call a minimal user model!  One field, none of this
+firstname/lastname/username nonsense, and, pointedly, no password!
+Somebody else&#8217;s problem!</p>
 </div>
 <div class="paragraph">
-<p>We&#8217;re going to have to build some kind of URL!  Let&#8217;s build one that, again,
-just cheats:</p>
+<p>But, again, you can see that this code isn&#8217;t ready
+for production, from the commented-out lines to the hardcoded harry
+email address.  We&#8217;ll neaten this up quite a lot when we de-spike.</p>
+</div>
+<div class="paragraph">
+<p>To get it to work, you need a model manager for the user:</p>
+</div>
+<div class="listingblock sourcecode small-code">
+<div class="title">accounts/models.py (ch16l010)</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python">[...]
+<span class="keyword">class</span> <span class="class">ListUserManager</span>(BaseUserManager):
+
+    <span class="keyword">def</span> <span class="function">create_user</span>(<span class="predefined-constant">self</span>, email):
+        ListUser.objects.create(email=email)
+
+    <span class="keyword">def</span> <span class="function">create_superuser</span>(<span class="predefined-constant">self</span>, email, password):
+        <span class="predefined-constant">self</span>.create_user(email)</code></pre>
+</div>
 </div>
 </div>
 <div class="sect3">
-<h4 id="_start_on_the_login_view">Start on the login view</h4>
-<div class="listingblock sourcecode">
-<div class="title">accounts/tests/test_views.py (ch16l017)</div>
+<h4 id="_finishing_the_custom_django_auth">Finishing the custom Django auth</h4>
+<div class="paragraph">
+<p>Almost there&#8201;&#8212;&#8201;our last step combines recognising the token,
+and then actually logging the user in.  Once we&#8217;ve done this,
+we&#8217;ll be able to pretty much strike off all the items on
+our scratchpad:</p>
+</div>
+<div class="sidebarblock scratchpad">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">class</span> <span class="class">LoginViewTest</span>(TestCase):
-
-    <span class="keyword">def</span> <span class="function">test_redirects_to_home_page</span>(<span class="predefined-constant">self</span>):
-        response = <span class="predefined-constant">self</span>.client.get(<span class="string"><span class="delimiter">'</span><span class="content">/accounts/login?token=abcd123</span><span class="delimiter">'</span></span>)
-        <span class="predefined-constant">self</span>.assertRedirects(response, <span class="string"><span class="delimiter">'</span><span class="content">/</span><span class="delimiter">'</span></span>)</code></pre>
+<div class="ulist">
+<ul>
+<li>
+<p><em><span class="strikethrough line-through">How to send emails</span></em></p>
+</li>
+<li>
+<p><em><span class="strikethrough line-through">Generating</span> and recognising unique tokens</em></p>
+</li>
+<li>
+<p><em>How to authenticate someone in Django</em></p>
+</li>
+<li>
+<p><em>What steps will the user have to go through?</em></p>
+</li>
+</ul>
+</div>
 </div>
 </div>
 <div class="paragraph">
-<p>We&#8217;re imaging we&#8217;ll pass the token in as a GET parameter, after the <code>?</code>.
-It doesn&#8217;t need to do anything for now.</p>
+<p>Here&#8217;s the view that handles the POST to <em>accounts/login</em>:</p>
 </div>
-<div class="paragraph">
-<p>I&#8217;m sure you can find your way through to getting a basic URL and view in, via
-errors like these:</p>
-</div>
-<div class="paragraph">
-<p>no URL:</p>
-</div>
-<div class="listingblock">
+<div class="listingblock sourcecode small-code">
+<div class="title">accounts/views.py (ch16l011)</div>
 <div class="content">
-<pre>AssertionError: 404 != 302 : Response didn't redirect as expected: Response
-code was 404 (expected 302)</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>No view:</p>
-</div>
-<div class="listingblock dofirst-ch16l018">
-<div class="content">
-<pre>AttributeError: module 'accounts.views' has no attribute 'login'</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Broken view:</p>
-</div>
-<div class="listingblock dofirst-ch16l019">
-<div class="content">
-<pre>ValueError: The view accounts.views.login didn't return an HttpResponse object.
-It returned None instead.</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>OK!</p>
-</div>
-<div class="listingblock dofirst-ch16l020">
-<div class="content">
-<pre>$ <strong>python manage.py test accounts</strong>
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">import</span> <span class="include">uuid</span>
+<span class="keyword">import</span> <span class="include">sys</span>
+<span class="keyword">from</span> <span class="include">django.contrib.auth</span> <span class="keyword">import</span> <span class="include">authenticate</span>
+<span class="keyword">from</span> <span class="include">django.contrib.auth</span> <span class="keyword">import</span> <span class="include">login</span> <span class="keyword">as</span> auth_login
+<span class="keyword">from</span> <span class="include">django.core.mail</span> <span class="keyword">import</span> <span class="include">send_mail</span>
+<span class="keyword">from</span> <span class="include">django.shortcuts</span> <span class="keyword">import</span> <span class="include">redirect</span>, <span class="include">render</span>
 [...]
 
-Ran 6 tests in 0.029s
-
-OK</pre>
+<span class="keyword">def</span> <span class="function">login</span>(request):
+    print(<span class="string"><span class="delimiter">'</span><span class="content">login view</span><span class="delimiter">'</span></span>, file=sys.stderr)
+    uid = request.GET.get(<span class="string"><span class="delimiter">'</span><span class="content">uid</span><span class="delimiter">'</span></span>)
+    user = authenticate(uid=uid)
+    <span class="keyword">if</span> user <span class="keyword">is</span> <span class="keyword">not</span> <span class="predefined-constant">None</span>:
+        auth_login(request, user)
+    <span class="keyword">return</span> redirect(<span class="string"><span class="delimiter">'</span><span class="content">/</span><span class="delimiter">'</span></span>)</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>And now we can give them a link to use.  It still won&#8217;t do much though, because
-we still don&#8217;t have a token to give to the user.</p>
+<p>The "authenticate" function invokes Django&#8217;s authentication framework, which
+we configure using a "custom authentication backend",
+whose job it is to validate the uid and return a user with the right email.</p>
 </div>
-</div>
-<div class="sect3">
-<h4 id="_checking_we_send_the_user_a_token">Checking we send the user a token</h4>
 <div class="paragraph">
-<p>Back in our <code>send_login_email</code> view, We&#8217;ve tested the email subject, from and
-to fields.  The body is the part that will have to include a token or URL they
-can use to log in.  Let&#8217;s spec out two tests for that:</p>
+<p>We could have done this stuff directly in the view, but we may as well
+structure things the way Django expects.  It makes for a reasonably neat
+separation of concerns.</p>
 </div>
-<div class="listingblock sourcecode">
-<div class="title">accounts/tests/test_views.py (ch16l021)</div>
+<div class="listingblock sourcecode small-code">
+<div class="title">accounts/authentication.py (ch16l012)</div>
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> <span class="include">accounts.models</span> <span class="keyword">import</span> <span class="include">Token</span>
-[...]
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">import</span> <span class="include">sys</span>
+<span class="keyword">from</span> <span class="include">accounts.models</span> <span class="keyword">import</span> <span class="include">ListUser</span>, <span class="include">Token</span>
 
-    <span class="keyword">def</span> <span class="function">test_creates_token_associated_with_email</span>(<span class="predefined-constant">self</span>):
-        <span class="predefined-constant">self</span>.client.post(<span class="string"><span class="delimiter">'</span><span class="content">/accounts/send_login_email</span><span class="delimiter">'</span></span>, data={
-            <span class="string"><span class="delimiter">'</span><span class="content">email</span><span class="delimiter">'</span></span>: <span class="string"><span class="delimiter">'</span><span class="content">edith@example.com</span><span class="delimiter">'</span></span>
-        })
-        token = Token.objects.first()
-        <span class="predefined-constant">self</span>.assertEqual(token.email, <span class="string"><span class="delimiter">'</span><span class="content">edith@example.com</span><span class="delimiter">'</span></span>)
-
-
-    <span class="decorator">@patch</span>(<span class="string"><span class="delimiter">'</span><span class="content">accounts.views.send_mail</span><span class="delimiter">'</span></span>)
-    <span class="keyword">def</span> <span class="function">test_sends_link_to_login_using_token_uid</span>(<span class="predefined-constant">self</span>, mock_send_mail):
-        <span class="predefined-constant">self</span>.client.post(<span class="string"><span class="delimiter">'</span><span class="content">/accounts/send_login_email</span><span class="delimiter">'</span></span>, data={
-            <span class="string"><span class="delimiter">'</span><span class="content">email</span><span class="delimiter">'</span></span>: <span class="string"><span class="delimiter">'</span><span class="content">edith@example.com</span><span class="delimiter">'</span></span>
-        })
-
-        token = Token.objects.first()
-        expected_url = <span class="string"><span class="delimiter">'</span><span class="content">http://testserver/accounts/login?token={uid}</span><span class="delimiter">'</span></span>.format(
-            uid=token.uid
-        )
-        (subject, body, from_email, to_list), kwargs = mock_send_mail.call_args
-        <span class="predefined-constant">self</span>.assertIn(expected_url, body)</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>The first test is fairly straightforward, it checks that the token
-we create in the database is associated with the email address from
-the post request.</p>
-</div>
-<div class="paragraph">
-<p>The second one is our second test using mocks.  We mock out the <code>send_mail</code>
-function again using the <code>patch</code> decorator, but this time we&#8217;re interested
-in the <code>body</code> argument from the call arguments.</p>
-</div>
-<div class="paragraph">
-<p>Running them now will fail because we&#8217;re not creating any kind of token:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>$ <strong>python manage.py test accounts</strong>
-[...]
-AttributeError: 'NoneType' object has no attribute 'email'
-[...]
-AttributeError: 'NoneType' object has no attribute 'uid'</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>We can get the first one to pass by creating a token:</p>
-</div>
-<div class="listingblock sourcecode">
-<div class="title">accounts/views.py (ch16l022)</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> <span class="include">accounts.models</span> <span class="keyword">import</span> <span class="include">Token</span>
-[...]
-
-<span class="keyword">def</span> <span class="function">send_login_email</span>(request):
-    email = request.POST[<span class="string"><span class="delimiter">'</span><span class="content">email</span><span class="delimiter">'</span></span>]
-    token = Token.objects.create(email=email)
-    send_mail(
-        [...]</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>And now the second test prompts us to actually use the token in the body
-of our email:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>[...]
-AssertionError:
-'http://testserver/accounts/login?token=[...]
-not found in 'Use this link to log in'
-
-FAILED (failures=1)</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>So we can insert the token into our email like this:</p>
-</div>
-<div class="listingblock sourcecode">
-<div class="title">accounts/views.py (ch16l023)</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> <span class="include">django.core.urlresolvers</span> <span class="keyword">import</span> <span class="include">reverse</span>
-[...]
-
-<span class="keyword">def</span> <span class="function">send_login_email</span>(request):
-    email = request.POST[<span class="string"><span class="delimiter">'</span><span class="content">email</span><span class="delimiter">'</span></span>]
-    token = Token.objects.create(email=email)
-    url = request.build_absolute_uri(
-        reverse(<span class="string"><span class="delimiter">'</span><span class="content">login</span><span class="delimiter">'</span></span>) + <span class="string"><span class="delimiter">'</span><span class="content">?token={uid}</span><span class="delimiter">'</span></span>.format(uid=<span class="predefined">str</span>(token.uid))
-    )
-    message_body = <span class="string"><span class="delimiter">'</span><span class="content">Use this link to log in:</span><span class="char">\n</span><span class="char">\n</span><span class="content">{url}</span><span class="delimiter">'</span></span>.format(url=url)
-    send_mail(
-        <span class="string"><span class="delimiter">'</span><span class="content">Your login link for Superlists</span><span class="delimiter">'</span></span>,
-        message_body,
-        <span class="string"><span class="delimiter">'</span><span class="content">noreply@superlists</span><span class="delimiter">'</span></span>,
-        [email]
-    )
-    [...]</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>(<code>request.build_absolute_uri</code> deserves a mention&#8201;&#8212;&#8201;it&#8217;s one way to build
-a "full" URL, including the domain name and the http(s) part, in Django.
-There are other ways, but they usually involve getting into the "sites"
-framework, and that gets overcomplicated pretty quickly.  You can find
-lots more discussion on this if you&#8217;re curious by doing a bit of googling)</p>
-</div>
-<div class="paragraph">
-<p>Two more pieces in the puzzle.  We need an authentication backend, whose
-job it will be to examine tokens for validity and then return the corresponding
-users; then we need to get our login view to actually log users in,
-if they can authenticate.</p>
-</div>
-</div>
-</div>
-<div class="sect2">
-<h3 id="_de_spiking_our_custom_authentication_backend">De-spiking Our Custom Authentication Backend</h3>
-<div class="paragraph">
-<p>
-
-Our custom authentication backend is next.  Here&#8217;s how it looked in the spike:</p>
-</div>
-<div class="listingblock skipme small-code">
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">class</span> <span class="class">PasswordlessAuthenticationBackend</span>(<span class="predefined">object</span>):
+<span class="keyword">class</span> <span class="class">PasswordlessAuthenticationBackend</span>(<span class="predefined">object</span>):
 
     <span class="keyword">def</span> <span class="function">authenticate</span>(<span class="predefined-constant">self</span>, uid):
         print(<span class="string"><span class="delimiter">'</span><span class="content">uid</span><span class="delimiter">'</span></span>, uid, file=sys.stderr)
@@ -981,1212 +634,787 @@ Our custom authentication backend is next.  Here&#8217;s how it looked in the sp
 </div>
 </div>
 <div class="paragraph">
-<p>Decoding this:</p>
+<p>Again, lots of debug prints in there, and some duplicated code, not something
+we&#8217;d want in production, but it works&#8230;&#8203;</p>
 </div>
-<div class="ulist">
-<ul>
-<li>
-<p>We take a uid and check if it exists in the database.</p>
-</li>
-<li>
-<p>We return None if it doesn&#8217;t</p>
-</li>
-<li>
-<p>If it does exist, we extract an email address, and either find an existing
-user with that address, or create a new one.</p>
-</li>
-</ul>
-</div>
-<div class="sect3">
-<h4 id="_1_if_1_more_test">1 if = 1 More Test</h4>
 <div class="paragraph">
-<p>A rule of thumb for these sorts of tests:  any <code>if</code> means an extra test, and
-any <code>try/except</code> means an extra test, so this should be about three tests.
-How about something like this?</p>
+<p>Finally, a logout view:</p>
 </div>
 <div class="listingblock sourcecode">
-<div class="title">accounts/tests/test_authentication.py</div>
+<div class="title">accounts/views.py (ch16l013)</div>
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> <span class="include">django.test</span> <span class="keyword">import</span> <span class="include">TestCase</span>
-<span class="keyword">from</span> <span class="include">django.contrib.auth</span> <span class="keyword">import</span> <span class="include">get_user_model</span>
-<span class="keyword">from</span> <span class="include">accounts.authentication</span> <span class="keyword">import</span> <span class="include">PasswordlessAuthenticationBackend</span>
-<span class="keyword">from</span> <span class="include">accounts.models</span> <span class="keyword">import</span> <span class="include">Token</span>
-User = get_user_model()
-
-
-<span class="keyword">class</span> <span class="class">AuthenticateTest</span>(TestCase):
-
-    <span class="keyword">def</span> <span class="function">test_returns_None_if_no_such_token</span>(<span class="predefined-constant">self</span>):
-        result = PasswordlessAuthenticationBackend().authenticate(
-            <span class="string"><span class="delimiter">'</span><span class="content">no-such-token</span><span class="delimiter">'</span></span>
-        )
-        <span class="predefined-constant">self</span>.assertIsNone(result)
-
-
-    <span class="keyword">def</span> <span class="function">test_returns_new_user_with_correct_email_if_token_exists</span>(<span class="predefined-constant">self</span>):
-        email = <span class="string"><span class="delimiter">'</span><span class="content">edith@example.com</span><span class="delimiter">'</span></span>
-        token = Token.objects.create(email=email)
-        user = PasswordlessAuthenticationBackend().authenticate(token.uid)
-        new_user = User.objects.get(email=email)
-        <span class="predefined-constant">self</span>.assertEqual(user, new_user)
-
-
-    <span class="keyword">def</span> <span class="function">test_returns_existing_user_with_correct_email_if_token_exists</span>(<span class="predefined-constant">self</span>):
-        email = <span class="string"><span class="delimiter">'</span><span class="content">edith@example.com</span><span class="delimiter">'</span></span>
-        existing_user = User.objects.create(email=email)
-        token = Token.objects.create(email=email)
-        user = PasswordlessAuthenticationBackend().authenticate(token.uid)
-        <span class="predefined-constant">self</span>.assertEqual(user, existing_user)</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>In <em>authenticate.py</em> we&#8217;ll just have a little placeholders:</p>
-</div>
-<div class="listingblock sourcecode">
-<div class="title">accounts/authentication.py</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">class</span> <span class="class">PasswordlessAuthenticationBackend</span>(<span class="predefined">object</span>):
-
-    <span class="keyword">def</span> <span class="function">authenticate</span>(<span class="predefined-constant">self</span>, uid):
-        <span class="keyword">pass</span></code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>How do we get on?</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>$ <strong>python manage.py test accounts</strong>
-Creating test database for alias 'default'...
-.FE........
-======================================================================
-ERROR: test_returns_new_user_with_correct_email_if_token_exists
-(accounts.tests.test_authentication.AuthenticateTest)
- ---------------------------------------------------------------------
-Traceback (most recent call last):
-  File "/.../superlists/accounts/tests/test_authentication.py", line 21, in
-test_returns_new_user_with_correct_email_if_token_exists
-    new_user = User.objects.get(email=email)
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> <span class="include">django.contrib.auth</span> <span class="keyword">import</span> <span class="include">login</span> <span class="keyword">as</span> auth_login, <span class="include">logout</span> <span class="keyword">as</span> auth_logout
 [...]
-accounts.models.DoesNotExist: User matching query does not exist.
 
-======================================================================
-FAIL: test_returns_existing_user_with_correct_email_if_token_exists
-(accounts.tests.test_authentication.AuthenticateTest)
- ---------------------------------------------------------------------
-Traceback (most recent call last):
-  File "/.../superlists/accounts/tests/test_authentication.py", line 30, in
-test_returns_existing_user_with_correct_email_if_token_exists
-    self.assertEqual(user, existing_user)
-AssertionError: None != &lt;User: User object&gt;
-
- ---------------------------------------------------------------------
-Ran 11 tests in 0.038s
-
-FAILED (failures=1, errors=1)
-Destroying test database for alias 'default'...</pre>
+<span class="keyword">def</span> <span class="function">logout</span>(request):
+    auth_logout(request)
+    <span class="keyword">return</span> redirect(<span class="string"><span class="delimiter">'</span><span class="content">/</span><span class="delimiter">'</span></span>)</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>Here&#8217;s a first cut:</p>
+<p>Add login and logout to our urls.py&#8230;&#8203;</p>
 </div>
 <div class="listingblock sourcecode">
-<div class="title">accounts/authentication.py (ch16l026)</div>
+<div class="title">accounts/urls.py (ch16l014)</div>
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> <span class="include">accounts.models</span> <span class="keyword">import</span> <span class="include">User</span>, <span class="include">Token</span>
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> <span class="include">django.conf.urls</span> <span class="keyword">import</span> <span class="include">url</span>
+<span class="keyword">from</span> <span class="include">accounts</span> <span class="keyword">import</span> <span class="include">views</span>
 
-<span class="keyword">class</span> <span class="class">PasswordlessAuthenticationBackend</span>(<span class="predefined">object</span>):
-
-    <span class="keyword">def</span> <span class="function">authenticate</span>(<span class="predefined-constant">self</span>, uid):
-        token = Token.objects.get(uid=uid)
-        <span class="keyword">return</span> User.objects.get(email=token.email)</code></pre>
+urlpatterns = [
+    url(<span class="string"><span class="modifier">r</span><span class="delimiter">'</span><span class="content">^send_email$</span><span class="delimiter">'</span></span>, views.send_login_email, name=<span class="string"><span class="delimiter">'</span><span class="content">send_login_email</span><span class="delimiter">'</span></span>),
+    url(<span class="string"><span class="modifier">r</span><span class="delimiter">'</span><span class="content">^login$</span><span class="delimiter">'</span></span>, views.login, name=<span class="string"><span class="delimiter">'</span><span class="content">login</span><span class="delimiter">'</span></span>),
+    url(<span class="string"><span class="modifier">r</span><span class="delimiter">'</span><span class="content">^logout$</span><span class="delimiter">'</span></span>, views.logout, name=<span class="string"><span class="delimiter">'</span><span class="content">logout</span><span class="delimiter">'</span></span>),
+]</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>That gets one test passing but breaks another one:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>$ <strong>python manage.py test accounts</strong>
-ERROR: test_returns_None_if_no_such_token
-(accounts.tests.test_authentication.AuthenticateTest)
-
-accounts.models.DoesNotExist: Token matching query does not exist.
-
-ERROR: test_returns_new_user_with_correct_email_if_token_exists
-(accounts.tests.test_authentication.AuthenticateTest)
-[...]
-accounts.models.DoesNotExist: User matching query does not exist.</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Let&#8217;s fix each of those in turn:</p>
+<p>Almost there! We switch on the auth backend and our new accounts app in
+<em>settings.py</em>:</p>
 </div>
 <div class="listingblock sourcecode">
-<div class="title">accounts/authentication.py (ch16l027)</div>
+<div class="title">superlists/settings.py (ch16l015)</div>
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python">    <span class="keyword">def</span> <span class="function">authenticate</span>(<span class="predefined-constant">self</span>, uid):
-        <span class="keyword">try</span>:
-            token = Token.objects.get(uid=uid)
-            <span class="keyword">return</span> User.objects.get(email=token.email)
-        <span class="keyword">except</span> Token.DoesNotExist:
-            <span class="keyword">return</span> <span class="predefined-constant">None</span></code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>That gets us down to one failure</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>ERROR: test_returns_new_user_with_correct_email_if_token_exists
-(accounts.tests.test_authentication.AuthenticateTest)
-[...]
-accounts.models.DoesNotExist: User matching query does not exist.
+<pre class="CodeRay highlight"><code data-lang="python">INSTALLED_APPS = [
+    <span class="comment">#'django.contrib.admin',</span>
+    <span class="string"><span class="delimiter">'</span><span class="content">django.contrib.auth</span><span class="delimiter">'</span></span>,
+    <span class="string"><span class="delimiter">'</span><span class="content">django.contrib.contenttypes</span><span class="delimiter">'</span></span>,
+    <span class="string"><span class="delimiter">'</span><span class="content">django.contrib.sessions</span><span class="delimiter">'</span></span>,
+    <span class="string"><span class="delimiter">'</span><span class="content">django.contrib.messages</span><span class="delimiter">'</span></span>,
+    <span class="string"><span class="delimiter">'</span><span class="content">django.contrib.staticfiles</span><span class="delimiter">'</span></span>,
+    <span class="string"><span class="delimiter">'</span><span class="content">lists</span><span class="delimiter">'</span></span>,
+    <span class="string"><span class="delimiter">'</span><span class="content">accounts</span><span class="delimiter">'</span></span>,
+]
 
-FAILED (errors=1)</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>And we can handle the final case like this:</p>
-</div>
-<div class="listingblock sourcecode">
-<div class="title">accounts/authentication.py (ch16l028)</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="python">    <span class="keyword">def</span> <span class="function">authenticate</span>(<span class="predefined-constant">self</span>, uid):
-        <span class="keyword">try</span>:
-            token = Token.objects.get(uid=uid)
-            <span class="keyword">return</span> User.objects.get(email=token.email)
-        <span class="keyword">except</span> User.DoesNotExist:
-            <span class="keyword">return</span> User.objects.create(email=token.email)
-        <span class="keyword">except</span> Token.DoesNotExist:
-            <span class="keyword">return</span> <span class="predefined-constant">None</span></code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>That&#8217;s turned out neater than our spike!</p>
-</div>
-</div>
-<div class="sect3">
-<h4 id="_the_get_user_method">The get_user Method</h4>
-<div class="paragraph">
-<p>
-The next thing we have to build is a <code>get_user</code> method for our authentication
-backend.  This method&#8217;s job is to retrieve a user based on their email address,
-or to return <code>None</code> if it can&#8217;t find one.</p>
-</div>
-<div class="paragraph">
-<p>Here&#8217;s a couple of tests for those two requirements:</p>
-</div>
-<div class="listingblock sourcecode">
-<div class="title">accounts/tests/test_authentication.py (ch16l030)</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">class</span> <span class="class">GetUserTest</span>(TestCase):
-
-    <span class="keyword">def</span> <span class="function">test_gets_user_by_email</span>(<span class="predefined-constant">self</span>):
-        User.objects.create(email=<span class="string"><span class="delimiter">'</span><span class="content">another@example.com</span><span class="delimiter">'</span></span>)
-        desired_user = User.objects.create(email=<span class="string"><span class="delimiter">'</span><span class="content">edith@example.com</span><span class="delimiter">'</span></span>)
-        found_user = PasswordlessAuthenticationBackend().get_user(
-            <span class="string"><span class="delimiter">'</span><span class="content">edith@example.com</span><span class="delimiter">'</span></span>
-        )
-        <span class="predefined-constant">self</span>.assertEqual(found_user, desired_user)
-
-
-    <span class="keyword">def</span> <span class="function">test_returns_None_if_no_user_with_that_email</span>(<span class="predefined-constant">self</span>):
-        <span class="predefined-constant">self</span>.assertIsNone(
-            PasswordlessAuthenticationBackend().get_user(<span class="string"><span class="delimiter">'</span><span class="content">edith@example.com</span><span class="delimiter">'</span></span>)
-        )</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Here&#8217;s our first failure:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>AttributeError: 'PasswordlessAuthenticationBackend' object has no attribute
-'get_user'</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Let&#8217;s create a placeholder one then:</p>
-</div>
-<div class="listingblock sourcecode">
-<div class="title">accounts/authentication.py (ch16l031)</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">class</span> <span class="class">PasswordlessAuthenticationBackend</span>(<span class="predefined">object</span>):
-
-    <span class="keyword">def</span> <span class="function">authenticate</span>(<span class="predefined-constant">self</span>, uid):
-        [...]
-
-    <span class="keyword">def</span> <span class="function">get_user</span>(<span class="predefined-constant">self</span>, email):
-        <span class="keyword">pass</span></code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Now we get:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>    self.assertEqual(found_user, desired_user)
-AssertionError: None != &lt;User: User object&gt;</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>And (step by step, just to see if our test fails the way we think it will):</p>
-</div>
-<div class="listingblock sourcecode">
-<div class="title">accounts/authentication.py (ch16l033)</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="python">    <span class="keyword">def</span> <span class="function">get_user</span>(<span class="predefined-constant">self</span>, email):
-        <span class="keyword">return</span> User.objects.first()</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>That gets us past the first assertion, and onto</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>    self.assertEqual(found_user, desired_user)
-AssertionError: &lt;User: User object&gt; != &lt;User: User object&gt;</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>And so we call <code>get</code> with the email as an argument:</p>
-</div>
-<div class="listingblock sourcecode">
-<div class="title">accounts/authentication.py (ch16l034)</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="python">    <span class="keyword">def</span> <span class="function">get_user</span>(<span class="predefined-constant">self</span>, email):
-        <span class="keyword">return</span> User.objects.get(email=email)</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Now our test for the None case fails:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>ERROR: test_returns_None_if_no_user_with_that_email
-[...]
-accounts.models.DoesNotExist: User matching query does not exist.</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Which prompts us to finish the method like this:</p>
-</div>
-<div class="listingblock sourcecode">
-<div class="title">accounts/authentication.py (ch16l035)</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="python">    <span class="keyword">def</span> <span class="function">get_user</span>(<span class="predefined-constant">self</span>, email):
-        <span class="keyword">try</span>:
-            <span class="keyword">return</span> User.objects.get(email=email)
-        <span class="keyword">except</span> User.DoesNotExist:
-            <span class="keyword">return</span> <span class="predefined-constant">None</span>  <i class="conum" data-value="1"></i><b>(1)</b></code></pre>
-</div>
-</div>
-<div class="colist arabic">
-<table>
-<tr>
-<td><i class="conum" data-value="1"></i><b>1</b></td>
-<td>You could just use <code>pass</code> here, and the function would return <code>None</code>
-by default.  However, because we specifically need the function to return
-<code>None</code>, explicit is better than implicit here.</td>
-</tr>
-</table>
-</div>
-<div class="paragraph">
-<p>That gets us to passing tests:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>OK</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>And we have a working authentication backend!</p>
-</div>
-</div>
-<div class="sect3">
-<h4 id="_using_our_auth_backend_in_the_login_view">Using our auth backend in the login view</h4>
-<div class="paragraph">
-<p>The final step is to use the backend in our login view.  First we add it
-to <em>settings.py</em>:</p>
-</div>
-<div class="listingblock sourcecode">
-<div class="title">superlists/settings.py (ch16l036)</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="python">AUTH_USER_MODEL = <span class="string"><span class="delimiter">'</span><span class="content">accounts.User</span><span class="delimiter">'</span></span>
+AUTH_USER_MODEL = <span class="string"><span class="delimiter">'</span><span class="content">accounts.ListUser</span><span class="delimiter">'</span></span>
 AUTHENTICATION_BACKENDS = [
     <span class="string"><span class="delimiter">'</span><span class="content">accounts.authentication.PasswordlessAuthenticationBackend</span><span class="delimiter">'</span></span>,
 ]
 
+MIDDLEWARE = [
 [...]</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>Next let&#8217;s write some tests for what should happen in our view. Looking
-back at the spike:</p>
+<p>A quick <code>makemigrations</code> to make the token and user models real:</p>
 </div>
-<div class="listingblock sourcecode skipme">
-<div class="title">accounts/views.py</div>
+<div class="listingblock">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">def</span> <span class="function">login</span>(request):
-    print(<span class="string"><span class="delimiter">'</span><span class="content">login view</span><span class="delimiter">'</span></span>, file=sys.stderr)
-    uid = request.GET.get(<span class="string"><span class="delimiter">'</span><span class="content">uid</span><span class="delimiter">'</span></span>)
-    user = auth.authenticate(uid=uid)
-    <span class="keyword">if</span> user <span class="keyword">is</span> <span class="keyword">not</span> <span class="predefined-constant">None</span>:
-        auth.login(request, user)
-    <span class="keyword">return</span> redirect(<span class="string"><span class="delimiter">'</span><span class="content">/</span><span class="delimiter">'</span></span>)</code></pre>
+<pre>$ <strong>python manage.py makemigrations</strong>
+Migrations for 'accounts':
+  accounts/migrations/0001_initial.py:
+    - Create model ListUser
+    - Create model Token</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>We need the view to call <code>django.contrib.auth.authenticate</code>, and then,
-if it returns a user, we call <code>django.contrib.auth.login</code>.</p>
+<p>And a <code>migrate</code> to build the database:</p>
 </div>
-<div class="admonitionblock tip">
-<table>
-<tr>
-<td class="icon">
-<i class="fa icon-tip" title="Tip"></i>
-</td>
-<td class="content">
-Check out the
-<a href="https://docs.djangoproject.com/en/1.10/topics/auth/default/#how-to-log-a-user-in">Django docs on authentication</a> at this point.
-</td>
-</tr>
-</table>
-</div>
-</div>
-</div>
-<div class="sect2">
-<h3 id="_an_alternative_reason_to_use_mocks_reducing_duplication">An alternative reason to use mocks: reducing duplication</h3>
-<div class="paragraph">
-<p>So far we&#8217;ve used mocks to test external dependencies, like Django&#8217;s
-mail-sending function.  The main reason to use a mock was to isolate
-ourselves from external side-effects, in this case, to avoid sending out
-actual emails during our tests.</p>
-</div>
-<div class="paragraph">
-<p>In this section we&#8217;ll look at a different kind of use of mocks.  Here we
-don&#8217;t have any side-effects we&#8217;re worried about, but there are still some
-reasons you might want to use a mock here.</p>
-</div>
-<div class="paragraph">
-<p>The non-mocky way of testing this login view would be to see whether it does
-actually log the user in, by checking whether the user gets assigned an
-authenticated session cookie in the right circumstances.</p>
-</div>
-<div class="paragraph">
-<p>But our authentication backend does have a few different code paths:
-it returns None for invalid tokens, existing users if they already exist,
-and creates new users for valid tokens if they don&#8217;t exist yet.</p>
-</div>
-<div class="paragraph">
-<p>So, to fully test this view, I&#8217;d have to write tests for all three of those
-cases.  On top of that, the fact that we&#8217;re using the Django
-<code>auth.authenticate</code> function rather than calling our own code directly is
-relevant: it allows us the option to add additional backends in future.</p>
-</div>
-<div class="admonitionblock tip">
-<table>
-<tr>
-<td class="icon">
-<i class="fa icon-tip" title="Tip"></i>
-</td>
-<td class="content">
-One good justification for using mocks is when they will reduce
-    duplication between tests.  It&#8217;s one way of avoiding <em>combinatorial
-    explosion</em>.
-</td>
-</tr>
-</table>
-</div>
-<div class="paragraph">
-<p>So in this case (in contrast to the example in the sidebar on messages earlier)
-the implementation does matter, and using a mock will save us from having
-duplication in our tests.  Let&#8217;s see how it looks:</p>
-</div>
-<div class="listingblock sourcecode small-code">
-<div class="title">accounts/tests/test_views.py (ch16l037)</div>
+<div class="listingblock">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> <span class="include">unittest.mock</span> <span class="keyword">import</span> <span class="include">patch</span>, <span class="include">call</span>
+<pre>$ <strong>python manage.py migrate</strong>
 [...]
-
-    <span class="decorator">@patch</span>(<span class="string"><span class="delimiter">'</span><span class="content">accounts.views.auth</span><span class="delimiter">'</span></span>)  <i class="conum" data-value="1"></i><b>(1)</b>
-    <span class="keyword">def</span> <span class="function">test_calls_authenticate_with_uid_from_get_request</span>(<span class="predefined-constant">self</span>, mock_auth):  <i class="conum" data-value="2"></i><b>(2)</b>
-        <span class="predefined-constant">self</span>.client.get(<span class="string"><span class="delimiter">'</span><span class="content">/accounts/login?token=abcd123</span><span class="delimiter">'</span></span>)
-        <span class="predefined-constant">self</span>.assertEqual(
-            mock_auth.authenticate.call_args,  <i class="conum" data-value="3"></i><b>(3)</b>
-            call(uid=<span class="string"><span class="delimiter">'</span><span class="content">abcd123</span><span class="delimiter">'</span></span>)  <i class="conum" data-value="4"></i><b>(4)</b>
-        )</code></pre>
+Running migrations:
+  Applying accounts.0001_initial... OK</pre>
 </div>
 </div>
-<div class="colist arabic">
+<div class="paragraph">
+<p>And we should be all done! Why not spin up a dev server with <code>runserver</code> and
+see how it all looks (<a href="#spike-login-worked">It works! It works! Mwahahahaha.</a>)?</p>
+</div>
+<div id="spike-login-worked" class="imageblock">
+<div class="content">
+<img src="images/spike_login_worked.png" alt="successful login">
+</div>
+<div class="title">Figure 1. It works! It works! Mwahahahaha.</div>
+</div>
+<div class="admonitionblock tip">
 <table>
 <tr>
-<td><i class="conum" data-value="1"></i><b>1</b></td>
-<td>We expect to be using the <code>django.contrib.auth</code> module in <em>views.py</em>,
-and we mock it out here.  Note that this time, we&#8217;re not mocking out
-a function, we&#8217;re mocking out a whole module, and thus implicitly
-mocking out all the functions (and any other objects) that module contains.</td>
-</tr>
-<tr>
-<td><i class="conum" data-value="2"></i><b>2</b></td>
-<td>As usual, the mocked object is injected into our test method.</td>
-</tr>
-<tr>
-<td><i class="conum" data-value="3"></i><b>3</b></td>
-<td>This time, we&#8217;ve mocked out a module rather than a function. So we examine
-the <code>call_args</code> not of the <code>mock_auth</code> module, but of the
-<code>mock_auth.authenticate</code> function.  Because all the attributes of a mock
-are more mocks, that&#8217;s a mock too.  You can start to see why Mock objects
-are so convenient, compared to trying to build your own.</td>
-</tr>
-<tr>
-<td><i class="conum" data-value="4"></i><b>4</b></td>
-<td>Now, instead of "unpacking" the call args, we use the <code>call</code> function
-for a neater way of saying what it should have been called with, ie,
-the token from the GET request. (see sidebar).</td>
+<td class="icon">
+<i class="fa icon-tip" title="Tip"></i>
+</td>
+<td class="content">
+If you get a <code>SMTPSenderRefused</code> error message, don&#8217;t forget to set
+    the <code>EMAIL_PASSWORD</code> environment variable in the shell that&#8217;s running
+    <code>runserver</code>
+</td>
 </tr>
 </table>
+</div>
+<div class="paragraph">
+<p>
+
+
+That&#8217;s pretty much it! Along the way, I had to fight pretty hard, including
+clicking around the gmail account security UI for a while, stumbling over
+several missing attributes on my custom user model (because I didn&#8217;t read the
+docs properly), and even one point switching to the dev version of Django to
+overcome a bug, which thankfully turned out to be irrelevant.
+
+</p>
+</div>
+<div class="paragraph">
+<p></p>
 </div>
 <div class="sidebarblock">
 <div class="content">
-<div class="title">On mock call_args</div>
+<div class="title">Aside: Logging to stderr</div>
 <div class="paragraph">
-<p>The <code>call_args</code> property on a mock represents the positional and keyword
-arguments that the mock was called with.  It&#8217;s a special "call" object type,
-which is essentially a tuple of <code>(positional_args, keyword_args)</code>.
-<code>positional_args</code> is itself a tuple, consisting of the set of positional
-arguments.  <code>keyword_args</code> is a dictionary.</p>
+<p>While spiking, it&#8217;s pretty critical to be able to see exceptions that are being
+generated by your code. Annoyingly, Django doesn&#8217;t send all exceptions to the
+terminal by default, but you can make it do so with a variable called <code>LOGGING</code>
+in <em>settings.py</em>:</p>
 </div>
-<div class="listingblock small-code skipme">
+<div class="listingblock sourcecode">
+<div class="title">superlists/settings.py (ch16l017)</div>
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python">&gt;&gt;&gt; <span class="keyword">from</span> <span class="include">unittest.mock</span> <span class="keyword">import</span> <span class="include">Mock</span>, <span class="include">call</span>
-&gt;&gt;&gt; m = Mock()
-&gt;&gt;&gt; m(<span class="integer">42</span>, <span class="integer">43</span>, <span class="string"><span class="delimiter">'</span><span class="content">positional arg 3</span><span class="delimiter">'</span></span>, key=<span class="string"><span class="delimiter">'</span><span class="content">val</span><span class="delimiter">'</span></span>, other_kwarg=<span class="integer">666</span>)
-&lt;Mock name=<span class="string"><span class="delimiter">'</span><span class="content">mock()</span><span class="delimiter">'</span></span> id=<span class="string"><span class="delimiter">'</span><span class="content">139909729163528</span><span class="delimiter">'</span></span>&gt;
-
-&gt;&gt;&gt; m.call_args
-call(<span class="integer">42</span>, <span class="integer">43</span>, <span class="string"><span class="delimiter">'</span><span class="content">positional arg 3</span><span class="delimiter">'</span></span>, key=<span class="string"><span class="delimiter">'</span><span class="content">val</span><span class="delimiter">'</span></span>, other_kwarg=<span class="integer">666</span>)
-
-&gt;&gt;&gt; m.call_args == ((<span class="integer">42</span>, <span class="integer">43</span>, <span class="string"><span class="delimiter">'</span><span class="content">positional arg 3</span><span class="delimiter">'</span></span>), {<span class="string"><span class="delimiter">'</span><span class="content">key</span><span class="delimiter">'</span></span>: <span class="string"><span class="delimiter">'</span><span class="content">val</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">other_kwarg</span><span class="delimiter">'</span></span>: <span class="integer">666</span>})
-<span class="predefined-constant">True</span>
-&gt;&gt;&gt; m.call_args == call(<span class="integer">42</span>, <span class="integer">43</span>, <span class="string"><span class="delimiter">'</span><span class="content">positional arg 3</span><span class="delimiter">'</span></span>, key=<span class="string"><span class="delimiter">'</span><span class="content">val</span><span class="delimiter">'</span></span>, other_kwarg=<span class="integer">666</span>)
-<span class="predefined-constant">True</span></code></pre>
+<pre class="CodeRay highlight"><code data-lang="python">LOGGING = {
+    <span class="string"><span class="delimiter">'</span><span class="content">version</span><span class="delimiter">'</span></span>: <span class="integer">1</span>,
+    <span class="string"><span class="delimiter">'</span><span class="content">disable_existing_loggers</span><span class="delimiter">'</span></span>: <span class="predefined-constant">False</span>,
+    <span class="string"><span class="delimiter">'</span><span class="content">handlers</span><span class="delimiter">'</span></span>: {
+        <span class="string"><span class="delimiter">'</span><span class="content">console</span><span class="delimiter">'</span></span>: {
+            <span class="string"><span class="delimiter">'</span><span class="content">level</span><span class="delimiter">'</span></span>: <span class="string"><span class="delimiter">'</span><span class="content">DEBUG</span><span class="delimiter">'</span></span>,
+            <span class="string"><span class="delimiter">'</span><span class="content">class</span><span class="delimiter">'</span></span>: <span class="string"><span class="delimiter">'</span><span class="content">logging.StreamHandler</span><span class="delimiter">'</span></span>,
+        },
+    },
+    <span class="string"><span class="delimiter">'</span><span class="content">loggers</span><span class="delimiter">'</span></span>: {
+        <span class="string"><span class="delimiter">'</span><span class="content">django</span><span class="delimiter">'</span></span>: {
+            <span class="string"><span class="delimiter">'</span><span class="content">handlers</span><span class="delimiter">'</span></span>: [<span class="string"><span class="delimiter">'</span><span class="content">console</span><span class="delimiter">'</span></span>],
+        },
+    },
+    <span class="string"><span class="delimiter">'</span><span class="content">root</span><span class="delimiter">'</span></span>: {<span class="string"><span class="delimiter">'</span><span class="content">level</span><span class="delimiter">'</span></span>: <span class="string"><span class="delimiter">'</span><span class="content">INFO</span><span class="delimiter">'</span></span>},
+}</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>So in our test,  we could have done this instead:</p>
-</div>
-<div class="listingblock sourcecode skipme">
-<div class="title">accounts/tests/test_views.py</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="python">    <span class="predefined-constant">self</span>.assertEqual(
-        mock_auth.authenticate.call_args,
-        ((,), {<span class="string"><span class="delimiter">'</span><span class="content">uid</span><span class="delimiter">'</span></span>: <span class="string"><span class="delimiter">'</span><span class="content">abcd123</span><span class="delimiter">'</span></span>})
-    )
-    <span class="comment"># or this</span>
-    args, kwargs = mock_auth.authenticate.call_args
-    <span class="predefined-constant">self</span>.assertEqual(args, (,))
-    <span class="predefined-constant">self</span>.assertEqual(kwargs, {<span class="string"><span class="delimiter">'</span><span class="content">uid</span><span class="delimiter">'</span></span>: <span class="string"><span class="delimiter">'</span><span class="content">abcd123</span><span class="delimiter">'</span></span>)</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>But you can see how using the <code>call</code> helper is nicer.</p>
+<p>Django uses the rather "enterprisey" logging package from the Python standard
+library, which, although very fully featured, does suffer from a fairly steep
+learning curve. It&#8217;s covered a little more in <a href="/book/chapter_18.html">[testfixtures-and-logging]</a>,
+and in the <a href="https://docs.djangoproject.com/en/1.10/topics/logging/">Django docs</a>.</p>
 </div>
 </div>
 </div>
 <div class="paragraph">
-<p>What happens when we run the test?   The first error is this:</p>
+<p>But we now have a working solution!  Let&#8217;s commit it on our spike branch:
+</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>$ <strong>python manage.py test accounts</strong>
-[...]
-AttributeError: &lt;module 'accounts.views' from
-'/.../superlists/accounts/views.py'&gt; does not have the attribute 'auth'</pre>
-</div>
-</div>
-<div class="admonitionblock tip">
-<table>
-<tr>
-<td class="icon">
-<i class="fa icon-tip" title="Tip"></i>
-</td>
-<td class="content">
-<code>module foo does not have the attribute bar</code> is a common first failure
-    in a test that uses mocks.  It&#8217;s telling you that you&#8217;re trying to mock
-    out something that doesn&#8217;t yet exist (or isn&#8217;t yet imported) in the target
-    module.
-</td>
-</tr>
-</table>
-</div>
-<div class="paragraph">
-<p>Once we import <code>django.contrib.auth</code>, the error changes:</p>
-</div>
-<div class="listingblock sourcecode">
-<div class="title">accounts/views.py (ch16l038)</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> <span class="include">django.contrib</span> <span class="keyword">import</span> <span class="include">auth</span>, <span class="include">messages</span>
-[...]</code></pre>
+<pre>$ <strong>git status</strong>
+$ <strong>git add accounts</strong>
+$ <strong>git commit -am "spiked in custom passwordless auth backend"</strong></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>Now we get:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>AssertionError: None != call(uid='abcd123')</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Now it&#8217;s telling us that the view doesn&#8217;t call the <code>auth.authenticate</code>
-function at all.  Let&#8217;s fix that, but get it deliberately wrong, just to see:</p>
-</div>
-<div class="listingblock sourcecode">
-<div class="title">accounts/views.py (ch16l039)</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">def</span> <span class="function">login</span>(request):
-    auth.authenticate(<span class="string"><span class="delimiter">'</span><span class="content">bang!</span><span class="delimiter">'</span></span>)
-    <span class="keyword">return</span> redirect(<span class="string"><span class="delimiter">'</span><span class="content">/</span><span class="delimiter">'</span></span>)</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Bang indeed!</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>$ <strong>python manage.py test accounts</strong>
-[...]
-TypeError: authenticate() takes 0 positional arguments but 1 was given
-[...]
-AssertionError: call('bang!') != call(uid='abcd123')
-[...]
-FAILED (failures=1, errors=1)</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Let&#8217;s give <code>authenticate</code> the arguments it expects then:</p>
-</div>
-<div class="listingblock sourcecode">
-<div class="title">accounts/views.py (ch16l040)</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">def</span> <span class="function">login</span>(request):
-    auth.authenticate(uid=request.GET.get(<span class="string"><span class="delimiter">'</span><span class="content">token</span><span class="delimiter">'</span></span>))
-    <span class="keyword">return</span> redirect(<span class="string"><span class="delimiter">'</span><span class="content">/</span><span class="delimiter">'</span></span>)</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>That gets us to passing tests</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>$ <strong>python manage.py test accounts</strong>
-[...]
-Ran 14 tests in 0.041s
-
-OK</pre>
-</div>
-</div>
-<div class="sect3">
-<h4 id="_using_mock_return_value">Using mock.return_value</h4>
-<div class="paragraph">
-<p>Next we want to check that if the authenticate function returns a user,
-we pass that into <code>auth.login</code>.  Let&#8217;s see how that test looks:</p>
-</div>
-<div class="listingblock sourcecode">
-<div class="title">accounts/tests/test_views.py (ch16l041)</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="decorator">@patch</span>(<span class="string"><span class="delimiter">'</span><span class="content">accounts.views.auth</span><span class="delimiter">'</span></span>)  <i class="conum" data-value="1"></i><b>(1)</b>
-<span class="keyword">def</span> <span class="function">test_calls_auth_login_with_user_if_there_is_one</span>(<span class="predefined-constant">self</span>, mock_auth):
-    response = <span class="predefined-constant">self</span>.client.get(<span class="string"><span class="delimiter">'</span><span class="content">/accounts/login?token=abcd123</span><span class="delimiter">'</span></span>)
-    <span class="predefined-constant">self</span>.assertEqual(
-        mock_auth.login.call_args,  <i class="conum" data-value="2"></i><b>(2)</b>
-        call(response.wsgi_request, mock_auth.authenticate.return_value)  <i class="conum" data-value="3"></i><b>(3)</b>
-    )</code></pre>
-</div>
-</div>
-<div class="colist arabic">
-<table>
-<tr>
-<td><i class="conum" data-value="1"></i><b>1</b></td>
-<td>We mock the <code>contrib.auth</code> module again</td>
-</tr>
-<tr>
-<td><i class="conum" data-value="2"></i><b>2</b></td>
-<td>This time we examine the call args for the <code>auth.login</code> function</td>
-</tr>
-<tr>
-<td><i class="conum" data-value="3"></i><b>3</b></td>
-<td>We check that it&#8217;s called with the request object that the view sees,
-and the "user" object that the <code>authenticate</code> function returns.  Because
-<code>authenticate</code> is also mocked out, we can use its special "return_value"
-attribute</td>
-</tr>
-</table>
-</div>
-<div class="paragraph">
-<p>When you call a mock, you get another mock.  But you can also get a copy
-of that returned mock from the original mock that you called.  Boy, it
-sure is hard to explain this stuff without saying "mock" a lot! Another little
-console illustration might help here:</p>
-</div>
-<div class="listingblock small-code skipme">
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="python">&gt;&gt;&gt; m = Mock()
-&gt;&gt;&gt; thing = m()
-&gt;&gt;&gt; thing
-&lt;Mock name=<span class="string"><span class="delimiter">'</span><span class="content">mock()</span><span class="delimiter">'</span></span> id=<span class="string"><span class="delimiter">'</span><span class="content">140652722034952</span><span class="delimiter">'</span></span>&gt;
-&gt;&gt;&gt; m.return_value
-&lt;Mock name=<span class="string"><span class="delimiter">'</span><span class="content">mock()</span><span class="delimiter">'</span></span> id=<span class="string"><span class="delimiter">'</span><span class="content">140652722034952</span><span class="delimiter">'</span></span>&gt;
-&gt;&gt;&gt; thing == m.return_value
-<span class="predefined-constant">True</span></code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>In any case, what do we get from running the test?</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>$ <strong>python manage.py test accounts</strong>
-[...]
-    call(response.wsgi_request, mock_auth.authenticate.return_value)
-AssertionError: None != call(&lt;WSGIRequest: GET '/accounts/login?t[...]</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Sure enough, it&#8217;s telling us that we&#8217;re not calling <code>auth.login</code> at all
-yet.  Let&#8217;s try doing that.  Deliberately wrong as usual first!</p>
-</div>
-<div class="listingblock sourcecode">
-<div class="title">accounts/views.py (ch16l042)</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">def</span> <span class="function">login</span>(request):
-    auth.authenticate(uid=request.GET.get(<span class="string"><span class="delimiter">'</span><span class="content">token</span><span class="delimiter">'</span></span>))
-    auth.login(<span class="string"><span class="delimiter">'</span><span class="content">ack!</span><span class="delimiter">'</span></span>)
-    <span class="keyword">return</span> redirect(<span class="string"><span class="delimiter">'</span><span class="content">/</span><span class="delimiter">'</span></span>)</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Ack indeed!</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>TypeError: login() missing 1 required positional argument: 'user'
-[...]
-AssertionError: call('ack!') != call(&lt;WSGIRequest: GET
-'/accounts/login?token=[...]</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Let&#8217;s fix that:</p>
-</div>
-<div class="listingblock sourcecode">
-<div class="title">accounts/views.py (ch16l043)</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">def</span> <span class="function">login</span>(request):
-    user = auth.authenticate(uid=request.GET.get(<span class="string"><span class="delimiter">'</span><span class="content">token</span><span class="delimiter">'</span></span>))
-    auth.login(request, user)
-    <span class="keyword">return</span> redirect(<span class="string"><span class="delimiter">'</span><span class="content">/</span><span class="delimiter">'</span></span>)</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Now we get this unexpected complaint:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>ERROR: test_redirects_to_home_page (accounts.tests.test_views.LoginViewTest)
-[...]
-AttributeError: 'AnonymousUser' object has no attribute '_meta'</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>It&#8217;s because we&#8217;re still calling <code>auth.login</code> indiscriminately on any kind
-of user, and that&#8217;s causing problems back in our original test for the
-redirect, which <em>isn&#8217;t</em> currently mocking out <code>auth.login</code>.  We need to add an
-<code>if</code> (and therefore another test), and while we&#8217;re at it we&#8217;ll learn about
-patching at the class level.</p>
-</div>
-</div>
-<div class="sect3">
-<h4 id="_patching_at_the_class_level">Patching at the class level</h4>
-<div class="paragraph">
-<p>We want to add another test, with another <code>@patch('accounts.views.auth')</code>,
-and that&#8217;s starting to get repetitive.  We use the "three strikes" rule,
-and we can move the patch decorator to the class level.  This will have
-the effect of mocking out <code>accounts.views.auth</code> in every single test
-method in that class.  That also means our original redirect test will
-now also have the <code>mock_auth</code> variable injected:</p>
-</div>
-<div class="listingblock sourcecode">
-<div class="title">accounts/tests/test_views.py (ch16l044)</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="decorator">@patch</span>(<span class="string"><span class="delimiter">'</span><span class="content">accounts.views.auth</span><span class="delimiter">'</span></span>)  <i class="conum" data-value="1"></i><b>(1)</b>
-<span class="keyword">class</span> <span class="class">LoginViewTest</span>(TestCase):
-
-    <span class="keyword">def</span> <span class="function">test_redirects_to_home_page</span>(<span class="predefined-constant">self</span>, mock_auth):  <i class="conum" data-value="2"></i><b>(2)</b>
-        [...]
-
-    <span class="keyword">def</span> <span class="function">test_calls_authenticate_with_uid_from_get_request</span>(<span class="predefined-constant">self</span>, mock_auth):  <i class="conum" data-value="3"></i><b>(3)</b>
-        [...]
-
-    <span class="keyword">def</span> <span class="function">test_calls_auth_login_with_user_if_there_is_one</span>(<span class="predefined-constant">self</span>, mock_auth):  <i class="conum" data-value="3"></i><b>(3)</b>
-        [...]
-
-
-    <span class="keyword">def</span> <span class="function">test_does_not_login_if_user_is_not_authenticated</span>(<span class="predefined-constant">self</span>, mock_auth):
-        mock_auth.authenticate.return_value = <span class="predefined-constant">None</span>  <i class="conum" data-value="4"></i><b>(4)</b>
-        <span class="predefined-constant">self</span>.client.get(<span class="string"><span class="delimiter">'</span><span class="content">/accounts/login?token=abcd123</span><span class="delimiter">'</span></span>)
-        <span class="predefined-constant">self</span>.assertEqual(mock_auth.login.called, <span class="predefined-constant">False</span>)  <i class="conum" data-value="5"></i><b>(5)</b></code></pre>
-</div>
-</div>
-<div class="colist arabic">
-<table>
-<tr>
-<td><i class="conum" data-value="1"></i><b>1</b></td>
-<td>We move the patch to the class level&#8230;&#8203;</td>
-</tr>
-<tr>
-<td><i class="conum" data-value="2"></i><b>2</b></td>
-<td>which means we get an extra argument injected into our first test method&#8230;&#8203;</td>
-</tr>
-<tr>
-<td><i class="conum" data-value="3"></i><b>3</b></td>
-<td>And we can remove the decorators from all the other tests.</td>
-</tr>
-<tr>
-<td><i class="conum" data-value="4"></i><b>4</b></td>
-<td>In our new test, we explicitly set the <code>return_value</code> on the
-<code>auth.authenticate</code> mock, <em>before</em> we call the <code>self.client.get</code>.</td>
-</tr>
-<tr>
-<td><i class="conum" data-value="5"></i><b>5</b></td>
-<td>We assert that, if <code>authenticate</code> returns <code>None</code>, we should not
-call <code>auth.login</code> at all.</td>
-</tr>
-</table>
-</div>
-<div class="paragraph">
-<p>That cleans up the spurious failure, and gives us a specific, expected failure
-to work on:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>    self.assertEqual(mock_auth.login.called, False)
-AssertionError: True != False</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>And we get it passing like this:</p>
-</div>
-<div class="listingblock sourcecode">
-<div class="title">accounts/views.py (ch16l045)</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">def</span> <span class="function">login</span>(request):
-    user = auth.authenticate(uid=request.GET.get(<span class="string"><span class="delimiter">'</span><span class="content">token</span><span class="delimiter">'</span></span>))
-    <span class="keyword">if</span> user:
-        auth.login(request, user)
-    <span class="keyword">return</span> redirect(<span class="string"><span class="delimiter">'</span><span class="content">/</span><span class="delimiter">'</span></span>)</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>TODO: add a failure message?</p>
-</div>
-<div class="paragraph">
-<p>So are we there yet?</p>
+<p>Time to de-spike!</p>
 </div>
 </div>
 </div>
 <div class="sect2">
-<h3 id="_the_moment_of_truth_will_the_ft_pass">The Moment of Truth:  Will the FT Pass?</h3>
+<h3 id="_de_spiking">De-spiking</h3>
 <div class="paragraph">
-<p>I think we&#8217;re just about ready to try our functional test!</p>
+<p>
+
+
+De-spiking means rewriting your prototype code using TDD.  We now have enough
+information to "do it properly".  So what&#8217;s the first step?  An FT of course!</p>
 </div>
 <div class="paragraph">
-<p>Let&#8217;s just make sure our base template shows a different nav bar for logged in
-and non-logged in users (which our FT relies on):</p>
+<p>We&#8217;ll stay on the spike branch for now, to see our FT pass against our spiked
+code.  Then we&#8217;ll go back to master, and commit just the FT.</p>
 </div>
-<div class="listingblock sourcecode small-code">
-<div class="title">lists/templates/base.html (ch16l046)</div>
+<div class="paragraph">
+<p>Here&#8217;s a first, simple version of the FT</p>
+</div>
+<div class="listingblock sourcecode">
+<div class="title">functional_tests/test_login.py</div>
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="html"><span class="tag">&lt;nav</span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">"</span><span class="content">navbar navbar-default</span><span class="delimiter">"</span></span> <span class="attribute-name">role</span>=<span class="string"><span class="delimiter">"</span><span class="content">navigation</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>
-  <span class="tag">&lt;div</span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">"</span><span class="content">container-fluid</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>
-    <span class="tag">&lt;a</span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">"</span><span class="content">navbar-brand</span><span class="delimiter">"</span></span> <span class="attribute-name">href</span>=<span class="string"><span class="delimiter">"</span><span class="content">/</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>Superlists<span class="tag">&lt;/a&gt;</span>
-    {% if user.email %}
-      <span class="tag">&lt;ul</span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">"</span><span class="content">nav navbar-nav navbar-right</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>
-        <span class="tag">&lt;li</span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">"</span><span class="content">navbar-text</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>Logged in as {{ user.email }}<span class="tag">&lt;/li&gt;</span>
-        <span class="tag">&lt;li&gt;</span><span class="tag">&lt;a</span> <span class="attribute-name">href</span>=<span class="string"><span class="delimiter">"</span><span class="content">#</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>Log out<span class="tag">&lt;/a&gt;</span><span class="tag">&lt;/li&gt;</span>
-      <span class="tag">&lt;/ul&gt;</span>
-    {% else %}
-      <span class="tag">&lt;form</span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">"</span><span class="content">navbar-form navbar-right</span><span class="delimiter">"</span></span> <span class="attribute-name">method</span>=<span class="string"><span class="delimiter">"</span><span class="content">POST</span><span class="delimiter">"</span></span> <span class="attribute-name">action</span>=<span class="string"><span class="delimiter">"</span><span class="content">{% url 'send_login_email' %}</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>
-        <span class="tag">&lt;span&gt;</span>Enter email to log in:<span class="tag">&lt;/span&gt;</span>
-        <span class="tag">&lt;input</span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">"</span><span class="content">form-control</span><span class="delimiter">"</span></span> <span class="attribute-name">name</span>=<span class="string"><span class="delimiter">"</span><span class="content">email</span><span class="delimiter">"</span></span> <span class="attribute-name">type</span>=<span class="string"><span class="delimiter">"</span><span class="content">text</span><span class="delimiter">"</span></span> <span class="tag">/&gt;</span>
-        {% csrf_token %}
-      <span class="tag">&lt;/form&gt;</span>
-    {% endif %}
-  <span class="tag">&lt;/div&gt;</span>
-<span class="tag">&lt;/nav&gt;</span></code></pre>
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> <span class="include">django.core</span> <span class="keyword">import</span> <span class="include">mail</span>
+<span class="keyword">from</span> <span class="include">selenium.webdriver.common.keys</span> <span class="keyword">import</span> <span class="include">Keys</span>
+<span class="keyword">import</span> <span class="include">re</span>
+
+<span class="keyword">from</span> .base <span class="keyword">import</span> <span class="include">FunctionalTest</span>
+
+TEST_EMAIL = <span class="string"><span class="delimiter">'</span><span class="content">edith@example.com</span><span class="delimiter">'</span></span>
+SUBJECT = <span class="string"><span class="delimiter">'</span><span class="content">Your login link for Superlists</span><span class="delimiter">'</span></span>
+
+
+<span class="keyword">class</span> <span class="class">LoginTest</span>(FunctionalTest):
+
+    <span class="keyword">def</span> <span class="function">test_can_get_email_link_to_log_in</span>(<span class="predefined-constant">self</span>):
+        <span class="comment"># Edith goes to the awesome superlists site</span>
+        <span class="comment"># and notices a "Log in" section in the navbar for the first time</span>
+        <span class="comment"># It's telling her to enter her email address, so she does</span>
+        <span class="predefined-constant">self</span>.browser.get(<span class="predefined-constant">self</span>.server_url)
+        <span class="predefined-constant">self</span>.browser.find_element_by_name(<span class="string"><span class="delimiter">'</span><span class="content">email</span><span class="delimiter">'</span></span>).send_keys(TEST_EMAIL)
+        <span class="predefined-constant">self</span>.browser.find_element_by_name(<span class="string"><span class="delimiter">'</span><span class="content">email</span><span class="delimiter">'</span></span>).send_keys(Keys.ENTER)
+
+        <span class="comment"># A message appears telling her an email has been sent</span>
+        <span class="predefined-constant">self</span>.wait_for(<span class="keyword">lambda</span>: <span class="predefined-constant">self</span>.assertIn(
+            <span class="string"><span class="delimiter">'</span><span class="content">Check your email</span><span class="delimiter">'</span></span>,
+            <span class="predefined-constant">self</span>.browser.find_element_by_tag_name(<span class="string"><span class="delimiter">'</span><span class="content">body</span><span class="delimiter">'</span></span>).text
+        ))
+
+        <span class="comment"># She checks her email and finds a message</span>
+        email = mail.outbox[<span class="integer">0</span>]  <i class="conum" data-value="1"></i><b>(1)</b>
+        <span class="predefined-constant">self</span>.assertIn(TEST_EMAIL, email.to)
+        <span class="predefined-constant">self</span>.assertEqual(email.subject, SUBJECT)
+
+        <span class="comment"># It has a url link in it</span>
+        <span class="predefined-constant">self</span>.assertIn(<span class="string"><span class="delimiter">'</span><span class="content">Use this link to log in</span><span class="delimiter">'</span></span>, email.body)
+        url_search = re.search(<span class="string"><span class="modifier">r</span><span class="delimiter">'</span><span class="content">http://.+/.+$</span><span class="delimiter">'</span></span>, email.body)
+        <span class="keyword">if</span> <span class="keyword">not</span> url_search:
+            <span class="predefined-constant">self</span>.fail(
+                <span class="string"><span class="delimiter">'</span><span class="content">Could not find url in email body:</span><span class="char">\n</span><span class="content">{}</span><span class="delimiter">'</span></span>.format(email.body)
+            )
+        url = url_search.group(<span class="integer">0</span>)
+        <span class="predefined-constant">self</span>.assertIn(<span class="predefined-constant">self</span>.server_url, url)
+
+        <span class="comment"># she clicks it</span>
+        <span class="predefined-constant">self</span>.browser.get(url)
+
+        <span class="comment"># she is logged in!</span>
+        <span class="predefined-constant">self</span>.wait_for(
+            <span class="keyword">lambda</span>: <span class="predefined-constant">self</span>.browser.find_element_by_link_text(<span class="string"><span class="delimiter">'</span><span class="content">Log out</span><span class="delimiter">'</span></span>)
+        )
+        navbar = <span class="predefined-constant">self</span>.browser.find_element_by_css_selector(<span class="string"><span class="delimiter">'</span><span class="content">.navbar</span><span class="delimiter">'</span></span>)
+        <span class="predefined-constant">self</span>.assertIn(TEST_EMAIL, navbar.text)</code></pre>
 </div>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>Were you worried about how we were going to handle retrieving emails in our
+tests?  Thankfully we can cheat for now! When running tests, Django gives
+us access to any emails the server tries to send via the <code>mail.outbox</code>
+attribute. We&#8217;ll save checking "real" emails for later (but we will do it!)</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>And if we run the FT, it works!</p>
 </div>
 <div class="listingblock">
 <div class="content">
 <pre>$ <strong>python manage.py test functional_tests.test_login</strong>
-Internal Server Error: /accounts/login
-[...]
-  File "/.../superlists/accounts/views.py", line 31, in login
-    auth.login(request, user)
-[...]
-ValueError: The following fields do not exist in this model or are m2m fields:
-last_login
-[...]
+Creating test database for alias 'default'...
+Not Found: /favicon.ico
+saving uid [...]
+login view
+uid [...]
+got token
+new user
+
+.
+ ---------------------------------------------------------------------
+Ran 1 test in 3.729s
+
+OK
+Destroying test database for alias 'default'...</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>You can even see some of the debug output I left in my spiked view
+implementations.  Now it&#8217;s time to revert all of our temporary changes,
+and reintroduce them one by one in a test-driven way.</p>
+</div>
+<div class="sect3">
+<h4 id="_reverting_our_spiked_code">Reverting Our Spiked Code</h4>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>git checkout master</strong> # switch back to master branch
+$ <strong>rm -rf accounts</strong> # remove any trace of spiked code
+$ <strong>git add functional_tests/test_login.py</strong>
+$ <strong>git commit -m "FT for login via email"</strong></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Now we rerun the FT and let it drive our development:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>python manage.py test functional_tests.test_login</strong>
 selenium.common.exceptions.NoSuchElementException: Message: Unable to locate
-element: {"method":"link text","selector":"Log out"}</pre>
+element: [name="email"]
+[...]</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>Oh no!  Something&#8217;s not right.  But assuming you&#8217;ve kept the <code>LOGGING</code>
-config in <em>settings.py</em>, you should see the explanatory traceback,
-which is saying something about our custom user model needing a
-<code>last_login</code> field.</p>
+<p>The first thing it wants us to do is add an email input box.</p>
 </div>
 <div class="paragraph">
-<p><a href="https://code.djangoproject.com/ticket/26823">In my opinion</a> this is a
-bug in Django, but essentially the auth framework expects the user
-model to have a <code>last_login</code> field.  We don&#8217;t have one.  But never fear!
-There&#8217;s a way of handling this failure.  Let&#8217;s write a test for it first.</p>
-</div>
-<div class="paragraph">
-<p>Since it&#8217;s to do with our custom user model, as good a place to have it
-as any might be <em>test_models.py</em>:</p>
+<p>Next a "do-nothing" login email box.  Bootstrap has some built-in classes for
+navigation bars, so we&#8217;ll use them:</p>
 </div>
 <div class="listingblock sourcecode">
-<div class="title">accounts/tests/test_models.py (ch16l047)</div>
+<div class="title">lists/templates/base.html (ch16l020)</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="html"><span class="tag">&lt;div</span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">"</span><span class="content">container</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>
+
+  <span class="tag">&lt;nav</span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">"</span><span class="content">navbar navbar-default</span><span class="delimiter">"</span></span> <span class="attribute-name">role</span>=<span class="string"><span class="delimiter">"</span><span class="content">navigation</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>
+    <span class="tag">&lt;div</span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">"</span><span class="content">container-fluid</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>
+      <span class="tag">&lt;a</span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">"</span><span class="content">navbar-brand</span><span class="delimiter">"</span></span> <span class="attribute-name">href</span>=<span class="string"><span class="delimiter">"</span><span class="content">/</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>Superlists<span class="tag">&lt;/a&gt;</span>
+      <span class="tag">&lt;form</span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">"</span><span class="content">navbar-form navbar-right</span><span class="delimiter">"</span></span> <span class="attribute-name">method</span>=<span class="string"><span class="delimiter">"</span><span class="content">POST</span><span class="delimiter">"</span></span> <span class="attribute-name">action</span>=<span class="string"><span class="delimiter">"</span><span class="content">#</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>
+        <span class="tag">&lt;span&gt;</span>Enter email to log in:<span class="tag">&lt;/span&gt;</span>
+        <span class="tag">&lt;input</span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">"</span><span class="content">form-control</span><span class="delimiter">"</span></span> <span class="attribute-name">name</span>=<span class="string"><span class="delimiter">"</span><span class="content">email</span><span class="delimiter">"</span></span> <span class="attribute-name">type</span>=<span class="string"><span class="delimiter">"</span><span class="content">text</span><span class="delimiter">"</span></span> <span class="tag">/&gt;</span>
+        {% csrf_token %}
+      <span class="tag">&lt;/form&gt;</span>
+    <span class="tag">&lt;/div&gt;</span>
+  <span class="tag">&lt;/nav&gt;</span>
+
+  <span class="tag">&lt;div</span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">"</span><span class="content">row</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>
+  [...]</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Now our FT fails because the login form doesn&#8217;t actually do anything:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>python manage.py test functional_tests.test_login</strong>
+[...]
+AssertionError: 'Check your email' not found in 'Superlists\nEnter email to log
+in:\nStart a new To-Do list'</pre>
+</div>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+I recommend reintroducing the <code>LOGGING</code> setting from earlier at this
+    point.  There&#8217;s no need for an explicit test for it; our current test
+    suite will let us know in the unlikely event that it breaks anything. As
+    we&#8217;ll find out in <a href="/book/chapter_18.html">[testfixtures-and-logging]</a>, it&#8217;ll be useful for
+    debugging later.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>So let&#8217;s start by creating an app called <code>accounts</code> to hold all the code
+related to login.</p>
+</div>
+<div class="listingblock dofirst-ch16l021-1">
+<div class="content">
+<pre>$ <strong>python manage.py startapp accounts</strong></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>You could even do a commit just for that, to be able to distinguish the
+placeholder app files from our modifications.</p>
+</div>
+<div class="paragraph">
+<p>Next let&#8217;s rebuild our minimal user model, with tests this time, and see
+if it turns out neater than it did in the spike.</p>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_a_minimal_custom_user_model">A Minimal Custom User Model</h3>
+<div class="paragraph">
+<p>
+
+Django&#8217;s built-in user model makes all sorts of assumptions about what
+information you want to track about users, from explicitly recording
+first name and last name, to forcing you to use a username.   I&#8217;m a great
+believer in not storing information about users unless you absolutely must,
+so a user model that records an email address and nothing else sounds good to
+me!</p>
+</div>
+<div class="paragraph">
+<p>By now I&#8217;m sure you can manage to create the tests folder and its <code>__init__py</code>,
+remove <strong>tests.py</strong> and then add a <strong>test_models.py</strong> to say:</p>
+</div>
+<div class="listingblock sourcecode dofirst-ch16l022">
+<div class="title">accounts/tests/test_models.py (ch16l024)</div>
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> <span class="include">django.test</span> <span class="keyword">import</span> <span class="include">TestCase</span>
-<span class="keyword">from</span> <span class="include">django.contrib</span> <span class="keyword">import</span> <span class="include">auth</span>
-<span class="keyword">from</span> <span class="include">accounts.models</span> <span class="keyword">import</span> <span class="include">Token</span>
-User = auth.get_user_model()
+<span class="keyword">from</span> <span class="include">django.contrib.auth</span> <span class="keyword">import</span> <span class="include">get_user_model</span>
+
+User = get_user_model()
 
 
 <span class="keyword">class</span> <span class="class">UserModelTest</span>(TestCase):
 
     <span class="keyword">def</span> <span class="function">test_user_is_valid_with_email_only</span>(<span class="predefined-constant">self</span>):
-        [...]
-
-
-    <span class="keyword">def</span> <span class="function">test_no_problem_with_auth_login</span>(<span class="predefined-constant">self</span>):
-        user = User.objects.create(email=<span class="string"><span class="delimiter">'</span><span class="content">edith@example.com</span><span class="delimiter">'</span></span>)
-        user.backend = <span class="string"><span class="delimiter">'</span><span class="delimiter">'</span></span>
-        request = <span class="predefined-constant">self</span>.client.request().wsgi_request
-        auth.login(request, user)  <span class="comment"># should not raise</span></code></pre>
+        user = User(email=<span class="string"><span class="delimiter">'</span><span class="content">a@b.com</span><span class="delimiter">'</span></span>)
+        user.full_clean()  <span class="comment"># should not raise</span></code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>We create a request object and a user, and then we pass them into the
-<code>auth.login</code> function.</p>
+<p>That gives us an expected failure:</p>
 </div>
-<div class="paragraph">
-<p>That will raise our error:</p>
-</div>
-<div class="listingblock">
+<div class="listingblock dofirst-ch16l023">
 <div class="content">
-<pre>    auth.login(request, user)  # should not raise
-[...]
-ValueError: The following fields do not exist in this model or are m2m fields:
-last_login</pre>
+<pre>django.core.exceptions.ValidationError: {'username': ['This field cannot be
+blank.'], 'password': ['This field cannot be blank.']}</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>And we can fix it like this:</p>
+<p>Password?  Username?  Bah!  How about this?</p>
 </div>
 <div class="listingblock sourcecode">
-<div class="title">accounts/models.py (ch16l048)</div>
+<div class="title">accounts/models.py</div>
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">import</span> <span class="include">uuid</span>
-<span class="keyword">from</span> <span class="include">django.contrib</span> <span class="keyword">import</span> <span class="include">auth</span>
-<span class="keyword">from</span> <span class="include">django.db</span> <span class="keyword">import</span> <span class="include">models</span>
-
-auth.signals.user_logged_in.disconnect(auth.models.update_last_login)
-
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> <span class="include">django.db</span> <span class="keyword">import</span> <span class="include">models</span>
 
 <span class="keyword">class</span> <span class="class">User</span>(models.Model):
-    [...]</code></pre>
+    email = models.EmailField()</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>And, how does our FT look now?</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>$ <strong>python manage.py test functional_tests.test_login</strong>
-[...]
-.
- ---------------------------------------------------------------------
-Ran 1 test in 3.282s
-
-OK
-Destroying test database for alias 'default'...</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Wow!  Can you believe it?  I scarcely can!  Time for a manual look around.</p>
-</div>
-<div class="listingblock skipme">
-<div class="content">
-<pre>$ <strong>python manage.py runserver</strong>
-[...]
-Internal Server Error: /accounts/send_login_email
-Traceback (most recent call last):
-  File "/.../superlists/accounts/views.py", line 20, in send_login_email
-
-ConnectionRefusedError: [Errno 111] Connection refused</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>You&#8217;ll probably get an error, like I did, when you try to run things manually.
-Two possible problems:</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p>Firstly, we need to re-add the email configuration to settings.py</p>
-</li>
-<li>
-<p>Secondly, we probably need to <code>export</code> the email password in our shell.</p>
-</li>
-</ul>
+<p>And we wire it up inside <em>settings.py</em>, adding <code>accounts</code> to <code>INSTALLED_APPS</code>
+and a variable called <code>AUTH_USER_MODEL</code>:</p>
 </div>
 <div class="listingblock sourcecode">
-<div class="title">superlists/settings.py (ch16l049)</div>
+<div class="title">superlists/settings.py (ch16l026)</div>
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python">EMAIL_HOST = <span class="string"><span class="delimiter">'</span><span class="content">smtp.gmail.com</span><span class="delimiter">'</span></span>
-EMAIL_HOST_USER = <span class="string"><span class="delimiter">'</span><span class="content">obeythetestinggoat@gmail.com</span><span class="delimiter">'</span></span>
-EMAIL_HOST_PASSWORD = os.environ.get(<span class="string"><span class="delimiter">'</span><span class="content">EMAIL_PASSWORD</span><span class="delimiter">'</span></span>)
-EMAIL_USE_TLS = <span class="predefined-constant">True</span></code></pre>
+<pre class="CodeRay highlight"><code data-lang="python">INSTALLED_APPS = [
+    <span class="comment">#'django.contrib.admin',</span>
+    <span class="string"><span class="delimiter">'</span><span class="content">django.contrib.auth</span><span class="delimiter">'</span></span>,
+    <span class="string"><span class="delimiter">'</span><span class="content">django.contrib.contenttypes</span><span class="delimiter">'</span></span>,
+    <span class="string"><span class="delimiter">'</span><span class="content">django.contrib.sessions</span><span class="delimiter">'</span></span>,
+    <span class="string"><span class="delimiter">'</span><span class="content">django.contrib.messages</span><span class="delimiter">'</span></span>,
+    <span class="string"><span class="delimiter">'</span><span class="content">django.contrib.staticfiles</span><span class="delimiter">'</span></span>,
+    <span class="string"><span class="delimiter">'</span><span class="content">lists</span><span class="delimiter">'</span></span>,
+    <span class="string"><span class="delimiter">'</span><span class="content">accounts</span><span class="delimiter">'</span></span>,
+]
+
+AUTH_USER_MODEL = <span class="string"><span class="delimiter">'</span><span class="content">accounts.User</span><span class="delimiter">'</span></span></code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>and</p>
-</div>
-<div class="listingblock skipme">
-<div class="content">
-<pre>$ <strong>export EMAIL_PASSWORD="sekrit"</strong>
-$ <strong>python manage.py runserver</strong></pre>
-</div>
-</div>
-<div id="despiked-success-message" class="imageblock">
-<div class="content">
-<img src="images/despiked_site_with_success_message.png" alt="de-spiked site with success message">
-</div>
-<div class="title">Figure 1. Check your email&#8230;&#8203;.</div>
-</div>
-<div class="paragraph">
-<p>Woohoo!</p>
-</div>
-<div class="paragraph">
-<p>I&#8217;ve been waiting to do a commit up until this moment, just to make sure
-everything works.  At this point, you could make a series of separate
-commits&#8212;&#8203;one for the login view, one for the auth backend, one for
-the user model, one for wiring up the template.  Or you could decide that,
-since they&#8217;re all interrelated, and none will work without the others,
-you may as well just have one big commit:</p>
+<p>The next error is a database error:</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>$ <strong>git status</strong>
-$ <strong>git add .</strong>
-$ <strong>git diff --staged</strong>
-$ <strong>git commit -m "Custom passwordless auth backend + custom user model"</strong></pre>
+<pre>django.db.utils.OperationalError: no such table: accounts_user</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>That prompts us, as usual, to do a migration&#8230;&#8203; When we try, Django complains
+that our custom user model is missing a couple of bits of metadata:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>python manage.py makemigrations</strong>
+Traceback (most recent call last):
+[...]
+    if not isinstance(cls.REQUIRED_FIELDS, (list, tuple)):
+AttributeError: type object 'User' has no attribute 'REQUIRED_FIELDS'</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Sigh.  Come on, Django, it&#8217;s only got one field, you should be able to figure
+out the answers to these questions for yourself.  Here you go:</p>
+</div>
+<div class="listingblock sourcecode">
+<div class="title">accounts/models.py</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">class</span> <span class="class">User</span>(models.Model):
+    email = models.EmailField()
+    REQUIRED_FIELDS = []</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Next silly question?<sup class="footnote">[<a id="_footnoteref_2" class="footnote" href="#_footnote_2" title="View footnote.">2</a>]</sup></p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>python manage.py makemigrations</strong>
+[...]
+AttributeError: type object 'User' has no attribute 'USERNAME_FIELD'</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>And we go through a few more of these, until we get to:</p>
+</div>
+<div class="listingblock sourcecode">
+<div class="title">accounts/models.py</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">class</span> <span class="class">User</span>(models.Model):
+    email = models.EmailField()
+
+    REQUIRED_FIELDS = []
+    USERNAME_FIELD = <span class="string"><span class="delimiter">'</span><span class="content">email</span><span class="delimiter">'</span></span>
+    is_anonymous = <span class="predefined-constant">False</span>
+    is_authenticated = <span class="predefined-constant">True</span></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>And now we get a slightly different error</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>python manage.py makemigrations</strong>
+SystemCheckError: System check identified some issues:
+
+ERRORS:
+accounts.User: (auth.E003) 'User.email' must be unique because it is named as
+the 'USERNAME_FIELD'.</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>OK then, let&#8217;s go the whole hog and make email the primary key:</p>
+</div>
+<div class="listingblock sourcecode">
+<div class="title">accounts/models.py (ch16l028)</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python">    email = models.EmailField(primary_key=<span class="predefined-constant">True</span>)</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>And finally we can get a migration that works</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>python manage.py makemigrations</strong>
+Migrations for 'accounts':
+  accounts/migrations/0001_initial.py:
+    - Create model User</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>
+</p>
+</div>
+<div class="paragraph">
+<p>And our test passes:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>python manage.py test accounts</strong>
+[...]
+Ran 1 test in 0.001s
+OK</pre>
 </div>
 </div>
 </div>
 <div class="sect2">
-<h3 id="_finishing_off_our_ft_testing_logout">Finishing Off Our FT, Testing Logout</h3>
+<h3 id="_a_token_model_to_link_emails_with_a_unique_id">A Token Model to Link Emails with a Unique ID</h3>
 <div class="paragraph">
-<p>
-The last thing we need to do before we call it ta day is to test the logout
-link.  We extend the FT with a couple more steps:</p>
+<p>Next let&#8217;s build a token model.  Here&#8217;s a short unit test
+that captures the essence&#8201;&#8212;&#8201;you should be able to link an
+email to a unique id, and that id shouldn&#8217;t be the same two
+times in a row:</p>
 </div>
 <div class="listingblock sourcecode">
-<div class="title">functional_tests/test_login.py (ch16l050)</div>
+<div class="title">accounts/tests/test_models.py (ch16l030)</div>
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python">        [...]
-        <span class="comment"># she is logged in!</span>
-        <span class="predefined-constant">self</span>.browser.find_element_by_link_text(<span class="string"><span class="delimiter">'</span><span class="content">Log out</span><span class="delimiter">'</span></span>)
-        navbar = <span class="predefined-constant">self</span>.browser.find_element_by_css_selector(<span class="string"><span class="delimiter">'</span><span class="content">.navbar</span><span class="delimiter">'</span></span>)
-        <span class="predefined-constant">self</span>.assertIn(TEST_EMAIL, navbar.text)
-
-        <span class="comment"># Now she logs out</span>
-        <span class="predefined-constant">self</span>.browser.find_element_by_link_text(<span class="string"><span class="delimiter">'</span><span class="content">Log out</span><span class="delimiter">'</span></span>).click()
-
-        <span class="comment"># She is logged out</span>
-        navbar = <span class="predefined-constant">self</span>.browser.find_element_by_css_selector(<span class="string"><span class="delimiter">'</span><span class="content">.navbar</span><span class="delimiter">'</span></span>)
-        <span class="predefined-constant">self</span>.assertNotIn(TEST_EMAIL, navbar.text)
-        <span class="predefined-constant">self</span>.browser.find_element_by_name(<span class="string"><span class="delimiter">'</span><span class="content">email</span><span class="delimiter">'</span></span>)</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>With that, we can see that the test is failing because the logout button
-doesn&#8217;t work:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>$ <strong>python manage.py test functional_tests.test_login</strong>
-[...]
-    self.assertNotIn(TEST_EMAIL, navbar.text)
-AssertionError: 'edith@example.com' unexpectedly found in 'Superlists\nLogged
-in as edith@example.com\nLog out'</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Implementing a logout button is actually very simple:  we can use Django&#8217;s
-<a href="http://bit.ly/SuI0hA">built-in logout view</a>, which clears down the user&#8217;s
-session and redirects them to a page of our choice:</p>
-</div>
-<div class="listingblock sourcecode small-code">
-<div class="title">accounts/urls.py (ch16l051)</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> <span class="include">django.contrib.auth.views</span> <span class="keyword">import</span> <span class="include">logout</span>
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> <span class="include">accounts.models</span> <span class="keyword">import</span> <span class="include">Token</span>
 [...]
 
-urlpatterns = [
-    url(<span class="string"><span class="modifier">r</span><span class="delimiter">'</span><span class="content">^send_login_email$</span><span class="delimiter">'</span></span>, views.send_login_email, name=<span class="string"><span class="delimiter">'</span><span class="content">send_login_email</span><span class="delimiter">'</span></span>),
-    url(<span class="string"><span class="modifier">r</span><span class="delimiter">'</span><span class="content">^login$</span><span class="delimiter">'</span></span>, views.login, name=<span class="string"><span class="delimiter">'</span><span class="content">login</span><span class="delimiter">'</span></span>),
-    url(<span class="string"><span class="modifier">r</span><span class="delimiter">'</span><span class="content">^logout$</span><span class="delimiter">'</span></span>, logout, {<span class="string"><span class="delimiter">'</span><span class="content">next_page</span><span class="delimiter">'</span></span>: <span class="string"><span class="delimiter">'</span><span class="content">/</span><span class="delimiter">'</span></span>}, name=<span class="string"><span class="delimiter">'</span><span class="content">logout</span><span class="delimiter">'</span></span>),
-]</code></pre>
+
+<span class="keyword">class</span> <span class="class">TokenModelTest</span>(TestCase):
+
+    <span class="keyword">def</span> <span class="function">test_links_user_with_auto_generated_uid</span>(<span class="predefined-constant">self</span>):
+        token1 = Token.objects.create(email=<span class="string"><span class="delimiter">'</span><span class="content">a@b.com</span><span class="delimiter">'</span></span>)
+        token2 = Token.objects.create(email=<span class="string"><span class="delimiter">'</span><span class="content">a@b.com</span><span class="delimiter">'</span></span>)
+        <span class="predefined-constant">self</span>.assertNotEqual(token1.uid, token2.uid)</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>And in <em>base.html</em>, we just make the logout into a real URL link:</p>
+<p>Driving django models with basic TDD involves jumping
+through a few hoops because of the migration, so we&#8217;ll
+see a few iterations like this&#8201;&#8212;&#8201;minimal code change,
+make migrations, get new error, delete migrations,
+recreate new migrations, another code change, and so on&#8230;&#8203;</p>
 </div>
-<div class="listingblock sourcecode small-code">
-<div class="title">lists/templates/base.html (ch16l052)</div>
+<div class="listingblock dofirst-ch16l031">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python">    &lt;li&gt;&lt;a href=<span class="string"><span class="delimiter">"</span><span class="content">{% url 'logout' %}</span><span class="delimiter">"</span></span>&gt;Log out&lt;/a&gt;&lt;/li&gt;</code></pre>
+<pre>$ <strong>python manage.py makemigrations</strong>
+Migrations for 'accounts':
+  accounts/migrations/0002_token.py:
+    - Create model Token
+$ <strong>python manage.py test accounts</strong>
+[...]
+TypeError: 'email' is an invalid keyword argument for this function</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>And that gets us a fully passing FT&#8212;&#8203;indeed, a fully passing test suite:</p>
+<p>I&#8217;ll trust you to go through these conscientiously&#8201;&#8212;&#8201;remember,
+I may not be able to see you, but the Testing Goat can!</p>
 </div>
-<div class="listingblock">
+<div class="listingblock dofirst-ch16l032">
 <div class="content">
-<pre>$ <strong>python manage.py test functional_tests.test_login</strong>
+<pre>$ <strong>rm accounts/migrations/0002_token.py</strong>
+$ <strong>python manage.py makemigrations</strong>
+Migrations for 'accounts':
+  accounts/migrations/0002_token.py:
+    - Create model Token
+$ <strong>python manage.py test accounts</strong>
+AttributeError: 'Token' object has no attribute 'uid'</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Eventually you should get to this code&#8230;&#8203;</p>
+</div>
+<div class="listingblock sourcecode">
+<div class="title">accounts/models.py (ch16l033)</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">class</span> <span class="class">Token</span>(models.Model):
+    email = models.EmailField()
+    uid = models.CharField(max_length=<span class="integer">40</span>)</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>And this error:</p>
+</div>
+<div class="listingblock dofirst-ch16l034">
+<div class="content">
+<pre>$ <strong>python manage.py test accounts</strong>
 [...]
-OK
-$ <strong>python manage.py test</strong>
+
+    self.assertNotEqual(token1.uid, token2.uid)
+AssertionError: '' == ''</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>And here we have to decide how to generate our random unique id field.  We
+could use the <code>random</code> module, but Python actually comes with another module
+specifically designed for generating unique IDs called "uuid" (for "universally
+unique id").</p>
+</div>
+<div class="paragraph">
+<p>We can use that like this:</p>
+</div>
+<div class="listingblock sourcecode">
+<div class="title">accounts/models.py (ch16l035)</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">import</span> <span class="include">uuid</span>
 [...]
-Ran 58 tests in 78.124s
+
+<span class="keyword">class</span> <span class="class">Token</span>(models.Model):
+    email = models.EmailField()
+    uid = models.CharField(default=uuid.uuid4, max_length=<span class="integer">40</span>)</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>And, with a bit more wrangling of migrations, that should get us to passing
+tests:</p>
+</div>
+<div class="listingblock dofirst-ch16l036">
+<div class="content">
+<pre>$ <strong>python manage.py test accounts</strong>
+[...]
+Ran 2 tests in 0.015s
 
 OK</pre>
 </div>
 </div>
 <div class="paragraph">
-<p></p>
-</div>
-<div class="admonitionblock warning">
-<table>
-<tr>
-<td class="icon">
-<i class="fa icon-warning" title="Warning"></i>
-</td>
-<td class="content">
-We&#8217;re nowhere near a truly secure or acceptable login system
-    here.  Since this is just an example app for a book, we&#8217;ll leave it
-    at that, but in "real life" you&#8217;d want to explore a lot more security
-    and usability issues before calling the job done.  We&#8217;re dangerously
-    close to "rolling our own crypto" here, and relying on a more established
-    login system would be much safer.
-</td>
-</tr>
-</table>
-</div>
-<div class="paragraph">
-<p>In the next chapter, we&#8217;ll start trying to put our login system to good use.
-In the meantime, do a commit, and enjoy this recap:</p>
+<p>Well,  that gets us on our way!  The models layer is done, at least.
+In the next chapter, we&#8217;ll get into mocking, a key technique for testing
+external dependencies like email.</p>
 </div>
 <div class="sidebarblock">
 <div class="content">
-<div class="title">On Mocking in Python</div>
+<div class="title">Exploratory coding, Spiking and De-Spiking</div>
 <div class="dlist">
 <dl>
-<dt class="hdlist1">Mocking and external dependencies</dt>
+<dt class="hdlist1">Spiking</dt>
 <dd>
-<p>We use mocking in unit tests when we have an external dependency that we
-don&#8217;t want to actually use in our tests.  A mock is used to simulate the
-third-party API.   Whilst it is possible to "roll your own" mocks in
-Python, a mocking framework like the mock module provides a lot of helpful
-shortcuts which will make it easier to write (and more importantly, read)
-your tests.
+<p>Exploratory coding to find out about a new API, or to explore the
+feasibility   of a new solution.  Spiking can be done without tests.  It&#8217;s
+a good idea to do your spike on a new branch, and go back to master when
+de-spiking.
 </p>
 </dd>
-<dt class="hdlist1">Monkeypatching</dt>
+<dt class="hdlist1">De-spiking</dt>
 <dd>
-<p>Replacing an object in a namespace at run-time.  We use it in our unit
-tests to replace a real function which has undesirable side-effects with a
-mock object, using the <code>patch</code> decorator.
-</p>
+<p>Taking the work from a spike and making it part of the production codebase.
+The idea is to throw away the old spike code altogether, and start again
+from scratch, using TDD once again. De-spiked code can often come out
+looking quite different from the original spike, and usually much nicer.</p>
 </dd>
-<dt class="hdlist1">The Mock library</dt>
+<dt class="hdlist1">Writing your FT against spiked code</dt>
 <dd>
-<p>Michael Foord (who used to work for the company that spawned
-PythonAnywhere, just before I joined) wrote the excellent "Mock"
-library that&#8217;s now been integrated into the standard library of Python 3.
-It contains most everything you might need for mocking in Python.
-</p>
-</dd>
-<dt class="hdlist1">The patch decorator</dt>
-<dd>
-<p><code>unittest.mock</code> provides a function called <code>patch</code>, which can be used
-to "mock out" any object from the module you&#8217;re testing.  It&#8217;s commonly
-used as a decorator on a test method, or even at the class level, where
-it&#8217;s applied to all the test methods of that class.
-</p>
-</dd>
-<dt class="hdlist1">Mocks can leave you tightly coupled to the implementation</dt>
-<dd>
-<p>As we saw in the <a href="#mocks-tightly-coupled-sidebar">sidebar on messages</a>,
-mocks can leave you tightly coupled to your implementation. For that
-reason, you shouldn&#8217;t use them unless you have a good reason.</p>
-</dd>
-<dt class="hdlist1">Mocks can save you from duplication in your tests</dt>
-<dd>
-<p>On the other hand, there&#8217;s no point in duplicating all of your tests
-for a function inside a higher-level piece of code that uses that
-function.  Using a mock in this case reduces duplication.</p>
+<p>Whether or not this is a good idea depends on your circumstances.  The
+reason it can be useful is because it can help you write the FT
+correctly&#8212;&#8203;figuring out how to test your spike can be just as challenging
+as the spike itself.  On the other hand, it might constrain you towards
+reimplementing a very similar solution to your spiked one; something to
+watch out for.</p>
 </dd>
 </dl>
-</div>
-<div class="paragraph">
-<p>There&#8217;s lots more discussion of the pros and cons of mocks in
-<a href="/book/chapter_19.html">coming up soon</a>.  Read on!</p>
 </div>
 </div>
 </div>
 </div>
 <div class="sect2">
-<h3 id="_old_content_i_can_t_find_a_place_for">Old content I can&#8217;t find a place for</h3>
+<h3 id="_old_content_we_might_want_to_re_use">Old content we might want to re-use</h3>
 <div class="sect3">
-<h4 id="_beware_of_mocks_in_boolean_comparisons">Beware of Mocks in Boolean Comparisons</h4>
+<h4 id="_tests_as_documentation">Tests as Documentation</h4>
 <div class="paragraph">
-<p>So how come our <code>test_returns_None_if_response_errors</code> isn&#8217;t failing?</p>
+<p>
+
+
+Let&#8217;s go all the way and make the email field into the primary
+key<sup class="footnote">[<a id="_footnoteref_3" class="footnote" href="#_footnote_3" title="View footnote.">3</a>]</sup>,
+and thus implicitly remove the auto-generated <code>id</code> column.</p>
 </div>
 <div class="paragraph">
-<p>Because we&#8217;ve mocked out <code>requests.post</code>, the <code>response</code> is a Mock object,
-which as you remember, returns all attributes and properties as more
-Mocks.<sup class="footnote">[<a id="_footnoteref_4" class="footnote" href="#_footnote_4" title="View footnote.">4</a>]</sup> So, when we do:</p>
+<p>Although that warning is probably enough of a justification to go ahead
+and make the change, it would be better to have a specific test:</p>
 </div>
-<div class="listingblock sourcecode currentcontents skipme">
-<div class="title">accounts/authentication.py</div>
+<div class="listingblock sourcecode skipme">
+<div class="title">accounts/tests/test_models.py (ch16l043)</div>
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python">    <span class="keyword">if</span> response.json()[<span class="string"><span class="delimiter">'</span><span class="content">status</span><span class="delimiter">'</span></span>] == <span class="string"><span class="delimiter">'</span><span class="content">okay</span><span class="delimiter">'</span></span>:</code></pre>
+<pre class="CodeRay highlight"><code data-lang="python">    <span class="keyword">def</span> <span class="function">test_email_is_primary_key</span>(<span class="predefined-constant">self</span>):
+        user = User()
+        <span class="predefined-constant">self</span>.assertFalse(<span class="predefined">hasattr</span>(user, <span class="string"><span class="delimiter">'</span><span class="content">id</span><span class="delimiter">'</span></span>))</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p><code>response</code> is actually a mock, <code>response.json()</code> is a mock, and
-<code>response.json()['status']</code> is a mock too! We end up comparing a mock with the
-string "okay", which evaluates to False, and so we return None by default.
-Let&#8217;s make our test more explicit, by saying that the response JSON will
-be an empty dict:</p>
+<p>It&#8217;ll help us remember if we ever come back and look at the code again
+in future.</p>
+</div>
+<div class="listingblock skipme">
+<div class="content">
+<pre>    self.assertFalse(hasattr(user, 'id'))
+AssertionError: True is not false</pre>
+</div>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+Your tests can be are a form of documentation for your code&#8212;&#8203;they express
+    what your requirements are of a particular class or function. Sometimes, if
+    you forget why you&#8217;ve done something a particular way, going back and
+    looking at the tests will give you the answer.  That&#8217;s why it&#8217;s important
+    to give your tests explicit, verbose method names.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>And here&#8217;s the implementation (feel free to check what happens with
+<code>unique=True</code> first):</p>
+</div>
+<div class="listingblock sourcecode skipme">
+<div class="title">accounts/models.py (ch16l044)</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python">    email = models.EmailField(primary_key=<span class="predefined-constant">True</span>)</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>That works:</p>
+</div>
+<div class="listingblock skipme">
+<div class="content">
+<pre>$ <strong>python manage.py test accounts</strong>
+[...]
+Ran 14 tests in 0.021s
+OK</pre>
+</div>
 </div>
 </div>
 </div>
@@ -2196,21 +1424,18 @@ be an empty dict:</p>
 <div id="footnotes">
 <hr>
 <div class="footnote" id="_footnote_1">
-<a href="#_footnoteref_1">1</a>. I&#8217;m using the generic term "mock", but testing enthusiasts like to distinguish other types of a general class of test tools called "Test Doubles", including spies, fakes and stubs.  The differences don&#8217;t really matter for this book, but if you want to get into the nitty-gritty, check out this <a href="https://github.com/testdouble/contributing-tests/wiki/Test-Double">amazing wiki by Justin Searls</a>. Warning: this wiki is absolutely chock full of great testing content.
+<a href="#_footnoteref_1">1</a>. Didn&#8217;t I just spend a whole intro banging on about the privacy implications of using Google for login, only to go on and use <strong>gmail</strong>?  Yes, it&#8217;s a contradiction (honest, I will move off gmail one day!). But in this case I&#8217;m just using it for testing,  and the important thing is that I&#8217;m not forcing Google on my users
 </div>
 <div class="footnote" id="_footnote_2">
-<a href="#_footnoteref_2">2</a>. yes, I know Django already mocks out emails using mail.outbox for us, but, again, let&#8217;s pretend it doesn&#8217;t. What if you were using Flask?  Or what if this was an API call, not an email?
+<a href="#_footnoteref_2">2</a>. You might ask, if I think Django is so silly, why don&#8217;t I submit a pull request to fix it?  Should be quite a simple fix.  Well, I promise I will, as soon as I&#8217;ve finished writing the book.  For now, snarky comments will have to suffice.
 </div>
 <div class="footnote" id="_footnote_3">
-<a href="#_footnoteref_3">3</a>. In Python 2, you can install it with <code>pip install mock</code>
-</div>
-<div class="footnote" id="_footnote_4">
-<a href="#_footnoteref_4">4</a>. Actually, this is only happening because we&#8217;re using the <code>patch</code> decorator, which returns a <code>MagicMock</code>, an even mockier version of <code>mock</code> that can also behave like a dictionary. More info in the <a href="https://docs.python.org/3/library/unittest.mock-magicmethods.html">docs</a>.
+<a href="#_footnoteref_3">3</a>. Emails may not be the perfect primary key IRL. One reader, clearly deeply emotionally scarred, wrote me a tearful email about how much they&#8217;ve suffered for over a decade from trying to deal with the effects email primary keys, due to their making multi-user account management impossible. So, as ever, YMMV.
 </div>
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2017-01-05 14:09:02 GMT
+Last updated 2017-02-01 17:18:42 GMT
 </div>
 </div>
 <div class="comments" style="padding: 20px">

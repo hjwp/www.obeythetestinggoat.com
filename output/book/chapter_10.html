@@ -4,7 +4,7 @@
 <!--[if IE]><meta http-equiv="X-UA-Compatible" content="IE=edge"><![endif]-->
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="generator" content="Asciidoctor 1.5.4">
-<title>Input Validation and Test Organisation</title>
+<title>Automating Deployment with Fabric</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:300,300italic,400,400italic,600,600italic%7CNoto+Serif:400,400italic,700,700italic%7CDroid+Sans+Mono:400,700">
 <link rel="stylesheet" href="./asciidoctor.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.5.0/css/font-awesome.min.css">
@@ -31,111 +31,8 @@ httpRequest.send();
 </div>
 <div id="content">
 <div class="sect1">
-<h2 id="manual-validation-chapter">Input Validation and Test Organisation</h2>
+<h2 id="fabric-chapter">Automating Deployment with Fabric</h2>
 <div class="sectionbody">
-<div class="paragraph">
-<p>Over the next few chapters we&#8217;ll talk about testing and implementing validation
-of user inputs. We&#8217;ll also take the opportunity to do a little tidying up&#8212;&#8203;both
-in our application code, and also in our tests.</p>
-</div>
-<div class="paragraph">
-<p>In terms of content, there&#8217;s going to be quite a lot of material here that&#8217;s
-more about the specifics of Django, and less discussion of TDD philosophy. That
-doesn&#8217;t mean you won&#8217;t be learning anything about testing&#8212;&#8203;there are plenty of
-little testing tidbits in here, but perhaps it&#8217;s more about really getting into
-the swing of things, the rhythm of TDD and how we get things done.</p>
-</div>
-<div class="paragraph">
-<p>Once we get through these three chapters, I&#8217;ve saved a bit of fun with
-JavaScript for the end of Part 2, and then it&#8217;s on to <a href="/book/part3.harry.html">Part 3</a>, where I
-promise we&#8217;ll get right back into some of the real core discussions in
-TDD methodology&#8212;&#8203;unit tests vs integrated tests, mocking and more.  Stay tuned!</p>
-</div>
-<div class="paragraph">
-<p>But for now, a little validation.</p>
-</div>
-<div class="sect2">
-<h3 id="_validation_ft_preventing_blank_items">Validation FT: Preventing Blank Items</h3>
-<div class="paragraph">
-<p>
-As our first few users start using the site, we&#8217;ve noticed they sometimes make
-mistakes that mess up their lists, like accidentally submitting blank list
-items, or accidentally inputting two identical items to a list.  Computers are
-meant to help stop us from making silly mistakes, so let&#8217;s see if we can get
-our site to help.</p>
-</div>
-<div class="paragraph">
-<p>Here&#8217;s the outline of an FT:</p>
-</div>
-<div class="listingblock sourcecode">
-<div class="title">functional_tests/tests.py (ch10l001)</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">def</span> <span class="function">test_cannot_add_empty_list_items</span>(<span class="predefined-constant">self</span>):
-    <span class="comment"># Edith goes to the home page and accidentally tries to submit</span>
-    <span class="comment"># an empty list item. She hits Enter on the empty input box</span>
-
-    <span class="comment"># The home page refreshes, and there is an error message saying</span>
-    <span class="comment"># that list items cannot be blank</span>
-
-    <span class="comment"># She tries again with some text for the item, which now works</span>
-
-    <span class="comment"># Perversely, she now decides to submit a second blank list item</span>
-
-    <span class="comment"># She receives a similar warning on the list page</span>
-
-    <span class="comment"># And she can correct it by filling some text in</span>
-    <span class="predefined-constant">self</span>.fail(<span class="string"><span class="delimiter">'</span><span class="content">write me!</span><span class="delimiter">'</span></span>)</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>That&#8217;s all very well, but before we go any further&#8212;&#8203;our functional tests
-file is beginning to get a little crowded.  Let&#8217;s split it out into several
-files, in which each has a single test method.</p>
-</div>
-<div class="paragraph">
-<p>
-Remember that functional tests are closely linked to "user stories". If you
-were using some sort of project management tool like an issue tracker, you
-might make it so that each file matched one issue or ticket, and its filename
-contained the ticket ID.  Or, if you prefer to think about things in terms of
-"features", where one feature may have several user stories, then you might
-have one file and class for the feature, and several methods for each of its
-user stories.</p>
-</div>
-<div class="paragraph">
-<p>We&#8217;ll also have one base test class which they can all inherit from.  Here&#8217;s
-how to get there step by step.</p>
-</div>
-<div class="sect3">
-<h4 id="_skipping_a_test">Skipping a Test</h4>
-<div class="paragraph">
-<p>
-
-It&#8217;s always nice, when doing refactoring, to have a fully passing test suite.
-We&#8217;ve just written a test with a deliberate failure. Let&#8217;s temporarily switch
-it off, using a decorator called "skip" from <code>unittest</code>:</p>
-</div>
-<div class="listingblock sourcecode">
-<div class="title">functional_tests/tests.py (ch10l001-1)</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> <span class="include">unittest</span> <span class="keyword">import</span> <span class="include">skip</span>
-[...]
-
-    <span class="decorator">@skip</span>
-    <span class="keyword">def</span> <span class="function">test_cannot_add_empty_list_items</span>(<span class="predefined-constant">self</span>):</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>This tells the test runner to ignore this test.  You can see it works&#8212;&#8203;if we rerun the tests, it&#8217;ll say it passes:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>$ <strong>python manage.py test functional_tests</strong>
-[...]
-Ran 4 tests in 11.577s
-OK</pre>
-</div>
-</div>
 <div class="admonitionblock warning">
 <table>
 <tr>
@@ -143,151 +40,44 @@ OK</pre>
 <i class="fa icon-warning" title="Warning"></i>
 </td>
 <td class="content">
-Skips are dangerous&#8212;&#8203;you need to remember to remove them
-before you commit your changes back to the repo.  This is why line-by-line
-reviews of each of your diffs are a good idea!
+Major update released for Selenium 3.
+    If you started this book on or before Jan 30th 2017,
+    be aware: chapters have been renumbered,
+    so check this is the one you think it is,
+    and have a look at the new <a href="/book/chapter_06.html">[explicit-waits-chapter]</a>
+    for an indication of the changes you&#8217;ll need in your FTs.
+    You should do a <code>pip install --upgrade selenium</code> too.
 </td>
 </tr>
 </table>
 </div>
-<div class="sidebarblock">
-<div class="content">
-<div class="title">Don&#8217;t Forget the "Refactor" in "Red, Green, Refactor"</div>
+<div class="quoteblock">
+<blockquote>
+<div class="paragraph">
+<p>Automate, automate, automate.</p>
+</div>
+</blockquote>
+<div class="attribution">
+&#8212; Cay Horstman
+</div>
+</div>
 <div class="paragraph">
 <p>
 
-A criticism that&#8217;s sometimes levelled at TDD is that it leads to badly
-architected code, as the developer just focuses on getting tests to pass
-rather than stopping to think about how the whole system should be designed.
-I think it&#8217;s slightly unfair.</p>
+Automating deployment is critical for our staging tests to mean anything.
+By making sure the deployment procedure is repeatable, we give ourselves
+assurances that everything will go well when we deploy to production.</p>
 </div>
-<div class="paragraph">
-<p><em>TDD is no silver bullet</em>. You still have to spend time thinking about good
-design.  But what often happens is that people forget the "Refactor" in "Red,
-Green, Refactor". The methodology allows you to throw together any old code to
-get your tests to pass, but it <em>also</em> asks you to then spend some time
-refactoring it to improve its design.</p>
-</div>
-<div class="paragraph">
-<p>Often, however, the best ideas for how to refactor code don&#8217;t occur to you
-straight away. They may occur to you days, weeks, even months after you
-wrote a piece of code, when you&#8217;re working on something totally unrelated
-and you happen to see some old code again with fresh eyes. But if you&#8217;re
-halfway through something else, should you stop to refactor the old code?</p>
-</div>
-<div class="paragraph">
-<p>The answer is that it depends.  In the case at the beginning of the chapter,
-we haven&#8217;t even started writing our new code. We know we are in a working
-state, so we can justify putting a skip on our new FT (to get back to fully
-passing tests) and do a bit of refactoring straight away.</p>
-</div>
-<div class="paragraph">
-<p>Later in the chapter we&#8217;ll spot other bits of code we want to alter.
-In those cases, rather than taking the risk of refactoring an application
-that&#8217;s not in a working state, we&#8217;ll make a note of the thing we want to
-change on our scratchpad and wait until we&#8217;re back to a fully passing test
-suite before refactoring.</p>
-</div>
-</div>
-</div>
-</div>
-<div class="sect3">
-<h4 id="_splitting_functional_tests_out_into_many_files">Splitting Functional Tests out into Many Files</h4>
 <div class="paragraph">
 <p>
-We start putting each test into its own class, still in the same file:</p>
-</div>
-<div class="listingblock sourcecode">
-<div class="title">functional_tests/tests.py (ch10l002)</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">class</span> <span class="class">FunctionalTest</span>(StaticLiveServerTestCase):
-
-    <span class="decorator">@classmethod</span>
-    <span class="keyword">def</span> <span class="function">setUpClass</span>(cls):
-        [...]
-    <span class="keyword">def</span> <span class="function">setUp</span>(<span class="predefined-constant">self</span>):
-        [...]
-    <span class="keyword">def</span> <span class="function">tearDown</span>(<span class="predefined-constant">self</span>):
-        [...]
-    <span class="keyword">def</span> <span class="function">check_for_row_in_list_table</span>(<span class="predefined-constant">self</span>, row_text):
-        [...]
-
-
-<span class="keyword">class</span> <span class="class">NewVisitorTest</span>(FunctionalTest):
-
-    <span class="keyword">def</span> <span class="function">test_can_start_a_list_for_one_user</span>(<span class="predefined-constant">self</span>):
-        [...]
-    <span class="keyword">def</span> <span class="function">test_multiple_users_can_start_lists_at_different_urls</span>(<span class="predefined-constant">self</span>):
-        [...]
-
-
-<span class="keyword">class</span> <span class="class">LayoutAndStylingTest</span>(FunctionalTest):
-
-    <span class="keyword">def</span> <span class="function">test_layout_and_styling</span>(<span class="predefined-constant">self</span>):
-        [...]
-
-
-
-<span class="keyword">class</span> <span class="class">ItemValidationTest</span>(FunctionalTest):
-
-    <span class="decorator">@skip</span>
-    <span class="keyword">def</span> <span class="function">test_cannot_add_empty_list_items</span>(<span class="predefined-constant">self</span>):
-        [...]</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>At this point we can rerun the FTs and see they all still work:</p>
+Fabric is a tool which lets you automate commands that you want to run on
+servers. You can install fabric systemwide&#8212;&#8203;it&#8217;s not part of the core
+functionality of our site, so it doesn&#8217;t need to go into our virtualenv and
+<em>requirements.txt</em>. So, on your local PC:</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>Ran 4 tests in 11.577s
-
-OK</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>That&#8217;s labouring it a little bit, and we could probably get away doing this
-stuff in fewer steps, but, as I keep saying, practising the step-by-step method
-on the easy cases makes it that much easier when we have a complex case.</p>
-</div>
-<div class="paragraph">
-<p>Now we switch from a single tests file to using one for each class, and one
-"base" file to contain the base class all the tests will inherit from.  We&#8217;ll
-make four copies of <em>tests.py</em>, naming them appropriately, and then delete the
-parts we don&#8217;t need from each:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>$ <strong>git mv functional_tests/tests.py functional_tests/base.py</strong>
-$ <strong>cp functional_tests/base.py functional_tests/test_simple_list_creation.py</strong>
-$ <strong>cp functional_tests/base.py functional_tests/test_layout_and_styling.py</strong>
-$ <strong>cp functional_tests/base.py functional_tests/test_list_item_validation.py</strong></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>
-<em>base.py</em> can be cut down to just the <code>FunctionalTest</code> class.  We leave the
-helper method on the base class, because we suspect we&#8217;re about to reuse
-it in our new FT:</p>
-</div>
-<div class="listingblock sourcecode">
-<div class="title">functional_tests/base.py (ch10l003)</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> <span class="include">django.contrib.staticfiles.testing</span> <span class="keyword">import</span> <span class="include">StaticLiveServerTestCase</span>
-<span class="keyword">from</span> <span class="include">selenium</span> <span class="keyword">import</span> <span class="include">webdriver</span>
-<span class="keyword">import</span> <span class="include">sys</span>
-
-<span class="keyword">class</span> <span class="class">FunctionalTest</span>(StaticLiveServerTestCase):
-
-    <span class="decorator">@classmethod</span>
-    <span class="keyword">def</span> <span class="function">setUpClass</span>(cls):
-        [...]
-    <span class="keyword">def</span> <span class="function">setUp</span>(<span class="predefined-constant">self</span>):
-        [...]
-    <span class="keyword">def</span> <span class="function">tearDown</span>(<span class="predefined-constant">self</span>):
-        [...]
-    <span class="keyword">def</span> <span class="function">check_for_row_in_list_table</span>(<span class="predefined-constant">self</span>, row_text):
-        [...]</code></pre>
+<pre>$ <strong>pip2 install --user fabric</strong></pre>
 </div>
 </div>
 <div class="admonitionblock note">
@@ -297,312 +87,201 @@ it in our new FT:</p>
 <i class="fa icon-note" title="Note"></i>
 </td>
 <td class="content">
-Keeping helper methods in a base <code>FunctionalTest</code> class is one useful way
-    of preventing duplication in FTs.  Later in the book (in
-    <a href="/book/chapter_21.html">[page-pattern-chapter]</a>) we&#8217;ll use the "Page pattern", which is related, but
-    prefers composition over inheritance.
+At the time of writing, Fabric had not been ported to Python 3, so
+we have to use the Python 2 version.  Thankfully, the Fabric code is totally
+separate from the rest of our codebase, so it&#8217;s not a problem.
 </td>
 </tr>
 </table>
 </div>
-<div class="paragraph">
-<p>Our first FT is now in its own file, and should be just one class and one test
-method:</p>
-</div>
-<div class="listingblock sourcecode">
-<div class="title">functional_tests/test_simple_list_creation.py (ch10l004)</div>
+<div class="sidebarblock">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> .base <span class="keyword">import</span> <span class="include">FunctionalTest</span>
-<span class="keyword">from</span> <span class="include">selenium</span> <span class="keyword">import</span> <span class="include">webdriver</span>
-<span class="keyword">from</span> <span class="include">selenium.webdriver.common.keys</span> <span class="keyword">import</span> <span class="include">Keys</span>
-
-
-<span class="keyword">class</span> <span class="class">NewVisitorTest</span>(FunctionalTest):
-
-    <span class="keyword">def</span> <span class="function">test_can_start_a_list_for_one_user</span>(<span class="predefined-constant">self</span>):
-        [...]
-    <span class="keyword">def</span> <span class="function">test_multiple_users_can_start_lists_at_different_urls</span>(<span class="predefined-constant">self</span>):
-        [...]</code></pre>
+<div class="title">Installing Fabric on Windows</div>
+<div class="paragraph">
+<p>Fabric depends on pycrypto, which is a package that needs compiling. Compiling
+on Windows is a rather fraught process; it&#8217;s often quicker to try and
+get hold of precompiled binaries put out there by some kindly soul.  In this
+case the excellent Michael
+Foord<sup class="footnote">[<a id="_footnoteref_1" class="footnote" href="#_footnote_1" title="View footnote.">1</a>]</sup>
+has provided some
+<a href="http://bit.ly/Suxt67">Windows binaries</a>.
+(Don&#8217;t forget to giggle at the mention of absurd US munitions export controls.)</p>
+</div>
+<div class="paragraph">
+<p>So the instructions, for Windows, are:</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>Download and install pycrypto from the previous URL.</p>
+</li>
+<li>
+<p>pip install Fabric.</p>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p>Another amazing source of precompiled Python packages for Windows is maintained
+by <a href="http://www.lfd.uci.edu/~gohlke/pythonlibs/">Christoph Gohlke</a>.</p>
 </div>
 </div>
+</div>
+<div class="paragraph">
+<p>The usual setup is to have a file called <em>fabfile.py</em>, which will
+contain one or more functions that can later be invoked from a command-line
+tool called <code>fab</code>, like this:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>fab function_name,host=SERVER_ADDRESS</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>That will invoke the function called <code>function_name</code>, passing in a connection
+to the server at <code>SERVER_ADDRESS</code>.  There are many other options for specifying
+usernames and passwords, which you can find out about using <code>fab --help</code>.</p>
+</div>
+<div class="sect2">
+<h3 id="_breakdown_of_a_fabric_script_for_our_deployment">Breakdown of a Fabric Script for Our Deployment</h3>
 <div class="paragraph">
 <p>
-I used a relative import (<code>from .base</code>). Some people like to use them a lot
-in Django code (e.g., your views might import models using <code>from .models import
-List</code>, instead of <code>from list.models</code>). Ultimately this is a
-matter of personal preference.  I prefer to use relative imports only when I&#8217;m
-super-super sure that the relative position of the thing I&#8217;m importing won&#8217;t
-change.  That applies in this case because I know for sure all the tests will
-sit next to <em>base.py</em>, which they inherit from.</p>
-</div>
-<div class="paragraph">
-<p>
 
-The layout and styling FT should now be one file and one class:</p>
+The best way to see how it works is with an example.
+<a href="http://www.bbc.co.uk/cult/classic/bluepeter/valpetejohn/trivia.shtml">Here&#8217;s one
+I made earlier</a>, automating all the deployment steps we&#8217;ve been going through.
+The main function is called <code>deploy</code>; that&#8217;s the one we&#8217;ll invoke from the
+command line. It uses several helper functions.  <code>env.host</code> will contain the
+server address that we&#8217;ve passed in:</p>
 </div>
 <div class="listingblock sourcecode">
-<div class="title">functional_tests/test_layout_and_styling.py (ch10l005)</div>
+<div class="title">deploy_tools/fabfile.py</div>
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> .base <span class="keyword">import</span> <span class="include">FunctionalTest</span>
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> <span class="include">fabric.contrib.files</span> <span class="keyword">import</span> <span class="include">append</span>, <span class="include">exists</span>, <span class="include">sed</span>
+<span class="keyword">from</span> <span class="include">fabric.api</span> <span class="keyword">import</span> <span class="include">env</span>, <span class="include">local</span>, <span class="include">run</span>
+<span class="keyword">import</span> <span class="include">random</span>
 
-<span class="keyword">class</span> <span class="class">LayoutAndStylingTest</span>(FunctionalTest):
-        [...]</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Lastly our new validation test is in a file of its own too:</p>
-</div>
-<div class="listingblock sourcecode">
-<div class="title">functional_tests/test_list_item_validation.py (ch10l006)</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> <span class="include">unittest</span> <span class="keyword">import</span> <span class="include">skip</span>
-<span class="keyword">from</span> .base <span class="keyword">import</span> <span class="include">FunctionalTest</span>
+REPO_URL = <span class="string"><span class="delimiter">'</span><span class="content">https://github.com/hjwp/book-example.git</span><span class="delimiter">'</span></span>  <i class="conum" data-value="1"></i><b>(1)</b>
 
-
-<span class="keyword">class</span> <span class="class">ItemValidationTest</span>(FunctionalTest):
-
-    <span class="decorator">@skip</span>
-    <span class="keyword">def</span> <span class="function">test_cannot_add_empty_list_items</span>(<span class="predefined-constant">self</span>):
-        [...]</code></pre>
+<span class="keyword">def</span> <span class="function">deploy</span>():
+    site_folder = <span class="string"><span class="delimiter">'</span><span class="content">/home/%s/sites/%s</span><span class="delimiter">'</span></span> % (env.user, env.host)  <i class="conum" data-value="2"></i><b>(2)</b> <i class="conum" data-value="3"></i><b>(3)</b>
+    source_folder = site_folder + <span class="string"><span class="delimiter">'</span><span class="content">/source</span><span class="delimiter">'</span></span>
+    _create_directory_structure_if_necessary(site_folder)
+    _get_latest_source(source_folder)
+    _update_settings(source_folder, env.host)
+    _update_virtualenv(source_folder)
+    _update_static_files(source_folder)
+    _update_database(source_folder)</code></pre>
 </div>
-</div>
-<div class="paragraph">
-<p>And we can test everything worked by rerunning <code>manage.py test
-functional_tests</code>, and checking once again that all four tests are run:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>Ran 4 tests in 11.577s
-
-OK</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Now we can remove our skip:</p>
-</div>
-<div class="listingblock sourcecode">
-<div class="title">functional_tests/test_list_item_validation.py (ch10l007)</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">class</span> <span class="class">ItemValidationTest</span>(FunctionalTest):
-
-    <span class="keyword">def</span> <span class="function">test_cannot_add_empty_list_items</span>(<span class="predefined-constant">self</span>):
-        [...]</code></pre>
-</div>
-</div>
-</div>
-<div class="sect3">
-<h4 id="_running_a_single_test_file">Running a Single Test File</h4>
-<div class="paragraph">
-<p>As a side bonus, we&#8217;re now able to run an individual test file, like this:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>$ <strong>python manage.py test functional_tests.test_list_item_validation</strong>
-[...]
-AssertionError: write me!</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Brilliant, no need to sit around waiting for all the FTs when we&#8217;re only
-interested in a single one. Although we need to remember to run all of them
-now and again, to check for regressions.  Later in the book we&#8217;ll see how
-to give that task over to an automated Continuous Integration loop. For now
-let&#8217;s commit!</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>$ <strong>git status</strong>
-$ <strong>git add functional_tests</strong>
-$ <strong>git commit -m "Moved Fts into their own individual files"</strong></pre>
-</div>
-</div>
-</div>
-<div class="sect3">
-<h4 id="_fleshing_out_the_ft">Fleshing Out the FT</h4>
-<div class="paragraph">
-<p>Now let&#8217;s start implementing the test, or at least the beginning of it:</p>
-</div>
-<div class="listingblock sourcecode">
-<div class="title">functional_tests/test_list_item_validation.py (ch10l008)</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">def</span> <span class="function">test_cannot_add_empty_list_items</span>(<span class="predefined-constant">self</span>):
-    <span class="comment"># Edith goes to the home page and accidentally tries to submit</span>
-    <span class="comment"># an empty list item. She hits Enter on the empty input box</span>
-    <span class="predefined-constant">self</span>.browser.get(<span class="predefined-constant">self</span>.server_url)
-    <span class="predefined-constant">self</span>.browser.find_element_by_id(<span class="string"><span class="delimiter">'</span><span class="content">id_new_item</span><span class="delimiter">'</span></span>).send_keys(<span class="string"><span class="delimiter">'</span><span class="char">\n</span><span class="delimiter">'</span></span>)
-
-    <span class="comment"># The home page refreshes, and there is an error message saying</span>
-    <span class="comment"># that list items cannot be blank</span>
-    error = <span class="predefined-constant">self</span>.browser.find_element_by_css_selector(<span class="string"><span class="delimiter">'</span><span class="content">.has-error</span><span class="delimiter">'</span></span>)  <i class="conum" data-value="1"></i><b>(1)</b>
-    <span class="predefined-constant">self</span>.assertEqual(error.text, <span class="string"><span class="delimiter">"</span><span class="content">You can't have an empty list item</span><span class="delimiter">"</span></span>)
-
-    <span class="comment"># She tries again with some text for the item, which now works</span>
-    <span class="predefined-constant">self</span>.browser.find_element_by_id(<span class="string"><span class="delimiter">'</span><span class="content">id_new_item</span><span class="delimiter">'</span></span>).send_keys(<span class="string"><span class="delimiter">'</span><span class="content">Buy milk</span><span class="char">\n</span><span class="delimiter">'</span></span>)
-    <span class="predefined-constant">self</span>.check_for_row_in_list_table(<span class="string"><span class="delimiter">'</span><span class="content">1: Buy milk</span><span class="delimiter">'</span></span>)  <i class="conum" data-value="2"></i><b>(2)</b>
-
-    <span class="comment"># Perversely, she now decides to submit a second blank list item</span>
-    <span class="predefined-constant">self</span>.browser.find_element_by_id(<span class="string"><span class="delimiter">'</span><span class="content">id_new_item</span><span class="delimiter">'</span></span>).send_keys(<span class="string"><span class="delimiter">'</span><span class="char">\n</span><span class="delimiter">'</span></span>)
-
-    <span class="comment"># She receives a similar warning on the list page</span>
-    <span class="predefined-constant">self</span>.check_for_row_in_list_table(<span class="string"><span class="delimiter">'</span><span class="content">1: Buy milk</span><span class="delimiter">'</span></span>)
-    error = <span class="predefined-constant">self</span>.browser.find_element_by_css_selector(<span class="string"><span class="delimiter">'</span><span class="content">.has-error</span><span class="delimiter">'</span></span>)
-    <span class="predefined-constant">self</span>.assertEqual(error.text, <span class="string"><span class="delimiter">"</span><span class="content">You can't have an empty list item</span><span class="delimiter">"</span></span>)
-
-    <span class="comment"># And she can correct it by filling some text in</span>
-    <span class="predefined-constant">self</span>.browser.find_element_by_id(<span class="string"><span class="delimiter">'</span><span class="content">id_new_item</span><span class="delimiter">'</span></span>).send_keys(<span class="string"><span class="delimiter">'</span><span class="content">Make tea</span><span class="char">\n</span><span class="delimiter">'</span></span>)
-    <span class="predefined-constant">self</span>.check_for_row_in_list_table(<span class="string"><span class="delimiter">'</span><span class="content">1: Buy milk</span><span class="delimiter">'</span></span>)
-    <span class="predefined-constant">self</span>.check_for_row_in_list_table(<span class="string"><span class="delimiter">'</span><span class="content">2: Make tea</span><span class="delimiter">'</span></span>)</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>A couple of things to note about this test:</p>
 </div>
 <div class="colist arabic">
 <table>
 <tr>
 <td><i class="conum" data-value="1"></i><b>1</b></td>
-<td>We specify we&#8217;re going to use a CSS class from Bootstrap called <code>.has-error</code> to mark our
-error text.  We&#8217;ll see that Bootstrap has some useful styling for those</td>
+<td>You&#8217;ll want to update the <code>REPO_URL</code> variable with the URL of your
+own Git repo on its code sharing site.</td>
 </tr>
 <tr>
 <td><i class="conum" data-value="2"></i><b>2</b></td>
-<td>As predicted, we are reusing the <code>check_for_row_in_list_table</code> helper
-function when we want to confirm that list item submission <em>does</em> work.</td>
+<td><code>env.host</code> will contain the address of the server we&#8217;ve specified at the
+command line, e.g., <em>superlists.ottg.eu</em>.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="3"></i><b>3</b></td>
+<td><code>env.user</code> will contain the username you&#8217;re using to log in to the server.</td>
 </tr>
 </table>
 </div>
 <div class="paragraph">
-<p>
-The technique of keeping helper methods in a parent class is meant to prevent
-duplication across your functional test code.  The day we decide to change the
-implementation of how our list table works, we want to make sure we only have
-to change our FT code in one place, not in dozens of places across loads of
-FTs&#8230;&#8203;</p>
+<p>Hopefully each of those helper functions have fairly self-descriptive names.
+Because any function in a fabfile can theoretically be invoked from the
+command line, I&#8217;ve used the convention of a leading underscore to indicate
+that they&#8217;re not meant to be part of the "public API" of the fabfile. Here
+they are in chronological order.</p>
 </div>
 <div class="paragraph">
-<p>And we&#8217;re off!</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>selenium.common.exceptions.NoSuchElementException: Message: Unable to locate
-element: {"method":"css selector","selector":".has-error"}</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>I&#8217;ll let you do your own "first-cut FT" commit.</p>
-</div>
-</div>
-</div>
-<div class="sect2">
-<h3 id="_using_model_layer_validation">Using Model-Layer Validation</h3>
-<div class="paragraph">
-<p>
-
-
-There are two levels at which you can do validation in Django. One is
-at the model level, and the other is higher up at the forms level.  I
-like to use the lower level whenever possible, partially because I&#8217;m
-a bit too fond of databases and database integrity rules, and partially
-because it&#8217;s safer&#8212;&#8203;you can sometimes forget which form you use to
-validate input, but you&#8217;re always going to use the same database.</p>
-</div>
-<div class="sect3">
-<h4 id="_refactoring_unit_tests_into_several_files">Refactoring Unit Tests into Several Files</h4>
-<div class="paragraph">
-<p>
-
-
-We&#8217;re going to want to add another test for our model, but before we
-do so, it&#8217;s time to tidy up our unit tests in a similar way to the
-functional tests.  A difference will be that, because the <code>lists</code>
-app contains real application code as well as tests, we&#8217;ll separate
-out the tests into their own folder:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>$ <strong>mkdir lists/tests</strong>
-$ <strong>touch lists/tests/_\_init\_\_.py</strong>
-$ <strong>git mv lists/tests.py lists/tests/test_all.py</strong>
-$ <strong>git status</strong>
-$ <strong>git add lists/tests</strong>
-$ <strong>python manage.py test lists</strong>
-[...]
-Ran 9 tests in 0.034s
-
-OK
-$ <strong>git commit -m "Move unit tests into a folder with single file"</strong></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>If you get a message saying "Ran 0 tests", you probably forgot to add the
-dunderinit&#8212;&#8203;it needs to be there or else the tests folder isn&#8217;t a valid Python
-package&#8230;&#8203;<sup class="footnote">[<a id="_footnoteref_1" class="footnote" href="#_footnote_1" title="View footnote.">1</a>]</sup></p>
-</div>
-<div class="paragraph">
-<p>Now we turn <em>test_all.py</em> into two files, one called <em>test_views.py</em>, which
-only contains view tests, and one called <em>test_models.py</em>:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>$ <strong>git mv lists/tests/test_all.py lists/tests/test_views.py</strong>
-$ <strong>cp lists/tests/test_views.py lists/tests/test_models.py</strong></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>We strip <em>test_models.py</em> down to being just the one test&#8212;&#8203;it means
-it needs far fewer imports:</p>
+<p>Here&#8217;s how we build our directory structure, in a way that doesn&#8217;t fall
+down if it already exists:</p>
 </div>
 <div class="listingblock sourcecode">
-<div class="title">lists/tests/test_models.py (ch10l009)</div>
+<div class="title">deploy_tools/fabfile.py</div>
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> <span class="include">django.test</span> <span class="keyword">import</span> <span class="include">TestCase</span>
-<span class="keyword">from</span> <span class="include">lists.models</span> <span class="keyword">import</span> <span class="include">Item</span>, <span class="include">List</span>
-
-
-<span class="keyword">class</span> <span class="class">ListAndItemModelsTest</span>(TestCase):
-        [...]</code></pre>
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">def</span> <span class="function">_create_directory_structure_if_necessary</span>(site_folder):
+    <span class="keyword">for</span> subfolder <span class="keyword">in</span> (<span class="string"><span class="delimiter">'</span><span class="content">database</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">static</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">virtualenv</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">source</span><span class="delimiter">'</span></span>):
+        run(<span class="string"><span class="delimiter">'</span><span class="content">mkdir -p %s/%s</span><span class="delimiter">'</span></span> % (site_folder, subfolder))  <i class="conum" data-value="1"></i><b>(1)</b> <i class="conum" data-value="2"></i><b>(2)</b></code></pre>
 </div>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td><code>run</code> is the most common Fabric command.  It says "run this shell command
+on the server".</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td><code>mkdir -p</code> is a useful flavor of <code>mkdir</code>, which is better in two ways: it
+    can create directories several levels deep, and it only creates them
+    if necessary.  So, <code>mkdir -p /tmp/foo/bar</code> will create the directory <em>bar</em>
+    but also its parent directory <em>foo</em> if it needs to.  It also won&#8217;t complain
+    if <em>bar</em> already
+    exists.<sup class="footnote">[<a id="_footnoteref_2" class="footnote" href="#_footnote_2" title="View footnote.">2</a>]</sup></td>
+</tr>
+</table>
 </div>
 <div class="paragraph">
-<p>Whereas <em>test_views.py</em>  just loses one class:</p>
+<p>Next we want to pull down our source code:</p>
 </div>
 <div class="listingblock sourcecode">
-<div class="title">lists/tests/test_views.py (ch10l010)</div>
+<div class="title">deploy_tools/fabfile.py</div>
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="diff"><span class="line head"><span class="head">--- </span><span class="filename">a/lists/tests/test_views.py</span></span>
-<span class="line head"><span class="head">+++ </span><span class="filename">b/lists/tests/test_views.py</span></span>
-<span class="change"><span class="change">@@</span> -103,34 +104,3 <span class="change">@@</span></span> <span class="keyword">class</span> <span class="class">ListViewTest</span>(TestCase):
-         <span class="predefined-constant">self</span>.assertNotContains(response, <span class="string"><span class="delimiter">'</span><span class="content">other list item 1</span><span class="delimiter">'</span></span>)
-         <span class="predefined-constant">self</span>.assertNotContains(response, <span class="string"><span class="delimiter">'</span><span class="content">other list item 2</span><span class="delimiter">'</span></span>)
-
-<span class="line delete"><span class="delete">-</span></span>
-<span class="line delete"><span class="delete">-</span></span>
-<span class="line delete"><span class="delete">-</span><span class="keyword">class</span> <span class="class">ListAndItemModelsTest</span>(TestCase):</span>
-<span class="line delete"><span class="delete">-</span></span>
-<span class="line delete"><span class="delete">-</span>    <span class="keyword">def</span> <span class="function">test_saving_and_retrieving_items</span>(<span class="predefined-constant">self</span>):</span>
-<span class="line comment">[...]</span></code></pre>
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">def</span> <span class="function">_get_latest_source</span>(source_folder):
+    <span class="keyword">if</span> exists(source_folder + <span class="string"><span class="delimiter">'</span><span class="content">/.git</span><span class="delimiter">'</span></span>):  <i class="conum" data-value="1"></i><b>(1)</b>
+        run(<span class="string"><span class="delimiter">'</span><span class="content">cd %s &amp;&amp; git fetch</span><span class="delimiter">'</span></span> % (source_folder,))  <i class="conum" data-value="2"></i><b>(2)</b> <i class="conum" data-value="3"></i><b>(3)</b>
+    <span class="keyword">else</span>:
+        run(<span class="string"><span class="delimiter">'</span><span class="content">git clone %s %s</span><span class="delimiter">'</span></span> % (REPO_URL, source_folder))  <i class="conum" data-value="4"></i><b>(4)</b>
+    current_commit = local(<span class="string"><span class="delimiter">"</span><span class="content">git log -n 1 --format=%H</span><span class="delimiter">"</span></span>, capture=<span class="predefined-constant">True</span>)  <i class="conum" data-value="5"></i><b>(5)</b>
+    run(<span class="string"><span class="delimiter">'</span><span class="content">cd %s &amp;&amp; git reset --hard %s</span><span class="delimiter">'</span></span> % (source_folder, current_commit))  <i class="conum" data-value="6"></i><b>(6)</b></code></pre>
 </div>
 </div>
-<div class="paragraph">
-<p>We rerun the tests to check everything is still there:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>$ <strong>python manage.py test lists</strong>
-[...]
-Ran 9 tests in 0.040s
-
-OK</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Great!</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>$ <strong>git add lists/tests</strong>
-$ <strong>git commit -m "Split out unit tests into two files"</strong></pre>
-</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td><code>exists</code> checks whether a directory or file already exists on the server.
+We look for the <em>.git</em> hidden folder to check whether the repo has already
+been cloned in that folder.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>Many commands start with a <code>cd</code> in order to set the current working
+directory. Fabric doesn&#8217;t have any state, so it doesn&#8217;t remember what
+directory you&#8217;re in from one <code>run</code> to the next.<sup class="footnote">[<a id="_footnoteref_3" class="footnote" href="#_footnote_3" title="View footnote.">3</a>]</sup></td>
+</tr>
+<tr>
+<td><i class="conum" data-value="3"></i><b>3</b></td>
+<td><code>git fetch</code> inside an existing repository pulls down all the latest commits
+from the Web.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="4"></i><b>4</b></td>
+<td>Alternatively we use <code>git clone</code> with the repo URL to bring down a fresh
+source tree.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="5"></i><b>5</b></td>
+<td>Fabric&#8217;s <code>local</code> command runs a command on your local machine&#8212;&#8203;it&#8217;s just
+a wrapper around <code>subprocess.Popen</code> really, but it&#8217;s quite convenient.
+Here we capture the output from that <code>git log</code> invocation to get the hash
+of the current commit that&#8217;s in your local tree.  That means the server
+will end up with whatever code is currently checked out on your machine
+(as long as you&#8217;ve pushed it up to the server).</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="6"></i><b>6</b></td>
+<td>We <code>reset --hard</code> to that commit, which will blow away any current changes
+in the server&#8217;s code directory.</td>
+</tr>
+</table>
 </div>
 <div class="admonitionblock note">
 <table>
@@ -611,539 +290,73 @@ $ <strong>git commit -m "Split out unit tests into two files"</strong></pre>
 <i class="fa icon-note" title="Note"></i>
 </td>
 <td class="content">
-Some people like to make their unit tests into a tests folder straight
-away, as soon as they start a project, with the addition of another file,
-<em>test_forms.py</em>. That&#8217;s a perfectly good idea; I just thought I&#8217;d wait until it
-became necessary, to avoid doing too much housekeeping all in the first
-chapter!
-</td>
-</tr>
-</table>
-</div>
-</div>
-<div class="sect3">
-<h4 id="_unit_testing_model_validation_and_the_self_assertraises_context_manager">Unit Testing Model Validation and the self.assertRaises Context Manager</h4>
-<div class="paragraph">
-<p>
-
-
-Let&#8217;s add a new test method to <code>ListAndItemModelsTest</code>, which tries to create
-a blank list item:</p>
-</div>
-<div class="listingblock sourcecode">
-<div class="title">lists/tests/test_models.py (ch10l012-1)</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> <span class="include">django.core.exceptions</span> <span class="keyword">import</span> <span class="include">ValidationError</span>
-[...]
-
-<span class="keyword">class</span> <span class="class">ListAndItemModelsTest</span>(TestCase):
-    [...]
-
-    <span class="keyword">def</span> <span class="function">test_cannot_save_empty_list_items</span>(<span class="predefined-constant">self</span>):
-        list_ = List.objects.create()
-        item = Item(list=list_, text=<span class="string"><span class="delimiter">'</span><span class="delimiter">'</span></span>)
-        <span class="keyword">with</span> <span class="predefined-constant">self</span>.assertRaises(ValidationError):
-            item.save()</code></pre>
-</div>
-</div>
-<div class="admonitionblock tip">
-<table>
-<tr>
-<td class="icon">
-<i class="fa icon-tip" title="Tip"></i>
-</td>
-<td class="content">
-If you&#8217;re new to Python, you may never have seen the <code>with</code> statement.
-It&#8217;s used with what are called "context managers", which wrap a block of code,
-usually with some kind of setup, cleanup, or error-handling code.  There&#8217;s a
-good write-up in the
-<a href="http://docs.python.org/release/2.5/whatsnew/pep-343.html">Python 2.5 release
-notes</a>.
+For this script to work, you need to have done a <code>git push</code> of your
+current local commit, so that the server can pull it down and <code>reset</code> to it.
+If you see an error saying <code>Could not parse object</code>, try doing a <code>git push</code>.
 </td>
 </tr>
 </table>
 </div>
 <div class="paragraph">
-<p>This is a new unit testing technique: when we want to check that doing
-something will raise an error, we can use the <code>self.assertRaises</code> context
-manager.  We could have used something like this instead:</p>
-</div>
-<div class="listingblock skipme">
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">try</span>:
-    item.save()
-    <span class="predefined-constant">self</span>.fail(<span class="string"><span class="delimiter">'</span><span class="content">The save should have raised an exception</span><span class="delimiter">'</span></span>)
-<span class="keyword">except</span> ValidationError:
-    <span class="keyword">pass</span></code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>But the <code>with</code> formulation is neater.  Now, we can try running the test,
-and see it fail:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>    item.save()
-AssertionError: ValidationError not raised</pre>
-</div>
-</div>
-</div>
-<div class="sect3">
-<h4 id="_a_django_quirk_model_save_doesn_t_run_validation">A Django Quirk: Model Save Doesn&#8217;t Run Validation</h4>
-<div class="paragraph">
-<p>
-And now we discover one of Django&#8217;s little quirks. <em>This test should already
-pass</em>.  If you take a look at the
-<a href="http://bit.ly/SuxPJO">docs for the
-Django model fields</a>, you&#8217;ll see that <code>TextField</code> actually defaults to
-<code>blank=False</code>, which means that it <em>should</em> disallow empty values.</p>
-</div>
-<div class="paragraph">
-<p>So why is the test not failing?  Well, for
-<a href="https://groups.google.com/forum/#!topic/django-developers/uIhzSwWHj4c">slightly
-counterintuitive historical reasons</a>, Django models don&#8217;t run full validation on
-save.  As we&#8217;ll see later, any constraints that are actually implemented in the
-database will raise errors on save, but SQLite doesn&#8217;t support enforcing
-emptiness constraints on text columns, and so our save method is letting this
-invalid value through silently.</p>
-</div>
-<div class="paragraph">
-<p>There&#8217;s a way of checking whether the constraint will happen at the database
-level or not:  if it was at the database level, we would need a migration to
-apply the constraint. But, Django knows that SQLite doesn&#8217;t support this type
-of constraint, so if we try and run <code>makemigrations</code>, it will report there&#8217;s
-nothing to do:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>$ <strong>python manage.py makemigrations</strong>
-No changes detected</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Django does have a method to manually run full validation however, called
-<code>full_clean</code>.  Let&#8217;s hack it in to see it work:</p>
-</div>
-<div class="listingblock sourcecode">
-<div class="title">lists/tests/test_models.py</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="python">    <span class="keyword">with</span> <span class="predefined-constant">self</span>.assertRaises(ValidationError):
-        item.save()
-        item.full_clean()</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>That gets the test to pass:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>OK</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>That taught us a little about Django validation, and the test is there to
-warn us if we ever forget our requirement and set <code>blank=True</code> on the <code>text</code>
-field (try it!).
+<p>Next we update our settings file, to set the <code>ALLOWED_HOSTS</code> and <code>DEBUG</code>, and
+to create a new secret key:
 </p>
 </div>
-</div>
-</div>
-<div class="sect2">
-<h3 id="_surfacing_model_validation_errors_in_the_view">Surfacing Model Validation Errors in the View</h3>
-<div class="paragraph">
-<p>
-
-Let&#8217;s try and enforce our model validation in the views layer and bring it up
-through into our templates, so the user can see them. Here&#8217;s how we can
-optionally display an error in our HTML&#8212;&#8203;we check whether the template has
-been passed an error variable, and if so, we display it next to the form:</p>
-</div>
 <div class="listingblock sourcecode">
-<div class="title">lists/templates/base.html (ch10l013)</div>
+<div class="title">deploy_tools/fabfile.py</div>
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="html"><span class="tag">&lt;form</span> <span class="attribute-name">method</span>=<span class="string"><span class="delimiter">"</span><span class="content">POST</span><span class="delimiter">"</span></span> <span class="attribute-name">action</span>=<span class="string"><span class="delimiter">"</span><span class="content">{% block form_action %}{% endblock %}</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>
-    <span class="tag">&lt;input</span> <span class="attribute-name">name</span>=<span class="string"><span class="delimiter">"</span><span class="content">item_text</span><span class="delimiter">"</span></span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">"</span><span class="content">id_new_item</span><span class="delimiter">"</span></span>
-           <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">"</span><span class="content">form-control input-lg</span><span class="delimiter">"</span></span>
-           <span class="attribute-name">placeholder</span>=<span class="string"><span class="delimiter">"</span><span class="content">Enter a to-do item</span><span class="delimiter">"</span></span>
-    <span class="tag">/&gt;</span>
-    {% csrf_token %}
-    {% if error %}
-        <span class="tag">&lt;div</span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">"</span><span class="content">form-group has-error</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>
-            <span class="tag">&lt;span</span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">"</span><span class="content">help-block</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>{{ error }}<span class="tag">&lt;/span&gt;</span>
-        <span class="tag">&lt;/div&gt;</span>
-    {% endif %}
-<span class="tag">&lt;/form&gt;</span></code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Take a look at the <a href="http://getbootstrap.com/css/#forms">Bootstrap docs</a> for more
-info on form controls.</p>
-</div>
-<div class="paragraph">
-<p>Passing this error to the template is the job of the view function. Let&#8217;s take
-a look at the unit tests in the <code>NewListTest</code> class.  I&#8217;m going to use two
-slightly different error-handling patterns here.</p>
-</div>
-<div class="paragraph">
-<p>In the first case, our URL and view for new lists will optionally render the
-same template as the home page, but with the addition of an error message.
-Here&#8217;s a unit test for that:</p>
-</div>
-<div class="listingblock sourcecode">
-<div class="title">lists/tests/test_views.py (ch10l014)</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">class</span> <span class="class">NewListTest</span>(TestCase):
-    [...]
-
-    <span class="keyword">def</span> <span class="function">test_validation_errors_are_sent_back_to_home_page_template</span>(<span class="predefined-constant">self</span>):
-        response = <span class="predefined-constant">self</span>.client.post(<span class="string"><span class="delimiter">'</span><span class="content">/lists/new</span><span class="delimiter">'</span></span>, data={<span class="string"><span class="delimiter">'</span><span class="content">item_text</span><span class="delimiter">'</span></span>: <span class="string"><span class="delimiter">'</span><span class="delimiter">'</span></span>})
-        <span class="predefined-constant">self</span>.assertEqual(response.status_code, <span class="integer">200</span>)
-        <span class="predefined-constant">self</span>.assertTemplateUsed(response, <span class="string"><span class="delimiter">'</span><span class="content">home.html</span><span class="delimiter">'</span></span>)
-        expected_error = <span class="string"><span class="delimiter">"</span><span class="content">You can't have an empty list item</span><span class="delimiter">"</span></span>
-        <span class="predefined-constant">self</span>.assertContains(response, expected_error)</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>As we&#8217;re writing this test, we might get slightly offended by the <em>/lists/new</em>
-URL, which we&#8217;re manually entering as a string. We&#8217;ve got a lot of URLs
-hardcoded in our tests, in our views, and in our templates, which violates the
-DRY principle.  I don&#8217;t mind a bit of duplication in tests, but we should
-definitely be on the lookout for hardcoded URLs in our views and templates,
-and make a note to refactor them out.  But we won&#8217;t do them straight away,
-because right now our application is in a broken state. We want to get back
-to a working state first.</p>
-</div>
-<div class="paragraph">
-<p>Back to our test, which is failing because the view is currently returning a
-302 redirect, rather than a "normal" 200 response:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>AssertionError: 302 != 200</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Let&#8217;s try calling <code>full_clean()</code> in the view:</p>
-</div>
-<div class="listingblock sourcecode">
-<div class="title">lists/views.py</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">def</span> <span class="function">new_list</span>(request):
-    list_ = List.objects.create()
-    item = Item.objects.create(text=request.POST[<span class="string"><span class="delimiter">'</span><span class="content">item_text</span><span class="delimiter">'</span></span>], list=list_)
-    item.full_clean()
-    <span class="keyword">return</span> redirect(<span class="string"><span class="delimiter">'</span><span class="content">/lists/%d/</span><span class="delimiter">'</span></span> % (list_.id,))</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>As we&#8217;re looking at the view code, we find a good candidate for a hardcoded
-URL to get rid of.  Let&#8217;s add that to our scratchpad:</p>
-</div>
-<div class="sidebarblock scratchpad">
-<div class="content">
-<div class="ulist">
-<ul>
-<li>
-<p><em>Remove hardcoded URLs from views.py</em></p>
-</li>
-</ul>
-</div>
-</div>
-</div>
-<div class="paragraph">
-<p>Now the model validation raises an exception, which comes up through our view:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>[...]
-  File "/.../superlists/lists/views.py", line 11, in new_list
-    item.full_clean()
-[...]
-django.core.exceptions.ValidationError: {'text': ['This field cannot be
-blank.']}</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>So we try our first approach:  using a <code>try/except</code> to detect errors. Obeying the
-Testing Goat, we start with just the <code>try/except</code> and nothing else.  The tests
-should tell us what to code next&#8230;&#8203;</p>
-</div>
-<div class="listingblock sourcecode">
-<div class="title">lists/views.py (ch10l015)</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> <span class="include">django.core.exceptions</span> <span class="keyword">import</span> <span class="include">ValidationError</span>
-[...]
-
-<span class="keyword">def</span> <span class="function">new_list</span>(request):
-    list_ = List.objects.create()
-    item = Item.objects.create(text=request.POST[<span class="string"><span class="delimiter">'</span><span class="content">item_text</span><span class="delimiter">'</span></span>], list=list_)
-    <span class="keyword">try</span>:
-        item.full_clean()
-    <span class="keyword">except</span> ValidationError:
-        <span class="keyword">pass</span>
-    <span class="keyword">return</span> redirect(<span class="string"><span class="delimiter">'</span><span class="content">/lists/%d/</span><span class="delimiter">'</span></span> % (list_.id,))</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>That gets us back to the 302 != 200:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>AssertionError: 302 != 200</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Let&#8217;s return a rendered template then, which should take care of the template
-check as well:</p>
-</div>
-<div class="listingblock sourcecode">
-<div class="title">lists/views.py (ch10l016)</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="python">    <span class="keyword">except</span> ValidationError:
-        <span class="keyword">return</span> render(request, <span class="string"><span class="delimiter">'</span><span class="content">home.html</span><span class="delimiter">'</span></span>)</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>And the tests now tell us to put the error message into the template:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>AssertionError: False is not true : Couldn't find 'You can't have an empty list
-item' in response</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>We do that by passing a new template variable in:</p>
-</div>
-<div class="listingblock sourcecode">
-<div class="title">lists/views.py (ch10l017)</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="python">    <span class="keyword">except</span> ValidationError:
-        error = <span class="string"><span class="delimiter">"</span><span class="content">You can't have an empty list item</span><span class="delimiter">"</span></span>
-        <span class="keyword">return</span> render(request, <span class="string"><span class="delimiter">'</span><span class="content">home.html</span><span class="delimiter">'</span></span>, {<span class="string"><span class="delimiter">"</span><span class="content">error</span><span class="delimiter">"</span></span>: error})</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Hmm, it looks like that didn&#8217;t quite work:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>AssertionError: False is not true : Couldn't find 'You can't have an empty list
-item' in response</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>A little print-based debug&#8230;&#8203;</p>
-</div>
-<div class="listingblock sourcecode">
-<div class="title">lists/tests/test_views.py</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="python">expected_error = <span class="string"><span class="delimiter">"</span><span class="content">You can't have an empty list item</span><span class="delimiter">"</span></span>
-print(response.content.decode())
-<span class="predefined-constant">self</span>.assertContains(response, expected_error)</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>&#8230;&#8203;will show us the cause: Django has
-<a href="http://bit.ly/SuxUgF">HTML-escaped</a>
-the apostrophe:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>[...]
-&lt;span class="help-block"&gt;You can&amp;#39;t have an
-empty list item&lt;/span&gt;</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>We could hack something like this into our test:</p>
-</div>
-<div class="listingblock skipme">
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="python">    expected_error = <span class="string"><span class="delimiter">"</span><span class="content">You can&amp;#39;t have an empty list item</span><span class="delimiter">"</span></span></code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>But using Django&#8217;s helper function is probably a better idea:</p>
-</div>
-<div class="listingblock sourcecode">
-<div class="title">lists/tests/test_views.py (ch10l019)</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> <span class="include">django.utils.html</span> <span class="keyword">import</span> <span class="include">escape</span>
-[...]
-
-        expected_error = escape(<span class="string"><span class="delimiter">"</span><span class="content">You can't have an empty list item</span><span class="delimiter">"</span></span>)
-        <span class="predefined-constant">self</span>.assertContains(response, expected_error)</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>That passes!</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>Ran 11 tests in 0.047s
-
-OK</pre>
-</div>
-</div>
-<div class="sect3">
-<h4 id="_checking_invalid_input_isn_t_saved_to_the_database">Checking Invalid Input Isn&#8217;t Saved to the Database</h4>
-<div class="paragraph">
-<p>Before we go further though, did you notice a little logic error we&#8217;ve allowed
-to creep into our implementation?  We&#8217;re currently creating an object, even
-if validation fails:</p>
-</div>
-<div class="listingblock sourcecode currentcontents">
-<div class="title">lists/views.py</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="python">    item = Item.objects.create(text=request.POST[<span class="string"><span class="delimiter">'</span><span class="content">item_text</span><span class="delimiter">'</span></span>], list=list_)
-    <span class="keyword">try</span>:
-        item.full_clean()
-    <span class="keyword">except</span> ValidationError:
-        [...]</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Let&#8217;s add a new unit test to make sure that empty list items don&#8217;t get
-saved:</p>
-</div>
-<div class="listingblock sourcecode">
-<div class="title">lists/tests/test_views.py (ch10l020-1)</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">class</span> <span class="class">NewListTest</span>(TestCase):
-    [...]
-
-    <span class="keyword">def</span> <span class="function">test_validation_errors_are_sent_back_to_home_page_template</span>(<span class="predefined-constant">self</span>):
-        [...]
-
-    <span class="keyword">def</span> <span class="function">test_invalid_list_items_arent_saved</span>(<span class="predefined-constant">self</span>):
-        <span class="predefined-constant">self</span>.client.post(<span class="string"><span class="delimiter">'</span><span class="content">/lists/new</span><span class="delimiter">'</span></span>, data={<span class="string"><span class="delimiter">'</span><span class="content">item_text</span><span class="delimiter">'</span></span>: <span class="string"><span class="delimiter">'</span><span class="delimiter">'</span></span>})
-        <span class="predefined-constant">self</span>.assertEqual(List.objects.count(), <span class="integer">0</span>)
-        <span class="predefined-constant">self</span>.assertEqual(Item.objects.count(), <span class="integer">0</span>)</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>That gives:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>[...]
-Traceback (most recent call last):
-  File "/.../superlists/lists/tests/test_views.py", line 40, in
-test_invalid_list_items_arent_saved
-    self.assertEqual(List.objects.count(), 0)
-AssertionError: 1 != 0</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>We fix it like this:</p>
-</div>
-<div class="listingblock sourcecode">
-<div class="title">lists/views.py (ch10l020-2)</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">def</span> <span class="function">new_list</span>(request):
-    list_ = List.objects.create()
-    item = Item(text=request.POST[<span class="string"><span class="delimiter">'</span><span class="content">item_text</span><span class="delimiter">'</span></span>], list=list_)
-    <span class="keyword">try</span>:
-        item.full_clean()
-        item.save()
-    <span class="keyword">except</span> ValidationError:
-        list_.delete()
-        error = <span class="string"><span class="delimiter">"</span><span class="content">You can't have an empty list item</span><span class="delimiter">"</span></span>
-        <span class="keyword">return</span> render(request, <span class="string"><span class="delimiter">'</span><span class="content">home.html</span><span class="delimiter">'</span></span>, {<span class="string"><span class="delimiter">"</span><span class="content">error</span><span class="delimiter">"</span></span>: error})
-    <span class="keyword">return</span> redirect(<span class="string"><span class="delimiter">'</span><span class="content">/lists/%d/</span><span class="delimiter">'</span></span> % (list_.id,))</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Do the FTs pass?</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>$ <strong>python manage.py test functional_tests.test_list_item_validation</strong>
-[...]
-  File "/.../superlists/functional_tests/test_list_item_validation.py", line
-26, in test_cannot_add_empty_list_items
-[...]
-selenium.common.exceptions.NoSuchElementException: Message: Unable to locate
-element: {"method":"css selector","selector":".has-error"}</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Not quite, but they did get a little further.  Checking the <code>line 25</code>, we can
-see that we&#8217;ve got past the first part of the test, and are now onto the second
-check&#8212;&#8203;that submitting a second empty item also shows an error.</p>
-</div>
-<div class="paragraph">
-<p>We&#8217;ve got some working code though, so let&#8217;s have a commit:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>$ <strong>git commit -am "Adjust new list view to do model validation"</strong></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>
-</p>
-</div>
-</div>
-</div>
-<div class="sect2">
-<h3 id="_django_pattern_processing_post_requests_in_the_same_view_as_renders_the_form">Django Pattern: Processing POST Requests in the Same View as Renders the Form</h3>
-<div class="paragraph">
-<p>
-
-
-This time we&#8217;ll use a slightly different approach, one that&#8217;s actually a very
-common pattern in Django, which is to use the same view to process POST
-requests as to render the form that they come from.  Whilst this doesn&#8217;t fit
-the REST-ful URL model quite as well, it has the important advantage that the
-same URL can display a form, and display any errors encountered in processing
-the user&#8217;s input.</p>
-</div>
-<div class="paragraph">
-<p>The current situation is that we have one view and URL for displaying a list,
-and one view and URL for processing additions to that list.  We&#8217;re going to
-combine them into one. So, in <em>list.html</em>, our form will have a different
-target:</p>
-</div>
-<div class="listingblock sourcecode">
-<div class="title">lists/templates/list.html (ch10l020)</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="html">{% block form_action %}/lists/{{ list.id }}/{% endblock %}</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Incidentally, that&#8217;s another hardcoded URL.  Let&#8217;s add it to our to-do list,
-and while we&#8217;re thinking about it, there&#8217;s one in <em>home.html</em> too:</p>
-</div>
-<div class="sidebarblock scratchpad">
-<div class="content">
-<div class="ulist">
-<ul>
-<li>
-<p><em>Remove hardcoded URLs from views.py</em></p>
-</li>
-<li>
-<p><em>Remove hardcoded URL from forms in list.html and home.html</em></p>
-</li>
-</ul>
-</div>
-</div>
-</div>
-<div class="paragraph">
-<p>This will immediately break our original functional test, because the
-<code>view_list</code> page doesn&#8217;t know how to process POST requests yet:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>$ <strong>python manage.py test functional_tests</strong>
-[...]
-selenium.common.exceptions.NoSuchElementException: Message: Unable to locate
-element: {"method":"css selector","selector":".has-error"}
-[...]
-AssertionError: '2: Use peacock feathers to make a fly' not found in ['1: Buy
-peacock feathers']</pre>
-</div>
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">def</span> <span class="function">_update_settings</span>(source_folder, site_name):
+    settings_path = source_folder + <span class="string"><span class="delimiter">'</span><span class="content">/superlists/settings.py</span><span class="delimiter">'</span></span>
+    sed(settings_path, <span class="string"><span class="delimiter">"</span><span class="content">DEBUG = True</span><span class="delimiter">"</span></span>, <span class="string"><span class="delimiter">"</span><span class="content">DEBUG = False</span><span class="delimiter">"</span></span>)  <i class="conum" data-value="1"></i><b>(1)</b>
+    sed(settings_path,
+        <span class="string"><span class="delimiter">'</span><span class="content">ALLOWED_HOSTS =.+$</span><span class="delimiter">'</span></span>,
+        <span class="string"><span class="delimiter">'</span><span class="content">ALLOWED_HOSTS = ["%s"]</span><span class="delimiter">'</span></span> % (site_name,)  <i class="conum" data-value="2"></i><b>(2)</b>
+    )
+    secret_key_file = source_folder + <span class="string"><span class="delimiter">'</span><span class="content">/superlists/secret_key.py</span><span class="delimiter">'</span></span>
+    <span class="keyword">if</span> <span class="keyword">not</span> exists(secret_key_file):  <i class="conum" data-value="3"></i><b>(3)</b>
+        chars = <span class="string"><span class="delimiter">'</span><span class="content">abcdefghijklmnopqrstuvwxyz0123456789!@#$%^&amp;*(-_=+)</span><span class="delimiter">'</span></span>
+        key = <span class="string"><span class="delimiter">'</span><span class="delimiter">'</span></span>.join(random.SystemRandom().choice(chars) <span class="keyword">for</span> _ <span class="keyword">in</span> <span class="predefined">range</span>(<span class="integer">50</span>))
+        append(secret_key_file, <span class="string"><span class="delimiter">"</span><span class="content">SECRET_KEY = '%s'</span><span class="delimiter">"</span></span> % (key,))
+    append(settings_path, <span class="string"><span class="delimiter">'</span><span class="char">\n</span><span class="content">from .secret_key import SECRET_KEY</span><span class="delimiter">'</span></span>)  <i class="conum" data-value="4"></i><b>(4)</b> <i class="conum" data-value="5"></i><b>(5)</b></code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>The Fabric <code>sed</code> command does a string substitution in a file; here it&#8217;s
+changing DEBUG from <code>True</code> to <code>False</code>.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>And here it is adjusting <code>ALLOWED_HOSTS</code>, using a regex to match the
+right line.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="3"></i><b>3</b></td>
+<td>Django uses <code>SECRET_KEY</code> for some of its crypto&#8212;&#8203;cookies and CSRF
+protection. It&#8217;s good practice to make sure the secret key on the server
+is different from the one in your (possibly public) source code repo. This
+code will generate a new key to import into settings, if there isn&#8217;t one
+there already (once you have a secret key, it should stay the same between
+deploys).  Find out more in the
+<a href="https://docs.djangoproject.com/en/1.10/topics/signing/">Django docs</a>.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="4"></i><b>4</b></td>
+<td><code>append</code> just adds a line to the end of a file. (It&#8217;s clever enough not to
+bother if the line is already there, but not clever enough to automatically
+add a newline if the file doesn&#8217;t end in one. Hence the back-n.)</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="5"></i><b>5</b></td>
+<td>I&#8217;m using a <em>relative import</em> (<code>from .secret_key</code> instead of <code>from
+secret_key</code>) to be absolutely sure we&#8217;re importing the local module,
+rather than one from somewhere else on <code>sys.path</code>. I&#8217;ll talk a bit
+more about relative imports in the next chapter.
+</td>
+</tr>
+</table>
 </div>
 <div class="admonitionblock note">
 <table>
@@ -1152,608 +365,451 @@ peacock feathers']</pre>
 <i class="fa icon-note" title="Note"></i>
 </td>
 <td class="content">
-In this section we&#8217;re performing a refactor at the application level.
-We execute our application-level refactor by changing or adding unit tests, and
-then adjusting our code. We use the functional tests to tell us when our
-refactor is complete and things are back to working as before.  Have
-another look at the diagram from the end of <a href="/book/chapter_04.html">[chapter-4]</a> if you need to get your
-bearings.
-
+Other people, such as the eminent authors of the excellent
+    <a href="#twoscoops">Two Scoops of Django</a>, suggest using environment variables to
+    set things like secret keys; you should use whatever you feel is most
+    secure in your environment.
 </td>
 </tr>
 </table>
 </div>
-<div class="sect3">
-<h4 id="_refactor_transferring_the_new_item_functionality_into_view_list">Refactor: Transferring the new_item Functionality into view_list</h4>
 <div class="paragraph">
-<p>
-Let&#8217;s take all the old tests from <code>NewItemTest</code>, the ones that are about saving
-POST requests to existing lists, and move them into <code>ListViewTest</code>. As we do
-so, we also make them point at the base list URL, instead of <em>&#8230;&#8203;/add_item</em>:</p>
+<p>Next we create or update the virtualenv:</p>
 </div>
 <div class="listingblock sourcecode">
-<div class="title">lists/tests/test_views.py (ch10l021)</div>
+<div class="title">deploy_tools/fabfile.py</div>
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">class</span> <span class="class">ListViewTest</span>(TestCase):
-
-    <span class="keyword">def</span> <span class="function">test_uses_list_template</span>(<span class="predefined-constant">self</span>):
-        [...]
-
-    <span class="keyword">def</span> <span class="function">test_passes_correct_list_to_template</span>(<span class="predefined-constant">self</span>):
-        [...]
-
-    <span class="keyword">def</span> <span class="function">test_displays_only_items_for_that_list</span>(<span class="predefined-constant">self</span>):
-        [...]
-
-    <span class="keyword">def</span> <span class="function">test_can_save_a_POST_request_to_an_existing_list</span>(<span class="predefined-constant">self</span>):
-        other_list = List.objects.create()
-        correct_list = List.objects.create()
-
-        <span class="predefined-constant">self</span>.client.post(
-            <span class="string"><span class="delimiter">'</span><span class="content">/lists/%d/</span><span class="delimiter">'</span></span> % (correct_list.id,),
-            data={<span class="string"><span class="delimiter">'</span><span class="content">item_text</span><span class="delimiter">'</span></span>: <span class="string"><span class="delimiter">'</span><span class="content">A new item for an existing list</span><span class="delimiter">'</span></span>}
-        )
-
-        <span class="predefined-constant">self</span>.assertEqual(Item.objects.count(), <span class="integer">1</span>)
-        new_item = Item.objects.first()
-        <span class="predefined-constant">self</span>.assertEqual(new_item.text, <span class="string"><span class="delimiter">'</span><span class="content">A new item for an existing list</span><span class="delimiter">'</span></span>)
-        <span class="predefined-constant">self</span>.assertEqual(new_item.list, correct_list)
-
-
-    <span class="keyword">def</span> <span class="function">test_POST_redirects_to_list_view</span>(<span class="predefined-constant">self</span>):
-        other_list = List.objects.create()
-        correct_list = List.objects.create()
-
-        response = <span class="predefined-constant">self</span>.client.post(
-            <span class="string"><span class="delimiter">'</span><span class="content">/lists/%d/</span><span class="delimiter">'</span></span> % (correct_list.id,),
-            data={<span class="string"><span class="delimiter">'</span><span class="content">item_text</span><span class="delimiter">'</span></span>: <span class="string"><span class="delimiter">'</span><span class="content">A new item for an existing list</span><span class="delimiter">'</span></span>}
-        )
-        <span class="predefined-constant">self</span>.assertRedirects(response, <span class="string"><span class="delimiter">'</span><span class="content">/lists/%d/</span><span class="delimiter">'</span></span> % (correct_list.id,))</code></pre>
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">def</span> <span class="function">_update_virtualenv</span>(source_folder):
+    virtualenv_folder = source_folder + <span class="string"><span class="delimiter">'</span><span class="content">/../virtualenv</span><span class="delimiter">'</span></span>
+    <span class="keyword">if</span> <span class="keyword">not</span> exists(virtualenv_folder + <span class="string"><span class="delimiter">'</span><span class="content">/bin/pip</span><span class="delimiter">'</span></span>): <i class="conum" data-value="1"></i><b>(1)</b>
+        run(<span class="string"><span class="delimiter">'</span><span class="content">python3 -m venv %s</span><span class="delimiter">'</span></span> % (virtualenv_folder,))
+    run(<span class="string"><span class="delimiter">'</span><span class="content">%s/bin/pip install -r %s/requirements.txt</span><span class="delimiter">'</span></span> % ( <i class="conum" data-value="2"></i><b>(2)</b>
+            virtualenv_folder, source_folder
+    ))</code></pre>
 </div>
 </div>
-<div class="paragraph">
-<p>Note that the <code>NewItemTest</code> class disappears completely.  I&#8217;ve also changed the
-name of the redirect test to make it explicit that it only applies to POST
-requests.</p>
-</div>
-<div class="paragraph">
-<p>That gives:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>FAIL: test_POST_redirects_to_list_view (lists.tests.test_views.ListViewTest)
-AssertionError: 200 != 302 : Response didn't redirect as expected: Response
-code was 200 (expected 302)
-[...]
-FAIL: test_can_save_a_POST_request_to_an_existing_list
-(lists.tests.test_views.ListViewTest)
-AssertionError: 0 != 1</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>We change the <code>view_list</code> function to handle two types of request:</p>
-</div>
-<div class="listingblock sourcecode">
-<div class="title">lists/views.py (ch10l022-1)</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">def</span> <span class="function">view_list</span>(request, list_id):
-    list_ = List.objects.get(id=list_id)
-    <span class="keyword">if</span> request.method == <span class="string"><span class="delimiter">'</span><span class="content">POST</span><span class="delimiter">'</span></span>:
-        Item.objects.create(text=request.POST[<span class="string"><span class="delimiter">'</span><span class="content">item_text</span><span class="delimiter">'</span></span>], list=list_)
-        <span class="keyword">return</span> redirect(<span class="string"><span class="delimiter">'</span><span class="content">/lists/%d/</span><span class="delimiter">'</span></span> % (list_.id,))
-    <span class="keyword">return</span> render(request, <span class="string"><span class="delimiter">'</span><span class="content">list.html</span><span class="delimiter">'</span></span>, {<span class="string"><span class="delimiter">'</span><span class="content">list</span><span class="delimiter">'</span></span>: list_})</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>That gets us passing tests:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>Ran 12 tests in 0.047s
-
-OK</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Now we can delete the <code>add_item</code> view, since it&#8217;s no longer needed&#8230;&#8203;oops, a
-couple of unexpected failures:</p>
-</div>
-<div class="listingblock dofirst-ch10l022-2">
-<div class="content">
-<pre>[...]
-AttributeError: module 'lists.views' has no attribute 'add_item'
-[...]
-FAILED (errors=10)</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>It&#8217;s because we&#8217;ve deleted the view, but it&#8217;s still being referred to in
-<em>urls.py</em>.  We remove it from there:</p>
-</div>
-<div class="listingblock sourcecode">
-<div class="title">lists/urls.py (ch10l023)</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="python">urlpatterns = [
-    url(<span class="string"><span class="modifier">r</span><span class="delimiter">'</span><span class="content">^new$</span><span class="delimiter">'</span></span>, views.new_list, name=<span class="string"><span class="delimiter">'</span><span class="content">new_list</span><span class="delimiter">'</span></span>),
-    url(<span class="string"><span class="modifier">r</span><span class="delimiter">'</span><span class="content">^(</span><span class="content">\d</span><span class="content">+)/$</span><span class="delimiter">'</span></span>, views.view_list, name=<span class="string"><span class="delimiter">'</span><span class="content">view_list</span><span class="delimiter">'</span></span>),
-]</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>And that gets us to the <code>OK</code>. Let&#8217;s try a full FT run:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>$ <strong>python manage.py test</strong>
-[...]
-ERROR: test_cannot_add_empty_list_items
-[...]
-
-Ran 16 tests in 15.276s
-FAILED (errors=1)</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>We&#8217;re back to the one failure in our new functional test. Our refactor of the
-<code>add_item</code> functionality is complete. We should commit there:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>$ <strong>git commit -am "Refactor list view to handle new item POSTs"</strong></pre>
-</div>
-</div>
-<div class="admonitionblock note">
+<div class="colist arabic">
 <table>
 <tr>
-<td class="icon">
-<i class="fa icon-note" title="Note"></i>
-</td>
-<td class="content">
-So did I break the rule about never refactoring against failing tests?
-    In this case, it&#8217;s allowed, because the refactor is required to get our new
-    functionality to work.  You should definitely never refactor against
-    failing <em>unit</em> tests.  But in my book it&#8217;s OK for the FT for the current
-    story you&#8217;re working on to be failing. If you prefer a clean test run, you
-    could add a skip to the current FT.
-    
-    
-</td>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>We look inside the virtualenv folder for the <code>pip</code> executable as a way of
+checking whether it already exists.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>Then we use <code>pip install -r</code> like we did earlier.</td>
 </tr>
 </table>
 </div>
-</div>
-<div class="sect3">
-<h4 id="_enforcing_model_validation_in_view_list">Enforcing Model Validation in view_list</h4>
 <div class="paragraph">
-<p>
-We still want the addition of items to existing lists to be subject to our
-model validation rules. Let&#8217;s write a new unit test for that; it&#8217;s very similar
-to the one for the home page, with just a couple of tweaks:</p>
+<p>Updating static files is a single command:</p>
 </div>
-<div class="listingblock sourcecode">
-<div class="title">lists/tests/test_views.py (ch10l024)</div>
+<div class="listingblock sourcecode small-code">
+<div class="title">deploy_tools/fabfile.py</div>
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">class</span> <span class="class">ListViewTest</span>(TestCase):
-    [...]
-
-    <span class="keyword">def</span> <span class="function">test_validation_errors_end_up_on_lists_page</span>(<span class="predefined-constant">self</span>):
-        list_ = List.objects.create()
-        response = <span class="predefined-constant">self</span>.client.post(
-            <span class="string"><span class="delimiter">'</span><span class="content">/lists/%d/</span><span class="delimiter">'</span></span> % (list_.id,),
-            data={<span class="string"><span class="delimiter">'</span><span class="content">item_text</span><span class="delimiter">'</span></span>: <span class="string"><span class="delimiter">'</span><span class="delimiter">'</span></span>}
-        )
-        <span class="predefined-constant">self</span>.assertEqual(response.status_code, <span class="integer">200</span>)
-        <span class="predefined-constant">self</span>.assertTemplateUsed(response, <span class="string"><span class="delimiter">'</span><span class="content">list.html</span><span class="delimiter">'</span></span>)
-        expected_error = escape(<span class="string"><span class="delimiter">"</span><span class="content">You can't have an empty list item</span><span class="delimiter">"</span></span>)
-        <span class="predefined-constant">self</span>.assertContains(response, expected_error)</code></pre>
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">def</span> <span class="function">_update_static_files</span>(source_folder):
+    run(<span class="string"><span class="delimiter">'</span><span class="content">cd %s &amp;&amp; ../virtualenv/bin/python manage.py collectstatic --noinput</span><span class="delimiter">'</span></span> % ( <i class="conum" data-value="1"></i><b>(1)</b>
+        source_folder,
+    ))</code></pre>
 </div>
 </div>
-<div class="paragraph">
-<p>That should fail, because our view currently does not do any validation, and
-just redirects for all POSTs:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>    self.assertEqual(response.status_code, 200)
-AssertionError: 302 != 200</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Here&#8217;s an implementation:</p>
-</div>
-<div class="listingblock sourcecode">
-<div class="title">lists/views.py (ch10l025)</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">def</span> <span class="function">view_list</span>(request, list_id):
-    list_ = List.objects.get(id=list_id)
-    error = <span class="predefined-constant">None</span>
-
-    <span class="keyword">if</span> request.method == <span class="string"><span class="delimiter">'</span><span class="content">POST</span><span class="delimiter">'</span></span>:
-        <span class="keyword">try</span>:
-            item = Item(text=request.POST[<span class="string"><span class="delimiter">'</span><span class="content">item_text</span><span class="delimiter">'</span></span>], list=list_)
-            item.full_clean()
-            item.save()
-            <span class="keyword">return</span> redirect(<span class="string"><span class="delimiter">'</span><span class="content">/lists/%d/</span><span class="delimiter">'</span></span> % (list_.id,))
-        <span class="keyword">except</span> ValidationError:
-            error = <span class="string"><span class="delimiter">"</span><span class="content">You can't have an empty list item</span><span class="delimiter">"</span></span>
-
-    <span class="keyword">return</span> render(request, <span class="string"><span class="delimiter">'</span><span class="content">list.html</span><span class="delimiter">'</span></span>, {<span class="string"><span class="delimiter">'</span><span class="content">list</span><span class="delimiter">'</span></span>: list_, <span class="string"><span class="delimiter">'</span><span class="content">error</span><span class="delimiter">'</span></span>: error})</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>It&#8217;s not deeply satisfying is it? There&#8217;s definitely some duplication of code
-here, that <code>try/except</code> occurs twice in <em>views.py</em>, and in general things are
-feeling clunky.</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>Ran 13 tests in 0.047s
-
-OK</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Let&#8217;s wait a bit before we do more refactoring though, because we know we&#8217;re
-about to do some slightly different validation coding for duplicate items.
-We&#8217;ll just add it to our scratchpad for now:</p>
-</div>
-<div class="sidebarblock scratchpad">
-<div class="content">
-<div class="ulist">
-<ul>
-<li>
-<p><em>Remove hardcoded URLs from views.py</em></p>
-</li>
-<li>
-<p><em>Remove hardcoded URL from forms in list.html and home.html</em></p>
-</li>
-<li>
-<p><em>Remove duplication of validation logic in views</em></p>
-</li>
-</ul>
-</div>
-</div>
-</div>
-<div class="admonitionblock note">
+<div class="colist arabic">
 <table>
 <tr>
-<td class="icon">
-<i class="fa icon-note" title="Note"></i>
-</td>
-<td class="content">
-One of the reasons that the "three strikes and refactor" rule exists is
-    that, if you wait until you have three use cases, each might be slightly
-    different, and it gives you a better view for what the common functionality
-    is. If you refactor too early, you may find that the third use case doesn&#8217;t
-    quite fit with your refactored code&#8230;&#8203;
-</td>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>We use the virtualenv binaries folder whenever we need to run a Django
+<em>manage.py</em> command, to make sure we get the virtualenv version of Django,
+not the system one.</td>
 </tr>
 </table>
 </div>
 <div class="paragraph">
-<p>At least our functional tests are back to passing:</p>
+<p>
+
+Finally, we update the database with <code>manage.py migrate</code>:</p>
 </div>
-<div class="listingblock">
+<div class="listingblock sourcecode">
+<div class="title">deploy_tools/fabfile.py</div>
 <div class="content">
-<pre>$ <strong>python manage.py test functional_tests</strong>
-[...]
-OK</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>We&#8217;re back to a working state, so we can take a look at some of the items on
-our scratchpad.  This would be a good time for a commit. And possibly a
-tea break.
-
-
-
-
-</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>$ <strong>git commit -am "enforce model validation in list view"</strong></pre>
-</div>
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">def</span> <span class="function">_update_database</span>(source_folder):
+    run(<span class="string"><span class="delimiter">'</span><span class="content">cd %s &amp;&amp; ../virtualenv/bin/python manage.py migrate --noinput</span><span class="delimiter">'</span></span> % (
+        source_folder,
+    ))</code></pre>
 </div>
 </div>
 </div>
 <div class="sect2">
-<h3 id="_refactor_removing_hardcoded_urls">Refactor: Removing Hardcoded URLs</h3>
+<h3 id="_trying_it_out">Trying It Out</h3>
 <div class="paragraph">
-<p>
-Do you remember those <code>name=</code> parameters in <em>urls.py</em>? We just copied
-them across from the default example Django gave us, and I&#8217;ve been giving
-them some reasonably descriptive names. Now we find out what they&#8217;re for.</p>
-</div>
-<div class="listingblock sourcecode currentcontents">
-<div class="title">lists/urls.py</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="python">    url(<span class="string"><span class="modifier">r</span><span class="delimiter">'</span><span class="content">^new$</span><span class="delimiter">'</span></span>, views.new_list, name=<span class="string"><span class="delimiter">'</span><span class="content">new_list</span><span class="delimiter">'</span></span>),
-    url(<span class="string"><span class="modifier">r</span><span class="delimiter">'</span><span class="content">^(</span><span class="content">\d</span><span class="content">+)/$</span><span class="delimiter">'</span></span>, views.view_list, name=<span class="string"><span class="delimiter">'</span><span class="content">view_list</span><span class="delimiter">'</span></span>),</code></pre>
-</div>
-</div>
-<div class="sect3">
-<h4 id="_the_url_template_tag">The {% url %} Template Tag</h4>
-<div class="paragraph">
-<p>We can replace the hardcoded URL in <em>home.html</em> with a Django template tag
-which refers to the URL&#8217;s "name":</p>
-</div>
-<div class="listingblock sourcecode">
-<div class="title">lists/templates/home.html (ch10l026-1)</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="html">{% block form_action %}{% url 'new_list' %}{% endblock %}</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>We check that doesn&#8217;t break the unit tests:</p>
+<p>We can try this command out on our existing staging site&#8212;&#8203;the script should
+work for an existing site as well as for a new one.  If you like words with
+Latin roots, you might describe it as idempotent, which means it does nothing
+if run twice&#8230;&#8203;</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>$ <strong>python manage.py test lists</strong>
-OK</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Let&#8217;s do the other template.  This one is more interesting, because we pass it
-a parameter:</p>
-</div>
-<div class="listingblock sourcecode">
-<div class="title">lists/templates/list.html (ch10l026-2)</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="html">{% block form_action %}{% url 'view_list' list.id %}{% endblock %}</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Check out the
-<a href="https://docs.djangoproject.com/en/1.10/topics/http/urls/#reverse-resolution-of-urls">Django
-docs on reverse URL resolution</a> for more info.</p>
-</div>
-<div class="paragraph">
-<p>We run the tests again, and check they all pass:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>$ <strong>python manage.py test lists</strong>
-OK
-$ <strong>python manage.py test functional_tests</strong>
-OK</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Excellent:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>$ <strong>git commit -am "Refactor hard-coded URLs out of templates"</strong></pre>
-</div>
-</div>
-<div class="sidebarblock scratchpad">
-<div class="content">
-<div class="ulist">
-<ul>
-<li>
-<p><em>Remove hardcoded URLs from views.py</em></p>
-</li>
-<li>
-<p><em><span class="strikethrough line-through">Remove hardcoded URL from forms in list.html and home.html</span></em></p>
-</li>
-<li>
-<p><em>Remove duplication of validation logic in views</em></p>
-</li>
-</ul>
-</div>
-</div>
-</div>
-</div>
-<div class="sect3">
-<h4 id="_using_get_absolute_url_for_redirects">Using get_absolute_url for Redirects</h4>
-<div class="paragraph">
-<p>
-Now let&#8217;s tackle <em>views.py</em>. One way of doing it is just like in the
-template, passing in the name of the URL and a positional argument:</p>
-</div>
-<div class="listingblock sourcecode">
-<div class="title">lists/views.py (ch10l026-3)</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">def</span> <span class="function">new_list</span>(request):
-    [...]
-    <span class="keyword">return</span> redirect(<span class="string"><span class="delimiter">'</span><span class="content">view_list</span><span class="delimiter">'</span></span>, list_.id)</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>That would get the unit and functional tests passing, but the <code>redirect</code>
-function can do even better magic than that!  In Django, because model objects
-are often associated with a particular URL, you can define a special function
-called <code>get_absolute_url</code> which says what page displays the item.  It&#8217;s useful
-in this case, but it&#8217;s also useful in the Django admin (which I don&#8217;t cover in
-the book, but you&#8217;ll soon discover for yourself): it will let you jump from
-looking at an object in the admin view to looking at the object on the live
-site. I&#8217;d always recommend defining a <code>get_absolute_url</code> for a model whenever
-there is one that makes sense; it takes no time at all.</p>
-</div>
-<div class="paragraph">
-<p>All it takes is a super-simple unit test in <em>test_models.py</em>:</p>
-</div>
-<div class="listingblock sourcecode">
-<div class="title">lists/tests/test_models.py (ch10l026-4)</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="python">    <span class="keyword">def</span> <span class="function">test_get_absolute_url</span>(<span class="predefined-constant">self</span>):
-        list_ = List.objects.create()
-        <span class="predefined-constant">self</span>.assertEqual(list_.get_absolute_url(), <span class="string"><span class="delimiter">'</span><span class="content">/lists/%d/</span><span class="delimiter">'</span></span> % (list_.id,))</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Which gives:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>AttributeError: 'List' object has no attribute 'get_absolute_url'</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>And the implementation is to use Django&#8217;s <code>reverse</code> function, which
-essentially does the reverse of what Django normally does with <em>urls.py</em>
-(see
-<a href="https://docs.djangoproject.com/en/1.10/topics/http/urls/#reverse-resolution-of-urls">docs</a>):</p>
-</div>
-<div class="listingblock sourcecode">
-<div class="title">lists/models.py (ch10l026-5)</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> <span class="include">django.core.urlresolvers</span> <span class="keyword">import</span> <span class="include">reverse</span>
+<pre>$ <strong>cd deploy_tools</strong>
+$ <strong>fab deploy:host=elspeth@superlists-staging.ottg.eu</strong>
 
+[superlists-staging.ottg.eu] Executing task 'deploy'
+[superlists-staging.ottg.eu] run: mkdir -p /home/elspeth/sites/superlists-stagin
+[superlists-staging.ottg.eu] run: mkdir -p /home/elspeth/sites/superlists-stagin
+[superlists-staging.ottg.eu] run: mkdir -p /home/elspeth/sites/superlists-stagin
+[superlists-staging.ottg.eu] run: mkdir -p /home/elspeth/sites/superlists-stagin
+[superlists-staging.ottg.eu] run: mkdir -p /home/elspeth/sites/superlists-stagin
+[superlists-staging.ottg.eu] run: cd /home/elspeth/sites/superlists-staging.ottg
+[localhost] local: git log -n 1 --format=%H
+[superlists-staging.ottg.eu] run: cd /home/elspeth/sites/superlists-staging.ottg
+[superlists-staging.ottg.eu] out: HEAD is now at 85a6c87 Add a fabfile for autom
+[superlists-staging.ottg.eu] out:
 
-<span class="keyword">class</span> <span class="class">List</span>(models.Model):
+[superlists-staging.ottg.eu] run: sed -i.bak -r -e 's/DEBUG = True/DEBUG = False
+[superlists-staging.ottg.eu] run: echo 'ALLOWED_HOSTS = ["superlists-staging.ott
+[superlists-staging.ottg.eu] run: echo 'SECRET_KEY = '\\''4p2u8fi6)bltep(6nd_3tt
+[superlists-staging.ottg.eu] run: echo 'from .secret_key import SECRET_KEY' &gt;&gt; "
 
-    <span class="keyword">def</span> <span class="function">get_absolute_url</span>(<span class="predefined-constant">self</span>):
-        <span class="keyword">return</span> reverse(<span class="string"><span class="delimiter">'</span><span class="content">view_list</span><span class="delimiter">'</span></span>, args=[<span class="predefined-constant">self</span>.id])</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>And now we can use it in the view&#8212;&#8203;the <code>redirect</code> function just takes the
-object we want to redirect to, and it uses <code>get_absolute_url</code> under the
-hood automagically!</p>
-</div>
-<div class="listingblock sourcecode">
-<div class="title">lists/views.py (ch10l026-6)</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">def</span> <span class="function">new_list</span>(request):
-    [...]
-    <span class="keyword">return</span> redirect(list_)</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>There&#8217;s more info in the
-<a href="https://docs.djangoproject.com/en/1.10/topics/http/shortcuts/#redirect">Django
-docs</a>.  Quick check that the unit tests still pass:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>OK</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Then we do the same to <code>view_list</code>:</p>
-</div>
-<div class="listingblock sourcecode">
-<div class="title">lists/views.py (ch10l026-7)</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">def</span> <span class="function">view_list</span>(request, list_id):
-    [...]
+[superlists-staging.ottg.eu] run: /home/elspeth/sites/superlists-staging.ottg.eu
+[superlists-staging.ottg.eu] out: Requirement already satisfied (use --upgrade t
+[superlists-staging.ottg.eu] out: Requirement already satisfied (use --upgrade t
+[superlists-staging.ottg.eu] out: Cleaning up...
+[superlists-staging.ottg.eu] out:
 
-            item.save()
-            <span class="keyword">return</span> redirect(list_)
-        <span class="keyword">except</span> ValidationError:
-            error = <span class="string"><span class="delimiter">"</span><span class="content">You can't have an empty list item</span><span class="delimiter">"</span></span></code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>And a full unit test and functional test run to assure ourselves that
-everything still works:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>$ <strong>python manage.py test lists</strong>
-OK
-$ <strong>python manage.py test functional_tests</strong>
-OK</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Cross off our to-dos:</p>
-</div>
-<div class="sidebarblock scratchpad">
-<div class="content">
-<div class="ulist">
-<ul>
-<li>
-<p><em><span class="strikethrough line-through">Remove hardcoded URLs from views.py</span></em></p>
-</li>
-<li>
-<p><em><span class="strikethrough line-through">Remove hardcoded URL from forms in list.html and home.html</span></em></p>
-</li>
-<li>
-<p><em>Remove duplication of validation logic in views</em></p>
-</li>
-</ul>
-</div>
-</div>
-</div>
-<div class="paragraph">
-<p>Let&#8217;s do a commit:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>$ <strong>git commit -am "Use get_absolute_url on List model to DRY urls in views"</strong></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>That final to-do item will be the subject of the next chapter&#8230;&#8203;
+[superlists-staging.ottg.eu] run: cd /home/elspeth/sites/superlists-staging.ottg
+[superlists-staging.ottg.eu] out:
+[superlists-staging.ottg.eu] out: 0 static files copied, 11 unmodified.
+[superlists-staging.ottg.eu] out:
 
+[superlists-staging.ottg.eu] run: cd /home/elspeth/sites/superlists-staging.ottg
+[superlists-staging.ottg.eu] out: Creating tables ...
+[superlists-staging.ottg.eu] out: Installing custom SQL ...
+[superlists-staging.ottg.eu] out: Installing indexes ...
+[superlists-staging.ottg.eu] out: Installed 0 object(s) from 0 fixture(s)
+[superlists-staging.ottg.eu] out:
+Done.
+Disconnecting from superlists-staging.ottg.eu... done.</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Awesome.  I love making computers spew out pages and pages of output like that
+(in fact I find it hard to stop myself from making little '70s computer '&lt;brrp,
+brrrp, brrrp&gt;' noises like Mother in <em>Alien</em>).  If we look through it
+we can see it is doing our bidding: the <code>mkdir -p</code> commands go through
+happily, even though the directories already exist.  Next <code>git pull</code> pulls down
+the couple of commits we just made.  The <code>sed</code> and <code>echo &gt;&gt;</code> modify our
+<em>settings.py</em>. Then <code>pip install -r requirements.txt</code>, completes happily,
+noting that the existing virtualenv already has all the packages we need.
+<code>collectstatic</code> also notices that the static files are all already there, and
+finally the <code>migrate</code> completes without a hitch.
 </p>
 </div>
 <div class="sidebarblock">
 <div class="content">
-<div class="title">Tips on Organising Tests and Refactoring</div>
+<div class="title">Fabric Configuration</div>
+<div class="paragraph">
+<p>If you are using an SSH key to log in, are storing it in the default location,
+and are using the same username on the server as locally, then Fabric should
+"just work".  If you aren&#8217;t there are several tweaks you may need to apply
+in order to get the <code>fab</code> command to do your bidding. They revolve around the
+username, the location of the SSH key to use, or the password.</p>
+</div>
+<div class="paragraph">
+<p>You can pass these in to Fabric at the command line.  Check out:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>fab --help</strong></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Or see the <a href="http://docs.fabfile.org">Fabric documentation</a> for more info.</p>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_deploying_to_live">Deploying to Live</h4>
+<div class="paragraph">
+<p>
+So, let&#8217;s try using it for our live site!</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>fab deploy:host=elspeth@superlists.ottg.eu</strong>
+
+$ fab deploy --host=superlists.ottg.eu
+[superlists.ottg.eu] Executing task 'deploy'
+[superlists.ottg.eu] run: mkdir -p /home/elspeth/sites/superlists.ottg.eu
+[superlists.ottg.eu] run: mkdir -p /home/elspeth/sites/superlists.ottg.eu/databa
+[superlists.ottg.eu] run: mkdir -p /home/elspeth/sites/superlists.ottg.eu/static
+[superlists.ottg.eu] run: mkdir -p /home/elspeth/sites/superlists.ottg.eu/virtua
+[superlists.ottg.eu] run: mkdir -p /home/elspeth/sites/superlists.ottg.eu/source
+[superlists.ottg.eu] run: git clone <a href="https://github.com/hjwp/book-example.git" class="bare">https://github.com/hjwp/book-example.git</a> /ho
+[superlists.ottg.eu] out: Cloning into '/home/elspeth/sites/superlists.ottg.eu/s
+[superlists.ottg.eu] out: remote: Counting objects: 3128, done.
+[superlists.ottg.eu] out: Receiving objects:   0% (1/3128)
+[...]
+[superlists.ottg.eu] out: Receiving objects: 100% (3128/3128), 2.60 MiB | 829 Ki
+[superlists.ottg.eu] out: Resolving deltas: 100% (1545/1545), done.
+[superlists.ottg.eu] out:
+
+[localhost] local: git log -n 1 --format=%H
+[superlists.ottg.eu] run: cd /home/elspeth/sites/superlists.ottg.eu/source &amp;&amp; gi
+[superlists.ottg.eu] out: HEAD is now at 6c8615b use a secret key file
+[superlists.ottg.eu] out:
+
+[superlists.ottg.eu] run: sed -i.bak -r -e 's/DEBUG = True/DEBUG = False/g' "$(e
+[superlists.ottg.eu] run: echo 'ALLOWED_HOSTS = ["superlists.ottg.eu"]' &gt;&gt; "$(ec
+[superlists.ottg.eu] run: echo 'SECRET_KEY = '\\''mqu(ffwid5vleol%ke^jil*x1mkj-4
+[superlists.ottg.eu] run: echo 'from .secret_key import SECRET_KEY' &gt;&gt; "$(echo /
+[superlists.ottg.eu] run: python3 -m venv /home/elspeth/sites/superl
+[superlists.ottg.eu] out: Already using interpreter /usr/bin/python3
+[superlists.ottg.eu] out: Using base prefix '/usr'
+[superlists.ottg.eu] out: New python executable in /home/elspeth/sites/superlist
+[superlists.ottg.eu] out: Also creating executable in /home/elspeth/sites/superl
+[superlists.ottg.eu] out: Installing Setuptools............................done.
+[superlists.ottg.eu] out: Installing Pip...................................done.
+[superlists.ottg.eu] out:
+
+[superlists.ottg.eu] run: /home/elspeth/sites/superlists.ottg.eu/source/../virtu
+[superlists.ottg.eu] out: Downloading/unpacking Django==1.10.4 (from -r /home/el
+[superlists.ottg.eu] out:   Downloading Django-1.10.4.tar.gz (8.0MB):
+[...]
+[superlists.ottg.eu] out:   Downloading Django-1.10.4.tar.gz (8.0MB): 100%  8.0M
+[superlists.ottg.eu] out:   Running setup.py egg_info for package Django
+[superlists.ottg.eu] out:
+[superlists.ottg.eu] out:     warning: no previously-included files matching '__
+[superlists.ottg.eu] out:     warning: no previously-included files matching '*.
+[superlists.ottg.eu] out: Downloading/unpacking gunicorn==17.5 (from -r /home/el
+[superlists.ottg.eu] out:   Downloading gunicorn-17.5.tar.gz (367kB): 100%  367k
+[...]
+[superlists.ottg.eu] out:   Downloading gunicorn-17.5.tar.gz (367kB): 367kB down
+[superlists.ottg.eu] out:   Running setup.py egg_info for package gunicorn
+[superlists.ottg.eu] out:
+[superlists.ottg.eu] out: Installing collected packages: Django, gunicorn
+[superlists.ottg.eu] out:   Running setup.py install for Django
+[superlists.ottg.eu] out:     changing mode of build/scripts-3.3/django-admin.py
+[superlists.ottg.eu] out:
+[superlists.ottg.eu] out:     warning: no previously-included files matching '__
+[superlists.ottg.eu] out:     warning: no previously-included files matching '*.
+[superlists.ottg.eu] out:     changing mode of /home/elspeth/sites/superlists.ot
+[superlists.ottg.eu] out:   Running setup.py install for gunicorn
+[superlists.ottg.eu] out:
+[superlists.ottg.eu] out:     Installing gunicorn_paster script to /home/elspeth
+[superlists.ottg.eu] out:     Installing gunicorn script to /home/elspeth/sites/
+[superlists.ottg.eu] out:     Installing gunicorn_django script to /home/elspeth
+[superlists.ottg.eu] out: Successfully installed Django gunicorn
+[superlists.ottg.eu] out: Cleaning up...
+[superlists.ottg.eu] out:
+
+[superlists.ottg.eu] run: cd /home/elspeth/sites/superlists.ottg.eu/source &amp;&amp; ..
+[superlists.ottg.eu] out: Copying '/home/elspeth/sites/superlists.ottg.eu/source
+[superlists.ottg.eu] out: Copying '/home/elspeth/sites/superlists.ottg.eu/source
+[...]
+[superlists.ottg.eu] out: Copying '/home/elspeth/sites/superlists.ottg.eu/source
+[superlists.ottg.eu] out:
+[superlists.ottg.eu] out: 11 static files copied.
+[superlists.ottg.eu] out:
+
+[superlists.ottg.eu] run: cd /home/elspeth/sites/superlists.ottg.eu/source &amp;&amp; ..
+[superlists.ottg.eu] out: Creating tables ...
+[superlists.ottg.eu] out: Creating table auth_permission
+[...]
+[superlists.ottg.eu] out: Creating table lists_item
+[superlists.ottg.eu] out: Installing custom SQL ...
+[superlists.ottg.eu] out: Installing indexes ...
+[superlists.ottg.eu] out: Installed 0 object(s) from 0 fixture(s)
+[superlists.ottg.eu] out:
+
+
+Done.
+Disconnecting from superlists.ottg.eu... done.</pre>
+</div>
+</div>
+<div class="paragraph">
+<p><em>Brrp brrp brpp</em>. You can see the script follows a slightly different path,
+doing a <code>git clone</code> to bring down a brand new repo instead of a <code>git pull</code>.
+It also needs to set up a new virtualenv from scratch, including a fresh
+install of pip and Django. The <code>collectstatic</code> actually creates new files this
+time, and the <code>migrate</code> seems to have worked too.</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_nginx_and_gunicorn_config_using_sed">Nginx and Gunicorn Config Using sed</h4>
+<div class="paragraph">
+<p>
+
+
+What else do we need to do to get our live site into production? We refer to
+our provisioning notes, which tell us to use the template files to create our
+Nginx virtual host and the Systemd service.  How about a little Unix
+command-line magic?</p>
+</div>
+<div class="listingblock server-commands">
+<div class="content">
+<pre>elspeth@server:$ <strong>sed "s/SITENAME/superlists.ottg.eu/g" \
+    deploy_tools/nginx.template.conf | sudo tee \
+    /etc/nginx/sites-available/superlists.ottg.eu</strong></pre>
+</div>
+</div>
+<div class="paragraph">
+<p><code>sed</code> ("stream editor") takes a stream of text and performs edits on it. It&#8217;s
+no accident that the fabric string substitution command has the same name.  In
+this case we ask it to substitute the string <em>SITENAME</em> for the address of our
+site, with the <code>s/replaceme/withthis/g</code> syntax.  We pipe (<code>|</code>) the output of
+that to a root-user process (<code>sudo</code>), which uses <code>tee</code> to write what&#8217;s piped to it
+to a file, in this case the Nginx sites-available virtualhost config file.</p>
+</div>
+<div class="paragraph">
+<p>We can now activate that file:</p>
+</div>
+<div class="listingblock server-commands">
+<div class="content">
+<pre>elspeth@server:$ <strong>sudo ln -s ../sites-available/superlists.ottg.eu \
+    /etc/nginx/sites-enabled/superlists.ottg.eu</strong></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Then we write the Systemd service:</p>
+</div>
+<div class="listingblock server-commands">
+<div class="content">
+<pre>elspeth@server: <strong>sed "s/SITENAME/superlists.ottg.eu/g" \
+    deploy_tools/gunicorn-systemd.template.service | sudo tee \
+    /etc/systemd/system/gunicorn-superlists.ottg.eu.service</strong></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Finally we start both services:</p>
+</div>
+<div class="listingblock server-commands">
+<div class="content">
+<pre>elspeth@server:$ <strong>sudo systemctl daemon-reload</strong>
+elspeth@server:$ <strong>sudo systemctl reload nginx</strong>
+elspeth@server:$ <strong>sudo systemctl enable gunicorn-superlists.ottg.eu</strong>
+elspeth@server:$ <strong>sudo systemctl start gunicorn-superlists.ottg.eu</strong></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>And we take a look at our site.  It works, hooray!</p>
+</div>
+<div class="paragraph">
+<p>Let&#8217;s add the fabfile to our repo:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>git add deploy_tools/fabfile.py</strong>
+$ <strong>git commit -m "Add a fabfile for automated deploys"</strong></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_git_tag_the_release">Git Tag the Release</h3>
+<div class="paragraph">
+<p>
+One final bit of admin.  In order to preserve a historical marker,
+we&#8217;ll use Git tags to mark the state of the codebase that reflects
+what&#8217;s currently live on the server:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>git tag LIVE</strong>
+$ <strong>export TAG=`date +DEPLOYED-%F/%H%M`</strong>  # this generates a timestamp
+$ <strong>echo $TAG</strong> # should show "DEPLOYED-" and then the timestamp
+$ <strong>git tag $TAG</strong>
+$ <strong>git push origin LIVE $TAG</strong> # pushes the tags up</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Now it&#8217;s easy, at any time, to check what the difference is between
+our current codebase and what&#8217;s live on the servers.  This will come
+in useful in a few chapters, when we look at database migrations. Have
+a look at the tag in the history:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>git log --graph --oneline --decorate</strong></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Anyway, you now have a live website!  Tell all your friends!  Tell your mum, if
+no one else is interested! And, in the next chapter, it&#8217;s back to coding
+again.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_further_reading">Further Reading</h3>
+<div class="paragraph">
+<p>
+There&#8217;s no such thing as the One True Way in deployment, and I&#8217;m no grizzled
+expert in any case.  I&#8217;ve tried to set you off on a reasonably sane path, but
+there&#8217;s plenty of things you could do differently, and lots, lots more to learn
+besides.  Here are some resources I used for inspiration:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><a href="http://hynek.me/talks/python-deployments">Solid Python Deployments for Everybody</a> by Hynek Schlawack</p>
+</li>
+<li>
+<p><a href="http://bit.ly/U6tUo5">Git-based fabric deployments are awesome</a> by Dan Bravender</p>
+</li>
+<li>
+<p>The deployment chapter of <a href="#twoscoops">Two Scoops of Django</a> by Dan
+Greenfeld and Audrey Roy</p>
+</li>
+<li>
+<p><a href="http://12factor.net/">The 12-factor App</a> by the Heroku team</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>
+
+
+
+
+For some ideas on how you might go about automating the provisioning step,
+and an alternative to Fabric called Ansible, go check out <a href="/book/appendix_III_provisioning_with_ansible.html">[appendix3]</a>.</p>
+</div>
+<div class="sidebarblock">
+<div class="content">
+<div class="title">Automated Deployments</div>
 <div class="dlist">
 <dl>
-<dt class="hdlist1">Use a tests folder</dt>
+<dt class="hdlist1">Fabric</dt>
 <dd>
-<p>Just as you use multiple files to hold your application code, you should
-split your tests out into multiple files.
-+</p>
-<div class="ulist">
-<ul>
-<li>
-<p>Use a folder called <em>tests</em>, with a <em><em>init</em>.py</em>.</p>
-</li>
-<li>
-<p>For functional tests, group them into tests for a particular feature or
-user story.</p>
-</li>
-<li>
-<p>For unit tests, you want a separate test file for each tested source code
-file. For Django, that&#8217;s typically <em>test_models.py</em>, <em>test_views.py</em>, and
-<em>test_forms.py</em>.</p>
-</li>
-<li>
-<p>Have at least a placeholder test for <em>every</em> function and class.</p>
-</li>
-</ul>
-</div>
+<p>Fabric lets you run commands on servers from inside Python scripts. This
+is a great tool for automating server admin tasks.
+</p>
 </dd>
-<dt class="hdlist1">Don&#8217;t forget the "Refactor" in "Red, Green, Refactor"</dt>
+<dt class="hdlist1">Idempotency</dt>
 <dd>
-<p>The whole point of having tests is to allow you to refactor your code!
-Use them, and make your code as clean as you can.</p>
+<p>If your deployment script is deploying to existing servers, you need to
+design them so that they work against a fresh installation <em>and</em> against
+a server that&#8217;s already configured.
+</p>
 </dd>
-<dt class="hdlist1">Don&#8217;t refactor against failing tests</dt>
+<dt class="hdlist1">Keep config files under source control</dt>
 <dd>
-<div class="ulist">
-<ul>
-<li>
-<p>In general!</p>
-</li>
-<li>
-<p>But the FT you&#8217;re currently working on doesn&#8217;t count.</p>
-</li>
-<li>
-<p>You can occasionally put a skip on a test which is testing something you
-haven&#8217;t written yet.</p>
-</li>
-<li>
-<p>More commonly, make a note of the refactor you want to do, finish what
-you&#8217;re working on, and do the refactor a little later, when you&#8217;re back
-to a working state.</p>
-</li>
-<li>
-<p>Don&#8217;t forget to remove any skips before you commit your code! You should
-always review your diffs line by line to catch things like this.</p>
-</li>
-</ul>
-</div>
+<p>Make sure your only copy of a config file isn&#8217;t on the server!  They
+are critical to your application, and should be under version control
+like anything else.</p>
+</dd>
+<dt class="hdlist1">Automating provisioning</dt>
+<dd>
+<p>Ultimately, <em>everything</em> should be automated, and that includes spinning up
+brand new servers and ensuring they have all the right software installed.
+This will involve interacting with the API of your hosting provider.</p>
+</dd>
+<dt class="hdlist1">Configuration management tools</dt>
+<dd>
+<p>Fabric is very flexible, but its logic is still based on scripting. More
+advanced tools take a more "declarative" approach, and can make your life
+even easier.  Ansible and Vagrant are two worth checking out (see
+<a href="/book/appendix_III_provisioning_with_ansible.html">[appendix3]</a>), but there are many more (Chef, Puppet, Salt, Juju&#8230;&#8203;).
+</p>
 </dd>
 </dl>
-</div>
 </div>
 </div>
 </div>
@@ -1764,12 +820,18 @@ always review your diffs line by line to catch things like this.</p>
 <div id="footnotes">
 <hr>
 <div class="footnote" id="_footnote_1">
-<a href="#_footnoteref_1">1</a>. "Dunder" is shorthand for double-underscore, so "dunderinit" means <em><em>init</em>.py</em>.
+<a href="#_footnoteref_1">1</a>. Author of the Mock library and maintainer of <code>unittest</code>; if the Python testing world has a rock star, it is he.
+</div>
+<div class="footnote" id="_footnote_2">
+<a href="#_footnoteref_2">2</a>. If you&#8217;re wondering why we&#8217;re building up paths manually with <code>%s</code> instead of the <code>os.path.join</code> command we saw earlier, it&#8217;s because <code>path.join</code> will use backslashes if you run the script from Windows, but we definitely want forward slashes on the server
+</div>
+<div class="footnote" id="_footnote_3">
+<a href="#_footnoteref_3">3</a>. There is a Fabric "cd" command, but I figured it was one thing too many to add in this chapter.
 </div>
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2016-12-28 00:21:11 GMT
+Last updated 2017-02-01 17:18:42 GMT
 </div>
 </div>
 <div class="comments" style="padding: 20px">

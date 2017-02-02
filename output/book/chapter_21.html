@@ -4,7 +4,7 @@
 <!--[if IE]><meta http-equiv="X-UA-Compatible" content="IE=edge"><![endif]-->
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="generator" content="Asciidoctor 1.5.4">
-<title>The Token Social Bit, the Page Pattern, and an Exercise for the Reader</title>
+<title>Continuous Integration (CI)</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:300,300italic,400,400italic,600,600italic%7CNoto+Serif:400,400italic,700,700italic%7CDroid+Sans+Mono:400,700">
 <link rel="stylesheet" href="./asciidoctor.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.5.0/css/font-awesome.min.css">
@@ -31,27 +31,45 @@ httpRequest.send();
 </div>
 <div id="content">
 <div class="sect1">
-<h2 id="page-pattern-chapter">The Token Social Bit, the Page Pattern, and an Exercise for the Reader</h2>
+<h2 id="CI-chapter">Continuous Integration (CI)</h2>
 <div class="sectionbody">
-<div class="paragraph">
-<p>Are jokes about how "everything has to be social now" slightly old hat?
-Everything has to be all A/B tested big data get-more-clicks lists of 10 Things
-This Inspiring Teacher Said That Will Make You Change Your Mind About Blah Blah
-now&#8230;&#8203;anyway. Lists, be they Inspirational or otherwise, are often better
-shared. Let&#8217;s allow our users to collaborate on their lists with other users.</p>
+<div class="admonitionblock warning">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-warning" title="Warning"></i>
+</td>
+<td class="content">
+Major update released for Selenium 3.
+    If you started this book on or before Jan 30th 2017,
+    be aware: chapters have been renumbered,
+    so check this is the one you think it is,
+    and have a look at the new <a href="/book/chapter_06.html">[explicit-waits-chapter]</a>
+    for an indication of the changes you&#8217;ll need in your FTs.
+    You should do a <code>pip install --upgrade selenium</code> too.
+</td>
+</tr>
+</table>
 </div>
 <div class="paragraph">
 <p>
 
-Along the way we&#8217;ll improve our FTs by starting to implement the interact/wait
-Selenium pattern that we learned in the last chapter.  We&#8217;ll also experiment
-with something called the Page Object pattern.</p>
+
+As our site grows, it takes longer and longer to run all of our functional
+tests.  If this continues, the danger is that we&#8217;re going to stop bothering.</p>
 </div>
 <div class="paragraph">
-<p>Then, rather than showing you explicitly what to do, I&#8217;m going to let you write
-your unit tests and application code by yourself.  Don&#8217;t worry, you won&#8217;t be
-totally on your own!  I&#8217;ll give an outline of the steps to take, as well as
-some hints and tips.</p>
+<p>Rather than let that happen, we can automate the running of functional tests
+by setting up a "Continuous Integration" or CI server.  That way, in day-to-day
+development, we can just run the FT that we&#8217;re working on at that time, and
+rely on the CI server to run all the tests automatically, and let us know if
+we&#8217;ve broken anything accidentally.  The unit tests should stay fast enough
+that we can keep running them every few seconds.</p>
+</div>
+<div class="paragraph">
+<p>The CI server of choice these days is called Jenkins. It&#8217;s a bit Java, a bit
+crashy, a bit ugly, but it&#8217;s what everyone uses, and it has a great plugin
+ecosystem, so let&#8217;s get it up and running.</p>
 </div>
 <div class="admonitionblock note">
 <table>
@@ -60,156 +78,290 @@ some hints and tips.</p>
 <i class="fa icon-note" title="Note"></i>
 </td>
 <td class="content">
-this chapter has not yet been updated for the new edition, but it
-    should not be changing substantially.
+this chapter has not yet been updated for the new edition. Some of the
+    specific problems discussed with Persona in CI may not be relevant, but
+    the basic lessons of the chapter are all still correct.
 </td>
 </tr>
 </table>
 </div>
 <div class="sect2">
-<h3 id="_an_ft_with_multiple_users_and_addcleanup">An FT with Multiple Users, and addCleanup</h3>
+<h3 id="_installing_jenkins">Installing Jenkins</h3>
 <div class="paragraph">
 <p>
 
-Let&#8217;s get started&#8212;&#8203;we&#8217;ll need two users for this FT:</p>
-</div>
-<div class="listingblock sourcecode small-code">
-<div class="title">functional_tests/test_sharing.py</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> <span class="include">selenium</span> <span class="keyword">import</span> <span class="include">webdriver</span>
-<span class="keyword">from</span> .base <span class="keyword">import</span> <span class="include">FunctionalTest</span>
 
-<span class="keyword">def</span> <span class="function">quit_if_possible</span>(browser):
-    <span class="keyword">try</span>: browser.quit()
-    <span class="keyword">except</span>: <span class="keyword">pass</span>
-
-
-<span class="keyword">class</span> <span class="class">SharingTest</span>(FunctionalTest):
-
-    <span class="keyword">def</span> <span class="function">test_logged_in_users_lists_are_saved_as_my_lists</span>(<span class="predefined-constant">self</span>):
-        <span class="comment"># Edith is a logged-in user</span>
-        <span class="predefined-constant">self</span>.create_pre_authenticated_session(<span class="string"><span class="delimiter">'</span><span class="content">edith@example.com</span><span class="delimiter">'</span></span>)
-        edith_browser = <span class="predefined-constant">self</span>.browser
-        <span class="predefined-constant">self</span>.addCleanup(<span class="keyword">lambda</span>: quit_if_possible(edith_browser))
-
-        <span class="comment"># Her friend Oniciferous is also hanging out on the lists site</span>
-        oni_browser = webdriver.Firefox()
-        <span class="predefined-constant">self</span>.addCleanup(<span class="keyword">lambda</span>: quit_if_possible(oni_browser))
-        <span class="predefined-constant">self</span>.browser = oni_browser
-        <span class="predefined-constant">self</span>.create_pre_authenticated_session(<span class="string"><span class="delimiter">'</span><span class="content">oniciferous@example.com</span><span class="delimiter">'</span></span>)
-
-        <span class="comment"># Edith goes to the home page and starts a list</span>
-        <span class="predefined-constant">self</span>.browser = edith_browser
-        <span class="predefined-constant">self</span>.browser.get(<span class="predefined-constant">self</span>.server_url)
-        <span class="predefined-constant">self</span>.get_item_input_box().send_keys(<span class="string"><span class="delimiter">'</span><span class="content">Get help</span><span class="char">\n</span><span class="delimiter">'</span></span>)
-
-        <span class="comment"># She notices a "Share this list" option</span>
-        share_box = <span class="predefined-constant">self</span>.browser.find_element_by_css_selector(<span class="string"><span class="delimiter">'</span><span class="content">input[name=email]</span><span class="delimiter">'</span></span>)
-        <span class="predefined-constant">self</span>.assertEqual(
-            share_box.get_attribute(<span class="string"><span class="delimiter">'</span><span class="content">placeholder</span><span class="delimiter">'</span></span>),
-            <span class="string"><span class="delimiter">'</span><span class="content">your-friend@example.com</span><span class="delimiter">'</span></span>
-        )</code></pre>
+There are several hosted-CI services out there that essentially provide you
+with a Jenkins server, ready to go.  I&#8217;ve come across Sauce Labs, Travis,
+Circle-CI, ShiningPanda, and there are probably lots more.  But I&#8217;m going to
+assume we&#8217;re installing everything on a server we control.</p>
 </div>
-</div>
-<div class="paragraph">
-<p>The interesting feature to note about this section is the <code>addCleanup</code>
-function, whose documentation you can find
-<a href="http://bit.ly/SuW8Hv">here</a>.
-It can be used as an alternative to the <code>tearDown</code> function as a way of
-cleaning up resources used during the test.  It&#8217;s most useful when the resource
-is only allocated halfway through a test, so you don&#8217;t have to spend time in
-<code>tearDown</code> figuring out what does or doesn&#8217;t need cleaning up.</p>
-</div>
-<div class="paragraph">
-<p><code>addCleanup</code> is run after <code>tearDown</code>, which is why we need that <code>try/except</code>
-formulation for <code>quit_if_possible</code>&#8212;whichever of <code>edith_browser</code> and
-<code>oni_browser</code> is also assigned to <code>self.browser</code> at the point at which the
-test ends will already have been quit by the <code>tearDown</code> function.</p>
-</div>
-<div class="paragraph">
-<p>We&#8217;ll also need to move <code>create_pre_authenticated_session</code> from
-<em>test_my_lists.py</em> into <em>base.py</em>.</p>
-</div>
-<div class="paragraph">
-<p>OK, let&#8217;s see if that all works:</p>
-</div>
-<div class="listingblock dofirst-ch21l002">
-<div class="content">
-<pre>$ <strong>python manage.py test functional_tests.test_sharing</strong>
-[...]
-Traceback (most recent call last):
-  File "/.../superlists/functional_tests/test_sharing.py", line 29, in
-test_logged_in_users_lists_are_saved_as_my_lists
-    share_box = self.browser.find_element_by_css_selector('input[name=email]')
-[...]
-selenium.common.exceptions.NoSuchElementException: Message: Unable to locate
-element: {"method":"css selector","selector":"input[name=email]"}</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Great! It seems to have got through creating the two user sessions, and
-it gets onto an expected failure&#8212;&#8203;there is no input for an email address
-of a person to share a list with on the page.</p>
-</div>
-<div class="paragraph">
-<p>Let&#8217;s do a commit at this point, because we&#8217;ve got at least a placeholder
-for our FT, we&#8217;ve got a useful modification of the
-<code>create_pre_authenticated_session</code> function, and we&#8217;re about to embark on
-a bit of an FT refactor:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>$ <strong>git add functional_tests</strong>
-$ <strong>git commit -m "New FT for sharing, move session creation stuff to base"</strong></pre>
-</div>
-</div>
-</div>
-<div class="sect2">
-<h3 id="_implementing_the_selenium_interact_wait_pattern">Implementing the Selenium Interact/Wait Pattern</h3>
-<div class="paragraph">
-<p>
-
-Before we continue, let&#8217;s take a closer look at the interactions with the site
-which we have in our FT so far:</p>
-</div>
-<div class="listingblock sourcecode currentcontents small-code">
-<div class="title">functional_tests/test_sharing.py</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="python">    <span class="comment"># Edith goes to the home page and starts a list</span>
-    <span class="predefined-constant">self</span>.browser = edith_browser
-    <span class="predefined-constant">self</span>.browser.get(<span class="predefined-constant">self</span>.server_url)
-    <span class="predefined-constant">self</span>.get_item_input_box().send_keys(<span class="string"><span class="delimiter">'</span><span class="content">Get help</span><span class="char">\n</span><span class="delimiter">'</span></span>)  <i class="conum" data-value="1"></i><b>(1)</b>
-
-    <span class="comment"># She notices a "Share this list" option</span>
-    share_box = <span class="predefined-constant">self</span>.browser.find_element_by_css_selector(<span class="string"><span class="delimiter">'</span><span class="content">input[name=email]</span><span class="delimiter">'</span></span>)  <i class="conum" data-value="2"></i><b>(2)</b>
-    <span class="predefined-constant">self</span>.assertEqual(
-        share_box.get_attribute(<span class="string"><span class="delimiter">'</span><span class="content">placeholder</span><span class="delimiter">'</span></span>),
-        <span class="string"><span class="delimiter">'</span><span class="content">your-friend@example.com</span><span class="delimiter">'</span></span>
-    )</code></pre>
-</div>
-</div>
-<div class="colist arabic">
+<div class="admonitionblock note">
 <table>
 <tr>
-<td><i class="conum" data-value="1"></i><b>1</b></td>
-<td>Interaction with site</td>
-</tr>
-<tr>
-<td><i class="conum" data-value="2"></i><b>2</b></td>
-<td>Assumption about updated state of page</td>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+It&#8217;s not a good idea to install Jenkins on the same server as our
+staging or production servers.  Apart from anything else, we may want
+Jenkins to be able to reboot the staging server!
+</td>
 </tr>
 </table>
 </div>
 <div class="paragraph">
-<p>We learned in the last chapter that it&#8217;s dangerous to assume too much about
-the state of the browser after we do an interaction (like <code>send_keys</code>). In
-theory, <code>implicitly_wait</code> will make sure that, if the call to
-<code>find_element_by_css_selector</code> doesn&#8217;t find our <code>input[name=email]</code> at first,
-it will silently retry a few times.  But it can also go wrong&#8212;&#8203;imagine if
-there was an input on the previous page, with the same <code>name=email</code>, but a
-different placeholder text?  We&#8217;d get a strange failure, because Selenium
-could theoretically pick up the element from the previous page while the
-new page is loading.  That tends to raise a <code>StaleElementException</code>.</p>
+<p>We&#8217;ll install the latest version from the official Jenkins apt repo, because the
+Ubuntu default still has a few annoying bugs with locale/unicode support,
+and it also doesn&#8217;t set itself up to listen on the public Internet by default:</p>
+</div>
+<div class="listingblock skipme">
+<div class="content">
+<pre># instructions taken from jenkins site
+user@server:$ <strong>wget -q -O - https://pkg.jenkins.io/debian/jenkins-ci.org.key |\
+     sudo apt-key add -</strong>
+user@server:$ <strong>echo deb http://pkg.jenkins.io/debian-stable binary/ | sudo tee \
+    /etc/apt/sources.list.d/jenkins.list</strong>
+user@server:$ <strong>sudo apt-get update</strong>
+user@server:$ <strong>sudo apt-get install jenkins</strong></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>While we&#8217;re at we&#8217;ll install a few other dependencies:</p>
+</div>
+<div class="listingblock skipme">
+<div class="content">
+<pre>user@server:$ <strong>sudo apt-get install firefox python3-venv xvfb</strong></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>You should then be able to visit it at the URL for your server on port <code>8080</code>,
+as in <a href="#jenkin-welcome">A butler! How quaint&#8230;&#8203;</a>.</p>
+</div>
+<div id="jenkin-welcome" class="imageblock">
+<div class="content">
+<img src="images/twdp_2001.png" alt="Jenkins' default welcome screen">
+</div>
+<div class="title">Figure 1. A butler! How quaint&#8230;&#8203;</div>
+</div>
+<div class="sect3">
+<h4 id="_configuring_jenkins_security">Configuring Jenkins Security</h4>
+<div class="paragraph">
+<p>
+
+The first thing we&#8217;ll do is set up some authentication, since our server is
+available on the public Internet:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Manage Jenkins &#8594; Configure Global Security &#8594; Enable security.</p>
+</li>
+<li>
+<p>Choose "Jenkins' own user database", "Matrix-based security".</p>
+</li>
+<li>
+<p>Disable all permissions for Anonymous.</p>
+</li>
+<li>
+<p>And add a user for yourself; give it all the permissions
+(<a href="#jenkins-security">Locking it down&#8230;&#8203;</a>).</p>
+</li>
+<li>
+<p>The next screen offers you the option to create an account that matches that
+  username, and set a password.<sup class="footnote">[<a id="_footnoteref_1" class="footnote" href="#_footnote_1" title="View footnote.">1</a>]</sup></p>
+</li>
+</ul>
+</div>
+<div id="jenkins-security" class="imageblock">
+<div class="content">
+<img src="images/twdp_2002.png" alt="Jenkins security config screnshot">
+</div>
+<div class="title">Figure 2. Locking it down&#8230;&#8203;</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_adding_required_plugins">Adding Required Plugins</h4>
+<div class="paragraph">
+<p>
+
+Next we install a few plugins, to help us work with Git, Python, and virtual
+displays; see <a href="#installing-plugins">Installing plugins&#8230;&#8203;</a>:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Manage Jenkins &#8594; Manage Plugins &#8594; Available</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>We&#8217;ll want the plugins for:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Git</p>
+</li>
+<li>
+<p>ShiningPanda</p>
+</li>
+<li>
+<p>Xvfb</p>
+</li>
+</ul>
+</div>
+<div id="installing-plugins" class="imageblock">
+<div class="content">
+<img src="images/twdp_2003.png" alt="Jenkins installing plugins">
+</div>
+<div class="title">Figure 3. Installing plugins&#8230;&#8203;</div>
+</div>
+<div class="paragraph">
+<p>Restart afterwards using either the tick-box on that last screen, or
+from the command line with a <code>sudo service jenkins restart</code>.</p>
+</div>
+<div class="sect4">
+<h5 id="_telling_jenkins_where_to_find_python_3_and_xvfb">Telling Jenkins where to find Python 3 and Xvfb</h5>
+<div class="paragraph">
+<p>We need to tell the ShiningPanda plugin where Python 3 is installed
+(usually <em>/usr/bin/python3</em>, but you can check with a <code>which python3</code>):
+
+
+
+* Manage Jenkins &#8594; Configure System.</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Python &#8594; Python installations &#8594; Add Python (<a href="#add-python-to-jenkins">Where did I leave that Python?</a>).</p>
+</li>
+<li>
+<p>Xvfb installation &#8594; Add Xvfb installation; enter <strong><code>/usr/bin</code></strong> as the
+installation directory.</p>
+</li>
+</ul>
+</div>
+<div id="add-python-to-jenkins" class="imageblock">
+<div class="content">
+<img src="images/twdp_2004.png" alt="Adding Python 3">
+</div>
+<div class="title">Figure 4. Where did I leave that Python?</div>
+</div>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_setting_up_our_project">Setting Up Our Project</h3>
+<div class="paragraph">
+<p>
+Now we&#8217;ve got the basic Jenkins configured, let&#8217;s set up our project:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>New Job &#8594; Build a free-style software project.</p>
+</li>
+<li>
+<p>Add the Git repo, as in <a href="#choose-git-repo">Get it from Git</a>.</p>
+</li>
+</ul>
+</div>
+<div id="choose-git-repo" class="imageblock">
+<div class="content">
+<img src="images/twdp_2005.png" alt="Setting the git repo">
+</div>
+<div class="title">Figure 5. Get it from Git</div>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Set it to poll every hour (<a href="#poll-hourly">Poll Github for changes</a>) (check out the help text here&#8212;&#8203;there are many other options for ways of triggering builds).</p>
+</li>
+</ul>
+</div>
+<div id="poll-hourly" class="imageblock">
+<div class="content">
+<img src="images/twdp_2006.png" alt="Config polling github">
+</div>
+<div class="title">Figure 6. Poll Github for changes</div>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Run the tests inside a Python 3 virtualenv.</p>
+</li>
+<li>
+<p>Run the unit tests and functional tests separately.  See
+<a href="#virtualenv-buildstep">Virtualenv build steps</a>.</p>
+</li>
+</ul>
+</div>
+<div id="virtualenv-buildstep" class="imageblock">
+<div class="content">
+<img src="images/twdp_2007.png" alt="Adding Python 3">
+</div>
+<div class="title">Figure 7. Virtualenv build steps</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_first_build">First Build!</h3>
+<div class="paragraph">
+<p>Hit "Build Now!", then go and take a look at the "Console Output". You
+should see something like this:</p>
+</div>
+<div class="listingblock skipme small-code">
+<div class="content">
+<pre>Started by user harry
+Building in workspace /var/lib/jenkins/jobs/Superlists/workspace
+Fetching changes from the remote Git repository
+Fetching upstream changes from https://github.com/hjwp/book-example.git
+Checking out Revision d515acebf7e173f165ce713b30295a4a6ee17c07 (origin/master)
+[workspace] $ /bin/sh -xe /tmp/shiningpanda7260707941304155464.sh
++ pip install -r requirements.txt
+Requirement already satisfied (use --upgrade to upgrade): Django==1.10 in
+/var/lib/jenkins/shiningpanda/jobs/ddc1aed1/virtualenvs/d41d8cd9/lib/python3.3/site-packages
+(from -r requirements.txt (line 1))
+
+Requirement already satisfied (use --upgrade to upgrade): gunicorn==17.5 in
+/var/lib/jenkins/shiningpanda/jobs/ddc1aed1/virtualenvs/d41d8cd9/lib/python3.3/site-packages
+(from -r requirements.txt (line 3))
+Downloading/unpacking requests==2.0.0 (from -r requirements.txt (line 4))
+  Running setup.py egg_info for package requests
+
+Installing collected packages: requests
+  Running setup.py install for requests
+
+Successfully installed requests
+Cleaning up...
++ python manage.py test lists accounts
+...................................................
+ ---------------------------------------------------------------------
+Ran 51 tests in 0.323s
+
+OK
+Creating test database for alias 'default'...
+Destroying test database for alias 'default'...
++ python manage.py test functional_tests
+ImportError: No module named 'selenium'
+Build step 'Virtualenv Builder' marked build as failure</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Ah.  We need Selenium in our virtualenv.</p>
+</div>
+<div class="paragraph">
+<p>
+Let&#8217;s add a manual installation of Selenium to our build
+steps:</p>
+</div>
+<div class="listingblock skipme">
+<div class="content">
+<pre>    pip install -r requirements.txt
+    pip install "selenium&lt;3"
+    python manage.py test accounts lists
+    python manage.py test functional_tests</pre>
+</div>
 </div>
 <div class="admonitionblock tip">
 <table>
@@ -218,161 +370,137 @@ new page is loading.  That tends to raise a <code>StaleElementException</code>.<
 <i class="fa icon-tip" title="Tip"></i>
 </td>
 <td class="content">
-Unexpected <code>StaleElementException</code> errors from Selenium often mean you
-    have some kind of race condition.  You should probably specify an explicit
-    interaction/wait pattern.
-    
-    
+Some people like to use a file called <em>test-requirements.txt</em> to specify
+    packages that are needed for the tests, but not the main app.
 </td>
 </tr>
 </table>
 </div>
 <div class="paragraph">
-<p>Instead, it&#8217;s always prudent to follow the "wait-for" pattern whenever we
-want to check on the effects of an interaction that we&#8217;ve just triggered.
-Something like this:</p>
+<p>Now what?</p>
 </div>
-<div class="listingblock sourcecode skipme">
-<div class="title">functional_tests/test_sharing.py</div>
+<div class="listingblock skipme">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python">    <span class="predefined-constant">self</span>.get_item_input_box().send_keys(<span class="string"><span class="delimiter">'</span><span class="content">Get help</span><span class="char">\n</span><span class="delimiter">'</span></span>)
-
-    <span class="comment"># She notices a "Share this list" option</span>
-    <span class="predefined-constant">self</span>.wait_for(
-        <span class="keyword">lambda</span>:  <span class="predefined-constant">self</span>.assertEqual(
-            <span class="predefined-constant">self</span>.browser.find_element_by_css_selector(
-                <span class="string"><span class="delimiter">'</span><span class="content">input[name=email]</span><span class="delimiter">'</span></span>
-            ).get_attribute(<span class="string"><span class="delimiter">'</span><span class="content">placeholder</span><span class="delimiter">'</span></span>),
-            <span class="string"><span class="delimiter">'</span><span class="content">your-friend@example.com</span><span class="delimiter">'</span></span>
-        )
-    )</code></pre>
+<pre>  File
+  "/var/lib/jenkins/shiningpanda/jobs/ddc1aed1/virtualenvs/d41d8cd9/lib/python3.
+  line 100, in _wait_until_connectable
+    self._get_firefox_output())
+selenium.common.exceptions.WebDriverException: Message: 'The browser appears to
+have exited before we could connect. The output was: b"\\n(process:19757):
+GLib-CRITICAL **: g_slice_set_config: assertion \'sys_page_size == 0\'
+failed\\nError: no display specified\\n"'</pre>
 </div>
 </div>
 </div>
 <div class="sect2">
-<h3 id="_the_page_pattern">The Page Pattern</h3>
+<h3 id="_setting_up_a_virtual_display_so_the_fts_can_run_headless">Setting Up a Virtual Display so the FTs Can Run Headless</h3>
 <div class="paragraph">
 <p>
 
-But do you know what would be even better?  This is an occasion for a "three
-strikes and refactor".  This test, and many others, all begin off with the user
-starting a new list.  What if we had a helper function called "start new list"
-that would do the <code>wait_for</code> as well as the list item input?</p>
+As you can see from the traceback, Firefox is unable to start because the
+server doesn&#8217;t have a display.</p>
 </div>
 <div class="paragraph">
-<p>We&#8217;ve already seen how to use helper methods on the base <code>FunctionalTest</code>
-class, but if we continue using too many of them, it&#8217;s going to get very
-crowded. I&#8217;ve worked on a base FT class that was over 1,500 lines long, and
-that got pretty unwieldy.</p>
+<p>
+
+There are two ways to deal with this problem. The first is to switch to using
+a headless browser, like PhantomJS or SlimerJS.  Those tools definitely have
+their place&#8212;&#8203;they&#8217;re faster, for one thing&#8212;&#8203;but they also have
+disadvantages.  The first is that they&#8217;re not "real" web browsers, so you can&#8217;t
+be sure you&#8217;re going to catch all the strange quirks and behaviours of the
+actual browsers your users use.  The second is that they behave quite
+differently inside Selenium, and will require substantial amounts of rewriting
+of FT code.</p>
 </div>
-<div class="paragraph">
-<p>One accepted pattern for splitting up your FT helper code is called the
-<a href="http://www.seleniumhq.org/docs/06_test_design_considerations.jsp#page-object-design-pattern">Page
-pattern</a>, and it involves having objects to represent the different pages on
-your site, and to be the single place to store information about how to
-interact with them.</p>
-</div>
-<div class="paragraph">
-<p>Let&#8217;s see how we would create Page objects for the home and lists pages. Here&#8217;s one
-for the home page:</p>
-</div>
-<div class="listingblock sourcecode">
-<div class="title">functional_tests/home_and_list_pages.py</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">class</span> <span class="class">HomePage</span>(<span class="predefined">object</span>):
-
-    <span class="keyword">def</span> <span class="function">__init__</span>(<span class="predefined-constant">self</span>, test):
-        <span class="predefined-constant">self</span>.test = test  <i class="conum" data-value="1"></i><b>(1)</b>
-
-
-    <span class="keyword">def</span> <span class="function">go_to_home_page</span>(<span class="predefined-constant">self</span>):  <i class="conum" data-value="2"></i><b>(2)</b>
-        <span class="predefined-constant">self</span>.test.browser.get(<span class="predefined-constant">self</span>.test.server_url)
-        <span class="predefined-constant">self</span>.test.wait_for(<span class="predefined-constant">self</span>.get_item_input)
-        <span class="keyword">return</span> <span class="predefined-constant">self</span>  <i class="conum" data-value="3"></i><b>(3)</b>
-
-
-    <span class="keyword">def</span> <span class="function">get_item_input</span>(<span class="predefined-constant">self</span>):
-        <span class="keyword">return</span> <span class="predefined-constant">self</span>.test.browser.find_element_by_id(<span class="string"><span class="delimiter">'</span><span class="content">id_text</span><span class="delimiter">'</span></span>)
-
-
-    <span class="keyword">def</span> <span class="function">start_new_list</span>(<span class="predefined-constant">self</span>, item_text):  <i class="conum" data-value="4"></i><b>(4)</b>
-        <span class="predefined-constant">self</span>.go_to_home_page()
-        inputbox = <span class="predefined-constant">self</span>.get_item_input()
-        inputbox.send_keys(item_text + <span class="string"><span class="delimiter">'</span><span class="char">\n</span><span class="delimiter">'</span></span>)
-        list_page = ListPage(<span class="predefined-constant">self</span>.test)  <i class="conum" data-value="5"></i><b>(5)</b>
-        list_page.wait_for_new_item_in_list(item_text, <span class="integer">1</span>)  <i class="conum" data-value="6"></i><b>(6)</b>
-        <span class="keyword">return</span> list_page  <i class="conum" data-value="7"></i><b>(7)</b></code></pre>
-</div>
-</div>
-<div class="colist arabic">
+<div class="admonitionblock tip">
 <table>
 <tr>
-<td><i class="conum" data-value="1"></i><b>1</b></td>
-<td>It&#8217;s initialised with an object that represents the current test.  That
-gives us the ability to make assertions, access the browser instance via
-<code>self.test.browser</code>, and use the <code>wait_for</code> function.</td>
-</tr>
-<tr>
-<td><i class="conum" data-value="2"></i><b>2</b></td>
-<td>Most Page objects have a "go to this page" function.  Notice that it
-implements the interaction/wait pattern&#8212;&#8203;first we <code>get</code> the page URL,
-then we wait for an element that we know is on the home page.</td>
-</tr>
-<tr>
-<td><i class="conum" data-value="3"></i><b>3</b></td>
-<td>Returning <code>self</code> is just a convenience. It enables
-<a href="https://en.wikipedia.org/wiki/Method_chaining">method chaining</a>.</td>
-</tr>
-<tr>
-<td><i class="conum" data-value="4"></i><b>4</b></td>
-<td>Here&#8217;s our function that starts a new list.  It goes to the home page,
-finds the input box, and sends the new item text to it, as well as a
-carriage return.  Then it uses a wait to check that the interaction
-has completed, but as you can see that wait is actually on a different
-Page object:</td>
-</tr>
-<tr>
-<td><i class="conum" data-value="5"></i><b>5</b></td>
-<td>The <code>ListPage</code>, which we&#8217;ll see the code for shortly. It&#8217;s initialised just
-like a <code>HomePage</code>.</td>
-</tr>
-<tr>
-<td><i class="conum" data-value="6"></i><b>6</b></td>
-<td>We use the <code>ListPage</code> to <code>wait_for_new_item_in_list</code>.  We specify the
-expected text of the item, and its expected position in the list.</td>
-</tr>
-<tr>
-<td><i class="conum" data-value="7"></i><b>7</b></td>
-<td>Finally, we return the <code>list_page</code> object to the caller, because they
-will probably find it useful (as we&#8217;ll see shortly).</td>
+<td class="icon">
+<i class="fa icon-tip" title="Tip"></i>
+</td>
+<td class="content">
+I would look into using headless browsers as a "dev-only" tool, to speed
+    up the running of FTs on the developer&#8217;s machine, while the tests on the CI
+    server use actual browsers.
+</td>
 </tr>
 </table>
 </div>
 <div class="paragraph">
-<p>Here&#8217;s how <code>ListPage</code> looks:</p>
+<p>
+The alternative is to set up a virtual display:  we get the server to pretend
+it has a screen attached to it, so Firefox runs happily. There&#8217;s a few tools
+out there to do this; we&#8217;ll use one called "Xvfb"
+(X Virtual Framebuffer)<sup class="footnote">[<a id="_footnoteref_2" class="footnote" href="#_footnote_2" title="View footnote.">2</a>]</sup>
+because it&#8217;s easy to install and use, and because it has a convenient Jenkins
+plugin.</p>
 </div>
-<div class="listingblock sourcecode">
-<div class="title">functional_tests/home_and_list_pages.py (ch21l006)</div>
+<div class="paragraph">
+<p>We go back to our project and hit "Configure" again, then find the section
+called "Build Environment".  Using the virtual display is as simple as
+ticking the box marked "Start Xvfb before the build, and shut it down after,"
+as in <a href="#xvfb-tickbox">Sometimes config is easy</a>.</p>
+</div>
+<div id="xvfb-tickbox" class="imageblock">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python">[...]
-
-<span class="keyword">class</span> <span class="class">ListPage</span>(<span class="predefined">object</span>):
-
-    <span class="keyword">def</span> <span class="function">__init__</span>(<span class="predefined-constant">self</span>, test):
-        <span class="predefined-constant">self</span>.test = test
-
-    <span class="keyword">def</span> <span class="function">get_list_table_rows</span>(<span class="predefined-constant">self</span>):
-        <span class="keyword">return</span> <span class="predefined-constant">self</span>.test.browser.find_elements_by_css_selector(
-            <span class="string"><span class="delimiter">'</span><span class="content">#id_list_table tr</span><span class="delimiter">'</span></span>
-        )
-
-    <span class="keyword">def</span> <span class="function">wait_for_new_item_in_list</span>(<span class="predefined-constant">self</span>, item_text, position):
-        expected_row = <span class="string"><span class="delimiter">'</span><span class="content">{}: {}</span><span class="delimiter">'</span></span>.format(position, item_text)
-        <span class="predefined-constant">self</span>.test.wait_for(<span class="keyword">lambda</span>: <span class="predefined-constant">self</span>.test.assertIn(
-            expected_row,
-            [row.text <span class="keyword">for</span> row <span class="keyword">in</span> <span class="predefined-constant">self</span>.get_list_table_rows()]
-        ))</code></pre>
+<img src="images/twdp_2008.png" alt="Tickbox saying we want Xvfb">
 </div>
+<div class="title">Figure 8. Sometimes config is easy</div>
+</div>
+<div class="paragraph">
+<p>The build does much better now:</p>
+</div>
+<div class="listingblock skipme small-code">
+<div class="content">
+<pre>[...]
+Xvfb starting$ /usr/bin/Xvfb :2 -screen 0 1024x768x24 -fbdir
+/var/lib/jenkins/2013-11-04_03-27-221510012427739470928xvfb
+[...]
++ python manage.py test lists accounts
+...................................................
+ ---------------------------------------------------------------------
+Ran 51 tests in 0.410s
+
+OK
+Creating test database for alias 'default'...
+Destroying test database for alias 'default'...
++ pip install selenium
+Requirement already satisfied (use --upgrade to upgrade): selenium in
+/var/lib/jenkins/shiningpanda/jobs/ddc1aed1/virtualenvs/d41d8cd9/lib/python3.5/site-packages
+Cleaning up...
+
++ python manage.py test functional_tests
+......F.
+======================================================================
+FAIL: test_logged_in_users_lists_are_saved_as_my_lists
+(functional_tests.test_my_lists.MyListsTest)
+ ---------------------------------------------------------------------
+Traceback (most recent call last):
+  File
+"/var/lib/jenkins/jobs/Superlists/.../functional_tests/test_my_lists.py",
+line 44, in test_logged_in_users_lists_are_saved_as_my_lists
+    self.assertEqual(self.browser.current_url, first_list_url)
+AssertionError: 'http://localhost:8081/accounts/edith@example.com/' !=
+'http://localhost:8081/lists/1/'
+- http://localhost:8081/accounts/edith@example.com/
++ http://localhost:8081/lists/1/
+
+ ---------------------------------------------------------------------
+Ran 8 tests in 89.275s
+
+FAILED (errors=1)
+Creating test database for alias 'default'...
+[{'secure': False, 'domain': 'localhost', 'name': 'sessionid', 'expiry':
+1920011311, 'path': '/', 'value': 'a8d8bbde33nreq6gihw8a7r1cc8bf02k'}]
+Destroying test database for alias 'default'...
+Build step 'Virtualenv Builder' marked build as failure
+Xvfb stopping
+Finished: FAILURE</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>
+Pretty close!  To debug that failure, we&#8217;ll need screenshots though.</p>
 </div>
 <div class="admonitionblock note">
 <table>
@@ -381,352 +509,494 @@ will probably find it useful (as we&#8217;ll see shortly).</td>
 <i class="fa icon-note" title="Note"></i>
 </td>
 <td class="content">
-It&#8217;s usually best to have a separate file for each Page object.
-    In this case, <code>HomePage</code> and <code>ListPage</code> are so closely related it&#8217;s
-    easier to keep them together.
+This error was due to the performance of my Jenkins instance&#8212;&#8203;you may see
+    a different error, or none at all. In any case, the tools below for taking
+    screenshots and dealing with race conditions will come in useful. Read on!
+
 </td>
 </tr>
 </table>
 </div>
+</div>
+<div class="sect2">
+<h3 id="_taking_screenshots">Taking Screenshots</h3>
 <div class="paragraph">
-<p>Let&#8217;s see how to use it in our test:</p>
+<p>
+
+
+To be able to debug unexpected failures that happen on a remote PC, it
+would be good to see a picture of the screen at the moment of the failure,
+and maybe also a dump of the HTML of the page.  We can do that using some
+custom logic in our FT class <code>tearDown</code>. We have to do a bit of introspection of
+<code>unittest</code> internals, a private attribute called <code>_outcomeForDoCleanups</code>, but
+this will work:</p>
 </div>
 <div class="listingblock sourcecode">
-<div class="title">functional_tests/test_sharing.py (ch21l007)</div>
+<div class="title">functional_tests/base.py (ch21l006)</div>
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> .home_and_list_pages <span class="keyword">import</span> <span class="include">HomePage</span>
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">import</span> <span class="include">os</span>
+<span class="keyword">from</span> <span class="include">datetime</span> <span class="keyword">import</span> <span class="include">datetime</span>
 [...]
 
-        <span class="comment"># Edith goes to the home page and starts a list</span>
-        <span class="predefined-constant">self</span>.browser = edith_browser
-        list_page = HomePage(<span class="predefined-constant">self</span>).start_new_list(<span class="string"><span class="delimiter">'</span><span class="content">Get help</span><span class="delimiter">'</span></span>)</code></pre>
+SCREEN_DUMP_LOCATION = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), <span class="string"><span class="delimiter">'</span><span class="content">screendumps</span><span class="delimiter">'</span></span>
+)
+[...]
+
+    <span class="keyword">def</span> <span class="function">tearDown</span>(<span class="predefined-constant">self</span>):
+        <span class="keyword">if</span> <span class="predefined-constant">self</span>._test_has_failed():
+            <span class="keyword">if</span> <span class="keyword">not</span> os.path.exists(SCREEN_DUMP_LOCATION):
+                os.makedirs(SCREEN_DUMP_LOCATION)
+            <span class="keyword">for</span> ix, handle <span class="keyword">in</span> <span class="predefined">enumerate</span>(<span class="predefined-constant">self</span>.browser.window_handles):
+                <span class="predefined-constant">self</span>._windowid = ix
+                <span class="predefined-constant">self</span>.browser.switch_to_window(handle)
+                <span class="predefined-constant">self</span>.take_screenshot()
+                <span class="predefined-constant">self</span>.dump_html()
+        <span class="predefined-constant">self</span>.browser.quit()
+        <span class="predefined">super</span>().tearDown()
+
+
+    <span class="keyword">def</span> <span class="function">_test_has_failed</span>(<span class="predefined-constant">self</span>):
+        <span class="comment"># slightly obscure but couldn't find a better way!</span>
+        <span class="keyword">return</span> <span class="predefined">any</span>(error <span class="keyword">for</span> (method, error) <span class="keyword">in</span> <span class="predefined-constant">self</span>._outcome.errors)</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>Let&#8217;s continue rewriting our test, using the Page object whenever
-we want to access elements from the lists page:</p>
+<p>We first create a directory for our screenshots if necessary. Then we
+iterate through all the open browser tabs and pages, and use some Selenium
+methods, <code>get_screenshot_as_file</code> and <code>browser.page_source</code>, for our image and
+HTML dumps:</p>
 </div>
 <div class="listingblock sourcecode">
-<div class="title">functional_tests/test_sharing.py (ch21l008)</div>
+<div class="title">functional_tests/base.py (ch21l007)</div>
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python">        <span class="comment"># She notices a "Share this list" option</span>
-        share_box = list_page.get_share_box()
-        <span class="predefined-constant">self</span>.assertEqual(
-            share_box.get_attribute(<span class="string"><span class="delimiter">'</span><span class="content">placeholder</span><span class="delimiter">'</span></span>),
-            <span class="string"><span class="delimiter">'</span><span class="content">your-friend@example.com</span><span class="delimiter">'</span></span>
-        )
+<pre class="CodeRay highlight"><code data-lang="python">    <span class="keyword">def</span> <span class="function">take_screenshot</span>(<span class="predefined-constant">self</span>):
+        filename = <span class="predefined-constant">self</span>._get_filename() + <span class="string"><span class="delimiter">'</span><span class="content">.png</span><span class="delimiter">'</span></span>
+        print(<span class="string"><span class="delimiter">'</span><span class="content">screenshotting to</span><span class="delimiter">'</span></span>, filename)
+        <span class="predefined-constant">self</span>.browser.get_screenshot_as_file(filename)
 
-        <span class="comment"># She shares her list.</span>
-        <span class="comment"># The page updates to say that it's shared with Oniciferous:</span>
-        list_page.share_list_with(<span class="string"><span class="delimiter">'</span><span class="content">oniciferous@example.com</span><span class="delimiter">'</span></span>)</code></pre>
+
+    <span class="keyword">def</span> <span class="function">dump_html</span>(<span class="predefined-constant">self</span>):
+        filename = <span class="predefined-constant">self</span>._get_filename() + <span class="string"><span class="delimiter">'</span><span class="content">.html</span><span class="delimiter">'</span></span>
+        print(<span class="string"><span class="delimiter">'</span><span class="content">dumping page HTML to</span><span class="delimiter">'</span></span>, filename)
+        <span class="keyword">with</span> <span class="predefined">open</span>(filename, <span class="string"><span class="delimiter">'</span><span class="content">w</span><span class="delimiter">'</span></span>) <span class="keyword">as</span> f:
+            f.write(<span class="predefined-constant">self</span>.browser.page_source)</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>We add the following three functions to our <code>ListPage</code>:</p>
+<p>And finally here&#8217;s a way of generating a unique filename identifier, which
+includes the name of the test and its class, as well as a timestamp:</p>
 </div>
-<div class="listingblock sourcecode">
-<div class="title">functional_tests/home_and_list_pages.py (ch21l009)</div>
+<div class="listingblock sourcecode small-code">
+<div class="title">functional_tests/base.py (ch21l008)</div>
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python">    <span class="keyword">def</span> <span class="function">get_share_box</span>(<span class="predefined-constant">self</span>):
-        <span class="keyword">return</span> <span class="predefined-constant">self</span>.test.browser.find_element_by_css_selector(
-            <span class="string"><span class="delimiter">'</span><span class="content">input[name=email]</span><span class="delimiter">'</span></span>
-        )
-
-
-    <span class="keyword">def</span> <span class="function">get_shared_with_list</span>(<span class="predefined-constant">self</span>):
-        <span class="keyword">return</span> <span class="predefined-constant">self</span>.test.browser.find_elements_by_css_selector(
-            <span class="string"><span class="delimiter">'</span><span class="content">.list-sharee</span><span class="delimiter">'</span></span>
-        )
-
-
-    <span class="keyword">def</span> <span class="function">share_list_with</span>(<span class="predefined-constant">self</span>, email):
-        <span class="predefined-constant">self</span>.get_share_box().send_keys(email + <span class="string"><span class="delimiter">'</span><span class="char">\n</span><span class="delimiter">'</span></span>)
-        <span class="predefined-constant">self</span>.test.wait_for(<span class="keyword">lambda</span>: <span class="predefined-constant">self</span>.test.assertIn(
-            email,
-            [item.text <span class="keyword">for</span> item <span class="keyword">in</span> <span class="predefined-constant">self</span>.get_shared_with_list()]
-        ))</code></pre>
+<pre class="CodeRay highlight"><code data-lang="python">    <span class="keyword">def</span> <span class="function">_get_filename</span>(<span class="predefined-constant">self</span>):
+        timestamp = datetime.now().isoformat().replace(<span class="string"><span class="delimiter">'</span><span class="content">:</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">.</span><span class="delimiter">'</span></span>)[:<span class="integer">19</span>]
+        <span class="keyword">return</span> <span class="string"><span class="delimiter">'</span><span class="content">{folder}/{classname}.{method}-window{windowid}-{timestamp}</span><span class="delimiter">'</span></span>.format(
+            folder=SCREEN_DUMP_LOCATION,
+            classname=<span class="predefined-constant">self</span>.__class__.__name__,
+            method=<span class="predefined-constant">self</span>._testMethodName,
+            windowid=<span class="predefined-constant">self</span>._windowid,
+            timestamp=timestamp
+        )</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>The idea behind the Page pattern is that it should capture all the information
-about a particular page in your site, so that if, later, you want to go and
-make changes to that page&#8212;&#8203;even just simple tweaks to its HTML layout for
-example&#8212;&#8203;you have a single place to go and look for to adjust your functional
-tests, rather than having to dig through dozens of FTs.</p>
+<p>You can test this first locally by deliberately breaking one of the tests, with
+a <code>self.fail()</code> for example, and you&#8217;ll see something like this:</p>
+</div>
+<div class="listingblock dofirst-ch21l009">
+<div class="content">
+<pre>[...]
+screenshotting to /.../superlists/functional_tests/screendumps/MyListsTest.test
+_logged_in_users_lists_are_saved_as_my_lists-window0-2014-03-09T11.19.12.png
+dumping page HTML to /.../superlists/functional_tests/screendumps/MyListsTest.t
+est_logged_in_users_lists_are_saved_as_my_lists-window0-[...]</pre>
+</div>
 </div>
 <div class="paragraph">
-<p>The next step would be to pursue the FT refactor through our other tests. I&#8217;m
-not going to show that here, but it&#8217;s something you could do, for practice,
-to get a feel for what the trade-offs between D.R.Y. and test readability
-are like&#8230;&#8203;
+<p>Revert the <code>self.fail()</code>, then commit and push:</p>
+</div>
+<div class="listingblock dofirst-ch21l010">
+<div class="content">
+<pre>$ <strong>git diff</strong>  # changes in base.py
+$ <strong>echo "functional_tests/screendumps" &gt;&gt; .gitignore</strong>
+$ <strong>git commit -am "add screenshot on failure to FT runner"</strong>
+$ <strong>git push</strong></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>And when we rerun the build on Jenkins, we see something like this:</p>
+</div>
+<div class="listingblock skipme">
+<div class="content">
+<pre>screenshotting to /var/lib/jenkins/jobs/Superlists/.../functional_tests/
+screendumps/LoginTest.test_login_with_persona-window0-2014-01-22T17.45.12.png
+dumping page HTML to /var/lib/jenkins/jobs/Superlists/.../functional_tests/
+screendumps/LoginTest.test_login_with_persona-window0-2014-01-22T17.45.12.html</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>We can go and visit these in the "workspace", which is the folder which Jenkins
+uses to store our source code and run the tests in, as in
+<a href="#screenshots-in-workspace">Visiting the project workspace</a>.</p>
+</div>
+<div id="screenshots-in-workspace" class="imageblock">
+<div class="content">
+<img src="images/twdp_2009.png" alt="workspace files including screenshot">
+</div>
+<div class="title">Figure 9. Visiting the project workspace</div>
+</div>
+<div class="paragraph">
+<p>And then we look at the screenshot, as shown in <a href="#normal-screenshot">Screenshot looking normal</a>.</p>
+</div>
+<div id="normal-screenshot" class="imageblock">
+<div class="content">
+<img src="images/twdp_2010.png" alt="Screenshot of site page">
+</div>
+<div class="title">Figure 10. Screenshot looking normal</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_bumping_our_timeout">Bumping our timeout</h3>
+<div class="paragraph">
+<p>TODO: insert discussion on bumping the timeout here</p>
+</div>
+<div class="paragraph">
+<p>
+
+Then we can rerun the build on Jenkins using "Build now", and confirm it now
+works, as in <a href="#outlook-brighter">The outlook is brighter</a>.</p>
+</div>
+<div id="outlook-brighter" class="imageblock">
+<div class="content">
+<img src="images/twdp_2011.png" alt="Build showing a recent pass and sun-peeking-through-clouds logo">
+</div>
+<div class="title">Figure 11. The outlook is brighter</div>
+</div>
+<div class="paragraph">
+<p>Jenkins uses blue to indicate passing builds rather than green, which is a bit
+disappointing, but look at the sun peeking through the clouds:  that&#8217;s cheery!
+It&#8217;s an indicator of a moving average ratio of passing builds to failing
+builds.  Things are looking up!
+
 
 </p>
 </div>
 </div>
 <div class="sect2">
-<h3 id="_extend_the_ft_to_a_second_user_and_the_my_lists_page">Extend the FT to a Second User, and the "My Lists" Page</h3>
+<h3 id="_running_our_qunit_javascript_tests_in_jenkins_with_phantomjs">Running Our QUnit JavaScript Tests in Jenkins with PhantomJS</h3>
 <div class="paragraph">
 <p>
-Let&#8217;s spec out just a little more detail of what we want our sharing user
-story to be.  Edith has seen on her list page that the list is now "shared
-with" Oniciferous, and then we can have Oni log in and see the list on his "My
-Lists" page, maybe in a section called "lists shared with me":</p>
+
+
+There&#8217;s a set of tests we almost forgot&#8212;&#8203;the JavaScript tests. Currently
+our "test runner" is an actual web browser.  To get Jenkins to run them, we
+need a command-line test runner.  Here&#8217;s a chance to use PhantomJS.</p>
 </div>
-<div class="listingblock sourcecode">
-<div class="title">functional_tests/test_sharing.py (ch21l010)</div>
+<div class="sect3">
+<h4 id="_installing_node">Installing node</h4>
+<div class="paragraph">
+<p>It&#8217;s time to stop pretending we&#8217;re not in the JavaScript game.  We&#8217;re doing
+web development.  That means we do JavaScript.  That means we&#8217;re going to end
+up with node.js on our computers.  It&#8217;s just the way it has to be.</p>
+</div>
+<div class="paragraph">
+<p>Follow the instructions on the <a href="http://nodejs.org/download/">node.js download
+page</a>. There are installers for Windows and Mac, and repositories for popular
+Linux distros.<sup class="footnote">[<a id="_footnoteref_3" class="footnote" href="#_footnote_3" title="View footnote.">3</a>]</sup></p>
+</div>
+<div class="paragraph">
+<p>Once we have node, we can install phantom:</p>
+</div>
+<div class="listingblock skipme">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python">    [...]
-    list_page.share_list_with(<span class="string"><span class="delimiter">'</span><span class="content">oniciferous@example.com</span><span class="delimiter">'</span></span>)
-
-    <span class="comment"># Oniciferous now goes to the lists page with his browser</span>
-    <span class="predefined-constant">self</span>.browser = oni_browser
-    HomePage(<span class="predefined-constant">self</span>).go_to_home_page().go_to_my_lists_page()
-
-    <span class="comment"># He sees Edith's list in there!</span>
-    <span class="predefined-constant">self</span>.browser.find_element_by_link_text(<span class="string"><span class="delimiter">'</span><span class="content">Get help</span><span class="delimiter">'</span></span>).click()</code></pre>
+<pre>$ <strong>npm install -g phantomjs</strong>  # the -g means "system-wide". May need sudo.</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>That means another function in our <code>HomePage</code> class:</p>
+<p>Next we pull down a QUnit/PhantomJS test runner.  There are several out there
+(I even wrote a basic one to be able to test the QUnit listings in this book),
+but the best one to get is probably the one that&#8217;s linked from the
+<a href="http://qunitjs.com/plugins/">QUnit plugins page</a>. At the time of writing, its
+repo was at <a href="https://github.com/jonkemp/qunit-phantomjs-runner" class="bare">https://github.com/jonkemp/qunit-phantomjs-runner</a>.  The only file
+you need is <em>runner.js</em>.</p>
 </div>
-<div class="listingblock sourcecode">
-<div class="title">functional_tests/home_and_list_pages.py (ch21l011)</div>
+<div class="paragraph">
+<p>You should end up with this:</p>
+</div>
+<div class="listingblock dofirst-ch21l017">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">class</span> <span class="class">HomePage</span>(<span class="predefined">object</span>):
+<pre>$ <strong>tree lists/static/tests/</strong>
+lists/static/tests/
+&#9500;&#9472;&#9472; qunit-2.0.1.css
+&#9500;&#9472;&#9472; qunit-2.0.1.js
+&#9500;&#9472;&#9472; runner.js
+&#9492;&#9472;&#9472; tests.html
 
-    [...]
-
-    <span class="keyword">def</span> <span class="function">go_to_my_lists_page</span>(<span class="predefined-constant">self</span>):
-        <span class="predefined-constant">self</span>.test.browser.find_element_by_link_text(<span class="string"><span class="delimiter">'</span><span class="content">My lists</span><span class="delimiter">'</span></span>).click()
-        <span class="predefined-constant">self</span>.test.wait_for(<span class="keyword">lambda</span>: <span class="predefined-constant">self</span>.test.assertEqual(
-            <span class="predefined-constant">self</span>.test.browser.find_element_by_tag_name(<span class="string"><span class="delimiter">'</span><span class="content">h1</span><span class="delimiter">'</span></span>).text,
-            <span class="string"><span class="delimiter">'</span><span class="content">My Lists</span><span class="delimiter">'</span></span>
-        ))</code></pre>
+0 directories, 4 files</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>Once again, this is a function that would be good to carry across into
-<em>test_my_lists.py</em>, along with maybe a <code>MyListsPage</code> object. Exercise
-for the reader!</p>
+<p>Let&#8217;s try it out:</p>
 </div>
-<div class="paragraph">
-<p>In the meantime, Oniciferous can also add things to the list:</p>
-</div>
-<div class="listingblock sourcecode">
-<div class="title">functional_tests/test_sharing.py (ch21l012)</div>
+<div class="listingblock">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python">    <span class="comment"># On the list page, Oniciferous can see says that it's Edith's list</span>
-    <span class="predefined-constant">self</span>.wait_for(<span class="keyword">lambda</span>: <span class="predefined-constant">self</span>.assertEqual(
-        list_page.get_list_owner(),
-        <span class="string"><span class="delimiter">'</span><span class="content">edith@example.com</span><span class="delimiter">'</span></span>
-    ))
-
-    <span class="comment"># He adds an item to the list</span>
-    list_page.add_new_item(<span class="string"><span class="delimiter">'</span><span class="content">Hi Edith!</span><span class="delimiter">'</span></span>)
-
-    <span class="comment"># When Edith refreshes the page, she sees Oniciferous's addition</span>
-    <span class="predefined-constant">self</span>.browser = edith_browser
-    <span class="predefined-constant">self</span>.browser.refresh()
-    list_page.wait_for_new_item_in_list(<span class="string"><span class="delimiter">'</span><span class="content">Hi Edith!</span><span class="delimiter">'</span></span>, <span class="integer">2</span>)</code></pre>
+<pre>$ <strong>phantomjs lists/static/tests/runner.js lists/static/tests/tests.html</strong>
+Took 24ms to run 2 tests. 2 passed, 0 failed.</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>That&#8217;s a couple more additions to our Page object:</p>
+<p>Just to be sure, let&#8217;s deliberately break something:</p>
 </div>
 <div class="listingblock sourcecode">
-<div class="title">functional_tests/home_and_list_pages.py (ch21l013)</div>
+<div class="title">lists/static/list.js (ch21l019)</div>
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python">ITEM_INPUT_ID = <span class="string"><span class="delimiter">'</span><span class="content">id_text</span><span class="delimiter">'</span></span>
+<pre class="CodeRay highlight"><code data-lang="javascript">  <span class="predefined">$</span>(<span class="string"><span class="delimiter">'</span><span class="content">input[name="text"]</span><span class="delimiter">'</span></span>).on(<span class="string"><span class="delimiter">'</span><span class="content">keypress</span><span class="delimiter">'</span></span>, <span class="keyword">function</span> () {
+    <span class="comment">// $('.has-error').hide();</span>
+  });</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Sure enough:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>phantomjs lists/static/tests/runner.js lists/static/tests/tests.html</strong>
+
+Test failed: errors should be hidden on keypress
+    Failed assertion: expected: false, but was: true
+file:///.../superlists/lists/static/tests/tests.html:27:15
+
+Took 27ms to run 2 tests. 1 passed, 1 failed.</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>All right!  Let&#8217;s unbreak that, commit and push the runner, and then add it to
+our Jenkins build:</p>
+</div>
+<div class="listingblock dofirst-ch21l020">
+<div class="content">
+<pre>$ <strong>git checkout lists/static/list.js</strong>
+$ <strong>git add lists/static/tests/runner.js</strong>
+$ <strong>git commit -m "Add phantomjs test runner for javascript tests"</strong>
+$ <strong>git push</strong></pre>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_adding_the_build_steps_to_jenkins">Adding the Build Steps to Jenkins</h4>
+<div class="paragraph">
+<p>Edit the project configuration again, and add a step for each set of
+JavaScript tests, as per <a href="#js-unit-tests-jenkey">Add a build step for our JavaScript unit tests</a>.</p>
+</div>
+<div id="js-unit-tests-jenkey" class="imageblock">
+<div class="content">
+<img src="images/twdp_2012.png" alt="Jenkins' default welcome screen">
+</div>
+<div class="title">Figure 12. Add a build step for our JavaScript unit tests</div>
+</div>
+<div class="paragraph">
+<p>You&#8217;ll also need to install PhantomJS on the server:</p>
+</div>
+<div class="listingblock skipme">
+<div class="content">
+<pre>elspeth@server:$ <strong>sudo add-apt-repository -y ppa:chris-lea/node.js</strong>
+elspeth@server:$ <strong>sudo apt-get update</strong>
+elspeth@server:$ <strong>sudo apt-get install nodejs</strong>
+elspeth@server:$ <strong>sudo npm install -g phantomjs</strong></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>And there we are!  A complete CI build featuring all of our tests!</p>
+</div>
+<div class="listingblock skipme">
+<div class="content">
+<pre>Started by user harry
+Building in workspace /var/lib/jenkins/jobs/Superlists/workspace
+Fetching changes from the remote Git repository
+Fetching upstream changes from https://github.com/hjwp/book-example.git
+Checking out Revision 936a484038194b289312ff62f10d24e6a054fb29 (origin/chapter_1
+Xvfb starting$ /usr/bin/Xvfb :1 -screen 0 1024x768x24 -fbdir /var/lib/jenkins/20
+[workspace] $ /bin/sh -xe /tmp/shiningpanda7092102504259037999.sh
+
++ pip install -r requirements.txt
 [...]
 
-<span class="keyword">class</span> <span class="class">HomePage</span>(<span class="predefined">object</span>):
-    [...]
++ python manage.py test lists
+.................................
+ ---------------------------------------------------------------------
+Ran 33 tests in 0.229s
 
-    <span class="keyword">def</span> <span class="function">get_item_input</span>(<span class="predefined-constant">self</span>):
-        <span class="keyword">return</span> <span class="predefined-constant">self</span>.test.browser.find_element_by_id(ITEM_INPUT_ID)
+OK
+Creating test database for alias 'default'...
+Destroying test database for alias 'default'...
 
++ python manage.py test accounts
+..................
+ ---------------------------------------------------------------------
+Ran 18 tests in 0.078s
 
-<span class="keyword">class</span> <span class="class">ListPage</span>(<span class="predefined">object</span>):
-    [...]
+OK
+Creating test database for alias 'default'...
+Destroying test database for alias 'default'...
 
-    <span class="keyword">def</span> <span class="function">get_item_input</span>(<span class="predefined-constant">self</span>):
-        <span class="keyword">return</span> <span class="predefined-constant">self</span>.test.browser.find_element_by_id(ITEM_INPUT_ID)
+[workspace] $ /bin/sh -xe /tmp/hudson2967478575201471277.sh
++ phantomjs lists/static/tests/runner.js lists/static/tests/tests.html
+Took 32ms to run 2 tests. 2 passed, 0 failed.
++ phantomjs lists/static/tests/runner.js accounts/static/tests/tests.html
+Took 47ms to run 11 tests. 11 passed, 0 failed.
 
+[workspace] $ /bin/sh -xe /tmp/shiningpanda7526089957247195819.sh
++ pip install selenium
+Requirement already satisfied (use --upgrade to upgrade): selenium in /var/lib/
 
-    <span class="keyword">def</span> <span class="function">add_new_item</span>(<span class="predefined-constant">self</span>, item_text):
-        current_pos = <span class="predefined">len</span>(<span class="predefined-constant">self</span>.get_list_table_rows())
-        <span class="predefined-constant">self</span>.get_item_input().send_keys(item_text + <span class="string"><span class="delimiter">'</span><span class="char">\n</span><span class="delimiter">'</span></span>)
-        <span class="predefined-constant">self</span>.wait_for_new_item_in_list(item_text, current_pos + <span class="integer">1</span>)
+Cleaning up...
+[workspace] $ /bin/sh -xe /tmp/shiningpanda2420240268202055029.sh
++ python manage.py test functional_tests
+........
+ ---------------------------------------------------------------------
+Ran 8 tests in 76.804s
 
-
-    <span class="keyword">def</span> <span class="function">get_list_owner</span>(<span class="predefined-constant">self</span>):
-        <span class="keyword">return</span> <span class="predefined-constant">self</span>.test.browser.find_element_by_id(<span class="string"><span class="delimiter">'</span><span class="content">id_list_owner</span><span class="delimiter">'</span></span>).text</code></pre>
+OK</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>It&#8217;s long past time to run the FT and check if all of this works!</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>$ <strong>python manage.py test functional_tests.test_sharing</strong>
+<p>
 
-    share_box = list_page.get_share_box()
-    [...]
-selenium.common.exceptions.NoSuchElementException: Message: Unable to locate
-element: {"method":"css selector","selector":"input[name=email]"}</pre>
+
+Nice to know that, no matter how lazy I get about running the full test suite
+on my own machine, the CI server will catch me.  Another one of the Testing
+Goat&#8217;s agents in cyberspace, watching over us&#8230;&#8203;
+</p>
 </div>
-</div>
-<div class="paragraph">
-<p>That&#8217;s the expected failure; we don&#8217;t have an input for email addresses
-of people to share with. Let&#8217;s do a commit:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>$ <strong>git add functional_tests</strong>
-$ <strong>git commit -m "Create Page objects for Home and List pages, use in sharing FT"</strong></pre>
-</div>
-</div>
-<div class="paragraph">
-<p></p>
 </div>
 </div>
 <div class="sect2">
-<h3 id="_an_exercise_for_the_reader">An Exercise for the Reader</h3>
-<div class="quoteblock">
-<blockquote>
+<h3 id="_more_things_to_do_with_a_ci_server">More Things to Do with a CI Server</h3>
 <div class="paragraph">
-<p>I probably didn&#8217;t really understand what I was doing until after having
-completed the "Exercise for the reader" in Chapter 21."</p>
-</div>
-</blockquote>
-<div class="attribution">
-&#8212; Iain H. (reader)
-</div>
+<p>I&#8217;ve only scratched the surface of what you can do with Jenkins and CI servers.
+For example, you can make it much smarter about how it monitors your repo for
+new commits.</p>
 </div>
 <div class="paragraph">
-<p>There&#8217;s nothing that cements learning like taking the training wheels off,
-and getting something working on your own, so I hope you&#8217;ll give this a go.</p>
+<p>
+
+Perhaps more interestingly, you can use your CI server to automate your staging
+tests as well as your normal functional tests.  If all the FTs pass, you can
+add a build step that deploys the code to staging, and then reruns the FTs
+against that&#8212;&#8203;automating one more step of the process, and ensuring that your
+staging server is automatically kept up to date with the latest code.</p>
 </div>
 <div class="paragraph">
-<p>Here&#8217;s an outline of the steps you could take:</p>
-</div>
-<div class="olist arabic">
-<ol class="arabic">
-<li>
-<p>We&#8217;ll need a new section in <em>list.html</em>, with, at first, a form with an
-input box for an email address.  That should get the FT one step further.</p>
-</li>
-<li>
-<p>Next, we&#8217;ll need a view for the form to submit to. Start by defining the
-URL in the template, maybe something like <em>lists/&lt;list_id&gt;/share</em>.</p>
-</li>
-<li>
-<p>Then, our first unit test. It can be just enough to get a placeholder view
-in. We want the view to respond to POST requests, and it should respond with
-a redirect back to the list page, so the test could be called something like
-<code>ShareListTest.test_post_redirects_to_lists_page</code>.</p>
-</li>
-<li>
-<p>We build out our placeholder view, as just a two-liner that finds a list and
-redirects to it.</p>
-</li>
-<li>
-<p>We can then write a new unit test which creates a user and a list,
-does a POST with their email address, and checks the user is added to
-<code>list_.shared_with.all()</code> (a similar ORM usage to "My Lists").  That
-<code>shared_with</code> attribute won&#8217;t exist yet, we&#8217;re going outside-in.</p>
-</li>
-<li>
-<p>So before we can get this test to pass, we have to move down to the model
-layer.  The next test, in <em>test_models.py</em>, can check that a list has a
-<code>shared_with.add</code> method, which can be called with a user&#8217;s email address and
-then check the lists' <code>shared_with.all()</code> queryset, which will subsequently
-contain that user.</p>
-</li>
-<li>
-<p>You&#8217;ll then need a <code>ManyToManyField</code>.  You&#8217;ll probably see an error message
-about a clashing <code>related_name</code>, which you&#8217;ll find a solution to if you look
-around the Django docs.</p>
-</li>
-<li>
-<p>It will need a database migration.</p>
-</li>
-<li>
-<p>That should get the model tests passing. Pop back up to fix the view test.</p>
-</li>
-<li>
-<p>You may find the redirect view test fails, because it&#8217;s not sending a valid
-POST request.  You can either choose to ignore invalid inputs, or adjust the
-test to send a valid POST.</p>
-</li>
-<li>
-<p>Then back up to the template level; on the "My Lists" page we&#8217;ll want a
-<code>&lt;ul&gt;</code> with a for loop of the lists shared with the user. On the lists
-page, we also want to show who the list is shared with, as well as
-mention of who the list owner is. Look back at the FT for the correct classes
-and IDs to use. You could have brief unit tests for each of these if you
-like, as well.</p>
-</li>
-<li>
-<p>You might find that spinning up the site with <code>runserver</code> will help you
-iron out any bugs, as well as fine-tune the layout and aesthetics.
-If you use a private browser session, you&#8217;ll be able to log multiple users
-in.</p>
-</li>
-</ol>
-</div>
-<div class="paragraph">
-<p>By the end, you might end up with something that looks like
-<a href="#list-sharing-example">Sharing lists</a>.</p>
-</div>
-<div id="list-sharing-example" class="imageblock">
-<div class="content">
-<img src="images/twdp_2101.png" alt="Screenshot of list sharing UI">
-</div>
-<div class="title">Figure 1. Sharing lists</div>
+<p>Some people even use a CI server as the way of deploying their production
+releases!</p>
 </div>
 <div class="sidebarblock">
 <div class="content">
-<div class="title">The Page Pattern, and the Real Exercise for the Reader</div>
+<div class="title">Tips on CI and Selenium Best Practices</div>
 <div class="dlist">
 <dl>
-<dt class="hdlist1">Apply DRY to your functional tests</dt>
+<dt class="hdlist1">Set up CI as soon as possible for your project</dt>
 <dd>
-<p>Once your FT suite starts to grow, you&#8217;ll find that different tests will
-inevitably find themselves using similar parts of the UI. Try to avoid
-having constants, like the HTML IDs or classes of particular UI elements
-duplicated between your FTs.
+<p>As soon as your functional tests take more than a few seconds to run,
+you&#8217;ll find yourself avoiding running them all. Give this job to a CI
+server, to make sure that all your tests are getting run somewhere.
 </p>
 </dd>
-<dt class="hdlist1">The Page pattern</dt>
+<dt class="hdlist1">Set up screenshots and HTML dumps for failures</dt>
 <dd>
-<p>Moving helper methods into a base <code>FunctionalTest</code> class can become
-unwieldy.  Consider using individual Page objects to hold all the
-logic for dealing with particular parts of your site.
+<p>Debugging test failures is easier if you can see what the page looked
+at when the failure occurs.  This is particularly useful for debugging
+CI failures, but it&#8217;s also very useful for tests that you run locally.</p>
+</dd>
+<dt class="hdlist1">Use waits in Selenium tests</dt>
+<dd>
+<p>Selenium&#8217;s <code>implicitly_wait</code> only applies to uses of its <code>find_element</code>
+functions, and even that can be unreliable (it can find an element that&#8217;s
+still on the old page).  Build a <code>wait_for</code> helper function, and alternate
+between actions on the site, and then some sort of wait to see that they&#8217;ve
+taken effect.
+
+
 </p>
 </dd>
-<dt class="hdlist1">An exercise for the reader</dt>
+<dt class="hdlist1">Look in to hooking up CI and staging</dt>
 <dd>
-<p>I hope you&#8217;ve actually tried this out!  Try to follow the "Outside-In"
-method, and occasionally try things out manually if you get stuck.
-The real exercise for the reader, of course, is to apply TDD to your
-next project.  I hope you&#8217;ll enjoy it!</p>
+<p>Tests that use <code>LiveServerTestCase</code> are all very well for dev boxes,
+but the true reassurance comes from running your tests against a real
+server.  Look into getting your CI server to deploy to your staging server,
+and run the functional tests against that instead.  It has the side benefit
+of testing your automated deploy scripts.
+</p>
 </dd>
 </dl>
 </div>
 </div>
 </div>
+</div>
+<div class="sect2">
+<h3 id="_notes_for_latest_jenkins">Notes for latest jenkins</h3>
 <div class="paragraph">
-<p>In the next chapter, we&#8217;ll wrap up with a discussion of testing "best
-practices".</p>
+<p>(feel free to ignore these, just my working notes)</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>follow screens to set up user</p>
+</li>
+<li>
+<p>nginx + self signed cert guides</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p><a href="https://wiki.jenkins-ci.org/display/JENKINS/Installing+Jenkins+on+Ubuntu" class="bare">https://wiki.jenkins-ci.org/display/JENKINS/Installing+Jenkins+on+Ubuntu</a></p>
+</div>
+<div class="paragraph">
+<p><a href="https://www.digitalocean.com/community/tutorials/how-to-create-an-ssl-certificate-on-nginx-for-ubuntu-14-04" class="bare">https://www.digitalocean.com/community/tutorials/how-to-create-an-ssl-certificate-on-nginx-for-ubuntu-14-04</a></p>
+</div>
+<div class="paragraph">
+<p><a href="http://serverfault.com/questions/250476/how-to-force-or-redirect-to-ssl-in-nginx#424016" class="bare">http://serverfault.com/questions/250476/how-to-force-or-redirect-to-ssl-in-nginx#424016</a></p>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>curl -L 'https://download.mozilla.org/?product=firefox-45.4.0esr-SSL&amp;os=linux64&amp;lang=en-US' | tar -xvj -C /usr/share</pre>
+</div>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>apt-get remove firefox  # otherwise it found the old one somehow
+ln -s /usr/share/firefox/firefox /usr/bin/firefox</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Global Tool Configuration -&#8594; add python3</p>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>apt-get install python3-venv python-virtualenv</pre>
 </div>
 </div>
 </div>
+</div>
+</div>
+</div>
+<div id="footnotes">
+<hr>
+<div class="footnote" id="_footnote_1">
+<a href="#_footnoteref_1">1</a>. If you miss that screen, you can still hit "signup", and as long as you use the same username you specified earlier, you&#8217;ll have an account set up.
+</div>
+<div class="footnote" id="_footnote_2">
+<a href="#_footnoteref_2">2</a>. Check out <a href="https://pypi.python.org/pypi/PyVirtualDisplay">pyvirtualdisplay</a> as a way of controlling virtual displays from Python.
+</div>
+<div class="footnote" id="_footnote_3">
+<a href="#_footnoteref_3">3</a>. Make sure you get the latest version. On Ubuntu, use the PPA rather than the default package.
 </div>
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2016-12-18 19:53:47 GMT
+Last updated 2017-02-01 17:18:42 GMT
 </div>
 </div>
 <div class="comments" style="padding: 20px">

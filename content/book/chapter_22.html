@@ -4,7 +4,7 @@
 <!--[if IE]><meta http-equiv="X-UA-Compatible" content="IE=edge"><![endif]-->
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="generator" content="Asciidoctor 1.5.4">
-<title>Fast Tests, Slow Tests, and Hot Lava</title>
+<title>The Token Social Bit, the Page Pattern, and an Exercise for the Reader</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:300,300italic,400,400italic,600,600italic%7CNoto+Serif:400,400italic,700,700italic%7CDroid+Sans+Mono:400,700">
 <link rel="stylesheet" href="./asciidoctor.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.5.0/css/font-awesome.min.css">
@@ -31,576 +31,544 @@ httpRequest.send();
 </div>
 <div id="content">
 <div class="sect1">
-<h2 id="hot-lava-chapter">Fast Tests, Slow Tests, and Hot Lava</h2>
+<h2 id="page-pattern-chapter">The Token Social Bit, the Page Pattern, and an Exercise for the Reader</h2>
 <div class="sectionbody">
+<div class="admonitionblock warning">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-warning" title="Warning"></i>
+</td>
+<td class="content">
+Major update released for Selenium 3.
+    If you started this book on or before Jan 30th 2017,
+    be aware: chapters have been renumbered,
+    so check this is the one you think it is,
+    and have a look at the new <a href="/book/chapter_06.html">[explicit-waits-chapter]</a>
+    for an indication of the changes you&#8217;ll need in your FTs.
+    You should do a <code>pip install --upgrade selenium</code> too.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>Are jokes about how "everything has to be social now" slightly old hat?
+Everything has to be all A/B tested big data get-more-clicks lists of 10 Things
+This Inspiring Teacher Said That Will Make You Change Your Mind About Blah Blah
+now&#8230;&#8203;anyway. Lists, be they Inspirational or otherwise, are often better
+shared. Let&#8217;s allow our users to collaborate on their lists with other users.</p>
+</div>
+<div class="paragraph">
+<p>
+Along the way we&#8217;ll improve our FTs by starting to implement something called
+the Page Object pattern.</p>
+</div>
+<div class="paragraph">
+<p>Then, rather than showing you explicitly what to do, I&#8217;m going to let you write
+your unit tests and application code by yourself.  Don&#8217;t worry, you won&#8217;t be
+totally on your own!  I&#8217;ll give an outline of the steps to take, as well as
+some hints and tips.</p>
+</div>
+<div class="sect2">
+<h3 id="_an_ft_with_multiple_users_and_addcleanup">An FT with Multiple Users, and addCleanup</h3>
+<div class="paragraph">
+<p>
+
+Let&#8217;s get started&#8212;&#8203;we&#8217;ll need two users for this FT:</p>
+</div>
+<div class="listingblock sourcecode small-code">
+<div class="title">functional_tests/test_sharing.py (ch22l001)</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> <span class="include">selenium</span> <span class="keyword">import</span> <span class="include">webdriver</span>
+<span class="keyword">from</span> .base <span class="keyword">import</span> <span class="include">FunctionalTest</span>
+
+
+<span class="keyword">def</span> <span class="function">quit_if_possible</span>(browser):
+    <span class="keyword">try</span>: browser.quit()
+    <span class="keyword">except</span>: <span class="keyword">pass</span>
+
+
+<span class="keyword">class</span> <span class="class">SharingTest</span>(FunctionalTest):
+
+    <span class="keyword">def</span> <span class="function">test_can_share_a_list_with_another_user</span>(<span class="predefined-constant">self</span>):
+        <span class="comment"># Edith is a logged-in user</span>
+        <span class="predefined-constant">self</span>.create_pre_authenticated_session(<span class="string"><span class="delimiter">'</span><span class="content">edith@example.com</span><span class="delimiter">'</span></span>)
+        edith_browser = <span class="predefined-constant">self</span>.browser
+        <span class="predefined-constant">self</span>.addCleanup(<span class="keyword">lambda</span>: quit_if_possible(edith_browser))
+
+        <span class="comment"># Her friend Oniciferous is also hanging out on the lists site</span>
+        oni_browser = webdriver.Firefox()
+        <span class="predefined-constant">self</span>.addCleanup(<span class="keyword">lambda</span>: quit_if_possible(oni_browser))
+        <span class="predefined-constant">self</span>.browser = oni_browser
+        <span class="predefined-constant">self</span>.create_pre_authenticated_session(<span class="string"><span class="delimiter">'</span><span class="content">oniciferous@example.com</span><span class="delimiter">'</span></span>)
+
+        <span class="comment"># Edith goes to the home page and starts a list</span>
+        <span class="predefined-constant">self</span>.browser = edith_browser
+        <span class="predefined-constant">self</span>.browser.get(<span class="predefined-constant">self</span>.server_url)
+        <span class="predefined-constant">self</span>.add_list_item(<span class="string"><span class="delimiter">'</span><span class="content">Get help</span><span class="delimiter">'</span></span>)
+
+        <span class="comment"># She notices a "Share this list" option</span>
+        share_box = <span class="predefined-constant">self</span>.browser.find_element_by_css_selector(
+            <span class="string"><span class="delimiter">'</span><span class="content">input[name="sharee"]</span><span class="delimiter">'</span></span>
+        )
+        <span class="predefined-constant">self</span>.assertEqual(
+            share_box.get_attribute(<span class="string"><span class="delimiter">'</span><span class="content">placeholder</span><span class="delimiter">'</span></span>),
+            <span class="string"><span class="delimiter">'</span><span class="content">your-friend@example.com</span><span class="delimiter">'</span></span>
+        )</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>"addCleanup"
+The interesting feature to note about this section is the <code>addCleanup</code>
+function, whose documentation you can find
+<a href="https://docs.python.org/3/library/unittest.html#unittest.TestCase.addCleanup">here</a>.
+It can be used as an alternative to the <code>tearDown</code> function as a way of
+cleaning up resources used during the test.  It&#8217;s most useful when the resource
+is only allocated halfway through a test, so you don&#8217;t have to spend time in
+<code>tearDown</code> figuring out what does or doesn&#8217;t need cleaning up.</p>
+</div>
+<div class="paragraph">
+<p><code>addCleanup</code> is run after <code>tearDown</code>, which is why we need that <code>try/except</code>
+formulation for <code>quit_if_possible</code>&#8212;whichever of <code>edith_browser</code> and
+<code>oni_browser</code> is also assigned to <code>self.browser</code> at the point at which the
+test ends will already have been quit by the <code>tearDown</code> function.</p>
+</div>
+<div class="paragraph">
+<p>We&#8217;ll also need to move <code>create_pre_authenticated_session</code> from
+<em>test_my_lists.py</em> into <em>base.py</em>.</p>
+</div>
+<div class="paragraph">
+<p>OK, let&#8217;s see if that all works:</p>
+</div>
+<div class="listingblock dofirst-ch22l002">
+<div class="content">
+<pre>$ <strong>python manage.py test functional_tests.test_sharing</strong>
+[...]
+Traceback (most recent call last):
+  File "/.../superlists/functional_tests/test_sharing.py", line 31, in
+test_can_share_a_list_with_another_user
+[...]
+selenium.common.exceptions.NoSuchElementException: Message: Unable to locate
+element: input[name="sharee"]</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Great! It seems to have got through creating the two user sessions, and
+it gets onto an expected failure&#8212;&#8203;there is no input for an email address
+of a person to share a list with on the page.</p>
+</div>
+<div class="paragraph">
+<p>Let&#8217;s do a commit at this point, because we&#8217;ve got at least a placeholder
+for our FT, we&#8217;ve got a useful modification of the
+<code>create_pre_authenticated_session</code> function, and we&#8217;re about to embark on
+a bit of an FT refactor:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>git add functional_tests</strong>
+$ <strong>git commit -m "New FT for sharing, move session creation stuff to base"</strong></pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_the_page_pattern">The Page Pattern</h3>
+<div class="paragraph">
+<p>
+
+Before we go any further, I want to show an alternative method for reducing
+duplication in your FTs, called
+<a href="http://www.seleniumhq.org/docs/06_test_design_considerations.jsp#page-object-design-pattern">"Page Objects"</a>.</p>
+</div>
+<div class="paragraph">
+<p>We&#8217;ve already built several helper methods for our FTs, including
+<code>add_list_item</code>, which we&#8217;ve used here, but if we just keep adding more and
+more, it&#8217;s going to get very crowded. I&#8217;ve worked on a base FT class that was
+over 1,500 lines long, and that got pretty unwieldy.</p>
+</div>
+<div class="paragraph">
+<p>Page objects are an alternative, which encourage us to store all the information
+and helper methods about the different types of pages on our site in a single place.
+Let&#8217;s see how that might look for our site, starting with a class to represent any
+lists page:</p>
+</div>
+<div class="listingblock sourcecode">
+<div class="title">functional_tests/list_page.py</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> <span class="include">selenium.webdriver.common.keys</span> <span class="keyword">import</span> <span class="include">Keys</span>
+<span class="keyword">from</span> .base <span class="keyword">import</span> <span class="include">wait</span>
+
+
+<span class="keyword">class</span> <span class="class">ListPage</span>(<span class="predefined">object</span>):
+
+    <span class="keyword">def</span> <span class="function">__init__</span>(<span class="predefined-constant">self</span>, test):
+        <span class="predefined-constant">self</span>.test = test  <i class="conum" data-value="1"></i><b>(1)</b>
+
+
+    <span class="keyword">def</span> <span class="function">get_table_rows</span>(<span class="predefined-constant">self</span>):  <i class="conum" data-value="3"></i><b>(3)</b>
+        <span class="keyword">return</span> <span class="predefined-constant">self</span>.test.browser.find_elements_by_css_selector(<span class="string"><span class="delimiter">'</span><span class="content">#id_list_table tr</span><span class="delimiter">'</span></span>)
+
+
+    <span class="decorator">@wait</span>
+    <span class="keyword">def</span> <span class="function">wait_for_row_in_list_table</span>(<span class="predefined-constant">self</span>, item_text, item_number):  <i class="conum" data-value="2"></i><b>(2)</b>
+        row_text = <span class="string"><span class="delimiter">'</span><span class="content">{}: {}</span><span class="delimiter">'</span></span>.format(item_number, item_text)
+        rows = <span class="predefined-constant">self</span>.get_table_rows()
+        <span class="predefined-constant">self</span>.test.assertIn(row_text, [row.text <span class="keyword">for</span> row <span class="keyword">in</span> rows])
+
+
+    <span class="keyword">def</span> <span class="function">get_item_input_box</span>(<span class="predefined-constant">self</span>):  <i class="conum" data-value="2"></i><b>(2)</b>
+        <span class="keyword">return</span> <span class="predefined-constant">self</span>.test.browser.find_element_by_id(<span class="string"><span class="delimiter">'</span><span class="content">id_text</span><span class="delimiter">'</span></span>)
+
+
+    <span class="keyword">def</span> <span class="function">add_list_item</span>(<span class="predefined-constant">self</span>, item_text):  <i class="conum" data-value="2"></i><b>(2)</b>
+        new_item_no = <span class="predefined">len</span>(<span class="predefined-constant">self</span>.get_table_rows()) + <span class="integer">1</span>
+        <span class="predefined-constant">self</span>.get_item_input_box().send_keys(item_text)
+        <span class="predefined-constant">self</span>.get_item_input_box().send_keys(Keys.ENTER)
+        <span class="predefined-constant">self</span>.wait_for_row_in_list_table(item_text, new_item_no)
+        <span class="keyword">return</span> <span class="predefined-constant">self</span>  <i class="conum" data-value="4"></i><b>(4)</b></code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>It&#8217;s initialised with an object that represents the current test.  That
+gives us the ability to make assertions, access the browser instance via
+<code>self.test.browser</code>, and use the <code>self.test.wait_for</code> function.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>I&#8217;ve copied across some of the existing helper methods from <em>base.py</em>, but
+I&#8217;ve tweaked them slightly&#8230;&#8203;</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="3"></i><b>3</b></td>
+<td>For example, they make use of this new method.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="4"></i><b>4</b></td>
+<td>Returning <code>self</code> is just a convenience. It enables
+<a href="https://en.wikipedia.org/wiki/Method_chaining">method chaining</a>,
+which we&#8217;ll see in action immediately.</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>Let&#8217;s see how to use it in our test:</p>
+</div>
+<div class="listingblock sourcecode">
+<div class="title">functional_tests/test_sharing.py (ch22l004)</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> .list_page <span class="keyword">import</span> <span class="include">ListPage</span>
+[...]
+
+        <span class="comment"># Edith goes to the home page and starts a list</span>
+        <span class="predefined-constant">self</span>.browser = edith_browser
+        list_page = ListPage(<span class="predefined-constant">self</span>).add_list_item(<span class="string"><span class="delimiter">'</span><span class="content">Get help</span><span class="delimiter">'</span></span>)</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Let&#8217;s continue rewriting our test, using the Page object whenever
+we want to access elements from the lists page:</p>
+</div>
+<div class="listingblock sourcecode">
+<div class="title">functional_tests/test_sharing.py (ch22l008)</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python">        <span class="comment"># She notices a "Share this list" option</span>
+        share_box = list_page.get_share_box()
+        <span class="predefined-constant">self</span>.assertEqual(
+            share_box.get_attribute(<span class="string"><span class="delimiter">'</span><span class="content">placeholder</span><span class="delimiter">'</span></span>),
+            <span class="string"><span class="delimiter">'</span><span class="content">your-friend@example.com</span><span class="delimiter">'</span></span>
+        )
+
+        <span class="comment"># She shares her list.</span>
+        <span class="comment"># The page updates to say that it's shared with Oniciferous:</span>
+        list_page.share_list_with(<span class="string"><span class="delimiter">'</span><span class="content">oniciferous@example.com</span><span class="delimiter">'</span></span>)</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>We add the following three functions to our <code>ListPage</code>:</p>
+</div>
+<div class="listingblock sourcecode">
+<div class="title">functional_tests/list_page.py (ch22l009)</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python">    <span class="keyword">def</span> <span class="function">get_share_box</span>(<span class="predefined-constant">self</span>):
+        <span class="keyword">return</span> <span class="predefined-constant">self</span>.test.browser.find_element_by_css_selector(
+            <span class="string"><span class="delimiter">'</span><span class="content">input[name="sharee"]</span><span class="delimiter">'</span></span>
+        )
+
+
+    <span class="keyword">def</span> <span class="function">get_shared_with_list</span>(<span class="predefined-constant">self</span>):
+        <span class="keyword">return</span> <span class="predefined-constant">self</span>.test.browser.find_elements_by_css_selector(
+            <span class="string"><span class="delimiter">'</span><span class="content">.list-sharee</span><span class="delimiter">'</span></span>
+        )
+
+
+    <span class="keyword">def</span> <span class="function">share_list_with</span>(<span class="predefined-constant">self</span>, email):
+        <span class="predefined-constant">self</span>.get_share_box().send_keys(email)
+        <span class="predefined-constant">self</span>.get_share_box().send_keys(Keys.ENTER)
+        <span class="predefined-constant">self</span>.test.wait_for(<span class="keyword">lambda</span>: <span class="predefined-constant">self</span>.test.assertIn(
+            email,
+            [item.text <span class="keyword">for</span> item <span class="keyword">in</span> <span class="predefined-constant">self</span>.get_shared_with_list()]
+        ))</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The idea behind the Page pattern is that it should capture all the information
+about a particular page in your site, so that if, later, you want to go and
+make changes to that page&#8212;&#8203;even just simple tweaks to its HTML layout for
+example&#8212;&#8203;you have a single place to go and look for to adjust your functional
+tests, rather than having to dig through dozens of FTs.</p>
+</div>
+<div class="paragraph">
+<p>The next step would be to pursue the FT refactor through our other tests. I&#8217;m
+not going to show that here, but it&#8217;s something you could do, for practice,
+to get a feel for what the trade-offs between D.R.Y. and test readability
+are like&#8230;&#8203;
+
+</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_extend_the_ft_to_a_second_user_and_the_my_lists_page">Extend the FT to a Second User, and the "My Lists" Page</h3>
+<div class="paragraph">
+<p>
+Let&#8217;s spec out just a little more detail of what we want our sharing user
+story to be.  Edith has seen on her list page that the list is now "shared
+with" Oniciferous, and then we can have Oni log in and see the list on his "My
+Lists" page, maybe in a section called "lists shared with me":</p>
+</div>
+<div class="listingblock sourcecode">
+<div class="title">functional_tests/test_sharing.py (ch22l010)</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> .my_lists_page <span class="keyword">import</span> <span class="include">MyListsPage</span>
+[...]
+
+        list_page.share_list_with(<span class="string"><span class="delimiter">'</span><span class="content">oniciferous@example.com</span><span class="delimiter">'</span></span>)
+
+        <span class="comment"># Oniciferous now goes to the lists page with his browser</span>
+        <span class="predefined-constant">self</span>.browser = oni_browser
+        MyListsPage(<span class="predefined-constant">self</span>).go_to_my_lists_page()
+
+        <span class="comment"># He sees Edith's list in there!</span>
+        <span class="predefined-constant">self</span>.browser.find_element_by_link_text(<span class="string"><span class="delimiter">'</span><span class="content">Get help</span><span class="delimiter">'</span></span>).click()</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>That means another function in our <code>MyListsPage</code> class:</p>
+</div>
+<div class="listingblock sourcecode">
+<div class="title">functional_tests/my_lists_page.py (ch22l011)</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">class</span> <span class="class">MyListsPage</span>(<span class="predefined">object</span>):
+
+    <span class="keyword">def</span> <span class="function">__init__</span>(<span class="predefined-constant">self</span>, test):
+        <span class="predefined-constant">self</span>.test = test
+
+
+    <span class="keyword">def</span> <span class="function">go_to_my_lists_page</span>(<span class="predefined-constant">self</span>):
+        <span class="predefined-constant">self</span>.test.browser.get(<span class="predefined-constant">self</span>.test.server_url)
+        <span class="predefined-constant">self</span>.test.browser.find_element_by_link_text(<span class="string"><span class="delimiter">'</span><span class="content">My lists</span><span class="delimiter">'</span></span>).click()
+        <span class="predefined-constant">self</span>.test.wait_for(<span class="keyword">lambda</span>: <span class="predefined-constant">self</span>.test.assertEqual(
+            <span class="predefined-constant">self</span>.test.browser.find_element_by_tag_name(<span class="string"><span class="delimiter">'</span><span class="content">h1</span><span class="delimiter">'</span></span>).text,
+            <span class="string"><span class="delimiter">'</span><span class="content">My Lists</span><span class="delimiter">'</span></span>
+        ))
+        <span class="keyword">return</span> <span class="predefined-constant">self</span></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Once again, this is a function that would be good to carry across into
+<em>test_my_lists.py</em>, along with maybe a <code>MyListsPage</code> object.</p>
+</div>
+<div class="paragraph">
+<p>In the meantime, Oniciferous can also add things to the list:</p>
+</div>
+<div class="listingblock sourcecode">
+<div class="title">functional_tests/test_sharing.py (ch22l012)</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python">    <span class="comment"># On the list page, Oniciferous can see says that it's Edith's list</span>
+    <span class="predefined-constant">self</span>.wait_for(<span class="keyword">lambda</span>: <span class="predefined-constant">self</span>.assertEqual(
+        list_page.get_list_owner(),
+        <span class="string"><span class="delimiter">'</span><span class="content">edith@example.com</span><span class="delimiter">'</span></span>
+    ))
+
+    <span class="comment"># He adds an item to the list</span>
+    list_page.add_list_item(<span class="string"><span class="delimiter">'</span><span class="content">Hi Edith!</span><span class="delimiter">'</span></span>)
+
+    <span class="comment"># When Edith refreshes the page, she sees Oniciferous's addition</span>
+    <span class="predefined-constant">self</span>.browser = edith_browser
+    <span class="predefined-constant">self</span>.browser.refresh()
+    list_page.wait_for_row_in_list_table(<span class="string"><span class="delimiter">'</span><span class="content">Hi Edith!</span><span class="delimiter">'</span></span>, <span class="integer">2</span>)</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>That&#8217;s another addition to our <code>ListPage</code> object:</p>
+</div>
+<div class="listingblock sourcecode">
+<div class="title">functional_tests/list_page.py (ch22l013)</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">class</span> <span class="class">ListPage</span>(<span class="predefined">object</span>):
+    [...]
+
+    <span class="keyword">def</span> <span class="function">get_list_owner</span>(<span class="predefined-constant">self</span>):
+        <span class="keyword">return</span> <span class="predefined-constant">self</span>.test.browser.find_element_by_id(<span class="string"><span class="delimiter">'</span><span class="content">id_list_owner</span><span class="delimiter">'</span></span>).text</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>It&#8217;s long past time to run the FT and check if all of this works!</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>python manage.py test functional_tests.test_sharing</strong>
+
+    share_box = list_page.get_share_box()
+    [...]
+selenium.common.exceptions.NoSuchElementException: Message: Unable to locate
+element: input[name="sharee"]</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>That&#8217;s the expected failure; we don&#8217;t have an input for email addresses
+of people to share with. Let&#8217;s do a commit:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>git add functional_tests</strong>
+$ <strong>git commit -m "Create Page objects for list pages, use in sharing FT"</strong></pre>
+</div>
+</div>
+<div class="paragraph">
+<p></p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_an_exercise_for_the_reader">An Exercise for the Reader</h3>
 <div class="quoteblock">
 <blockquote>
 <div class="paragraph">
-<p>The database is Hot Lava!</p>
+<p>I probably didn&#8217;t really understand what I was doing until after having
+completed the "Exercise for the reader" in Chapter 21."</p>
 </div>
 </blockquote>
 <div class="attribution">
-&#8212; <a href="https://www.youtube.com/watch?v=bsmFVb8guMU">Casey Kinsey</a>
+&#8212; Iain H. (reader)
 </div>
 </div>
 <div class="paragraph">
-<p>
-
-
-Right up until <a href="/book/chapter_19.html">[isolation-chapter]</a>, almost all of the "unit" tests in
-the book should perhaps have been called <em>integrated</em> tests, because they
-either rely on the database, or they use the Django test client, which does too
-much magic with the middleware layers that sit between requests, responses, and
-view functions.</p>
+<p>There&#8217;s nothing that cements learning like taking the training wheels off,
+and getting something working on your own, so I hope you&#8217;ll give this a go.</p>
 </div>
 <div class="paragraph">
-<p>There is an argument that a true unit test should always be isolated, because
-it&#8217;s meant to test a single unit of software.</p>
+<p>Here&#8217;s an outline of the steps you could take:</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>We&#8217;ll need a new section in <em>list.html</em>, with, at first, a form with an
+input box for an email address.  That should get the FT one step further.</p>
+</li>
+<li>
+<p>Next, we&#8217;ll need a view for the form to submit to. Start by defining the
+URL in the template, maybe something like <em>lists/&lt;list_id&gt;/share</em>.</p>
+</li>
+<li>
+<p>Then, our first unit test. It can be just enough to get a placeholder view
+in. We want the view to respond to POST requests, and it should respond with
+a redirect back to the list page, so the test could be called something like
+<code>ShareListTest.test_post_redirects_to_lists_page</code>.</p>
+</li>
+<li>
+<p>We build out our placeholder view, as just a two-liner that finds a list and
+redirects to it.</p>
+</li>
+<li>
+<p>We can then write a new unit test which creates a user and a list,
+does a POST with their email address, and checks the user is added to
+<code>list_.shared_with.all()</code> (a similar ORM usage to "My Lists").  That
+<code>shared_with</code> attribute won&#8217;t exist yet, we&#8217;re going outside-in.</p>
+</li>
+<li>
+<p>So before we can get this test to pass, we have to move down to the model
+layer.  The next test, in <em>test_models.py</em>, can check that a list has a
+<code>shared_with.add</code> method, which can be called with a user&#8217;s email address and
+then check the lists' <code>shared_with.all()</code> queryset, which will subsequently
+contain that user.</p>
+</li>
+<li>
+<p>You&#8217;ll then need a <code>ManyToManyField</code>.  You&#8217;ll probably see an error message
+about a clashing <code>related_name</code>, which you&#8217;ll find a solution to if you look
+around the Django docs.</p>
+</li>
+<li>
+<p>It will need a database migration.</p>
+</li>
+<li>
+<p>That should get the model tests passing. Pop back up to fix the view test.</p>
+</li>
+<li>
+<p>You may find the redirect view test fails, because it&#8217;s not sending a valid
+POST request.  You can either choose to ignore invalid inputs, or adjust the
+test to send a valid POST.</p>
+</li>
+<li>
+<p>Then back up to the template level; on the "My Lists" page we&#8217;ll want a
+<code>&lt;ul&gt;</code> with a for loop of the lists shared with the user. On the lists
+page, we also want to show who the list is shared with, as well as
+mention of who the list owner is. Look back at the FT for the correct classes
+and IDs to use. You could have brief unit tests for each of these if you
+like, as well.</p>
+</li>
+<li>
+<p>You might find that spinning up the site with <code>runserver</code> will help you
+iron out any bugs, as well as fine-tune the layout and aesthetics.
+If you use a private browser session, you&#8217;ll be able to log multiple users
+in.</p>
+</li>
+</ol>
 </div>
 <div class="paragraph">
-<p>Some TDD veterans say you should strive to write "pure", isolated unit tests
-wherever possible, instead of writing integrated tests.  It&#8217;s one of the
-ongoing (occasionally heated) debates in the testing community.</p>
+<p>By the end, you might end up with something that looks like
+<a href="#list-sharing-example">Sharing lists</a>.</p>
 </div>
-<div class="paragraph">
-<p>Being merely a young whippersnapper myself, I&#8217;m only part way towards all the
-subtleties of the argument. But in this chapter, I&#8217;d like to try and talk about
-why people feel strongly about it, and try and give you some idea of when you
-can get away with muddling through with integrated tests (which I confess I do
-a lot of!), and when it&#8217;s worth striving for more "pure" unit tests.
-</p>
+<div id="list-sharing-example" class="imageblock">
+<div class="content">
+<img src="images/twdp_2101.png" alt="Screenshot of list sharing UI">
+</div>
+<div class="title">Figure 1. Sharing lists</div>
 </div>
 <div class="sidebarblock">
 <div class="content">
-<div class="title">Terminology: Different Types of Test</div>
+<div class="title">The Page Pattern, and the Real Exercise for the Reader</div>
 <div class="dlist">
 <dl>
-<dt class="hdlist1">Isolated tests ("pure" unit tests) vs. integrated tests</dt>
+<dt class="hdlist1">Apply DRY to your functional tests</dt>
 <dd>
-<p>The primary purpose of a unit test should be to verify the correctness
-of the logic of your application.
-An <em>isolated</em> test is one that tests exactly one chunk of code, and whose
-success or failure does not depend on any other external code. This is what
-I call a "pure" unit test:  a test for a single function, for example,
-written in such a way that only that function can make it fail.  If the
-function depends on another system, and breaking that system breaks our
-test, we have an <em>integrated</em> test. That system could be an external
-system, like a database, but it could also be another function which we
-don&#8217;t control.  In either case, if breaking the system makes our test fail,
-our test is not properly isolated, it is not a "pure" unit test.  That&#8217;s
-not necessarily a bad thing, but it may mean the test is doing two jobs at
-once.
-
-
+<p>Once your FT suite starts to grow, you&#8217;ll find that different tests will
+inevitably find themselves using similar parts of the UI. Try to avoid
+having constants, like the HTML IDs or classes of particular UI elements
+duplicated between your FTs.
 </p>
 </dd>
-<dt class="hdlist1">Integration tests</dt>
+<dt class="hdlist1">The Page pattern</dt>
 <dd>
-<p>An integration test checks that the code you control is integrated
-correctly with some external system which you don&#8217;t control.
-<em>Integration</em> tests are typically also <em>integrated</em> tests.
+<p>Moving helper methods into a base <code>FunctionalTest</code> class can become
+unwieldy.  Consider using individual Page objects to hold all the
+logic for dealing with particular parts of your site.
 </p>
 </dd>
-<dt class="hdlist1">System tests</dt>
+<dt class="hdlist1">An exercise for the reader</dt>
 <dd>
-<p>If an integration test checks the integration with one external system,
-a system test checks the integration of multiple systems in your
-application&#8212;&#8203;for example, checking that we&#8217;ve wired up our database,
-static files, and server config together in such a way that they all work.
-</p>
-</dd>
-<dt class="hdlist1">Functional tests and acceptance tests</dt>
-<dd>
-<p>An acceptance test is meant to test that our system works from the point
-of view of the user ("would the user accept this behaviour?").  It&#8217;s
-hard to write an acceptance test that&#8217;s not a full-stack, end-to-end test.
-We&#8217;ve been using our functional tests to play the role of both acceptance
-tests and system tests.
-
-</p>
+<p>I hope you&#8217;ve actually tried this out!  Try to follow the "Outside-In"
+method, and occasionally try things out manually if you get stuck.
+The real exercise for the reader, of course, is to apply TDD to your
+next project.  I hope you&#8217;ll enjoy it!</p>
 </dd>
 </dl>
 </div>
 </div>
 </div>
 <div class="paragraph">
-<p>If you&#8217;ll forgive me the pretentious philosophical terminology, I&#8217;m going to
-follow a Hegelian dialectical structure:</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p>The Thesis: the case for "pure" unit tests that are fast.</p>
-</li>
-<li>
-<p>The Antithesis: some of the risks associated with a (naive) pure unit testing
-approach.</p>
-</li>
-<li>
-<p>The Synthesis: a discussion of best practices like "Ports and Adapters"
-or "Functional Core, Imperative Shell", and of just what it is that we want
-from our tests, anyway.</p>
-</li>
-</ul>
-</div>
-<div class="sect2">
-<h3 id="_thesis_unit_tests_are_superfast_and_good_besides_that">Thesis: Unit Tests Are Superfast and Good Besides That</h3>
-<div class="paragraph">
-<p>
-One of the things you often hear about unit tests is that they&#8217;re much faster.
-I don&#8217;t think that&#8217;s actually the primary benefit of unit tests, but it&#8217;s worth
-exploring the theme of speed.</p>
-</div>
-<div class="sect3">
-<h4 id="_faster_tests_mean_faster_development">Faster Tests Mean Faster Development</h4>
-<div class="paragraph">
-<p>Other things being equal, the faster your unit tests run, the better.  To a
-lesser extent, the faster <em>all</em> your tests run, the better.</p>
-</div>
-<div class="paragraph">
-<p>I&#8217;ve outlined the TDD test/code cycle in this book.  You&#8217;ve started to get a
-feel for the TDD workflow, the way you flick between writing tiny amounts of
-code, and running your tests.  You end up running your unit tests several times
-a minute, and your functional tests several times a day.</p>
-</div>
-<div class="paragraph">
-<p>So, on a very basic level, the longer they take, the more time you spend
-waiting for your tests, and that will slow down your development.  But
-there&#8217;s more to it than that.</p>
-</div>
-</div>
-<div class="sect3">
-<h4 id="_the_holy_flow_state">The Holy Flow State</h4>
-<div class="paragraph">
-<p>Thinking sociology for a moment, we programmers have our own culture, and our
-own tribal religion in a way. It has many congregations within it, such as the
-cult of TDD to which you are now initiated.  There are the followers of vi and
-the heretics of emacs. But one thing we all agree on, one particular spiritual
-practice, our own transcendental meditation, is the holy flow state.  That
-feeling of pure focus, of concentration, where hours pass like no time at all,
-where code flows naturally from our fingers, where problems are just tricky
-enough to be interesting but not so hard that they defeat us&#8230;&#8203;</p>
-</div>
-<div class="paragraph">
-<p>There is absolutely no hope of achieving flow if you spend your time waiting
-for a slow test suite to run.  Anything longer than a few seconds and you&#8217;re
-going to let your attention wander, you context-switch, and the flow state is
-gone.  And the flow state is a fragile dream. Once it&#8217;s gone, it takes at
-least 15 minutes to live again.</p>
-</div>
-</div>
-<div class="sect3">
-<h4 id="_slow_tests_don_t_get_run_as_often_which_causes_bad_code">Slow Tests Don&#8217;t Get Run as Often, Which Causes Bad Code</h4>
-<div class="paragraph">
-<p>If your test suite is slow and ruins your concentration, the danger is that
-you&#8217;ll start to avoid running your tests, which may lead to bugs getting
-through. Or, it may lead to our being shy of refactoring the code,
-since we know that any refactor will mean having to wait ages while all the
-tests run. In either case, bad code can be the result.</p>
-</div>
-</div>
-<div class="sect3">
-<h4 id="_we_re_fine_now_but_integrated_tests_get_slower_over_time">We&#8217;re Fine Now, but Integrated Tests Get Slower Over Time</h4>
-<div class="paragraph">
-<p>You might be thinking, OK, but our test suite has lots of integrated
-tests in it&#8212;&#8203;over 50 of them, and it only takes 0.2 seconds to run.</p>
-</div>
-<div class="paragraph">
-<p>But remember, we&#8217;ve got a very simple app. Once it starts to get more
-complex, as your database grows more and more tables and columns, integrated
-tests will get slower and slower.  Having Django reset the database between
-each test will take longer and longer.</p>
-</div>
-</div>
-<div class="sect3">
-<h4 id="_don_t_take_it_from_me">Don&#8217;t Take It from Me</h4>
-<div class="paragraph">
-<p>
-Gary Bernhardt, a man with far more experience of testing than me, put these
-points eloquently in a talk called
-<a href="https://www.youtube.com/watch?v=RAxiiRPHS9k">Fast Test, Slow Test</a>. I encourage
-you to watch it.</p>
-</div>
-</div>
-<div class="sect3">
-<h4 id="_and_unit_tests_drive_good_design">And Unit Tests Drive Good Design</h4>
-<div class="paragraph">
-<p>But perhaps more importantly than any of this, remember the lesson from
-<a href="/book/chapter_19.html">[isolation-chapter]</a>.  Going through the process of writing good, isolated
-unit tests can help us drive out better designs for our code, by forcing us
-to identify dependencies, and encouraging us towards a decoupled architecture
-in a way that integrated tests don&#8217;t.</p>
-</div>
-</div>
-</div>
-<div class="sect2">
-<h3 id="_the_problems_with_pure_unit_tests">The Problems with "Pure" Unit Tests</h3>
-<div class="paragraph">
-<p>All of this comes with a huge "but". Writing isolated united tests comes with
-its own hazards, particularly if, like you or I, we are not yet advanced
-TDD&#8217;ers.</p>
-</div>
-<div class="sect3">
-<h4 id="_isolated_tests_can_be_harder_to_read_and_write">Isolated Tests Can Be Harder to Read and Write</h4>
-<div class="paragraph">
-<p>
-Cast your mind back to the first isolated unit test we wrote.  Wasn&#8217;t it ugly?
-Admittedly, things improved when we refactored things out into the forms, but
-imagine if we hadn&#8217;t followed through?  We&#8217;d have been left with a rather
-unreadable test in our codebase.  And even the final version of the tests we
-ended up with contain some pretty mind-bending bits.</p>
-</div>
-</div>
-<div class="sect3">
-<h4 id="_isolated_tests_don_t_automatically_test_integration">Isolated Tests Don&#8217;t Automatically Test Integration</h4>
-<div class="paragraph">
-<p>As we saw a little later on, isolated tests by their nature only test the
-unit under test, in isolation.  They won&#8217;t test the integration between
-your units.</p>
-</div>
-<div class="paragraph">
-<p>This problem is well known, and there are ways of mitigating it. But, as
-we saw, those mitigations involve a fair bit of hard work on the part of
-the programmer&#8212;&#8203;you need to remember to keep track of the interfaces
-between your units, to identify the implicit contract that each component
-needs to honour, and you need to write tests for those contracts as well
-as for the internal functionality of your unit.</p>
-</div>
-</div>
-<div class="sect3">
-<h4 id="_unit_tests_seldom_catch_unexpected_bugs">Unit Tests Seldom Catch Unexpected Bugs</h4>
-<div class="paragraph">
-<p>Unit tests will help you catch off-by-one errors and logic snafus, which are
-the kinds of bugs we know we introduce all the time, so in a way we are
-expecting them. But they don&#8217;t warn you about some of the more unexpected
-bugs.  They won&#8217;t remind you when you forgot to create a database migration.
-They won&#8217;t tell you when the middleware layer is doing some clever HTML-entity
-escaping that&#8217;s interfering with the way your data is rendered&#8230;&#8203;something
-like Donald Rumsfeld&#8217;s unknown unknowns?</p>
-</div>
-</div>
-<div class="sect3">
-<h4 id="_mocky_tests_can_become_closely_tied_to_implementation">Mocky Tests Can Become Closely Tied to Implementation</h4>
-<div class="paragraph">
-<p>And finally, mocky tests can become very tightly coupled with the implementation.
-If you choose to use <code>List.objects.create()</code> to build your objects but your
-mocks are expecting you to use <code>List()</code> and <code>.save()</code>, you&#8217;ll get failing tests
-even though the actual effect of the code would be the same.   If you&#8217;re not
-careful, this can start to work against one of the supposed benefits of having
-tests, which was to encourage refactoring.  You can find yourself having to
-change dozens of mocky tests and contract tests when you want to change an
-internal API.</p>
-</div>
-<div class="paragraph">
-<p>Notice that this may be more of a problem when you&#8217;re dealing with an API
-you don&#8217;t control.  You may remember the contortions we had to go through
-to test our form, mocking out two Django model classes and using <code>side_effect</code>
-to check on the state of the world.  If you&#8217;re writing code that&#8217;s totally
-under your own control, you&#8217;re likely to design your internal APIs so that
-they are cleaner and require less contortions to test.</p>
-</div>
-</div>
-<div class="sect3">
-<h4 id="_but_all_these_problems_can_be_overcome">But All These Problems Can Be Overcome</h4>
-<div class="paragraph">
-<p>But, isolation advocates will come back and say, all that stuff can be
-mitigated, you just need to get better at writing isolated tests, and, remember
-the holy flow state?  The holy flow state!</p>
-</div>
-<div class="paragraph">
-<p>So where are we?
-</p>
-</div>
-</div>
-</div>
-<div class="sect2">
-<h3 id="_synthesis_what_do_we_want_from_our_tests_anyway">Synthesis: What Do We Want from Our Tests, Anyway?</h3>
-<div class="paragraph">
-<p>
-Let&#8217;s step back and have a think about what benefits we want our tests to
-deliver.  Why are we writing them in the first place?</p>
-</div>
-<div class="sect3">
-<h4 id="_correctness">Correctness</h4>
-<div class="paragraph">
-<p>We want our application to be free of bugs&#8212;&#8203;both low-level logic errors,
-like off-by-one errors, and high-level bugs like the software ultimately
-should deliver what our users want.  We want to find out if we ever introduce
-regressions which break something that used to work, and we want to find
-that out before our users see something broken.  We expect our tests to
-tell us our application is correct.</p>
-</div>
-</div>
-<div class="sect3">
-<h4 id="_clean_maintainable_code">Clean, Maintainable Code</h4>
-<div class="paragraph">
-<p>We want our code to obey rules like "YAGNI" and "DRY".  We want code that
-clearly expresses its intentions, which is broken up into sensible components
-that have well-defined responsibilities and are easily understood.  We expect
-our tests to give us the confidence to refactor our application constantly,
-so that we&#8217;re never scared to try and improve its design, and we would also
-like it if they would actively help us to find the right design.</p>
-</div>
-</div>
-<div class="sect3">
-<h4 id="_productive_workflow">Productive Workflow</h4>
-<div class="paragraph">
-<p>Finally, we want our tests to help enable a fast and productive workflow.
-We want them to help take some of the stress out of development, we want
-them to protect us from stupid mistakes.  We want them to help keep us
-in the "flow" state not just because we enjoy it, but because it&#8217;s highly
-productive.  We want our tests to give us feedback about our work as quickly
-as possible, so that we can try out new ideas and evolve them quickly.  And
-we don&#8217;t want to feel like our tests are more of a hindrance than a help when
-it comes to evolving our codebase.</p>
-</div>
-</div>
-<div class="sect3">
-<h4 id="_evaluate_your_tests_against_the_benefits_you_want_from_them">Evaluate Your Tests Against the Benefits You Want from Them</h4>
-<div class="paragraph">
-<p>I don&#8217;t think there are any universal rules about how many tests you should
-write and what the correct balance between functional, integrated, and isolated
-tests should be.  Circumstances vary between projects.  But, by thinking about
-all of your tests and asking whether they are delivering the benefits you want,
-you can make some decisions.</p>
-</div>
-<table class="tableblock frame-all grid-all spread">
-<colgroup>
-<col style="width: 16.6666%;">
-<col style="width: 83.3334%;">
-</colgroup>
-<thead>
-<tr>
-<th class="tableblock halign-left valign-top">Objective</th>
-<th class="tableblock halign-left valign-top">Some considerations</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><em>Correctness</em></p></td>
-<td class="tableblock halign-left valign-top"><div><div class="ulist">
-<ul>
-<li>
-<p>Do I have enough functional tests to reassure myself that my application
-'really' works, from the point of view of the user?</p>
-</li>
-<li>
-<p>Am I testing all the edge cases thoroughly?  This feels like a job for
-low-level, isolated tests.</p>
-</li>
-<li>
-<p>Do I have tests that check whether all my components fit together properly?
-Could some integrated tests do this, or are functional tests enough?</p>
-</li>
-</ul>
-</div></div></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><em>Clean, maintainable code</em></p></td>
-<td class="tableblock halign-left valign-top"><div><div class="ulist">
-<ul>
-<li>
-<p>Are my tests giving me the confidence to refactor my code, fearlessly and
-frequently?</p>
-</li>
-<li>
-<p>Are my tests helping me to drive out a good design?  If I have a lot of
-integrated tests and few isolated tests, are there any parts of my application
-where putting in the effort to write more isolated tests would give me better
-feedback about my design?</p>
-</li>
-</ul>
-</div></div></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><em>Productive workflow</em></p></td>
-<td class="tableblock halign-left valign-top"><div><div class="ulist">
-<ul>
-<li>
-<p>Are my feedback cycles as fast as I would like them?  When do I get warned
-about bugs, and is there any practical way to make that happen sooner?</p>
-</li>
-<li>
-<p>If I have a lot of high-level, functional tests, that take a long time to
-run, and I have to wait overnight to get feedback about accidental
-regressions, is there some way I could write some faster tests, integrated
-tests perhaps, that would get me feedback quicker?</p>
-</li>
-<li>
-<p>Can I run a subset of the full test suite when I need to?</p>
-</li>
-<li>
-<p>Am I spending too much time waiting for tests to run, and thus less time
-in a productive flow state?</p>
-</li>
-</ul>
-</div></div></td>
-</tr>
-</tbody>
-</table>
-</div>
-</div>
-<div class="sect2">
-<h3 id="_architectural_solutions">Architectural Solutions</h3>
-<div class="paragraph">
-<p>
-
-There are also some architectural solutions that can help to get the most
-out of your test suite, and particularly that help avoid some of the
-disadvantages of isolated tests.</p>
-</div>
-<div class="paragraph">
-<p>Mainly these involve trying to identify the boundaries of your system&#8212;&#8203;the points at which your code interacts with external systems, like
-the database or the filesystem, or the Internet, or the UI&#8212;&#8203;and trying
-to keep them separate from the core business logic of your application.</p>
-</div>
-<div class="sect3">
-<h4 id="_ports_and_adapters_hexagonal_clean_architecture">Ports and Adapters/Hexagonal/Clean Architecture</h4>
-<div class="paragraph">
-<p>
-
-
-
-Integrated tests are most useful at the <em>boundaries</em> of a system&#8212;&#8203;at
-the points where our code integrates with external systems, like a
-database, filesystem, or UI components.</p>
-</div>
-<div class="paragraph">
-<p>Similarly, it&#8217;s at the boundaries that the downsides of test isolation and
-mocks are at their worst, because it&#8217;s at the boundaries that you&#8217;re most
-likely to be annoyed if your tests are tightly coupled to an implementation,
-or to need more reassurance that things are integrated properly.</p>
-</div>
-<div class="paragraph">
-<p>Conversely, code at the <em>core</em> of our application&#8212;&#8203;code that&#8217;s purely
-concerned with our business domain and business rules, code that&#8217;s
-entirely under our control&#8212;&#8203;this code has less need for integrated
-tests, since we control and understand all of it.</p>
-</div>
-<div class="paragraph">
-<p>So one way of getting what we want is to try and minimise the amount
-of our code that has to deal with boundaries. Then we test our core business
-logic with isolated tests and test our integration points with integrated
-tests.</p>
-</div>
-<div class="paragraph">
-<p>Steve Freeman and Nat Pryce, in their book <a href="#GOOSGBT">Growing Object-Oriented
-Software, Guided By Tests</a>, call this approach "Ports and Adapters" (see
-<a href="#ports-and-adapters">Ports and Adapters (diagram by Nat Pryce)</a>).</p>
-</div>
-<div class="paragraph">
-<p>We actually started moving towards a ports and adapters architecture in
-<a href="/book/chapter_19.html">[isolation-chapter]</a>, when we found that writing isolated unit tests was
-encouraging us to push ORM code out of the main application, and hide it
-in helper functions from the model layer.</p>
-</div>
-<div class="paragraph">
-<p>This pattern is also sometimes known as "The Clean architecture" or "Hexagonal
-Architecture".  See the further reading section at the end for more info.
-
-</p>
-</div>
-</div>
-<div class="sect3">
-<h4 id="_functional_core_imperative_shell">Functional Core, Imperative Shell</h4>
-<div class="paragraph">
-<p>
-
-Gary Bernhardt pushes this further, recommending an architecture he calls
-"Functional Core, Imperative Shell", whereby the "shell" of the application,
-the place where interaction with boundaries happens, follows the imperative
-programming paradigm, and can be tested by integrated tests, acceptance tests,
-or even (gasp!) not at all, if it&#8217;s kept minimal enough. But the core of the
-application is actually written following the functional programming paradigm
-(complete with the "no side effects" corollary), which actually allows fully
-isolated, "pure" unit tests, <em>entirely without mocks</em>.</p>
-</div>
-<div class="paragraph">
-<p>Check out Gary&#8217;s presentation titled
-<a href="https://www.youtube.com/watch?v=eOYal8elnZk">"Boundaries"</a> for more on this
-approach.</p>
-</div>
-<div id="ports-and-adapters" class="imageblock">
-<div class="content">
-<img src="images/twdp_2201.png" alt="Illustration of ports and adapaters architecture, with isolated core and integration points">
-</div>
-<div class="title">Figure 1. Ports and Adapters (diagram by Nat Pryce)</div>
-</div>
-</div>
-</div>
-<div class="sect2">
-<h3 id="_conclusion">Conclusion</h3>
-<div class="paragraph">
-<p>I&#8217;ve tried to give an overview of some of the more advanced considerations
-that come into the TDD process. Mastery of these topics is something
-that comes from long years of practice, and therefore I&#8217;m grossly underqualified
-to talk about these things.  So I heartily encourage you to take everything
-I&#8217;ve said with a pinch of salt, to go out there and find out what works for
-you, and most importantly to go and find the opinions of some real experts!</p>
-</div>
-<div class="paragraph">
-<p>Here are some places to go for further reading.
-
-</p>
-</div>
-<div class="sidebarblock">
-<div class="content">
-<div class="title">Further Reading</div>
-<div class="dlist">
-<dl>
-<dt class="hdlist1">Fast Test, Slow Test and Boundaries</dt>
-<dd>
-<p>Gary Bernhardt&#8217;s talks from Pycon <a href="https://www.youtube.com/watch?v=RAxiiRPHS9k">2012</a> and <a href="https://www.youtube.com/watch?v=eOYal8elnZk">2013</a>.  His <a href="http://www.destroyallsoftware.com">screencasts</a> are also well worth a look.</p>
-</dd>
-<dt class="hdlist1">Ports and Adapters</dt>
-<dd>
-<p>Steve Freeman and Nat Pryce wrote about this in <a href="#GOOSGBT">their book</a>.
-You can also catch a good discussion of the idea in <a href="http://vimeo.com/83960706">this talk</a>. See also
-<a href="http://blog.8thlight.com/uncle-bob/2012/08/13/the-clean-architecture.html">Uncle
-Bob&#8217;s description of the clean architecture</a>, and
-<a href="http://alistair.cockburn.us/Hexagonal+architecture">Alistair Cockburn
-coining the term Hexagonal Architecture</a>.</p>
-</dd>
-<dt class="hdlist1">Hot Lava</dt>
-<dd>
-<p><a href="https://www.youtube.com/watch?v=bsmFVb8guMU">Casey Kinsey&#8217;s memorable warning about avoiding the database whenever
-you can</a>.</p>
-</dd>
-<dt class="hdlist1">Inverting the Pyramid</dt>
-<dd>
-<p>The idea that projects end up with too great a ratio of slow, high-level
-tests to unit tests, and a <a href="http://watirmelon.com/tag/testing-pyramid/">visual metaphor for the effort to invert that
-ratio</a>.</p>
-</dd>
-<dt class="hdlist1">Integrated tests are a scam</dt>
-<dd>
-<p>J.B. Rainsberger has a famous rant about the way integrated tests will
-ruin your life, <a href="http://blog.thecodewhisperer.com/2010/10/16/integrated-tests-are-a-scam/">here</a>.
-Watch the video presentation
-<a href="http://www.infoq.com/presentations/integration-tests-scam">here</a> or
-<a href="http://vimeo.com/80533536">here</a> (there are two videos available, though
-neither has perfect cinematography). Then check out a couple of
-follow-up posts, particularly
-<a href="http://www.jbrains.ca/permalink/using-integration-tests-mindfully-a-case-study">this
-defence of acceptance tests</a> (what I call functional tests), and
-<a href="http://www.jbrains.ca/permalink/part-2-some-hidden-costs-of-integration-tests">this
-analysis of how slow tests kill productivity</a>.</p>
-</dd>
-<dt class="hdlist1">The Test-Double testing wiki</dt>
-<dd>
-<p>Justin Searls' online resource is a great source of definitions and discussions of
-testing pros &amp; cons, and arrives at its own conclusions of the right
-way to do things: <a href="https://github.com/testdouble/contributing-tests/wiki/Test-Driven-Development">testing wiki</a>.</p>
-</dd>
-<dt class="hdlist1">A pragmatic view</dt>
-<dd>
-<p>Martin Fowler (author of <em>Refactoring</em>) presents a
-<a href="http://martinfowler.com/bliki/UnitTest.html">reasonably balanced, pragmatic
-approach</a>.</p>
-</dd>
-</dl>
-</div>
-</div>
+<p>In the next chapter, we&#8217;ll wrap up with a discussion of testing "best
+practices".</p>
 </div>
 </div>
 </div>
@@ -608,7 +576,7 @@ approach</a>.</p>
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2016-12-22 00:08:42 GMT
+Last updated 2017-02-01 17:18:42 GMT
 </div>
 </div>
 <div class="comments" style="padding: 20px">

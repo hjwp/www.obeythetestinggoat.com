@@ -4,7 +4,7 @@
 <!--[if IE]><meta http-equiv="X-UA-Compatible" content="IE=edge"><![endif]-->
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="generator" content="Asciidoctor 1.5.4">
-<title>What Are We Doing with All These Tests?</title>
+<title>What Are We Doing with All These Tests? (And, Refactoring)</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:300,300italic,400,400italic,600,600italic%7CNoto+Serif:400,400italic,700,700italic%7CDroid+Sans+Mono:400,700">
 <link rel="stylesheet" href="./asciidoctor.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.5.0/css/font-awesome.min.css">
@@ -31,8 +31,23 @@ httpRequest.send();
 </div>
 <div id="content">
 <div class="sect1">
-<h2 id="chapter-4">What Are We Doing with All These Tests?</h2>
+<h2 id="chapter-4">What Are We Doing with All These Tests? (And, Refactoring)</h2>
 <div class="sectionbody">
+<div class="admonitionblock warning">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-warning" title="Warning"></i>
+</td>
+<td class="content">
+Major update released for Selenium 3.
+    If you started this book on or before Jan 30th 2017,
+    You should do a <code>pip install --upgrade selenium</code>, and watch
+    out for the new <code>time.sleeps</code> below.
+</td>
+</tr>
+</table>
+</div>
 <div class="paragraph">
 <p>Now that we&#8217;ve seen the basics of TDD in action, it&#8217;s time to pause
 and talk about why we&#8217;re doing it.</p>
@@ -178,7 +193,7 @@ F
 FAIL: test_can_start_a_list_and_retrieve_it_later (__main__.NewVisitorTest)
  ---------------------------------------------------------------------
 Traceback (most recent call last):
-  File "functional_tests.py", line 20, in
+  File "functional_tests.py", line 19, in
 test_can_start_a_list_and_retrieve_it_later
     self.fail('Finish the test!')
 AssertionError: Finish the test!
@@ -203,8 +218,8 @@ message we&#8217;re after.</p>
 </td>
 <td class="content">
 One of the great things about TDD is that you never have to worry about
-forgetting what to do next&#8212;&#8203;just rerun your tests and they will tell
-you what you need to work on.
+    forgetting what to do next&#8212;&#8203;just rerun your tests and they will tell
+    you what you need to work on.
 </td>
 </tr>
 </table>
@@ -218,13 +233,13 @@ you what you need to work on.
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> <span class="include">selenium</span> <span class="keyword">import</span> <span class="include">webdriver</span>
 <span class="keyword">from</span> <span class="include">selenium.webdriver.common.keys</span> <span class="keyword">import</span> <span class="include">Keys</span>
+<span class="keyword">import</span> <span class="include">time</span>
 <span class="keyword">import</span> <span class="include">unittest</span>
 
 <span class="keyword">class</span> <span class="class">NewVisitorTest</span>(unittest.TestCase):
 
     <span class="keyword">def</span> <span class="function">setUp</span>(<span class="predefined-constant">self</span>):
         <span class="predefined-constant">self</span>.browser = webdriver.Firefox()
-        <span class="predefined-constant">self</span>.browser.implicitly_wait(<span class="integer">3</span>)
 
     <span class="keyword">def</span> <span class="function">tearDown</span>(<span class="predefined-constant">self</span>):
         <span class="predefined-constant">self</span>.browser.quit()
@@ -236,11 +251,11 @@ you what you need to work on.
 
         <span class="comment"># She notices the page title and header mention to-do lists</span>
         <span class="predefined-constant">self</span>.assertIn(<span class="string"><span class="delimiter">'</span><span class="content">To-Do</span><span class="delimiter">'</span></span>, <span class="predefined-constant">self</span>.browser.title)
-        header_text = <span class="predefined-constant">self</span>.browser.find_element_by_tag_name(<span class="string"><span class="delimiter">'</span><span class="content">h1</span><span class="delimiter">'</span></span>).text
+        header_text = <span class="predefined-constant">self</span>.browser.find_element_by_tag_name(<span class="string"><span class="delimiter">'</span><span class="content">h1</span><span class="delimiter">'</span></span>).text  <i class="conum" data-value="1"></i><b>(1)</b>
         <span class="predefined-constant">self</span>.assertIn(<span class="string"><span class="delimiter">'</span><span class="content">To-Do</span><span class="delimiter">'</span></span>, header_text)
 
         <span class="comment"># She is invited to enter a to-do item straight away</span>
-        inputbox = <span class="predefined-constant">self</span>.browser.find_element_by_id(<span class="string"><span class="delimiter">'</span><span class="content">id_new_item</span><span class="delimiter">'</span></span>)
+        inputbox = <span class="predefined-constant">self</span>.browser.find_element_by_id(<span class="string"><span class="delimiter">'</span><span class="content">id_new_item</span><span class="delimiter">'</span></span>)  <i class="conum" data-value="1"></i><b>(1)</b>
         <span class="predefined-constant">self</span>.assertEqual(
             inputbox.get_attribute(<span class="string"><span class="delimiter">'</span><span class="content">placeholder</span><span class="delimiter">'</span></span>),
             <span class="string"><span class="delimiter">'</span><span class="content">Enter a to-do item</span><span class="delimiter">'</span></span>
@@ -248,14 +263,15 @@ you what you need to work on.
 
         <span class="comment"># She types "Buy peacock feathers" into a text box (Edith's hobby</span>
         <span class="comment"># is tying fly-fishing lures)</span>
-        inputbox.send_keys(<span class="string"><span class="delimiter">'</span><span class="content">Buy peacock feathers</span><span class="delimiter">'</span></span>)
+        inputbox.send_keys(<span class="string"><span class="delimiter">'</span><span class="content">Buy peacock feathers</span><span class="delimiter">'</span></span>)  <i class="conum" data-value="2"></i><b>(2)</b>
 
         <span class="comment"># When she hits enter, the page updates, and now the page lists</span>
         <span class="comment"># "1: Buy peacock feathers" as an item in a to-do list table</span>
-        inputbox.send_keys(Keys.ENTER)
+        inputbox.send_keys(Keys.ENTER)  <i class="conum" data-value="3"></i><b>(3)</b>
+        time.sleep(<span class="integer">1</span>)  <i class="conum" data-value="4"></i><b>(4)</b>
 
         table = <span class="predefined-constant">self</span>.browser.find_element_by_id(<span class="string"><span class="delimiter">'</span><span class="content">id_list_table</span><span class="delimiter">'</span></span>)
-        rows = table.find_elements_by_tag_name(<span class="string"><span class="delimiter">'</span><span class="content">tr</span><span class="delimiter">'</span></span>)
+        rows = table.find_elements_by_tag_name(<span class="string"><span class="delimiter">'</span><span class="content">tr</span><span class="delimiter">'</span></span>)  <i class="conum" data-value="1"></i><b>(1)</b>
         <span class="predefined-constant">self</span>.assertTrue(
             <span class="predefined">any</span>(row.text == <span class="string"><span class="delimiter">'</span><span class="content">1: Buy peacock feathers</span><span class="delimiter">'</span></span> <span class="keyword">for</span> row <span class="keyword">in</span> rows)
         )
@@ -269,14 +285,33 @@ you what you need to work on.
         [...]</code></pre>
 </div>
 </div>
-<div class="paragraph">
-<p>We&#8217;re using several of the methods that Selenium provides to examine web
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>We&#8217;re using several of the methods that Selenium provides to examine web
 pages: <code>find_element_by_tag_name</code>, <code>find_element_by_id</code>, and
 <code>find_element<strong>s</strong>_by_tag_name</code> (notice the extra <code>s</code>, which means it will
-return several elements rather than just one).  We also use <code>send_keys</code>,
-which is Selenium&#8217;s way of typing into input elements. You&#8217;ll also see the
-<code>Keys</code> class (don&#8217;t forget to import it), which lets us send special keys
-like Enter, but also modifiers like Ctrl.</p>
+return several elements rather than just one).</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>We also use <code>send_keys</code>, which is Selenium&#8217;s way of typing into input
+elements.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="3"></i><b>3</b></td>
+<td>The <code>Keys</code> class (don&#8217;t forget to import it), lets us send special keys
+like Enter<sup class="footnote">[<a id="_footnoteref_1" class="footnote" href="#_footnote_1" title="View footnote.">1</a>]</sup>.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="4"></i><b>4</b></td>
+<td>When we hit Enter, the page will refresh. The <code>time.sleep</code> is there to make
+sure the browser has finished loading before we make any assertions about
+the new page.  This is called an "explicit wait" (a very simple one; we&#8217;ll
+improve it in <a href="/book/chapter_06.html">[explicit-waits-chapter]</a>).</td>
+</tr>
+</table>
 </div>
 <div class="admonitionblock tip">
 <table>
@@ -286,9 +321,9 @@ like Enter, but also modifiers like Ctrl.</p>
 </td>
 <td class="content">
 Watch out for the difference between the Selenium <code>find_element_by...</code>
-and <code>find_elements_by...</code> functions.  One returns an element, and raises
-an exception if it can&#8217;t find it, whereas the other returns a list, which
-may be empty.
+    and <code>find_elements_by...</code> functions.  One returns an element, and raises
+    an exception if it can&#8217;t find it, whereas the other returns a list, which
+    may be empty.
 </td>
 </tr>
 </table>
@@ -315,9 +350,7 @@ Come back and tell me that&#8217;s not pure joy!</p>
 <pre>$ <strong>python functional_tests.py</strong>
 [...]
 selenium.common.exceptions.NoSuchElementException: Message: Unable to locate
-element: {"method":"tag name","selector":"h1"}
-Stacktrace:
-[...]</pre>
+element: h1</pre>
 </div>
 </div>
 <div class="paragraph">
@@ -409,7 +442,7 @@ OK</pre>
 <p>Great! We&#8217;ll start by taking our HTML string and putting it into its own file.
 Create a directory called <em>lists/templates</em> to keep templates in, and then open
 a file at <em>lists/templates/home.html</em>, to which we&#8217;ll transfer our
-HTML:<sup class="footnote">[<a id="_footnoteref_1" class="footnote" href="#_footnote_1" title="View footnote.">1</a>]</sup></p>
+HTML:<sup class="footnote">[<a id="_footnoteref_2" class="footnote" href="#_footnote_2" title="View footnote.">2</a>]</sup></p>
 </div>
 <div class="listingblock sourcecode">
 <div class="title">lists/templates/home.html</div>
@@ -721,7 +754,7 @@ Django test client.  We&#8217;ve combined two long-winded tests into one!</p>
 <div class="paragraph">
 <p>The main point, though, is that instead of testing constants we&#8217;re testing our
 implementation.
-Great!<sup class="footnote">[<a id="_footnoteref_2" class="footnote" href="#_footnote_2" title="View footnote.">2</a>]</sup></p>
+Great!<sup class="footnote">[<a id="_footnoteref_3" class="footnote" href="#_footnote_3" title="View footnote.">3</a>]</sup></p>
 </div>
 <div class="sidebarblock">
 <div class="content">
@@ -741,7 +774,7 @@ client.  They say it does too much magic, and involves too much of the stack to
 be used in a real "unit" test&#8212;&#8203;you end up writing what are more properly called
 integrated tests.  They also complain that it is relatively slow (and
 relatively is measured in milliseconds here). We&#8217;ll explore this argument
-further in <a href="/book/chapter_19.html">a later chapter</a>.</p>
+further in <a href="/book/chapter_20.html">a later chapter</a>.</p>
 </div>
 </div>
 </div>
@@ -851,7 +884,7 @@ tests.  We wanted an <code>&lt;h1&gt;</code>:</p>
 <div class="listingblock">
 <div class="content">
 <pre>selenium.common.exceptions.NoSuchElementException: Message: Unable to locate
-element: {"method":"id","selector":"id_new_item"}</pre>
+element: [id="id_new_item"]</pre>
 </div>
 </div>
 <div class="paragraph">
@@ -890,7 +923,7 @@ element: {"method":"id","selector":"id_new_item"}</pre>
 <div class="listingblock">
 <div class="content">
 <pre>selenium.common.exceptions.NoSuchElementException: Message: Unable to locate
-element: {"method":"id","selector":"id_list_table"}</pre>
+element: [id="id_list_table"]</pre>
 </div>
 </div>
 <div class="paragraph">
@@ -911,7 +944,7 @@ empty&#8230;&#8203;</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>  File "functional_tests.py", line 42, in
+<pre>  File "functional_tests.py", line 43, in
 test_can_start_a_list_and_retrieve_it_later
     any(row.text == '1: Buy peacock feathers' for row in rows)
 AssertionError: False is not true</pre>
@@ -1091,7 +1124,7 @@ git fetch harry</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>And then, to check your difference from the <em>end</em> of <a href="/book/chapter_04.html">What Are We Doing with All These Tests?</a>:</p>
+<p>And then, to check your difference from the <em>end</em> of <a href="/book/chapter_04.html">What Are We Doing with All These Tests? (And, Refactoring)</a>:</p>
 </div>
 <div class="listingblock skipme">
 <div class="content">
@@ -1111,7 +1144,7 @@ between your version and mine.  It may make diffs hard to read.</p>
 </div>
 <div class="paragraph">
 <p>If, for whatever reason, you want to "start from scratch" for a chapter, or
-skip ahead,<sup class="footnote">[<a id="_footnoteref_3" class="footnote" href="#_footnote_3" title="View footnote.">3</a>]</sup>
+skip ahead,<sup class="footnote">[<a id="_footnoteref_4" class="footnote" href="#_footnote_4" title="View footnote.">4</a>]</sup>
 and/or you&#8217;re just not comfortable with Git, you can download a version of my
 code as a ZIP file, from URLs following this pattern:</p>
 </div>
@@ -1139,18 +1172,21 @@ check against and find all the answers.</p>
 <div id="footnotes">
 <hr>
 <div class="footnote" id="_footnote_1">
-<a href="#_footnoteref_1">1</a>. Some people like to use another subfolder named after the app (i.e., <em>lists/templates/lists</em>) and then refer to the template as <em>lists/home.html</em>.  This is called "template namespacing". I figured it was overcomplicated for this small project, but it may be worth it on larger projects.  There&#8217;s more in the <a href="http://bit.ly/1iXxWZL">Django tutorial</a>.
+<a href="#_footnoteref_1">1</a>. you could also just use the string "\n", but <code>Keys</code> also lets you send special keys like Ctrl so I thought I&#8217;d show it.
 </div>
 <div class="footnote" id="_footnote_2">
-<a href="#_footnoteref_2">2</a>. Are you unable to move on because you&#8217;re wondering what those <em>ch04l0xx</em> things are, next to some of the code listings?  They refer to specific <a href="https://github.com/hjwp/book-example/commits/chapter_04">commits</a> in the book&#8217;s example repo.  It&#8217;s all to do with my book&#8217;s own <a href="https://github.com/hjwp/Book-TDD-Web-Dev-Python/tree/master/tests">tests</a>.  You know, the tests for the tests in the book about testing. They have tests of their own, naturally.
+<a href="#_footnoteref_2">2</a>. Some people like to use another subfolder named after the app (i.e., <em>lists/templates/lists</em>) and then refer to the template as <em>lists/home.html</em>.  This is called "template namespacing". I figured it was overcomplicated for this small project, but it may be worth it on larger projects.  There&#8217;s more in the <a href="http://bit.ly/1iXxWZL">Django tutorial</a>.
 </div>
 <div class="footnote" id="_footnote_3">
-<a href="#_footnoteref_3">3</a>. I don&#8217;t recommend skipping ahead. I haven&#8217;t designed the chapters to stand on their own; each relies on the previous ones, so it may be more confusing than anything else&#8230;&#8203;
+<a href="#_footnoteref_3">3</a>. Are you unable to move on because you&#8217;re wondering what those <em>ch04l0xx</em> things are, next to some of the code listings?  They refer to specific <a href="https://github.com/hjwp/book-example/commits/chapter_04">commits</a> in the book&#8217;s example repo.  It&#8217;s all to do with my book&#8217;s own <a href="https://github.com/hjwp/Book-TDD-Web-Dev-Python/tree/master/tests">tests</a>.  You know, the tests for the tests in the book about testing. They have tests of their own, naturally.
+</div>
+<div class="footnote" id="_footnote_4">
+<a href="#_footnoteref_4">4</a>. I don&#8217;t recommend skipping ahead. I haven&#8217;t designed the chapters to stand on their own; each relies on the previous ones, so it may be more confusing than anything else&#8230;&#8203;
 </div>
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2017-01-05 14:14:36 GMT
+Last updated 2017-02-01 17:18:42 GMT
 </div>
 </div>
 <div class="comments" style="padding: 20px">
