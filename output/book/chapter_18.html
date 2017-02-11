@@ -353,7 +353,8 @@ $ <strong>git commit -m "test_my_lists: precreate sessions, move login checks in
 <div class="paragraph">
 <p>When we pre-populate the database with test data, as we&#8217;ve done here with the
 <code>User</code> object and its associated <code>Session</code> object, what we&#8217;re doing is setting
-up a "test fixture".</p>
+up a "test fixture".
+</p>
 </div>
 <div class="paragraph">
 <p>Django comes with built-in support for saving database objects as JSON (using
@@ -363,8 +364,17 @@ using the <code>fixtures</code> class attribute on <code>TestCase</code>.</p>
 <div class="paragraph">
 <p>More and more people are starting to say:
 <a href="http://bit.ly/1kSTyrb">don&#8217;t use JSON fixtures</a>.
-They&#8217;re a nightmare to maintain when your model changes.  Instead, if you can,
-load data directly using the Django ORM.</p>
+They&#8217;re a nightmare to maintain when your model changes.  Plus it&#8217;s difficult
+for the reader to tell which of the many attribute values specified in the
+JSON are critical for the behaviour under test, and which are just filler.
+Finally, even if tests start out sharing fixtures, sooner or later one
+test will want slightly different versions of the data, and you end up copying
+the whole thing around to keep them isolated, and again it&#8217;s hard to tell
+what&#8217;s relevant to the test and what is just happenstance.</p>
+</div>
+<div class="paragraph">
+<p>It&#8217;s usually much more straightforward to just load the data directly
+using the Django ORM.</p>
 </div>
 <div class="admonitionblock tip">
 <table>
@@ -373,10 +383,10 @@ load data directly using the Django ORM.</p>
 <i class="fa icon-tip" title="Tip"></i>
 </td>
 <td class="content">
-Once you have more than a few related models, even using the Django ORM
-    can be cumbersome.  In this case, people recommend a tool called
-    <a href="https://factoryboy.readthedocs.org/"><code>factory_boy</code></a> to manage your test
-    fixtures.
+Once you have more than a handful of fields on a model, and/or several
+    related models, even using the ORM can be cumbersome.  In this case,
+    there&#8217;s a tool that lots of people swear by called
+    <a href="https://factoryboy.readthedocs.org/"><code>factory_boy</code></a>.
 </td>
 </tr>
 </table>
@@ -386,7 +396,7 @@ Once you have more than a few related models, even using the Django ORM
 </div>
 </div>
 <div class="sect2">
-<h3 id="_our_final_explicit_wait_helper_a_wait_for_decorator">Our final explicit wait helper:  a wait_for decorator</h3>
+<h3 id="_our_final_explicit_wait_helper_a_wait_decorator">Our final explicit wait helper:  a wait decorator</h3>
 <div class="paragraph">
 <p>We&#8217;ve used decorators a few times in our code so far, it&#8217;s time to learn
 how they actually work by making one of our own.</p>
@@ -449,7 +459,7 @@ timeout occurs.  Here&#8217;s a first cut:</p>
             <span class="keyword">except</span> (<span class="exception">AssertionError</span>, WebDriverException) <span class="keyword">as</span> e:  <i class="conum" data-value="4"></i><b>(4)</b>
                 <span class="keyword">if</span> time.time() - start_time &gt; MAX_WAIT:
                     <span class="keyword">raise</span> e
-                time.sleep(<span class="float">0.1</span>)
+                time.sleep(<span class="float">0.5</span>)
     <span class="keyword">return</span> modified_fn  <i class="conum" data-value="2"></i><b>(2)</b></code></pre>
 </div>
 </div>
@@ -512,7 +522,8 @@ the same arguments as whatever <code>fn</code> the decorator gets given has?</p>
 <div class="paragraph">
 <p>The answer is a bit of Python magic, <code>*args</code> and <code>**kwargs</code>, more formally
 known as
-<a href="https://docs.python.org/3/tutorial/controlflow.html#keyword-arguments">"variadic arguments"</a>:</p>
+<a href="https://docs.python.org/3/tutorial/controlflow.html#keyword-arguments">"variadic
+arguments"</a>, apparently (I only just learned that).</p>
 </div>
 <div class="listingblock sourcecode">
 <div class="title">functional_tests/base.py (ch18l007)</div>
@@ -526,7 +537,7 @@ known as
             <span class="keyword">except</span> (<span class="exception">AssertionError</span>, WebDriverException) <span class="keyword">as</span> e:
                 <span class="keyword">if</span> time.time() - start_time &gt; MAX_WAIT:
                     <span class="keyword">raise</span> e
-                time.sleep(<span class="float">0.1</span>)
+                time.sleep(<span class="float">0.5</span>)
     <span class="keyword">return</span> modified_fn</code></pre>
 </div>
 </div>
@@ -546,7 +557,7 @@ pass those same arguments to <code>fn</code> when we actually call it.</td>
 </div>
 <div class="paragraph">
 <p>One of the fun things this can be used for is to make a decorator that changes
-the arguments of a funciton.  But we won&#8217;t get into that now.  The main thing
+the arguments of a function.  But we won&#8217;t get into that now.  The main thing
 is that our decorator now works:</p>
 </div>
 <div class="listingblock">
@@ -573,6 +584,9 @@ for our <code>self.wait_for</code> helper as well!  Like this:</p>
 and we have a nice easy way of applying those waits, either inline in our
 FTs using <code>self.wait_for</code>, or on any helper function using the <code>@wait</code>
 decorator.</p>
+</div>
+<div class="paragraph">
+<p>TODO: separate this out into two chapters at this point?</p>
 </div>
 </div>
 <div class="sect2">
@@ -1129,8 +1143,8 @@ qnslckvp2aga7tm6xuivyb0ob1akzzwl</pre>
 </td>
 <td class="content">
 If you see an error saying the <code>auth_user</code> table is missing, you may need
-to run <code>manage.py migrate</code>.  In case that doesn&#8217;t work, delete the <code>db.sqlite3</code>
-file and run migrate again, to get a clean slate.
+    to run <code>manage.py migrate</code>.  In case that doesn&#8217;t work, delete the
+    <code>db.sqlite3</code> file and run migrate again, to get a clean slate.
 </td>
 </tr>
 </table>
@@ -1298,8 +1312,8 @@ the automated deployment script.</p>
 </td>
 <td class="content">
 By the time you read this book, Fabric may well have been fully ported to
-Python 3. If so, investigate using the Fabric context managers to call Fabric
-functions directly inline with your code.
+    Python 3. If so, investigate using the Fabric context managers to call
+    Fabric functions directly inline with your code.
 </td>
 </tr>
 </table>
@@ -1438,11 +1452,11 @@ Destroying test database for alias 'default'...</pre>
 <i class="fa icon-note" title="Note"></i>
 </td>
 <td class="content">
-I&#8217;ve shown one way of managing the test database, but you could experiment
-with others&#8212;&#8203;for example, if you were using MySQL or Postgres, you could open
-up an SSH tunnel to the server, and use port forwarding to talk to the database
-directly.  You could then amend <code>settings.DATABASES</code> during FTs to talk to the
-tunnelled port.
+I&#8217;ve shown one way of managing the test database, but you could
+    experiment with others&#8212;&#8203;for example, if you were using MySQL or Postgres,
+    you could open up an SSH tunnel to the server, and use port forwarding to
+    talk to the database directly.  You could then amend <code>settings.DATABASES</code>
+    during FTs to talk to the tunnelled port.
 
 
 </td>
@@ -1455,8 +1469,8 @@ tunnelled port.
 <div class="paragraph">
 <p>We&#8217;re into dangerous territory, now that we have code that can directly
 affect a database on the server.  You want to be very, very careful that you
-don&#8217;t accidentally blow away your production database by running FTs against the
-wrong host.</p>
+don&#8217;t accidentally blow away your production database by running FTs against
+the wrong host.</p>
 </div>
 <div class="paragraph">
 <p>You might consider putting some safeguards in place at this point. For example,
@@ -1464,9 +1478,9 @@ you could put staging and production on different servers, and make it so they
 use different keypairs for authentication, with different passphrases.</p>
 </div>
 <div class="paragraph">
-<p>This is similar dangerous territory to running tests against clones of production
-data, if you remember my little story about accidentally sending thousands
-of duplicate invoices to clients.  LFMF.</p>
+<p>This is similar dangerous territory to running tests against clones of
+production data, if you remember my little story about accidentally sending
+thousands of duplicate invoices to clients.  LFMF.</p>
 </div>
 </div>
 </div>
@@ -1475,13 +1489,14 @@ of duplicate invoices to clients.  LFMF.</p>
 <div class="sect2">
 <h3 id="_baking_in_our_logging_code">Baking In Our Logging Code</h3>
 <div class="paragraph">
-<p>Before we finish, let&#8217;s "bake in" our logging code. It would be useful to
+<p>Before we finish, let&#8217;s "bake in" our logging setup. It would be useful to
 keep our new logging code in there, under source control, so that we can
 debug any future login problems.  They may indicate someone is up to no
-good, after all.</p>
+good, after all&#8230;&#8203;</p>
 </div>
 <div class="paragraph">
-<p>Let&#8217;s start by saving the Gunicorn config to our template file in <em>deploy_tools</em>:</p>
+<p>Let&#8217;s start by saving the Gunicorn config to our template file in
+<em>deploy_tools</em>:</p>
 </div>
 <div class="listingblock sourcecode">
 <div class="title">deploy_tools/gunicorn-systemd.template.service (ch18l020)</div>
@@ -1516,8 +1531,9 @@ note in our</p>
 <div class="sect2">
 <h3 id="_wrap_up">Wrap-Up</h3>
 <div class="paragraph">
-<p>We now have test fixtures that work both locally and on the server, and we&#8217;ve
-got some more robust logging configuration.</p>
+<p>We now have a lovely generic <code>wait</code> decorator, test fixtures that work both
+locally and on the server, and we&#8217;ve got some more robust logging
+configuration.</p>
 </div>
 <div class="paragraph">
 <p>But before we can deploy our actual live site, we&#8217;d better actually give the
@@ -1533,9 +1549,15 @@ the ability to save their lists on a "My Lists" page.
 </div>
 <div class="sidebarblock">
 <div class="content">
-<div class="title">Fixtures and Logging</div>
+<div class="title">Lessons learned</div>
 <div class="dlist">
 <dl>
+<dt class="hdlist1">Decorators are nice</dt>
+<dd>
+<p>Decorators can be a great way of abstracting out different levels of
+concerns.  They let us write our test assertions without having to
+think about waits at the same time.</p>
+</dd>
 <dt class="hdlist1">De-duplicate your FTs, with caution</dt>
 <dd>
 <p>Every single FT doesn&#8217;t need to test every single part of your application.
@@ -1575,18 +1597,9 @@ works for you.</p>
 servers is a dangerous weapon, and you want to be really, really sure
 it&#8217;s never accidentally going to hit your production data.</p>
 </dd>
-<dt class="hdlist1">Decorators are nice</dt>
-<dd>
-<p>Decorators can be a great way of abstracting out different levels of
-concerns.  They let us write our test assertions without having to
-think about waits at the same time.</p>
-</dd>
 </dl>
 </div>
 </div>
-</div>
-<div class="paragraph">
-<p>TODO: separate this out into two chapters.</p>
 </div>
 </div>
 <div class="sect2">
@@ -1807,7 +1820,7 @@ convenient way of unit testing it.</p>
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2017-02-01 17:18:42 GMT
+Last updated 2017-02-11 09:11:21 GMT
 </div>
 </div>
 <div class="comments" style="padding: 20px">

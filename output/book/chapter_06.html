@@ -98,8 +98,8 @@ out.</p>
 <em>manage.py</em>. As of Django 1.6, the test runner will find any files whose name
 begins with <em>test</em>.  To keep things neat and tidy, let&#8217;s make a folder for
 our functional tests, so that it looks a bit like an app. All Django needs is
-for it to be a valid Python package directory (i.e., one with a <em>_\_init__.py</em>
-in it):</p>
+for it to be a valid Python package directory (i.e., one with a
+<i>___init___.py</i> in it):</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -322,7 +322,21 @@ functional tests once all the unit tests are passing, so if in doubt, try both!<
 <div class="sect2">
 <h3 id="_on_implicit_and_explicit_waits_and_voodoo_time_sleeps">On implicit and explicit waits, and voodoo time.sleeps</h3>
 <div class="paragraph">
-<p>The <code>time.sleep</code> is what&#8217;s called an "explicit wait".  This is by contrast with
+<p>Let&#8217;s talk about the <code>time.sleep</code> in our FT:</p>
+</div>
+<div class="listingblock sourcecode currentcontents">
+<div class="title">functional_tests/tests.py</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python">        <span class="comment"># When she hits enter, the page updates, and now the page lists</span>
+        <span class="comment"># "1: Buy peacock feathers" as an item in a to-do list table</span>
+        inputbox.send_keys(Keys.ENTER)
+        time.sleep(<span class="integer">1</span>)
+
+        <span class="predefined-constant">self</span>.check_for_row_in_list_table(<span class="string"><span class="delimiter">'</span><span class="content">1: Buy peacock feathers</span><span class="delimiter">'</span></span>)</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>This is what&#8217;s called an "explicit wait".  That&#8217;s by contrast with
 "implicit waits":  in certain cases, Selenium tries to wait "automatically" for
 you when it thinks the page is loading.  It even provides a method called
 `implicitly_wait" that lets you control how long it will wait if you ask it for
@@ -330,13 +344,13 @@ an element that doesn&#8217;t seem to be on the page yet.</p>
 </div>
 <div class="paragraph">
 <p>In fact, in the first edition, I was able to rely entirely on implicit waits.
-The problem is that implicit waits are always a little flakey and with the
-release of Selenium 3, implicit waits became even more unreliable, at the same
-time as the general opinion from the Selenium team was that implicit waits were
+The problem is that implicit waits are always a little flakey, and with the
+release of Selenium 3, implicit waits became even more unreliable. At the same
+time, the general opinion from the Selenium team was that implicit waits were
 just a bad idea, and to be avoided.</p>
 </div>
 <div class="paragraph">
-<p>So this edition has explicit waits from the very beginning, but the problem
+<p>So this edition has explicit waits from the very beginning. But the problem
 is that those "time.sleeps" have their own issues.  Currently we&#8217;re waiting
 for one second, but who&#8217;s to say that&#8217;s the right amount of time?  For most
 tests we run against our own machine, one second is way too long, and it&#8217;s
@@ -373,7 +387,7 @@ polling/retry logic to it:</p>
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> <span class="include">selenium.common.exceptions</span> <span class="keyword">import</span> <span class="include">WebDriverException</span>
 
-MAX_WAIT = <span class="integer">5</span>  <i class="conum" data-value="1"></i><b>(1)</b>
+MAX_WAIT = <span class="integer">10</span>  <i class="conum" data-value="1"></i><b>(1)</b>
 [...]
 
     <span class="keyword">def</span> <span class="function">wait_for_row_in_list_table</span>(<span class="predefined-constant">self</span>, row_text):
@@ -387,7 +401,7 @@ MAX_WAIT = <span class="integer">5</span>  <i class="conum" data-value="1"></i><
             <span class="keyword">except</span> (<span class="exception">AssertionError</span>, WebDriverException) <span class="keyword">as</span> e:  <i class="conum" data-value="5"></i><b>(5)</b>
                 <span class="keyword">if</span> time.time() - start_time &gt; MAX_WAIT:  <i class="conum" data-value="6"></i><b>(6)</b>
                     <span class="keyword">raise</span> e  <i class="conum" data-value="6"></i><b>(6)</b>
-                time.sleep(<span class="float">0.1</span>)  <i class="conum" data-value="5"></i><b>(5)</b></code></pre>
+                time.sleep(<span class="float">0.5</span>)  <i class="conum" data-value="5"></i><b>(5)</b></code></pre>
 </div>
 </div>
 <div class="colist arabic">
@@ -395,7 +409,7 @@ MAX_WAIT = <span class="integer">5</span>  <i class="conum" data-value="1"></i><
 <tr>
 <td><i class="conum" data-value="1"></i><b>1</b></td>
 <td>We&#8217;ll use a constant called <code>MAX_WAIT</code> to set how long is the maximum
-amount of time we&#8217;re prepared to wait.  5 seconds should be more than
+amount of time we&#8217;re prepared to wait.  10 seconds should be more than
 enough to catch any glitches or random slowness.</td>
 </tr>
 <tr>
@@ -440,9 +454,10 @@ failed.</td>
 </td>
 <td class="content">
 Are you thinking this code is a little ugly, and makes it a bit harder
-    to see exactly what we&#8217;re doing?  I agree. Later on, we&#8217;ll refactor out a
-    general <code>wait_for</code> helper, to separate the timing and re-raising logic from
-    the test assertions.  But we&#8217;ll wait until we need it in multiple places.
+    to see exactly what we&#8217;re doing?  I agree. <a href="#self.wait-for">Later on</a>,
+    we&#8217;ll refactor out a general <code>wait_for</code> helper, to separate the timing and
+    re-raising logic from the test assertions.  But we&#8217;ll wait until we need it
+    in multiple places.
 </td>
 </tr>
 </table>
@@ -454,11 +469,12 @@ Are you thinking this code is a little ugly, and makes it a bit harder
 <i class="fa icon-note" title="Note"></i>
 </td>
 <td class="content">
-If you&#8217;ve used Selenium before, you may know that it has a few helper
-    functions to do waits. I&#8217;m not a big fan of them. Over the course of the
-    book we&#8217;ll build a couple of wait helper tools which I think will make
-    for nice, readable code, but of course you should check out the homegrown
-    Selenium waits in your own time, and see what you think of them.
+If you&#8217;ve used Selenium before, you may know that it has a few
+    <a href="http://www.seleniumhq.org/docs/04_webdriver_advanced.jsp">helper functions to do waits</a>.
+    I&#8217;m not a big fan of them. Over the course of the book we&#8217;ll build a couple
+    of wait helper tools which I think will make for nice, readable code, but
+    of course you should check out the homegrown Selenium waits in your own
+    time, and see what you think of them.
 </td>
 </tr>
 </table>
@@ -619,7 +635,7 @@ than implict", as the Zen of Python says, so prefer explicit waits.</p>
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2017-02-01 17:18:42 GMT
+Last updated 2017-02-11 09:11:21 GMT
 </div>
 </div>
 <div class="comments" style="padding: 20px">
