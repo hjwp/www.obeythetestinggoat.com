@@ -89,30 +89,35 @@ Table of contents follows:
 * [Chapter 4: What Are We Doing with All These Tests? (And, Refactoring)](/book/chapter_philosophy_and_refactoring.html)
 * [Chapter 5: Saving User Input: Testing the Database](/book/chapter_post_and_database.html)
 * [Chapter 6: Improving Functional Tests: Ensuring Isolation and Removing Voodoo Sleeps](/book/chapter_explicit_waits_1.html)
+* [Chapter 7: Working Incrementally](/book/chapter_working_incrementally.html)
 
 
 ### [Part 2: Web Development Sine Qua Nons](/book/part2.harry.html)
 
-* [Chapter 7: Working Incrementally](/book/chapter_working_incrementally.html)
 * [Chapter 8: Prettification: Layout and Styling, and What to Test About It](/book/chapter_prettification.html)
 * [Chapter 9: Testing Deployment Using a Staging Site](/book/chapter_manual_deployment.html)
 * [Chapter 10: Automating Deployment with Fabric](/book/chapter_automate_deployment_with_fabric.html)
-* [Chapter 11: Validation at the Database Layer](/book/chapter_database_layer_validation.html)
-* [Chapter 12: A Simple Form](/book/chapter_simple_form.html)
-* [Chapter 13: More Advanced Forms](/book/chapter_advanced_forms.html)
-* [Chapter 14: Dipping Our Toes, Very Tentatively, into JavaScript](/book/chapter_javascript.html)
-* [Chapter 15: Deploying Our New Code](/book/chapter_deploying_validation.html)
+* [Chapter 11: Splitting our tests into multiple files, and a generic wait helper](/book/chapter_organising_test_files.html)
+* [Chapter 12: Validation at the Database Layer](/book/chapter_database_layer_validation.html)
+* [Chapter 13: A Simple Form](/book/chapter_simple_form.html)
+* [Chapter 14: More Advanced Forms](/book/chapter_advanced_forms.html)
+* [Chapter 15: Dipping Our Toes, Very Tentatively, into JavaScript](/book/chapter_javascript.html)
+* [Chapter 16: Deploying Our New Code](/book/chapter_deploying_validation.html)
+
 
 
 ### [Part 3: More Advanced Topics](/book/part3.harry.html)
 
-* [Chapter 16: User Authentication, Spiking and De-Spiking](/book/chapter_spiking_custom_auth.html)
-* [Chapter 17: Using Mocks to Test External Dependencies or Reduce Duplication](/book/chapter_mocking.html)
-* [Chapter 18: Server-Side Debugging](/book/chapter_server_side_debugging.html)
-* [Chapter 19: Finishing "My Lists": Outside-In TDD](/book/chapter_outside_in.html)
-* [Chapter 20: Test Isolation, and "Listening to Your Tests"](/book/chapter_purist_unit_tests.html)
-* [Chapter 21: Continuous Integration (CI)](/book/chapter_CI.html)
-* [Chapter 22: The Token Social Bit, the Page Pattern, and an Exercise for the Reader](/book/chapter_page_pattern.html)
+* [Chapter 17: User Authentication, Spiking and De-Spiking](/book/chapter_spiking_custom_auth.html)
+* [Chapter 18: Using Mocks to Test External Dependencies or Reduce Duplication](/book/chapter_mocking.html)
+* [Chapter 19: Test Fixtures and a Decorator for Explicit Waits](/book/chapter_fixtures_and_wait_decorator.html)
+* [Chapter 20: Server-Side Debugging](/book/chapter_server_side_debugging.html)
+* [Chapter 21: Finishing "My Lists": Outside-In TDD](/book/chapter_outside_in.html)
+* [Chapter 22: Test Isolation, and "Listening to Your Tests"](/book/chapter_purist_unit_tests.html)
+* [Chapter 23: Continuous Integration (CI)](/book/chapter_CI.html)
+* [Chapter 24: The Token Social Bit, the Page Pattern, and an Exercise for the Reader](/book/chapter_page_pattern.html)
+* [Chapter 25: Fast Tests, Slow Tests, and Hot Lava](/book/chapter_hot_lava.html)
+
 
 
 ### Epilogue and appendices:
@@ -128,7 +133,6 @@ Table of contents follows:
 * [Appendix IX: Cheat Sheet](/book/appendix_IX_cheat_sheet.html)
 * [Appendix X: What to Do Next](/book/appendix_X_what_to_do_next.html)
 * [Bibliography](/book/bibliography.html)
-
 
 
 How to comment
