@@ -80,51 +80,51 @@ Table of contents follows:
 * [Companion Video](/book/video_plug.html)
 * [Acknowledgments](/book/acknowledgments.html)
 
+
 ### [Part 1: The Basics of TDD and Django](/book/part1.harry.html)
 
 * [Chapter 1: Getting Django Set Up Using a Functional Test](/book/chapter_01.html)
-* [Chapter 2: Extending Our Functional Test Using the unittest Module](/book/chapter_02.html)
-* [Chapter 3: Testing a Simple Home Page with Unit Tests](/book/chapter_03.html)
-* [Chapter 4: What Are We Doing with All These Tests? (And, Refactoring)](/book/chapter_04.html)
-* [Chapter 5: Saving User Input: Testing the Database](/book/chapter_05.html)
-* [Chapter 6: Improving Functional Tests: Ensuring Isolation and Removing Voodoo Sleeps](/book/chapter_06.html)
-* [Chapter 7: Working Incrementally](/book/chapter_07.html)
+* [Chapter 2: Extending Our Functional Test Using the unittest Module](/book/chapter_02_unittest.html)
+* [Chapter 3: Testing a Simple Home Page with Unit Tests](/book/chapter_unit_test_first_view.html)
+* [Chapter 4: What Are We Doing with All These Tests? (And, Refactoring)](/book/chapter_philosophy_and_refactoring.html)
+* [Chapter 5: Saving User Input: Testing the Database](/book/chapter_post_and_database.html)
+* [Chapter 6: Improving Functional Tests: Ensuring Isolation and Removing Voodoo Sleeps](/book/chapter_explicit_waits_1.html)
 
 
 ### [Part 2: Web Development Sine Qua Nons](/book/part2.harry.html)
 
-* [Chapter 8: Prettification: Layout and Styling, and What to Test About It](/book/chapter_08.html)
-* [Chapter 9: Testing Deployment Using a Staging Site](/book/chapter_09.html)
-* [Chapter 10: Automating Deployment with Fabric](/book/chapter_10.html)
-* [Chapter 11: Input Validation and Test Organisation](/book/chapter_11.html)
-* [Chapter 12: A Simple Form](/book/chapter_12.html)
-* [Chapter 13: More Advanced Forms](/book/chapter_13.html)
-* [Chapter 14: Dipping Our Toes, Very Tentatively, into JavaScript](/book/chapter_14.html)
-* [Chapter 15: Deploying Our New Code](/book/chapter_15.html)
-
+* [Chapter 7: Working Incrementally](/book/chapter_working_incrementally.html)
+* [Chapter 8: Prettification: Layout and Styling, and What to Test About It](/book/chapter_prettification.html)
+* [Chapter 9: Testing Deployment Using a Staging Site](/book/chapter_manual_deployment.html)
+* [Chapter 10: Automating Deployment with Fabric](/book/chapter_automate_deployment_with_fabric.html)
+* [Chapter 11: Validation at the Database Layer](/book/chapter_database_layer_validation.html)
+* [Chapter 12: A Simple Form](/book/chapter_simple_form.html)
+* [Chapter 13: More Advanced Forms](/book/chapter_advanced_forms.html)
+* [Chapter 14: Dipping Our Toes, Very Tentatively, into JavaScript](/book/chapter_javascript.html)
+* [Chapter 15: Deploying Our New Code](/book/chapter_deploying_validation.html)
 
 
 ### [Part 3: More Advanced Topics](/book/part3.harry.html)
 
-* [Chapter 16: User Authentication, Spiking and De-Spiking](/book/chapter_16.html)
-* [Chapter 17: Using Mocks to Test External Dependencies or Reduce Duplication](/book/chapter_17.html)
-* [Chapter 18: Test Fixtures, Server-Side Debugging, and a Decorator for Explicit Waits](/book/chapter_18.html)
-* [Chapter 19: Finishing "My Lists": Outside-In TDD](/book/chapter_19.html)
-* [Chapter 20: Test Isolation, and "Listening to Your Tests"](/book/chapter_20.html)
-* [Chapter 21: Continuous Integration (CI)](/book/chapter_21.html)
-* [Chapter 22: The Token Social Bit, the Page Pattern, and an Exercise for the Reader](/book/chapter_22.html)
+* [Chapter 16: User Authentication, Spiking and De-Spiking](/book/chapter_spiking_custom_auth.html)
+* [Chapter 17: Using Mocks to Test External Dependencies or Reduce Duplication](/book/chapter_mocking.html)
+* [Chapter 18: Server-Side Debugging](/book/chapter_server_side_debugging.html)
+* [Chapter 19: Finishing "My Lists": Outside-In TDD](/book/chapter_outside_in.html)
+* [Chapter 20: Test Isolation, and "Listening to Your Tests"](/book/chapter_purist_unit_tests.html)
+* [Chapter 21: Continuous Integration (CI)](/book/chapter_CI.html)
+* [Chapter 22: The Token Social Bit, the Page Pattern, and an Exercise for the Reader](/book/chapter_page_pattern.html)
 
 
 ### Epilogue and appendices:
 
 * [Epilogue: Obey the Testing Goat!](/book/epilogue.html)
 * [Appendix I: PythonAnywhere](/book/appendix_I_PythonAnywhere.html)
-* [Appendix II: Django Class-Based Views](/book/appendix_II_Django_Class-Based_Views.html)
+* [Appendix II: Django Class-Based Views](/book/appendix_Django_Class-Based_Views.html)
 * [Appendix III: Provisioning with Ansible](/book/appendix_III_provisioning_with_ansible.html)
 * [Appendix IV: Testing Database Migrations](/book/appendix_IV_testing_migrations.html)
-* [Appendix V: Behaviour-Driven Development (BDD)](/book/appendix_V_bdd_tools.html)
-* [Appendix VI: Building a REST API: JSON, Ajax, and mocking with JavaScript](/book/appendix_VI_rest_api.html)
-* [Appendix VII: Django-Rest-Framework](/book/appendix_VII_DjangoRestFramework.html)
+* [Appendix V: Behaviour-Driven Development (BDD)](/book/appendix_bdd.html)
+* [Appendix VI: Building a REST API: JSON, Ajax, and mocking with JavaScript](/book/appendix_rest_api.html)
+* [Appendix VII: Django-Rest-Framework](/book/appendix_DjangoRestFramework.html)
 * [Appendix IX: Cheat Sheet](/book/appendix_IX_cheat_sheet.html)
 * [Appendix X: What to Do Next](/book/appendix_X_what_to_do_next.html)
 * [Bibliography](/book/bibliography.html)
