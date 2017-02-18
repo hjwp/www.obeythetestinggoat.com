@@ -31,10 +31,10 @@ httpRequest.send();
 </div>
 <div id="content">
 <div class="sect1">
-<h2 id="appendix2">Appendix A: Django Class-Based Views</h2>
+<h2 id="appendix_Django_Class-Based_Views">Appendix A: Django Class-Based Views</h2>
 <div class="sectionbody">
 <div class="paragraph">
-<p>This appendix follows on from <a href="/book/chapter_13.html">[advanced-forms-chapter]</a>, in which we
+<p>This appendix follows on from <a href="/book/chapter_advanced_forms.html">[chapter_advanced_forms]</a>, in which we
 implemented Django forms for validation, and refactored our views.  By the end
 of that chapter, our views were still using functions.
 
@@ -92,7 +92,8 @@ work just as well for class-based views.  Let&#8217;s see how we get on.</p>
 <p>
 Our home page just displays a form on a template:</p>
 </div>
-<div class="listingblock">
+<div class="listingblock sourcecode currentcontents">
+<div class="title">lists/views.py</div>
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">def</span> <span class="function">home_page</span>(request):
     <span class="keyword">return</span> render(request, <span class="string"><span class="delimiter">'</span><span class="content">home.html</span><span class="delimiter">'</span></span>, {<span class="string"><span class="delimiter">'</span><span class="content">form</span><span class="delimiter">'</span></span>: ItemForm()})</code></pre>
@@ -122,10 +123,11 @@ just need to update <em>urls.py</em>, replacing the line that used to say
 <div class="listingblock sourcecode">
 <div class="title">superlists/urls.py (ch31l002)</div>
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> <span class="include">lists.views</span> <span class="keyword">import</span> <span class="include">HomePageView</span>
-[...]
-
-    url(<span class="string"><span class="modifier">r</span><span class="delimiter">'</span><span class="content">^$</span><span class="delimiter">'</span></span>, HomePageView.as_view(), name=<span class="string"><span class="delimiter">'</span><span class="content">home</span><span class="delimiter">'</span></span>),</code></pre>
+<pre class="CodeRay highlight"><code data-lang="python">[...]
+urlpatterns = [
+    url(<span class="string"><span class="modifier">r</span><span class="delimiter">'</span><span class="content">^$</span><span class="delimiter">'</span></span>, list_views.HomePageView.as_view(), name=<span class="string"><span class="delimiter">'</span><span class="content">home</span><span class="delimiter">'</span></span>),
+    url(<span class="string"><span class="modifier">r</span><span class="delimiter">'</span><span class="content">^lists/</span><span class="delimiter">'</span></span>, include(list_urls)),
+]</code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -144,8 +146,7 @@ OK</pre>
 <div class="content">
 <pre>$ <strong>python manage.py test functional_tests</strong>
 [...]
-
-Ran 4 tests in 15.160s
+Ran 5 tests in 15.160s
 OK</pre>
 </div>
 </div>
@@ -166,7 +167,7 @@ the <code>new_list</code> function. Here&#8217;s what it looks like now:</p>
 <pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">def</span> <span class="function">new_list</span>(request):
     form = ItemForm(data=request.POST)
     <span class="keyword">if</span> form.is_valid():
-        list = List.objects.create()
+        list_ = List.objects.create()
         form.save(for_list=list_)
         <span class="keyword">return</span> redirect(list_)
     <span class="keyword">else</span>:
@@ -199,21 +200,23 @@ harmless as soon as we switch over the URL mappings, this time in:</p>
 <div class="listingblock sourcecode">
 <div class="title">lists/urls.py (ch31l004)</div>
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> <span class="include">django.conf.urls</span> <span class="keyword">import</span> <span class="include">patterns</span>, <span class="include">url</span>
-<span class="keyword">from</span> <span class="include">lists.views</span> <span class="keyword">import</span> <span class="include">NewListView</span>
-
-urlpatterns = patterns(<span class="string"><span class="delimiter">'</span><span class="delimiter">'</span></span>,
-    url(<span class="string"><span class="modifier">r</span><span class="delimiter">'</span><span class="content">^(</span><span class="content">\d</span><span class="content">+)/$</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">lists.views.view_list</span><span class="delimiter">'</span></span>, name=<span class="string"><span class="delimiter">'</span><span class="content">view_list</span><span class="delimiter">'</span></span>),
-    url(<span class="string"><span class="modifier">r</span><span class="delimiter">'</span><span class="content">^new$</span><span class="delimiter">'</span></span>, NewListView.as_view(), name=<span class="string"><span class="delimiter">'</span><span class="content">new_list</span><span class="delimiter">'</span></span>),
-)</code></pre>
+<pre class="CodeRay highlight"><code data-lang="python">[...]
+urlpatterns = [
+    url(<span class="string"><span class="modifier">r</span><span class="delimiter">'</span><span class="content">^new$</span><span class="delimiter">'</span></span>, views.NewListView.as_view(), name=<span class="string"><span class="delimiter">'</span><span class="content">new_list</span><span class="delimiter">'</span></span>),
+    url(<span class="string"><span class="modifier">r</span><span class="delimiter">'</span><span class="content">^(</span><span class="content">\d</span><span class="content">+)/$</span><span class="delimiter">'</span></span>, views.view_list, name=<span class="string"><span class="delimiter">'</span><span class="content">view_list</span><span class="delimiter">'</span></span>),
+]</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>Now running the tests gives three errors:</p>
+<p>Now running the tests gives six errors:</p>
 </div>
 <div class="listingblock small-code">
 <div class="content">
 <pre>$ <strong>python manage.py test lists</strong>
+[...]
+
+ERROR: test_can_save_a_POST_request (lists.tests.test_views.NewListTest)
+TypeError: save() missing 1 required positional argument: 'for_list'
 
 ERROR: test_for_invalid_input_passes_form_to_template
 (lists.tests.test_views.NewListTest)
@@ -221,7 +224,8 @@ django.core.exceptions.ImproperlyConfigured: TemplateResponseMixin requires
 either a definition of 'template_name' or an implementation of
 'get_template_names()'
 
-ERROR: test_for_invalid_input_renders_home_template (lists.tests.test_views.NewListTest)
+ERROR: test_for_invalid_input_renders_home_template
+(lists.tests.test_views.NewListTest)
 django.core.exceptions.ImproperlyConfigured: TemplateResponseMixin requires
 either a definition of 'template_name' or an implementation of
 'get_template_names()'
@@ -234,15 +238,12 @@ either a definition of 'template_name' or an implementation of
 ERROR: test_redirects_after_POST (lists.tests.test_views.NewListTest)
 TypeError: save() missing 1 required positional argument: 'for_list'
 
-ERROR: test_saving_a_POST_request (lists.tests.test_views.NewListTest)
-TypeError: save() missing 1 required positional argument: 'for_list'
-
-ERROR: test_validation_errors_are_shown_on_home_page (lists.tests.test_views.NewListTest)
+ERROR: test_validation_errors_are_shown_on_home_page
+(lists.tests.test_views.NewListTest)
 django.core.exceptions.ImproperlyConfigured: TemplateResponseMixin requires
 either a definition of 'template_name' or an implementation of
 'get_template_names()'
 
-Ran 34 tests in 0.125s
 
 FAILED (errors=6)</pre>
 </div>
@@ -267,7 +268,7 @@ the code from our old view function, that used to live after
 <code>if form.is_valid():</code>:</p>
 </div>
 <div class="listingblock sourcecode">
-<div class="title">lists/views.py (ch31l005)</div>
+<div class="title">lists/views.py (ch31l006)</div>
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">class</span> <span class="class">NewListView</span>(CreateView):
     template_name = <span class="string"><span class="delimiter">'</span><span class="content">home.html</span><span class="delimiter">'</span></span>
@@ -288,7 +289,7 @@ the code from our old view function, that used to live after
 Ran 34 tests in 0.119s
 OK
 $ <strong>python manage.py test functional_tests</strong>
-Ran 4 tests in 15.157s
+Ran 5 tests in 15.157s
 OK</pre>
 </div>
 </div>
@@ -302,9 +303,9 @@ the main advantages of CBVs: inheritance!</p>
 <pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">class</span> <span class="class">NewListView</span>(CreateView, HomePageView):
 
     <span class="keyword">def</span> <span class="function">form_valid</span>(<span class="predefined-constant">self</span>, form):
-        list = List.objects.create()
-        Item.objects.create(text=form.cleaned_data[<span class="string"><span class="delimiter">'</span><span class="content">text</span><span class="delimiter">'</span></span>], list=<span class="predefined">list</span>)
-        <span class="keyword">return</span> redirect(<span class="string"><span class="delimiter">'</span><span class="content">/lists/%d/</span><span class="delimiter">'</span></span> % (<span class="predefined">list</span>.id,))</code></pre>
+        list_ = List.objects.create()
+        form.save(for_list=list_)
+        <span class="keyword">return</span> redirect(list_)</code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -355,13 +356,22 @@ as a result.</p>
 something that shows you the detail of an object:</p>
 </div>
 <div class="listingblock sourcecode dofirst-ch31l008">
-<div class="title">lists/views.py</div>
+<div class="title">lists/views.py (ch31l009)</div>
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> <span class="include">django.views.generic</span> <span class="keyword">import</span> <span class="include">FormView</span>, <span class="include">CreateView</span>, <span class="include">DetailView</span>
 [...]
 
 <span class="keyword">class</span> <span class="class">ViewAndAddToList</span>(DetailView):
     model = List</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>And wiring it up in <em>urls.py</em>:</p>
+</div>
+<div class="listingblock sourcecode">
+<div class="title">lists/urls.py (ch31l010)</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python">    url(<span class="string"><span class="modifier">r</span><span class="delimiter">'</span><span class="content">^(</span><span class="content">\d</span><span class="content">+)/$</span><span class="delimiter">'</span></span>, views.ViewAndAddToList.as_view(), name=<span class="string"><span class="delimiter">'</span><span class="content">view_list</span><span class="delimiter">'</span></span>),</code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -373,6 +383,7 @@ something that shows you the detail of an object:</p>
 AttributeError: Generic detail view ViewAndAddToList must be called with either
 an object pk or a slug.
 
+
 FAILED (failures=5, errors=6)</pre>
 </div>
 </div>
@@ -383,25 +394,22 @@ I needed to use a "named" regex capture group:</p>
 <div class="listingblock sourcecode">
 <div class="title">lists/urls.py (ch31l011)</div>
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="diff"><span class="line change"><span class="change">@@</span> -1,7 +1,7 <span class="change">@@</span></span>
- from django.conf.urls import patterns, url
-<span class="line delete"><span class="delete">-</span>from lists.views import NewListView</span>
-<span class="line insert"><span class="insert">+</span>from lists.views import NewListView<span class="eyecatcher">, ViewAndAddToList</span></span>
+<pre class="CodeRay highlight"><code data-lang="diff"><span class="change"><span class="change">@@</span> -3,6 +3,6 <span class="change">@@</span></span> from lists import views
 
- urlpatterns = patterns('',
-<span class="line delete"><span class="delete">-</span>    url(r'^(<span class="eyecatcher">\d+)/$', 'lists.views.view_list'</span>, name='view_list'),</span>
-<span class="line insert"><span class="insert">+</span>    url(r'^(<span class="eyecatcher">?P&lt;pk&gt;\d+)/$', ViewAndAddToList.as_view()</span>, name='view_list'),</span>
-     url(r'^new$', NewListView.as_view(), name='new_list'),
- )</code></pre>
+ urlpatterns = [
+     url(r'^new$', views.NewListView.as_view(), name='new_list'),
+<span class="line delete"><span class="delete">-</span>    url(r'^(<span class="eyecatcher">\d+)/$', views.view_list, name='view_list'),</span></span>
+<span class="line insert"><span class="insert">+</span>    url(r'^(<span class="eyecatcher">?P&lt;pk&gt;\d+)/$', views.ViewAndAddToList.as_view(), name='view_list')</span></span>
+ ]</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>The next error was fairly helpful:</p>
+<p>The next set of errors had one that was fairly helpful:</p>
 </div>
 <div class="listingblock">
 <div class="content">
 <pre>[...]
-django.template.base.TemplateDoesNotExist: lists/list_detail.html
+django.template.exceptions.TemplateDoesNotExist: lists/list_detail.html
 
 FAILED (failures=5, errors=6)</pre>
 </div>
@@ -410,7 +418,7 @@ FAILED (failures=5, errors=6)</pre>
 <p>That&#8217;s easily solved:</p>
 </div>
 <div class="listingblock sourcecode">
-<div class="title">lists/views.py</div>
+<div class="title">lists/views.py (ch31l012)</div>
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">class</span> <span class="class">ViewAndAddToList</span>(DetailView):
     model = List
@@ -418,7 +426,7 @@ FAILED (failures=5, errors=6)</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>That takes us down three errors:</p>
+<p>That takes us down five and two:</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -435,10 +443,10 @@ FAILED (failures=5, errors=2)</pre>
 <div class="paragraph">
 <p>So I figured, our view doesn&#8217;t just show us the detail of an object,
 it also allows us to create new ones.  Let&#8217;s make it both a
-<code>DetailView</code> <em>and</em> a <code>CreateView</code>:</p>
+<code>DetailView</code> <em>and</em> a <code>CreateView</code>, and maybe add the <code>form_class</code>:</p>
 </div>
 <div class="listingblock sourcecode">
-<div class="title">lists/views.py</div>
+<div class="title">lists/views.py (ch31l013)</div>
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">class</span> <span class="class">ViewAndAddToList</span>(DetailView, CreateView):
     model = List
@@ -468,44 +476,18 @@ tests did at least tell me when I was getting things more right or more wrong.</
 that I could use <code>get_form</code>:</p>
 </div>
 <div class="listingblock sourcecode">
-<div class="title">lists/views.py</div>
+<div class="title">lists/views.py (ch31l014)</div>
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python">    <span class="keyword">def</span> <span class="function">get_form</span>(<span class="predefined-constant">self</span>, form_class):
+<pre class="CodeRay highlight"><code data-lang="python">    <span class="keyword">def</span> <span class="function">get_form</span>(<span class="predefined-constant">self</span>):
         <span class="predefined-constant">self</span>.object = <span class="predefined-constant">self</span>.get_object()
-        <span class="keyword">return</span> form_class(for_list=<span class="predefined-constant">self</span>.object, data=<span class="predefined-constant">self</span>.request.POST)</code></pre>
+        <span class="keyword">return</span> <span class="predefined-constant">self</span>.form_class(for_list=<span class="predefined-constant">self</span>.object, data=<span class="predefined-constant">self</span>.request.POST)</code></pre>
 </div>
 </div>
 <div class="paragraph">
 <p>But it would only work if I also assigned to <code>self.object</code>, as a side effect,
 along the way, which was a bit upsetting.  Still, that takes us down
-to just three errors, but we&#8217;re still apparently not passing that form to the
+to just three errors, but we&#8217;re still apparently not quite there!
 template!</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>KeyError: 'form'
-
-FAILED (errors=3)</pre>
-</div>
-</div>
-</div>
-<div class="sect3">
-<h4 id="_back_on_track">Back on Track</h4>
-<div class="paragraph">
-<p>A bit more experimenting led me to swap out the <code>DetailView</code> for a
-<code>SingleObjectMixin</code> (the docs had some useful pointers here):</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>from django.views.generic.detail import SingleObjectMixin
-[...]
-
-class ViewAndAddToList(CreateView, SingleObjectMixin):
-    [...]</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>That takes us down to just two errors:</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -513,13 +495,16 @@ class ViewAndAddToList(CreateView, SingleObjectMixin):
 provide a url or define a get_absolute_url method on the Model.</pre>
 </div>
 </div>
+</div>
+<div class="sect3">
+<h4 id="_back_on_track">Back on Track</h4>
 <div class="paragraph">
 <p>And for this final failure, the tests are being helpful again.
 It&#8217;s quite easy to define a <code>get_absolute_url</code> on the <code>Item</code> class, such
 that items point to their parent list&#8217;s page:</p>
 </div>
 <div class="listingblock sourcecode">
-<div class="title">lists/models.py</div>
+<div class="title">lists/models.py (ch31l015)</div>
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">class</span> <span class="class">Item</span>(models.Model):
     [...]
@@ -534,17 +519,17 @@ that items point to their parent list&#8217;s page:</p>
 <div class="paragraph">
 <p>We end up with a view class that looks like this:</p>
 </div>
-<div class="listingblock sourcecode">
-<div class="title">lists/views.py (ch31l010)</div>
+<div class="listingblock sourcecode currentcontens">
+<div class="title">lists/views.py</div>
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">class</span> <span class="class">ViewAndAddToList</span>(CreateView, SingleObjectMixin):
-    template_name = <span class="string"><span class="delimiter">'</span><span class="content">list.html</span><span class="delimiter">'</span></span>
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">class</span> <span class="class">ViewAndAddToList</span>(DetailView, CreateView):
     model = List
+    template_name = <span class="string"><span class="delimiter">'</span><span class="content">list.html</span><span class="delimiter">'</span></span>
     form_class = ExistingListItemForm
 
-    <span class="keyword">def</span> <span class="function">get_form</span>(<span class="predefined-constant">self</span>, form_class):
+    <span class="keyword">def</span> <span class="function">get_form</span>(<span class="predefined-constant">self</span>):
         <span class="predefined-constant">self</span>.object = <span class="predefined-constant">self</span>.get_object()
-        <span class="keyword">return</span> form_class(for_list=<span class="predefined-constant">self</span>.object, data=<span class="predefined-constant">self</span>.request.POST)</code></pre>
+        <span class="keyword">return</span> <span class="predefined-constant">self</span>.form_class(for_list=<span class="predefined-constant">self</span>.object, data=<span class="predefined-constant">self</span>.request.POST)</code></pre>
 </div>
 </div>
 </div>
@@ -596,6 +581,7 @@ always offer enough clues on exactly how to fix things.</p>
 was closer to the implementation&#8212;&#8203;something like this:</p>
 </div>
 <div class="listingblock sourcecode skipme">
+<div class="title">lists/tests/test_views.py</div>
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">def</span> <span class="function">test_cbv_gets_correct_object</span>(<span class="predefined-constant">self</span>):
     our_list = List.objects.create()
@@ -621,6 +607,7 @@ a narrative series of assertions.</p>
 <p>Consider this monolithic test:</p>
 </div>
 <div class="listingblock sourcecode skipme">
+<div class="title">lists/tests/test_views.py</div>
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">def</span> <span class="function">test_validation_errors_sent_back_to_home_page_template</span>(<span class="predefined-constant">self</span>):
     response = <span class="predefined-constant">self</span>.client.post(<span class="string"><span class="delimiter">'</span><span class="content">/lists/new</span><span class="delimiter">'</span></span>, data={<span class="string"><span class="delimiter">'</span><span class="content">text</span><span class="delimiter">'</span></span>: <span class="string"><span class="delimiter">'</span><span class="delimiter">'</span></span>})
@@ -635,6 +622,7 @@ a narrative series of assertions.</p>
 <p>That is definitely less useful than having three individual tests, like this:</p>
 </div>
 <div class="listingblock sourcecode skipme">
+<div class="title">lists/tests/test_views.py</div>
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="python">    <span class="keyword">def</span> <span class="function">test_invalid_input_means_nothing_saved_to_db</span>(<span class="predefined-constant">self</span>):
         <span class="predefined-constant">self</span>.post_invalid_input()
@@ -688,26 +676,27 @@ using this fundamentally different paradigm.</p>
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2017-02-11 08:57:44 GMT
+Last updated 2017-02-18 14:32:20 GMT
 </div>
 </div>
 <div class="comments" style="padding: 20px">
   <h3>Comments</h3>
   <div id="disqus_thread"></div>
-
   <script type="text/javascript">
-var disqus_shortname = 'obeythetestinggoat';
-/* * * DON'T EDIT BELOW THIS LINE * * */
-(function() {
-  var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
-  dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
-  (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
-})();
+    var disqus_config = function () {
+        this.page.identifier = 'appendix_Django_Class-Based_Views';
+    };
+    
+    (function() {
+        var d = document, s = d.createElement('script');
+        s.src = '//obeythetestinggoat.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
   </script>
-
-  <noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
-  <a href="http://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+  <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript" rel="nofollow">comments powered by Disqus.</a></noscript>
 </div>
+
 <html><head><script>   (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){   (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),   m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)   })(window,document,'script','//www.google-analytics.com/analytics.js','ga');    ga('create', 'UA-40928035-1', 'obeythetestinggoat.com');   ga('send', 'pageview');  </script>
 </head></html></body>
 </html>

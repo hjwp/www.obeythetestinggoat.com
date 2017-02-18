@@ -1,0 +1,1033 @@
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<!--[if IE]><meta http-equiv="X-UA-Compatible" content="IE=edge"><![endif]-->
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="generator" content="Asciidoctor 1.5.4">
+<title>Splitting our tests into multiple files, and a generic wait helper</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:300,300italic,400,400italic,600,600italic%7CNoto+Serif:400,400italic,700,700italic%7CDroid+Sans+Mono:400,700">
+<link rel="stylesheet" href="./asciidoctor.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.5.0/css/font-awesome.min.css">
+<link rel="stylesheet" href="./coderay-asciidoctor.css">
+<script>var httpRequest = new XMLHttpRequest();
+httpRequest.onreadystatechange = function() {
+  if (httpRequest.readyState === XMLHttpRequest.DONE) {
+    if (httpRequest.status === 200) {
+      document.getElementById('header').innerHTML += httpRequest.responseText;
+    }
+  }
+};
+httpRequest.open('GET', 'toc.html');
+httpRequest.send();
+
+</script></head>
+<body class="article toc2 toc-left">
+<div id="buy_the_book" style="position: absolute; top: 0; right: 0; z-index:100">
+  <a href="/pages/book.html">
+    <img src="images/buy_the_book.svg" alt="buy the book ribbon">
+  </a>
+</div>
+<div id="header">
+</div>
+<div id="content">
+<div class="sect1">
+<h2 id="chapter_organising_test_files">Splitting our tests into multiple files, and a generic wait helper</h2>
+<div class="sectionbody">
+<table class="tableblock frame-all grid-all" style="float: right;">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top" colspan="2"><p class="tableblock">Chapter info</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">shortname:</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">chapter_organising_test_files</p></td>
+</tr>
+</tbody>
+</table>
+<div class="admonitionblock warning">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-warning" title="Warning"></i>
+</td>
+<td class="content">
+Major update released for Selenium 3.
+    If you started this book on or before Jan 30th 2017,
+    be aware: chapters have been renumbered,
+    so check this is the one you think it is,
+    and have a look at the new <a href="/book/chapter_explicit_waits_1.html">[chapter_explicit_waits_1]</a>
+    for an indication of the changes you&#8217;ll need in your FTs.
+    You should do a <code>pip install --upgrade selenium</code> too.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>The next feature we might like to implement is a little input validation. But
+as we start writing new tests, we&#8217;ll notice that it&#8217;s getting hard to find our
+way around a single <em>functional_tests.py</em>, and <em>tests.py</em>, so we&#8217;ll re-organise
+them into multiple files&#8212;&#8203;a little refactor of our tests, if you will.</p>
+</div>
+<div class="paragraph">
+<p>We&#8217;ll also build a generic explicit wait helper.</p>
+</div>
+<div class="sect2">
+<h3 id="_start_on_a_validation_ft_preventing_blank_items">Start on a Validation FT: Preventing Blank Items</h3>
+<div class="paragraph">
+<p>
+As our first few users start using the site, we&#8217;ve noticed they sometimes make
+mistakes that mess up their lists, like accidentally submitting blank list
+items, or accidentally inputting two identical items to a list.  Computers are
+meant to help stop us from making silly mistakes, so let&#8217;s see if we can get
+our site to help.</p>
+</div>
+<div class="paragraph">
+<p>Here&#8217;s the outline of an FT:</p>
+</div>
+<div class="listingblock sourcecode">
+<div class="title">functional_tests/tests.py (ch11l001)</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">def</span> <span class="function">test_cannot_add_empty_list_items</span>(<span class="predefined-constant">self</span>):
+    <span class="comment"># Edith goes to the home page and accidentally tries to submit</span>
+    <span class="comment"># an empty list item. She hits Enter on the empty input box</span>
+
+    <span class="comment"># The home page refreshes, and there is an error message saying</span>
+    <span class="comment"># that list items cannot be blank</span>
+
+    <span class="comment"># She tries again with some text for the item, which now works</span>
+
+    <span class="comment"># Perversely, she now decides to submit a second blank list item</span>
+
+    <span class="comment"># She receives a similar warning on the list page</span>
+
+    <span class="comment"># And she can correct it by filling some text in</span>
+    <span class="predefined-constant">self</span>.fail(<span class="string"><span class="delimiter">'</span><span class="content">write me!</span><span class="delimiter">'</span></span>)</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>That&#8217;s all very well, but before we go any further&#8212;&#8203;our functional tests
+file is beginning to get a little crowded.  Let&#8217;s split it out into several
+files, in which each has a single test method.</p>
+</div>
+<div class="paragraph">
+<p>
+Remember that functional tests are closely linked to "user stories". If you
+were using some sort of project management tool like an issue tracker, you
+might make it so that each file matched one issue or ticket, and its filename
+contained the ticket ID.  Or, if you prefer to think about things in terms of
+"features", where one feature may have several user stories, then you might
+have one file and class for the feature, and several methods for each of its
+user stories.</p>
+</div>
+<div class="paragraph">
+<p>We&#8217;ll also have one base test class which they can all inherit from.  Here&#8217;s
+how to get there step by step.</p>
+</div>
+<div class="sect3">
+<h4 id="_skipping_a_test">Skipping a Test</h4>
+<div class="paragraph">
+<p>
+
+It&#8217;s always nice, when doing refactoring, to have a fully passing test suite.
+We&#8217;ve just written a test with a deliberate failure. Let&#8217;s temporarily switch
+it off, using a decorator called "skip" from <code>unittest</code>:</p>
+</div>
+<div class="listingblock sourcecode">
+<div class="title">functional_tests/tests.py (ch11l001-1)</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> <span class="include">unittest</span> <span class="keyword">import</span> <span class="include">skip</span>
+[...]
+
+    <span class="decorator">@skip</span>
+    <span class="keyword">def</span> <span class="function">test_cannot_add_empty_list_items</span>(<span class="predefined-constant">self</span>):</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>This tells the test runner to ignore this test.  You can see it works&#8212;&#8203;if we
+rerun the tests, it&#8217;ll say it passes:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>python manage.py test functional_tests</strong>
+[...]
+Ran 4 tests in 11.577s
+OK</pre>
+</div>
+</div>
+<div class="admonitionblock warning">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-warning" title="Warning"></i>
+</td>
+<td class="content">
+Skips are dangerous&#8212;&#8203;you need to remember to remove them before you
+    commit your changes back to the repo.  This is why line-by-line reviews of
+    each of your diffs are a good idea!
+</td>
+</tr>
+</table>
+</div>
+<div class="sidebarblock">
+<div class="content">
+<div class="title">Don&#8217;t Forget the "Refactor" in "Red, Green, Refactor"</div>
+<div class="paragraph">
+<p>
+
+A criticism that&#8217;s sometimes levelled at TDD is that it leads to badly
+architected code, as the developer just focuses on getting tests to pass
+rather than stopping to think about how the whole system should be designed.
+I think it&#8217;s slightly unfair.</p>
+</div>
+<div class="paragraph">
+<p><em>TDD is no silver bullet</em>. You still have to spend time thinking about good
+design.  But what often happens is that people forget the "Refactor" in "Red,
+Green, Refactor". The methodology allows you to throw together any old code to
+get your tests to pass, but it <em>also</em> asks you to then spend some time
+refactoring it to improve its design.</p>
+</div>
+<div class="paragraph">
+<p>Often, however, the best ideas for how to refactor code don&#8217;t occur to you
+straight away. They may occur to you days, weeks, even months after you
+wrote a piece of code, when you&#8217;re working on something totally unrelated
+and you happen to see some old code again with fresh eyes. But if you&#8217;re
+halfway through something else, should you stop to refactor the old code?</p>
+</div>
+<div class="paragraph">
+<p>The answer is that it depends.  In the case at the beginning of the chapter,
+we haven&#8217;t even started writing our new code. We know we are in a working
+state, so we can justify putting a skip on our new FT (to get back to fully
+passing tests) and do a bit of refactoring straight away.</p>
+</div>
+<div class="paragraph">
+<p>Later in the chapter we&#8217;ll spot other bits of code we want to alter.
+In those cases, rather than taking the risk of refactoring an application
+that&#8217;s not in a working state, we&#8217;ll make a note of the thing we want to
+change on our scratchpad and wait until we&#8217;re back to a fully passing test
+suite before refactoring.</p>
+</div>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_splitting_functional_tests_out_into_many_files">Splitting Functional Tests out into Many Files</h4>
+<div class="paragraph">
+<p>
+We start putting each test into its own class, still in the same file:</p>
+</div>
+<div class="listingblock sourcecode">
+<div class="title">functional_tests/tests.py (ch11l002)</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">class</span> <span class="class">FunctionalTest</span>(StaticLiveServerTestCase):
+
+    <span class="decorator">@classmethod</span>
+    <span class="keyword">def</span> <span class="function">setUpClass</span>(cls):
+        [...]
+    <span class="keyword">def</span> <span class="function">setUp</span>(<span class="predefined-constant">self</span>):
+        [...]
+    <span class="keyword">def</span> <span class="function">tearDown</span>(<span class="predefined-constant">self</span>):
+        [...]
+    <span class="keyword">def</span> <span class="function">wait_for_row_in_list_table</span>(<span class="predefined-constant">self</span>, row_text):
+        [...]
+
+
+<span class="keyword">class</span> <span class="class">NewVisitorTest</span>(FunctionalTest):
+
+    <span class="keyword">def</span> <span class="function">test_can_start_a_list_for_one_user</span>(<span class="predefined-constant">self</span>):
+        [...]
+    <span class="keyword">def</span> <span class="function">test_multiple_users_can_start_lists_at_different_urls</span>(<span class="predefined-constant">self</span>):
+        [...]
+
+
+<span class="keyword">class</span> <span class="class">LayoutAndStylingTest</span>(FunctionalTest):
+
+    <span class="keyword">def</span> <span class="function">test_layout_and_styling</span>(<span class="predefined-constant">self</span>):
+        [...]
+
+
+
+<span class="keyword">class</span> <span class="class">ItemValidationTest</span>(FunctionalTest):
+
+    <span class="decorator">@skip</span>
+    <span class="keyword">def</span> <span class="function">test_cannot_add_empty_list_items</span>(<span class="predefined-constant">self</span>):
+        [...]</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>At this point we can rerun the FTs and see they all still work:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>Ran 4 tests in 11.577s
+
+OK</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>That&#8217;s labouring it a little bit, and we could probably get away doing this
+stuff in fewer steps, but, as I keep saying, practising the step-by-step method
+on the easy cases makes it that much easier when we have a complex case.</p>
+</div>
+<div class="paragraph">
+<p>Now we switch from a single tests file to using one for each class, and one
+"base" file to contain the base class all the tests will inherit from.  We&#8217;ll
+make four copies of <em>tests.py</em>, naming them appropriately, and then delete the
+parts we don&#8217;t need from each:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>git mv functional_tests/tests.py functional_tests/base.py</strong>
+$ <strong>cp functional_tests/base.py functional_tests/test_simple_list_creation.py</strong>
+$ <strong>cp functional_tests/base.py functional_tests/test_layout_and_styling.py</strong>
+$ <strong>cp functional_tests/base.py functional_tests/test_list_item_validation.py</strong></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>
+<em>base.py</em> can be cut down to just the <code>FunctionalTest</code> class.  We leave the
+helper method on the base class, because we suspect we&#8217;re about to reuse
+it in our new FT:</p>
+</div>
+<div class="listingblock sourcecode">
+<div class="title">functional_tests/base.py (ch11l003)</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> <span class="include">django.contrib.staticfiles.testing</span> <span class="keyword">import</span> <span class="include">StaticLiveServerTestCase</span>
+<span class="keyword">from</span> <span class="include">selenium</span> <span class="keyword">import</span> <span class="include">webdriver</span>
+<span class="keyword">import</span> <span class="include">sys</span>
+
+<span class="keyword">class</span> <span class="class">FunctionalTest</span>(StaticLiveServerTestCase):
+
+    <span class="decorator">@classmethod</span>
+    <span class="keyword">def</span> <span class="function">setUpClass</span>(cls):
+        [...]
+    <span class="keyword">def</span> <span class="function">setUp</span>(<span class="predefined-constant">self</span>):
+        [...]
+    <span class="keyword">def</span> <span class="function">tearDown</span>(<span class="predefined-constant">self</span>):
+        [...]
+    <span class="keyword">def</span> <span class="function">wait_for_row_in_list_table</span>(<span class="predefined-constant">self</span>, row_text):
+        [...]</code></pre>
+</div>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+Keeping helper methods in a base <code>FunctionalTest</code> class is one useful way
+    of preventing duplication in FTs.  Later in the book (in
+    <a href="/book/chapter_page_pattern.html">[chapter_page_pattern]</a>) we&#8217;ll use the "Page pattern", which is related,
+    but prefers composition over inheritance, always a good thing.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>Our first FT is now in its own file, and should be just one class and one test
+method:</p>
+</div>
+<div class="listingblock sourcecode">
+<div class="title">functional_tests/test_simple_list_creation.py (ch11l004)</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> .base <span class="keyword">import</span> <span class="include">FunctionalTest</span>
+<span class="keyword">from</span> <span class="include">selenium</span> <span class="keyword">import</span> <span class="include">webdriver</span>
+<span class="keyword">from</span> <span class="include">selenium.webdriver.common.keys</span> <span class="keyword">import</span> <span class="include">Keys</span>
+
+
+<span class="keyword">class</span> <span class="class">NewVisitorTest</span>(FunctionalTest):
+
+    <span class="keyword">def</span> <span class="function">test_can_start_a_list_for_one_user</span>(<span class="predefined-constant">self</span>):
+        [...]
+    <span class="keyword">def</span> <span class="function">test_multiple_users_can_start_lists_at_different_urls</span>(<span class="predefined-constant">self</span>):
+        [...]</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>
+I used a relative import (<code>from .base</code>). Some people like to use them a lot
+in Django code (e.g., your views might import models using <code>from .models import
+List</code>, instead of <code>from list.models</code>). Ultimately this is a
+matter of personal preference.  I prefer to use relative imports only when I&#8217;m
+super-super sure that the relative position of the thing I&#8217;m importing won&#8217;t
+change.  That applies in this case because I know for sure all the tests will
+sit next to <em>base.py</em>, which they inherit from.</p>
+</div>
+<div class="paragraph">
+<p>
+
+The layout and styling FT should now be one file and one class:</p>
+</div>
+<div class="listingblock sourcecode">
+<div class="title">functional_tests/test_layout_and_styling.py (ch11l005)</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> <span class="include">selenium.webdriver.common.keys</span> <span class="keyword">import</span> <span class="include">Keys</span>
+<span class="keyword">from</span> .base <span class="keyword">import</span> <span class="include">FunctionalTest</span>
+
+
+<span class="keyword">class</span> <span class="class">LayoutAndStylingTest</span>(FunctionalTest):
+        [...]</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Lastly our new validation test is in a file of its own too:</p>
+</div>
+<div class="listingblock sourcecode">
+<div class="title">functional_tests/test_list_item_validation.py (ch11l006)</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> <span class="include">selenium.webdriver.common.keys</span> <span class="keyword">import</span> <span class="include">Keys</span>
+<span class="keyword">from</span> <span class="include">unittest</span> <span class="keyword">import</span> <span class="include">skip</span>
+<span class="keyword">from</span> .base <span class="keyword">import</span> <span class="include">FunctionalTest</span>
+
+
+<span class="keyword">class</span> <span class="class">ItemValidationTest</span>(FunctionalTest):
+
+    <span class="decorator">@skip</span>
+    <span class="keyword">def</span> <span class="function">test_cannot_add_empty_list_items</span>(<span class="predefined-constant">self</span>):
+        [...]</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>And we can test everything worked by rerunning <code>manage.py test
+functional_tests</code>, and checking once again that all four tests are run:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>Ran 4 tests in 11.577s
+
+OK</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Now we can remove our skip:</p>
+</div>
+<div class="listingblock sourcecode">
+<div class="title">functional_tests/test_list_item_validation.py (ch11l007)</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">class</span> <span class="class">ItemValidationTest</span>(FunctionalTest):
+
+    <span class="keyword">def</span> <span class="function">test_cannot_add_empty_list_items</span>(<span class="predefined-constant">self</span>):
+        [...]</code></pre>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_running_a_single_test_file">Running a Single Test File</h4>
+<div class="paragraph">
+<p>As a side bonus, we&#8217;re now able to run an individual test file, like this:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>python manage.py test functional_tests.test_list_item_validation</strong>
+[...]
+AssertionError: write me!</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Brilliant, no need to sit around waiting for all the FTs when we&#8217;re only
+interested in a single one. Although we need to remember to run all of them
+now and again, to check for regressions.  Later in the book we&#8217;ll see how
+to give that task over to an automated Continuous Integration loop. For now
+let&#8217;s commit!</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>git status</strong>
+$ <strong>git add functional_tests</strong>
+$ <strong>git commit -m "Moved Fts into their own individual files"</strong></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_a_new_functional_test_tool_a_generic_explicit_wait_helper">A new functional test tool: a generic explicit wait helper</h3>
+<div class="paragraph">
+<p>Now let&#8217;s start implementing the test, or at least the beginning of it:</p>
+</div>
+<div class="listingblock sourcecode">
+<div class="title">functional_tests/test_list_item_validation.py (ch11l008)</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">def</span> <span class="function">test_cannot_add_empty_list_items</span>(<span class="predefined-constant">self</span>):
+    <span class="comment"># Edith goes to the home page and accidentally tries to submit</span>
+    <span class="comment"># an empty list item. She hits Enter on the empty input box</span>
+    <span class="predefined-constant">self</span>.browser.get(<span class="predefined-constant">self</span>.server_url)
+    <span class="predefined-constant">self</span>.browser.find_element_by_id(<span class="string"><span class="delimiter">'</span><span class="content">id_new_item</span><span class="delimiter">'</span></span>).send_keys(Keys.ENTER)
+
+    <span class="comment"># The home page refreshes, and there is an error message saying</span>
+    <span class="comment"># that list items cannot be blank</span>
+    <span class="predefined-constant">self</span>.assertEqual(
+        <span class="predefined-constant">self</span>.browser.find_element_by_css_selector(<span class="string"><span class="delimiter">'</span><span class="content">.has-error</span><span class="delimiter">'</span></span>).text,  <i class="conum" data-value="1"></i><b>(1)</b>
+        <span class="string"><span class="delimiter">"</span><span class="content">You can't have an empty list item</span><span class="delimiter">"</span></span>  <i class="conum" data-value="2"></i><b>(2)</b>
+    )
+
+    <span class="comment"># She tries again with some text for the item, which now works</span>
+    <span class="predefined-constant">self</span>.fail(<span class="string"><span class="delimiter">'</span><span class="content">finish this test!</span><span class="delimiter">'</span></span>)
+    [...]</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>This is how we might write the test naively:</p>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>We specify we&#8217;re going to use a CSS class called <code>.has-error</code> to mark our
+error text.  We&#8217;ll see that Bootstrap has some useful styling for those</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>And we can check that our error displays the message we want.</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>But can you guess what the potential problem is with the test as it&#8217;s written
+now?</p>
+</div>
+<div class="paragraph">
+<p>OK, I gave it away in the section header, but whenever we do something
+that causes a page refresh, we need an explicit wait, otherwise Selenium
+might go looking for the <code>.has-error</code> element before the page has had a
+chance to load.</p>
+</div>
+<div class="admonitionblock tip">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-tip" title="Tip"></i>
+</td>
+<td class="content">
+Whenever you submit a form with <code>Keys.ENTER</code> or click something that
+    is going to cause a page to load, you probably want an explicit wait
+    for your next assertion.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>Our first explicit wait was built into a helper method.  For this one, we
+might decide that building a helper method is overkill at this stage, but
+it might be nice to have some way of saying, in our tests, "wait until this
+assertion passes".  Something like this:</p>
+</div>
+<div class="listingblock sourcecode">
+<div class="title">functional_tests/test_list_item_validation.py (ch11l009)</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python">[...]
+    <span class="comment"># The home page refreshes, and there is an error message saying</span>
+    <span class="comment"># that list items cannot be blank</span>
+    <span class="predefined-constant">self</span>.wait_for(<span class="keyword">lambda</span>: <span class="predefined-constant">self</span>.assertEqual(  <i class="conum" data-value="1"></i><b>(1)</b>
+        <span class="predefined-constant">self</span>.browser.find_element_by_css_selector(<span class="string"><span class="delimiter">'</span><span class="content">.has-error</span><span class="delimiter">'</span></span>).text,
+        <span class="string"><span class="delimiter">"</span><span class="content">You can't have an empty list item</span><span class="delimiter">"</span></span>
+    ))</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>Rather than calling the assertion directly, we wrap it in a lambda
+function, and we pass it to a new helper method we imagine called
+<code>wait_for</code>.</td>
+</tr>
+</table>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+If you&#8217;ve never seen lambda functions in Python before, see the sidebar
+    below.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>So how would this magical <code>wait_for</code> method work?  Let&#8217;s head over to
+<em>base.py</em>, and make a copy of our existing <code>wait_for_row_in_list_table</code> method,
+and we&#8217;ll adapt it slightly:</p>
+</div>
+<div class="listingblock sourcecode">
+<div class="title">functional_tests/base.py (ch11l010)</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python">    <span class="keyword">def</span> <span class="function">wait_for</span>(<span class="predefined-constant">self</span>, fn):  <i class="conum" data-value="1"></i><b>(1)</b>
+        start_time = time.time()
+        <span class="keyword">while</span> <span class="predefined-constant">True</span>:
+            <span class="keyword">try</span>:
+                table = <span class="predefined-constant">self</span>.browser.find_element_by_id(<span class="string"><span class="delimiter">'</span><span class="content">id_list_table</span><span class="delimiter">'</span></span>)  <i class="conum" data-value="2"></i><b>(2)</b>
+                rows = table.find_elements_by_tag_name(<span class="string"><span class="delimiter">'</span><span class="content">tr</span><span class="delimiter">'</span></span>)
+                <span class="predefined-constant">self</span>.assertIn(row_text, [row.text <span class="keyword">for</span> row <span class="keyword">in</span> rows])
+                <span class="keyword">return</span>
+            <span class="keyword">except</span> (<span class="exception">AssertionError</span>, WebDriverException) <span class="keyword">as</span> e:
+                <span class="keyword">if</span> time.time() - start_time &gt; MAX_WAIT:
+                    <span class="keyword">raise</span> e
+                time.sleep(<span class="float">0.5</span>)</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>We make a copy of the method, but we name it <code>wait_for</code>, and we change its
+argument.  It is expecting to be passed a function.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>For now we&#8217;ve still got the old code that&#8217;s checking table rows.  How to
+transform this into something that works for any generic <code>fn</code> that&#8217;s been
+passed in?</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>Like this:</p>
+</div>
+<div id="self.wait-for" class="listingblock sourcecode">
+<div class="title">functional_tests/base.py (ch11l011)</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python">    <span class="keyword">def</span> <span class="function">wait_for</span>(<span class="predefined-constant">self</span>, fn):
+        start_time = time.time()
+        <span class="keyword">while</span> <span class="predefined-constant">True</span>:
+            <span class="keyword">try</span>:
+                <span class="keyword">return</span> fn()  <i class="conum" data-value="1"></i><b>(1)</b>
+            <span class="keyword">except</span> (<span class="exception">AssertionError</span>, WebDriverException) <span class="keyword">as</span> e:
+                <span class="keyword">if</span> time.time() - start_time &gt; MAX_WAIT:
+                    <span class="keyword">raise</span> e
+                time.sleep(<span class="float">0.5</span>)</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>The body of our try/except, instead of being the specific code for
+examining table rows, just becomes a call to the function we passed
+in.  We also <code>return</code> its return value to be able to exit the loop
+immediately if no exception is raised.</td>
+</tr>
+</table>
+</div>
+<div class="sidebarblock">
+<div class="content">
+<div class="title">lambda functions</div>
+<div class="paragraph">
+<p><code>lambda</code> in Python is the syntax for making a one-line, throwaway function&#8212;&#8203;it
+saves you from having to use <code>def..():</code> and an indented block.</p>
+</div>
+<div class="listingblock skipme">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python">&gt;&gt;&gt; myfn = <span class="keyword">lambda</span> x: x+<span class="integer">1</span>
+&gt;&gt;&gt; myfn(<span class="integer">2</span>)
+<span class="integer">3</span>
+&gt;&gt;&gt; myfn(<span class="integer">5</span>)
+<span class="integer">6</span>
+&gt;&gt;&gt; adder = <span class="keyword">lambda</span> x, y: x + y
+&gt;&gt;&gt; adder(<span class="integer">3</span>, <span class="integer">2</span>)
+<span class="integer">5</span></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>In our case, we&#8217;re using it to transform a bit of code that would otherwise be
+executed immediately into a function that we can pass as an argument, and that
+can be executed later, and multiple times:</p>
+</div>
+<div class="listingblock skipme">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python">&gt;&gt;&gt; <span class="keyword">def</span> <span class="function">addthree</span>(x):
+...     <span class="keyword">return</span> x + <span class="integer">3</span>
+...
+&gt;&gt;&gt; addthree(<span class="integer">2</span>)
+<span class="integer">5</span>
+&gt;&gt;&gt; myfn = <span class="keyword">lambda</span>: addthree(<span class="integer">2</span>)  <span class="comment"># note addthree is not called immediately here</span>
+&gt;&gt;&gt; myfn
+&lt;function &lt;<span class="keyword">lambda</span>&gt; at <span class="hex">0x7f3b140339d8</span>&gt;
+&gt;&gt;&gt; myfn()
+<span class="integer">5</span>
+&gt;&gt;&gt; myfn()
+<span class="integer">5</span></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>Let&#8217;s see our funky <code>wait_for</code> helper in action:</p>
+</div>
+<div class="listingblock skipme">
+<div class="content">
+<pre>$ <strong>python manage.py test functional_tests.test_list_item_validation</strong>
+Creating test database for alias 'default'...
+E
+======================================================================
+ERROR: test_cannot_add_empty_list_items
+(functional_tests.test_list_item_validation.ItemValidationTest)
+ ---------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/.../superlists/functional_tests/test_list_item_validation.py", line
+15, in test_cannot_add_empty_list_items
+    self.wait_for(lambda: self.assertEqual(  <i class="conum" data-value="1"></i><b>(1)</b>
+  File "/.../superlists/functional_tests/base.py", line 37, in wait_for
+    raise e  <i class="conum" data-value="2"></i><b>(2)</b>
+  File "/.../superlists/functional_tests/base.py", line 34, in wait_for
+    return fn()  <i class="conum" data-value="2"></i><b>(2)</b>
+  File "/.../superlists/functional_tests/test_list_item_validation.py", line
+16, in &lt;lambda&gt;  <i class="conum" data-value="3"></i><b>(3)</b>
+    self.browser.find_element_by_css_selector('.has-error').text,  <i class="conum" data-value="3"></i><b>(3)</b>
+[...]
+selenium.common.exceptions.NoSuchElementException: Message: Unable to locate
+element: .has-error
+
+
+ ---------------------------------------------------------------------
+Ran 1 test in 10.575s
+
+FAILED (errors=1)</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The order of the traceback is a little confusing, but we can more or less follow
+through what happened:</p>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>At line 15 in our FT, we go into our <code>self.wait_for</code> helper, passing it the
+<code>lambda</code>-ified version of the <code>assertEqual</code></td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>We go into <code>self.wait_for</code> in <em>base.py</em>, where we can see that we&#8217;ve called
+the lambda, enough times that we&#8217;ve dropped out to the <code>raise e</code> because
+our timeout expired</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="3"></i><b>3</b></td>
+<td>To explain where the exception has actually come from, the traceback takes us
+back into <em>test_list_item_validation.py</em> and inside the body of the <code>lambda</code>
+function, and tells us that it was trying to find the <code>.has-error</code> element
+that failed.</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>We&#8217;re into the realm of functional programming now, passing functions as
+arguments to other functions, and it can be a little mind-bending.  I know
+it took me a little while to get used to!  Have a couple of read-throughs
+of this code, and the code back in the FT, to let it sink in;  and if you&#8217;re
+still confused, don&#8217;t worry about it too much, and let your confidence grow
+from working with it.  We&#8217;ll use it a few more times in this book, and make it
+even more functionally fun, you&#8217;ll see.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_finishing_off_the_ft">Finishing off the FT</h3>
+<div class="paragraph">
+<p>We&#8217;ll finish off the FT like this:</p>
+</div>
+<div class="listingblock sourcecode">
+<div class="title">functional_tests/test_list_item_validation.py (ch11l012)</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python">    <span class="comment"># The home page refreshes, and there is an error message saying</span>
+    <span class="comment"># that list items cannot be blank</span>
+    <span class="predefined-constant">self</span>.wait_for(<span class="keyword">lambda</span>: <span class="predefined-constant">self</span>.assertEqual(
+        <span class="predefined-constant">self</span>.browser.find_element_by_css_selector(<span class="string"><span class="delimiter">'</span><span class="content">.has-error</span><span class="delimiter">'</span></span>).text,
+        <span class="string"><span class="delimiter">"</span><span class="content">You can't have an empty list item</span><span class="delimiter">"</span></span>
+    ))
+
+    <span class="comment"># She tries again with some text for the item, which now works</span>
+    <span class="predefined-constant">self</span>.browser.find_element_by_id(<span class="string"><span class="delimiter">'</span><span class="content">id_new_item</span><span class="delimiter">'</span></span>).send_keys(<span class="string"><span class="delimiter">'</span><span class="content">Buy milk</span><span class="delimiter">'</span></span>)
+    <span class="predefined-constant">self</span>.browser.find_element_by_id(<span class="string"><span class="delimiter">'</span><span class="content">id_new_item</span><span class="delimiter">'</span></span>).send_keys(Keys.ENTER)
+    <span class="predefined-constant">self</span>.wait_for_row_in_list_table(<span class="string"><span class="delimiter">'</span><span class="content">1: Buy milk</span><span class="delimiter">'</span></span>)
+
+    <span class="comment"># Perversely, she now decides to submit a second blank list item</span>
+    <span class="predefined-constant">self</span>.browser.find_element_by_id(<span class="string"><span class="delimiter">'</span><span class="content">id_new_item</span><span class="delimiter">'</span></span>).send_keys(Keys.ENTER)
+
+    <span class="comment"># She receives a similar warning on the list page</span>
+    <span class="predefined-constant">self</span>.wait_for(<span class="keyword">lambda</span>: <span class="predefined-constant">self</span>.assertEqual(
+        <span class="predefined-constant">self</span>.browser.find_element_by_css_selector(<span class="string"><span class="delimiter">'</span><span class="content">.has-error</span><span class="delimiter">'</span></span>).text,
+        <span class="string"><span class="delimiter">"</span><span class="content">You can't have an empty list item</span><span class="delimiter">"</span></span>
+    ))
+
+    <span class="comment"># And she can correct it by filling some text in</span>
+    <span class="predefined-constant">self</span>.browser.find_element_by_id(<span class="string"><span class="delimiter">'</span><span class="content">id_new_item</span><span class="delimiter">'</span></span>).send_keys(<span class="string"><span class="delimiter">'</span><span class="content">Make tea</span><span class="delimiter">'</span></span>)
+    <span class="predefined-constant">self</span>.browser.find_element_by_id(<span class="string"><span class="delimiter">'</span><span class="content">id_new_item</span><span class="delimiter">'</span></span>).send_keys(Keys.ENTER)
+    <span class="predefined-constant">self</span>.wait_for_row_in_list_table(<span class="string"><span class="delimiter">'</span><span class="content">1: Buy milk</span><span class="delimiter">'</span></span>)
+    <span class="predefined-constant">self</span>.wait_for_row_in_list_table(<span class="string"><span class="delimiter">'</span><span class="content">2: Make tea</span><span class="delimiter">'</span></span>)</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>
+.Helper methods in FTs</p>
+</div>
+<div class="sidebarblock">
+<div class="content">
+<div class="paragraph">
+<p>We&#8217;ve got two helper methods now, our generic <code>self.wait_for</code> helper, and
+<code>wait_for_row_in_list_table</code>.  The former is a general utility&#8201;&#8212;&#8201;any of our
+FTs might need to do a wait.  The second also helps prevent duplication across
+your functional test code.  The day we decide to change the implementation of
+how our list table works, we want to make sure we only have to change our FT
+code in one place, not in dozens of places across loads of FTs&#8230;&#8203;</p>
+</div>
+<div class="paragraph">
+<p>See also <a href="/book/chapter_page_pattern.html">[chapter_page_pattern]</a> and <a href="/book/appendix_bdd.html">[appendix_bdd]</a> for more on structuring
+your FT code.</p>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>And we&#8217;re off! I&#8217;ll let you do your own "first-cut FT" commit.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_using_model_layer_validation">Using Model-Layer Validation</h3>
+<div class="paragraph">
+<p>
+
+
+There are two levels at which you can do validation in Django. One is
+at the model level, and the other is higher up at the forms level.  I
+like to use the lower level whenever possible, partially because I&#8217;m
+a bit too fond of databases and database integrity rules, and partially
+because it&#8217;s safer&#8212;&#8203;you can sometimes forget which form you use to
+validate input, but you&#8217;re always going to use the same database.</p>
+</div>
+<div class="sect3">
+<h4 id="_refactoring_unit_tests_into_several_files">Refactoring Unit Tests into Several Files</h4>
+<div class="paragraph">
+<p>
+
+
+We&#8217;re going to want to add another test for our model, but before we
+do so, it&#8217;s time to tidy up our unit tests in a similar way to the
+functional tests.  A difference will be that, because the <code>lists</code>
+app contains real application code as well as tests, we&#8217;ll separate
+out the tests into their own folder:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>mkdir lists/tests</strong>
+$ <strong>touch lists/tests/__init__.py</strong>
+$ <strong>git mv lists/tests.py lists/tests/test_all.py</strong>
+$ <strong>git status</strong>
+$ <strong>git add lists/tests</strong>
+$ <strong>python manage.py test lists</strong>
+[...]
+Ran 9 tests in 0.034s
+
+OK
+$ <strong>git commit -m "Move unit tests into a folder with single file"</strong></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>If you get a message saying "Ran 0 tests", you probably forgot to add the
+dunderinit&#8212;&#8203;it needs to be there or else the tests folder isn&#8217;t a valid Python
+package&#8230;&#8203;<sup class="footnote">[<a id="_footnoteref_1" class="footnote" href="#_footnote_1" title="View footnote.">1</a>]</sup></p>
+</div>
+<div class="paragraph">
+<p>Now we turn <em>test_all.py</em> into two files, one called <em>test_views.py</em>, which
+only contains view tests, and one called <em>test_models.py</em>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>git mv lists/tests/test_all.py lists/tests/test_views.py</strong>
+$ <strong>cp lists/tests/test_views.py lists/tests/test_models.py</strong></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>We strip <em>test_models.py</em> down to being just the one test&#8212;&#8203;it means
+it needs far fewer imports:</p>
+</div>
+<div class="listingblock sourcecode">
+<div class="title">lists/tests/test_models.py (ch11l016)</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> <span class="include">django.test</span> <span class="keyword">import</span> <span class="include">TestCase</span>
+<span class="keyword">from</span> <span class="include">lists.models</span> <span class="keyword">import</span> <span class="include">Item</span>, <span class="include">List</span>
+
+
+<span class="keyword">class</span> <span class="class">ListAndItemModelsTest</span>(TestCase):
+        [...]</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Whereas <em>test_views.py</em>  just loses one class:</p>
+</div>
+<div class="listingblock sourcecode">
+<div class="title">lists/tests/test_views.py (ch11l017)</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="diff"><span class="line head"><span class="head">--- </span><span class="filename">a/lists/tests/test_views.py</span></span>
+<span class="line head"><span class="head">+++ </span><span class="filename">b/lists/tests/test_views.py</span></span>
+<span class="change"><span class="change">@@</span> -103,34 +104,3 <span class="change">@@</span></span> <span class="keyword">class</span> <span class="class">ListViewTest</span>(TestCase):
+         <span class="predefined-constant">self</span>.assertNotContains(response, <span class="string"><span class="delimiter">'</span><span class="content">other list item 1</span><span class="delimiter">'</span></span>)
+         <span class="predefined-constant">self</span>.assertNotContains(response, <span class="string"><span class="delimiter">'</span><span class="content">other list item 2</span><span class="delimiter">'</span></span>)
+
+<span class="line delete"><span class="delete">-</span></span>
+<span class="line delete"><span class="delete">-</span></span>
+<span class="line delete"><span class="delete">-</span><span class="keyword">class</span> <span class="class">ListAndItemModelsTest</span>(TestCase):</span>
+<span class="line delete"><span class="delete">-</span></span>
+<span class="line delete"><span class="delete">-</span>    <span class="keyword">def</span> <span class="function">test_saving_and_retrieving_items</span>(<span class="predefined-constant">self</span>):</span>
+<span class="line comment">[...]</span></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>We rerun the tests to check everything is still there:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>python manage.py test lists</strong>
+[...]
+Ran 9 tests in 0.040s
+
+OK</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Great!</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>git add lists/tests</strong>
+$ <strong>git commit -m "Split out unit tests into two files"</strong></pre>
+</div>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+Some people like to make their unit tests into a tests folder straight
+    away, as soon as they start a project. That&#8217;s a perfectly good idea; I just
+    thought I&#8217;d wait until it became necessary, to avoid doing too much
+    housekeeping all in the first chapter!
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>Well, that&#8217;s our FTs and unit test nicely reorganised.  In the next chapter
+we&#8217;ll get down to some validation proper.</p>
+</div>
+<div class="paragraph">
+<p>
+
+.Tips on Organising Tests and Refactoring</p>
+</div>
+<div class="sidebarblock">
+<div class="content">
+<div class="dlist">
+<dl>
+<dt class="hdlist1">Use a tests folder</dt>
+<dd>
+<p>Just as you use multiple files to hold your application code, you should
+split your tests out into multiple files.
++</p>
+<div class="ulist">
+<ul>
+<li>
+<p>Use a folder called <em>tests</em>, with a <i>__init__.py</i>.</p>
+</li>
+<li>
+<p>For functional tests, group them into tests for a particular feature or
+user story.</p>
+</li>
+<li>
+<p>For unit tests, you want a separate test file for each tested source code
+file. For Django, that&#8217;s typically <em>test_models.py</em>, <em>test_views.py</em>, and
+<em>test_forms.py</em>.</p>
+</li>
+<li>
+<p>Have at least a placeholder test for <em>every</em> function and class.</p>
+</li>
+</ul>
+</div>
+</dd>
+<dt class="hdlist1">Don&#8217;t forget the "Refactor" in "Red, Green, Refactor"</dt>
+<dd>
+<p>The whole point of having tests is to allow you to refactor your code!
+Use them, and make your code as clean as you can.</p>
+</dd>
+<dt class="hdlist1">Don&#8217;t refactor against failing tests</dt>
+<dd>
+<div class="ulist">
+<ul>
+<li>
+<p>In general!</p>
+</li>
+<li>
+<p>But the FT you&#8217;re currently working on doesn&#8217;t count.</p>
+</li>
+<li>
+<p>You can occasionally put a skip on a test which is testing something you
+haven&#8217;t written yet.</p>
+</li>
+<li>
+<p>More commonly, make a note of the refactor you want to do, finish what
+you&#8217;re working on, and do the refactor a little later, when you&#8217;re back
+to a working state.</p>
+</li>
+<li>
+<p>Don&#8217;t forget to remove any skips before you commit your code! You should
+always review your diffs line by line to catch things like this.</p>
+</li>
+</ul>
+</div>
+</dd>
+<dt class="hdlist1">Try a generic wait_for helper</dt>
+<dd>
+<p>Having specific helper methods that do explicit waits is great, and it
+helps to make your tests readable.  But you&#8217;ll also often need an ad-hoc
+one-line assertion or selenium interaction that you&#8217;ll want to add a wait
+to.  <code>self.wait_for</code> does the job well for me, but you might find a slightly
+different pattern works for you.</p>
+</dd>
+</dl>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div id="footnotes">
+<hr>
+<div class="footnote" id="_footnote_1">
+<a href="#_footnoteref_1">1</a>. "Dunder" is shorthand for double-underscore, so "dunderinit" means <i>__init__.py</i>.
+</div>
+</div>
+<div id="footer">
+<div id="footer-text">
+Last updated 2017-02-18 15:15:40 GMT
+</div>
+</div>
+<div class="comments" style="padding: 20px">
+  <h3>Comments</h3>
+  <div id="disqus_thread"></div>
+  <script type="text/javascript">
+    var disqus_config = function () {
+        this.page.identifier = 'chapter_organising_test_files';
+    };
+    
+    (function() {
+        var d = document, s = d.createElement('script');
+        s.src = '//obeythetestinggoat.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+  </script>
+  <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript" rel="nofollow">comments powered by Disqus.</a></noscript>
+</div>
+
+<html><head><script>   (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){   (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),   m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)   })(window,document,'script','//www.google-analytics.com/analytics.js','ga');    ga('create', 'UA-40928035-1', 'obeythetestinggoat.com');   ga('send', 'pageview');  </script>
+</head></html></body>
+</html>
