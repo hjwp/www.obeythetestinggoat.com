@@ -172,7 +172,7 @@ HTML will look like:</p>
 <div class="content">
 <pre>    self.fail(form.as_p())
 AssertionError: &lt;p&gt;&lt;label for="id_item_text"&gt;Item text:&lt;/label&gt; &lt;input
-id="id_item_text" name="item_text" type="text" required /&gt;&lt;/p&gt;</pre>
+type="text" name="item_text" required id="id_item_text" /&gt;&lt;/p&gt;</pre>
 </div>
 </div>
 <div class="paragraph">
@@ -215,8 +215,8 @@ the placeholder:</p>
 <div class="listingblock">
 <div class="content">
 <pre>AssertionError: 'class="form-control input-lg"' not found in '&lt;p&gt;&lt;label
-for="id_item_text"&gt;Item text:&lt;/label&gt; &lt;input id="id_item_text" name="item_text"
-placeholder="Enter a to-do item" type="text" required /&gt;&lt;/p&gt;'</pre>
+for="id_item_text"&gt;Item text:&lt;/label&gt; &lt;input type="text" name="item_text"
+placeholder="Enter a to-do item" required id="id_item_text" /&gt;&lt;/p&gt;'</pre>
 </div>
 </div>
 <div class="paragraph">
@@ -302,7 +302,7 @@ to use.</p>
 <p><code>ModelForm</code>'s do all sorts of smart stuff, like assigning sensible HTML
 form input types to different types of field, and applying default
 validation.  Check out the
-<a href="https://docs.djangoproject.com/en/1.10/topics/forms/modelforms/">docs</a> for more
+<a href="https://docs.djangoproject.com/en/1.11/topics/forms/modelforms/">docs</a> for more
 info.</p>
 </div>
 <div class="paragraph">
@@ -311,8 +311,8 @@ info.</p>
 <div class="listingblock">
 <div class="content">
 <pre>AssertionError: 'placeholder="Enter a to-do item"' not found in '&lt;p&gt;&lt;label
-for="id_text"&gt;Text:&lt;/label&gt; &lt;textarea cols="40" id="id_text" name="text"
-rows="10" required&gt;\r\n&lt;/textarea&gt;&lt;/p&gt;'</pre>
+for="id_text"&gt;Text:&lt;/label&gt; &lt;textarea name="text" cols="40" rows="10" required
+id="id_text"&gt;\n&lt;/textarea&gt;&lt;/p&gt;'</pre>
 </div>
 </div>
 <div class="paragraph">
@@ -647,7 +647,7 @@ in <em>test_list_item_validation.py</em>, eg:</p>
 <div class="title">functional_tests/test_list_item_validation.py</div>
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="python">    <span class="comment"># an empty list item. She hits Enter on the empty input box</span>
-    <span class="predefined-constant">self</span>.browser.get(<span class="predefined-constant">self</span>.server_url)
+    <span class="predefined-constant">self</span>.browser.get(<span class="predefined-constant">self</span>.live_server_url)
     <span class="predefined-constant">self</span>.get_item_input_box().send_keys(Keys.ENTER)</code></pre>
 </div>
 </div>
@@ -692,13 +692,12 @@ lists/tests/test_views.py:            data={'item_text': ''}
 <div class="listingblock dofirst-ch11l022">
 <div class="content">
 <pre>$ <strong>python manage.py test lists</strong>
-Creating test database for alias 'default'...
+[...]
 .................
  ---------------------------------------------------------------------
 Ran 17 tests in 0.126s
 
-OK
-Destroying test database for alias 'default'...</pre>
+OK</pre>
 </div>
 </div>
 <div class="paragraph">
@@ -709,11 +708,12 @@ Destroying test database for alias 'default'...</pre>
 <pre>$ <strong>python manage.py test functional_tests</strong>
 [...]
   File "/.../superlists/functional_tests/test_simple_list_creation.py", line
-37, in test_can_start_a_list_for_one_user
+38, in test_can_start_a_list_for_one_user
     return self.browser.find_element_by_id('id_text')
-  File "/.../superlists/functional_tests/base.py", line 56, in
+  File "/.../superlists/functional_tests/base.py", line 51, in
 get_item_input_box
     return self.browser.find_element_by_id('id_text')
+[...]
 selenium.common.exceptions.NoSuchElementException: Message: Unable to locate
 element: [id="id_text"]
 [...]
@@ -974,7 +974,7 @@ the form is used in GET requests.  We can have a new test for that:</p>
 
     <span class="keyword">def</span> <span class="function">test_displays_item_form</span>(<span class="predefined-constant">self</span>):
         list_ = List.objects.create()
-        response = <span class="predefined-constant">self</span>.client.get(<span class="string"><span class="delimiter">'</span><span class="content">/lists/%d/</span><span class="delimiter">'</span></span> % (list_.id,))
+        response = <span class="predefined-constant">self</span>.client.get(f<span class="string"><span class="delimiter">'</span><span class="content">/lists/{list_.id}/</span><span class="delimiter">'</span></span>)
         <span class="predefined-constant">self</span>.assertIsInstance(response.context[<span class="string"><span class="delimiter">'</span><span class="content">form</span><span class="delimiter">'</span></span>], ItemForm)
         <span class="predefined-constant">self</span>.assertContains(response, <span class="string"><span class="delimiter">'</span><span class="content">name="text"</span><span class="delimiter">'</span></span>)</code></pre>
 </div>
@@ -1019,7 +1019,7 @@ separate ones:</p>
     <span class="keyword">def</span> <span class="function">post_invalid_input</span>(<span class="predefined-constant">self</span>):
         list_ = List.objects.create()
         <span class="keyword">return</span> <span class="predefined-constant">self</span>.client.post(
-            <span class="string"><span class="delimiter">'</span><span class="content">/lists/%d/</span><span class="delimiter">'</span></span> % (list_.id,),
+            f<span class="string"><span class="delimiter">'</span><span class="content">/lists/{list_.id}/</span><span class="delimiter">'</span></span>,
             data={<span class="string"><span class="delimiter">'</span><span class="content">text</span><span class="delimiter">'</span></span>: <span class="string"><span class="delimiter">'</span><span class="delimiter">'</span></span>}
         )
 
@@ -1148,7 +1148,7 @@ see it, preventing users from even submitting invalid input.</p>
 <pre class="CodeRay highlight"><code data-lang="python">    <span class="keyword">def</span> <span class="function">test_cannot_add_empty_list_items</span>(<span class="predefined-constant">self</span>):
         <span class="comment"># Edith goes to the home page and accidentally tries to submit</span>
         <span class="comment"># an empty list item. She hits Enter on the empty input box</span>
-        <span class="predefined-constant">self</span>.browser.get(<span class="predefined-constant">self</span>.server_url)
+        <span class="predefined-constant">self</span>.browser.get(<span class="predefined-constant">self</span>.live_server_url)
         <span class="predefined-constant">self</span>.get_item_input_box().send_keys(Keys.ENTER)
 
         <span class="comment"># The browser intercepts the request, and does not load the</span>
@@ -1213,13 +1213,12 @@ passing tests:</p>
 <div class="listingblock">
 <div class="content">
 <pre>$ <strong>python manage.py test functional_tests</strong>
-Creating test database for alias 'default'...
+[...]
 ....
  ---------------------------------------------------------------------
 Ran 4 tests in 12.154s
 
-OK
-Destroying test database for alias 'default'...</pre>
+OK</pre>
 </div>
 </div>
 </div>
@@ -1482,12 +1481,12 @@ can keep them from getting too bloated.</p>
 <div id="footnotes">
 <hr>
 <div class="footnote" id="_footnote_1">
-<a href="#_footnoteref_1">1</a>. this is a new feature in Django 1.10
+<a href="#_footnoteref_1">1</a>. this is a new feature in Django 1.11
 </div>
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2017-02-18 14:32:20 GMT
+Last updated 2017-03-10 10:08:55 GMT
 </div>
 </div>
 <div class="comments" style="padding: 20px">

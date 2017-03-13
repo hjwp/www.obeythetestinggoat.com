@@ -265,83 +265,38 @@ used to change the address which the test&#8217;s temporary server gets run on:<
 
 <span class="keyword">class</span> <span class="class">NewVisitorTest</span>(StaticLiveServerTestCase):
 
-    <span class="decorator">@classmethod</span>
-    <span class="keyword">def</span> <span class="function">setUpClass</span>(cls):  <i class="conum" data-value="1"></i><b>(1)</b>
-        <span class="keyword">for</span> arg <span class="keyword">in</span> sys.argv:  <i class="conum" data-value="2"></i><b>(2)</b>
-            <span class="keyword">if</span> <span class="string"><span class="delimiter">'</span><span class="content">liveserver</span><span class="delimiter">'</span></span> <span class="keyword">in</span> arg:  <i class="conum" data-value="2"></i><b>(2)</b>
-                cls.server_url = <span class="string"><span class="delimiter">'</span><span class="content">http://</span><span class="delimiter">'</span></span> + arg.split(<span class="string"><span class="delimiter">'</span><span class="content">=</span><span class="delimiter">'</span></span>)[<span class="integer">1</span>]  <i class="conum" data-value="3"></i><b>(3)</b>
-                <span class="keyword">return</span>  <i class="conum" data-value="3"></i><b>(3)</b>
-        <span class="predefined">super</span>().setUpClass()  <i class="conum" data-value="4"></i><b>(4)</b>
-        cls.server_url = cls.live_server_url
-
-
     <span class="keyword">def</span> <span class="function">setUp</span>(<span class="predefined-constant">self</span>):
-        [...]</code></pre>
+        <span class="predefined-constant">self</span>.browser = webdriver.Firefox()
+        staging_server = os.environ.get(<span class="string"><span class="delimiter">'</span><span class="content">STAGING_SERVER</span><span class="delimiter">'</span></span>)  <i class="conum" data-value="1"></i><b>(1)</b>
+        <span class="keyword">if</span> staging_server:
+            <span class="predefined">setattr</span>(<span class="predefined-constant">self</span>, <span class="string"><span class="delimiter">'</span><span class="content">live_server_url</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">http://</span><span class="delimiter">'</span></span> + staging_server)  <i class="conum" data-value="2"></i><b>(2)</b></code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>OK, when I said slightly hacking, I meant seriously hacking. Do you remember I
-said that <code>LiveServerTestCase</code> had certain limitations?  Well, one is that it
-always assumes you want to use its own test server.  I still want to be able to
-do that sometimes, but I also want to be able to selectively tell it not to
+<p>Do you remember I said that <code>LiveServerTestCase</code> had certain limitations?
+Well, one is that it always assumes you want to use its own test server, which
+it makes available at <code>self.live_server_url</code>.  I still want to be able to do
+that sometimes, but I also want to be able to selectively tell it not to
 bother, and to use a real server instead.</p>
 </div>
 <div class="colist arabic">
 <table>
 <tr>
 <td><i class="conum" data-value="1"></i><b>1</b></td>
-<td><code>setUpClass</code> is a similar method to <code>setUp</code>, also provided by <code>unittest</code>,
-which is used to do test setup for the whole class&#8212;&#8203;that means it only
-gets executed once, rather than before every test method. This is where
-<code>LiveServerTestCase</code>/<code>StaticLiveServerTestCase</code> usually starts up its test
-server.
-</td>
+<td>The way I decided to do it is using an environment variable called
+<code>STAGING_SERVER</code></td>
 </tr>
 <tr>
 <td><i class="conum" data-value="2"></i><b>2</b></td>
-<td>We look for the <code>liveserver</code> command-line argument (which is found in
-<code>sys.argv</code>).</td>
-</tr>
-<tr>
-<td><i class="conum" data-value="3"></i><b>3</b></td>
-<td>If we find it, we tell our test class to skip the normal <code>setUpClass</code>, and
-just store away our staging server URL in a variable called <code>server_url</code>
-instead.</td>
-</tr>
-<tr>
-<td><i class="conum" data-value="4"></i><b>4</b></td>
-<td>And if the <code>for</code> loop completes <em>without</em> finding a <code>liveserver</code> argument
-on the command-line, we do the normal
-superclass<sup class="footnote">[<a id="_footnoteref_2" class="footnote" href="#_footnote_2" title="View footnote.">2</a>]</sup>
-setup, and use the normal
-<code>live_server_url</code>.  Be careful with the indentation here!</td>
+<td>We can&#8217;t just assign to <code>self.live_server_url</code> because it&#8217;s a special
+property on this class, but we can get around that by using <code>setattr</code>.
+I did promise you a
+hack<sup class="footnote">[<a id="_footnoteref_2" class="footnote" href="#_footnote_2" title="View footnote.">2</a>]</sup>!</td>
 </tr>
 </table>
 </div>
 <div class="paragraph">
-<p>This means we also need to change the four places we used to use
-<code>self.live_server_url</code>:</p>
-</div>
-<div class="listingblock sourcecode">
-<div class="title">functional_tests/tests.py (ch08l002)</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="python">    <span class="keyword">def</span> <span class="function">test_can_start_a_list_and_retrieve_it_later</span>(<span class="predefined-constant">self</span>):
-        <span class="comment"># Edith has heard about a cool new online to-do app. She goes</span>
-        <span class="comment"># to check out its homepage</span>
-        <span class="predefined-constant">self</span>.browser.get(<span class="predefined-constant">self</span>.server_url)
-        [...]
-        <span class="comment"># Francis visits the home page.  There is no sign of Edith's</span>
-        <span class="comment"># list</span>
-        <span class="predefined-constant">self</span>.browser.get(<span class="predefined-constant">self</span>.server_url)
-        [...]
-
-    <span class="keyword">def</span> <span class="function">test_layout_and_styling</span>(<span class="predefined-constant">self</span>):
-        <span class="comment"># Edith goes to the home page</span>
-        <span class="predefined-constant">self</span>.browser.get(<span class="predefined-constant">self</span>.server_url)</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>We test that our little hack hasn&#8217;t broken anything by running the functional
+<p>We test that said hack hasn&#8217;t broken anything by running the functional
 tests "normally":</p>
 </div>
 <div class="listingblock">
@@ -359,9 +314,8 @@ server at <em>superlists-staging.ottg.eu</em>:</p>
 </div>
 <div class="listingblock skipme">
 <div class="content">
-<pre>$ <strong>python manage.py test functional_tests --liveserver=superlists-staging.ottg.eu</strong>
-Creating test database for alias 'default'...
-FE
+<pre>$ <strong>STAGING_SERVER=superlists-staging.ottg.eu python manage.py test functional_tests</strong>
+
 ======================================================================
 FAIL: test_can_start_a_list_for_one_user
 (functional_tests.tests.NewVisitorTest)
@@ -402,8 +356,7 @@ element: {"method":"id","selector":"id_new_item"}
 
 Ran 3 tests in 19.480s:
 
-FAILED (failures=3)
-Destroying test database for alias 'default'...</pre>
+FAILED (failures=3)</pre>
 </div>
 </div>
 <div class="paragraph">
@@ -523,10 +476,11 @@ solution you choose.</p>
 <div class="paragraph">
 <p>
 
-I&#8217;m not going to dictate how you do this&#8212;&#8203;whether you choose Amazon AWS,
-Rackspace, Digital Ocean, your own server in your own data centre or a
-Raspberry Pi in a cupboard behind the stairs, any solution should be fine, as
-long as:</p>
+I&#8217;m not going to
+dictate<sup class="footnote">[<a id="_footnoteref_3" class="footnote" href="#_footnote_3" title="View footnote.">3</a>]</sup>
+how you do this&#8212;&#8203;whether you choose Amazon AWS, Rackspace, Digital Ocean, your
+own server in your own data centre or a Raspberry Pi in a cupboard under the
+stairs, any solution should be fine, as long as:</p>
 </div>
 <div class="ulist">
 <ul>
@@ -545,7 +499,7 @@ long as:</p>
 </ul>
 </div>
 <div class="paragraph">
-<p>I&#8217;m recommending Ubuntu as a distro because it has Python 3.5 and it has some
+<p>I&#8217;m recommending Ubuntu as a distro because it has Python 3.6 and it has some
 specific ways of configuring Nginx, which I&#8217;m going to make use of next.  If
 you know what you&#8217;re doing, you can probably get away with using something
 else, but you&#8217;re on your own.</p>
@@ -558,11 +512,11 @@ else, but you&#8217;re on your own.</p>
 </td>
 <td class="content">
 Some people get to this chapter, and are tempted to skip the domain bit,
-and the "getting a real server" bit, and just use a VM on their own PC.  Don&#8217;t
-do this. It&#8217;s <em>not</em> the same, and you&#8217;ll have more difficulty following the
-instructions, which are complicated enough as it is.  If you&#8217;re worried about
-cost, dig around and you&#8217;ll find free options for both. Email me if you need
-further pointers, I&#8217;m always happy to help.
+    and the "getting a real server" bit, and just use a VM on their own PC.
+    Don&#8217;t do this. It&#8217;s <em>not</em> the same, and you&#8217;ll have more difficulty
+    following the instructions, which are complicated enough as it is.  If
+    you&#8217;re worried about cost, dig around and you&#8217;ll find free options for
+    both. Email me if you need further pointers, I&#8217;m always happy to help.
 </td>
 </tr>
 </table>
@@ -647,20 +601,39 @@ elspeth@server:$ <strong>sudo systemctl start nginx</strong></pre>
 the world. On AWS for example, you may need to configure the "security group"
 for your server to open port 80.</p>
 </div>
+<div id="nginx-it-works" class="imageblock">
+<div class="content">
+<img src="images/twdp_0801.png" alt="The default 'Welcome to nginx!' page">
+</div>
+<div class="title">Figure 1. Nginx&#8212;&#8203;it works!</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_installing_python_3_6">Installing Python 3.6</h4>
+<div class="paragraph">
+<p>Python 3.6 wasn&#8217;t available in the standard repositories on Ubuntu at the
+time of writing, but the user-contributed
+<a href="https://launchpad.net/~fkrull/+archive/ubuntu/deadsnakes">"Deadsnakes PPA"</a>
+has it.  Here&#8217;s how we install it:</p>
+</div>
 <div class="paragraph">
 <p>While we&#8217;ve got root access, let&#8217;s make sure the server has the key
 pieces of software we need at the system level: Python, Git, pip, and virtualenv.</p>
 </div>
 <div class="listingblock server-commands">
 <div class="content">
-<pre>elspeth@server:$ <strong>sudo apt-get install git python3 python3-venv</strong></pre>
+<pre>elspeth@server:$ <strong>sudo add-apt-repository ppa:fkrull/deadsnakes</strong>
+elspeth@server:$ <strong>sudo apt-get update</strong>
+elspeth@server:$ <strong>sudo apt-get install python3.6 python3.6-venv</strong></pre>
 </div>
 </div>
-<div id="nginx-it-works" class="imageblock">
+<div class="paragraph">
+<p>And while we&#8217;re at it, we&#8217;ll just make sure git is installed too.</p>
+</div>
+<div class="listingblock server-commands">
 <div class="content">
-<img src="images/twdp_0801.png" alt="The default 'Welcome to nginx!' page">
+<pre>elspeth@server:$ <strong>sudo apt-get install git</strong></pre>
 </div>
-<div class="title">Figure 1. Nginx&#8212;&#8203;it works!</div>
 </div>
 </div>
 <div class="sect3">
@@ -693,7 +666,7 @@ now mention Nginx:</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>$ <strong>python manage.py test functional_tests --liveserver=superlists-staging.ottg.eu</strong>
+<pre>$ <strong>STAGING_SERVER=superlists-staging.ottg.eu python manage.py test functional_tests</strong>
 [...]
 selenium.common.exceptions.NoSuchElementException: Message: Unable to locate
 element: {"method":"id","selector":"id_new_item"}
@@ -905,7 +878,7 @@ re-create it on the server, we create a <em>requirements.txt</em> file:</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>$ <strong>echo "Django==1.10.5" &gt; requirements.txt</strong>
+<pre>$ <strong>echo "Django==1.11.5" &gt; requirements.txt</strong>
 $ <strong>git add requirements.txt</strong>
 $ <strong>git commit -m "Add requirements.txt for virtualenv"</strong></pre>
 </div>
@@ -948,10 +921,12 @@ want the virtualenv to go in:</p>
 </div>
 <div class="listingblock server-commands">
 <div class="content">
-<pre>elspeth@server:$ <strong>python3 -m venv ../virtualenv</strong>
+<pre>elspeth@server:$ <strong>pwd</strong>
+/home/espeth/sites/staging.superlists.com/source
+elspeth@server:$ <strong>python3.6 -m venv ../virtualenv</strong>
 elspeth@server:$ <strong>ls ../virtualenv/bin</strong>
-activate      activate.fish  easy_install-3.5  pip3    python
-activate.csh  easy_install   pip               pip3.5  python3</pre>
+activate      activate.fish  easy_install-3.6  pip3    python
+activate.csh  easy_install   pip               pip3.6  python3</pre>
 </div>
 </div>
 <div class="paragraph">
@@ -968,7 +943,7 @@ pip:</p>
 <div class="listingblock server-commands">
 <div class="content">
 <pre>elspeth@server:$ <strong>../virtualenv/bin/pip install -r requirements.txt</strong>
-Downloading/unpacking Django==1.10.5 (from -r requirements.txt (line 1))
+Downloading/unpacking Django==1.11.5 (from -r requirements.txt (line 1))
 [...]
 Successfully installed Django</pre>
 </div>
@@ -1068,7 +1043,7 @@ confusion:</p>
 <div class="listingblock server-commands">
 <div class="content">
 <pre>elspeth@server:$ <strong>sudo systemctl reload nginx</strong>
-elspeth@server:$ <strong>../virtualenv/bin/python3 manage.py runserver</strong></pre>
+elspeth@server:$ <strong>../virtualenv/bin/python manage.py runserver</strong></pre>
 </div>
 </div>
 <div class="admonitionblock note">
@@ -1114,7 +1089,7 @@ problems in your configuration files.
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>$ <strong>python manage.py test functional_tests --liveserver=superlists-staging.ottg.eu</strong>
+<pre>$ <strong>STAGING_SERVER=superlists-staging.ottg.eu python manage.py test functional_tests</strong>
 [...]
 selenium.common.exceptions.NoSuchElementException: Message: Unable to locate
 [...]
@@ -1165,12 +1140,12 @@ you sure" prompts:</p>
 </div>
 <div class="listingblock server-commands">
 <div class="content">
-<pre>elspeth@server:$ <strong>python manage.py migrate --noinput</strong>
+<pre>elspeth@server:$ <strong>../virtualenv/bin/python manage.py migrate --noinput</strong>
 Creating tables ...
 [...]
 elspeth@server:$ <strong>ls ../database/</strong>
 db.sqlite3
-elspeth@server:$ <strong>python manage.py runserver</strong></pre>
+elspeth@server:$ <strong>../virtualenv/bin/python manage.py runserver</strong></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -1178,14 +1153,14 @@ elspeth@server:$ <strong>python manage.py runserver</strong></pre>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>$ <strong>python manage.py test functional_tests --liveserver=superlists-staging.ottg.eu</strong>
-Creating test database for alias 'default'...
+<pre>$ <strong>STAGING_SERVER=superlists-staging.ottg.eu python manage.py test functional_tests</strong>
+[...]
+
 ...
  ---------------------------------------------------------------------
 Ran 3 tests in 10.718s
 
-OK
-Destroying test database for alias 'default'...</pre>
+OK</pre>
 </div>
 </div>
 <div class="paragraph">
@@ -1255,7 +1230,7 @@ layout + styling fails.  Good job tests!</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>$ <strong>python manage.py test functional_tests --liveserver=superlists-staging.ottg.eu</strong>
+<pre>$ <strong>STAGING_SERVER=superlists-staging.ottg.eu python manage.py test functional_tests</strong>
 [...]
 AssertionError: 125.0 != 512 within 3 delta
 FAILED (failures=1)</pre>
@@ -1323,14 +1298,14 @@ can rerun our FTs:</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>$ <strong>python manage.py test functional_tests --liveserver=superlists-staging.ottg.eu</strong>
-Creating test database for alias 'default'...
+<pre>$ <strong>STAGING_SERVER=superlists-staging.ottg.eu python manage.py test functional_tests</strong>
+[...]
+
 ...
  ---------------------------------------------------------------------
 Ran 3 tests in 10.718s
 
-OK
-Destroying test database for alias 'default'...</pre>
+OK</pre>
 </div>
 </div>
 </div>
@@ -1380,7 +1355,7 @@ elspeth@server:$ <strong>../virtualenv/bin/gunicorn --bind \
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>$ <strong>python manage.py test functional_tests --liveserver=superlists-staging.ottg.eu</strong>
+<pre>$ <strong>STAGING_SERVER=superlists-staging.ottg.eu python manage.py test functional_tests</strong>
 OK</pre>
 </div>
 </div>
@@ -1402,7 +1377,7 @@ leaving those pages full of tracebacks available
 <p>You&#8217;ll find the <code>DEBUG</code> setting at the top of <em>settings.py</em>. When we set this
 to <code>False</code>, we also need to set another setting called <code>ALLOWED_HOSTS</code>. This
 was
-<a href="https://docs.djangoproject.com/en/1.10/ref/settings/#std:setting-ALLOWED_HOSTS">added
+<a href="https://docs.djangoproject.com/en/1.11/ref/settings/#std:setting-ALLOWED_HOSTS">added
 as a security feature</a> in Django 1.5.  Unfortunately it doesn&#8217;t have a helpful
 comment in the default <em>settings.py</em>, but we can add one ourselves.  Do this on
 the server:</p>
@@ -1636,7 +1611,10 @@ Let&#8217;s recap our provisioning and deployment procedures:</p>
 <p>Assume we have a user account and home folder</p>
 </li>
 <li>
-<p><code>apt-get install nginx git python3 python3-venv</code></p>
+<p><code>add-apt-repository ppa:fkrull/deadsnakes</code></p>
+</li>
+<li>
+<p><code>apt-get install nginx git python3.6 python3.6-venv</code></p>
 </li>
 <li>
 <p>Add Nginx config for virtual host</p>
@@ -1748,14 +1726,15 @@ them in a file in the repo too?</p>
 ## Required packages:
 
 * nginx
-* Python 3
+* Python 3.6
 * Git
 * pip
 * virtualenv
 
 e.g.,, on Ubuntu:
 
-    sudo apt-get install nginx git python3 python3-venv
+    sudo add-apt-repository ppa:fkrull/deadsnakes
+    sudo apt-get install nginx git python36 python3.6-venv
 
 ## Nginx Virtual Host config
 
@@ -1876,12 +1855,15 @@ process repeatable.</p>
 <a href="#_footnoteref_1">1</a>. What I&#8217;m calling a "staging" server, some people would call a "development" server, and some others would also like to distinguish "preproduction" servers.  Whatever we call it, the point is to have somewhere we can try our code out in an environment that&#8217;s as similar as possible to the real production server.
 </div>
 <div class="footnote" id="_footnote_2">
-<a href="#_footnoteref_2">2</a>. If you&#8217;re not familiar <code>super()</code> and the way Python inheritance works, you can go away and spend a bit of time researching it now if you like.  Learn Python the Hard Way has <a href="http://learnpythonthehardway.org/book/ex44.html">a good chapter on it</a>. Or just take it on faith!
+<a href="#_footnoteref_2">2</a>. At this point, you can google "setattr" and "Python properties" if your curiosity is piqued.
+</div>
+<div class="footnote" id="_footnote_3">
+<a href="#_footnoteref_3">3</a>. But if you insist on a recommendation, I like <a href="https://m.do.co/c/876844cd6b2e">Digital Ocean</a>.  Good value for money, fast servers, and you can get $10 of free credit (which should cover a couple of months, enough for the book at least), by following <a href="https://m.do.co/c/876844cd6b2e">my referral link</a>
 </div>
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2017-02-18 14:32:20 GMT
+Last updated 2017-03-12 22:26:10 GMT
 </div>
 </div>
 <div class="comments" style="padding: 20px">

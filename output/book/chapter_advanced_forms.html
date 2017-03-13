@@ -79,7 +79,7 @@ We add a second test method to <code>ItemValidationTest</code>:</p>
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">def</span> <span class="function">test_cannot_add_duplicate_items</span>(<span class="predefined-constant">self</span>):
     <span class="comment"># Edith goes to the home page and starts a new list</span>
-    <span class="predefined-constant">self</span>.browser.get(<span class="predefined-constant">self</span>.server_url)
+    <span class="predefined-constant">self</span>.browser.get(<span class="predefined-constant">self</span>.live_server_url)
     <span class="predefined-constant">self</span>.get_item_input_box().send_keys(<span class="string"><span class="delimiter">'</span><span class="content">Buy wellies</span><span class="delimiter">'</span></span>)
     <span class="predefined-constant">self</span>.get_item_input_box().send_keys(Keys.ENTER)
     <span class="predefined-constant">self</span>.wait_for_row_in_list_table(<span class="string"><span class="delimiter">'</span><span class="content">1: Buy wellies</span><span class="delimiter">'</span></span>)
@@ -186,7 +186,7 @@ problem:</p>
 <div class="listingblock">
 <div class="content">
 <pre>Traceback (most recent call last):
-  File "/.../superlists/lists/tests/test_models.py", line 63, in
+  File "/.../superlists/lists/tests/test_models.py", line 62, in
 test_CAN_save_same_item_to_different_lists
     item.full_clean()  # should not raise
     [...]
@@ -260,7 +260,7 @@ together:</p>
 </div>
 <div class="paragraph">
 <p>You might want to take a quick peek at the
-<a href="https://docs.djangoproject.com/en/1.10/ref/models/options/">Django docs on model
+<a href="https://docs.djangoproject.com/en/1.11/ref/models/options/">Django docs on model
 <code>Meta</code> attributes</a> at this point.</p>
 </div>
 </div>
@@ -410,7 +410,7 @@ Ordinarily you would be wary of adding more failing tests when you
 in Python 2.x versions of Django, the string representation method used
     to be <code>__unicode__</code>. Like much string handling, this is simplified in
     Python 3. See the
-    <a href="https://docs.djangoproject.com/en/1.10/topics/python3/#str-and-unicode-methods">Django docs</a>.
+    <a href="https://docs.djangoproject.com/en/1.11/topics/python3/#str-and-unicode-methods">Django docs</a>.
 </td>
 </tr>
 </table>
@@ -560,7 +560,7 @@ it as an application-layer constraint:</p>
 <div class="content">
 <pre>$ <strong>python manage.py makemigrations</strong>
 Migrations for 'lists':
-  lists/migrations/0005_auto_20140414_2038.py:
+  lists/migrations/0005_auto_20140414_2038.py
     - Change Meta options on item
     - Alter unique_together for item (1 constraint(s))</pre>
 </div>
@@ -656,7 +656,7 @@ A quick unit test at the view level ought to clear this up:</p>
         list1 = List.objects.create()
         item1 = Item.objects.create(list=list1, text=<span class="string"><span class="delimiter">'</span><span class="content">textey</span><span class="delimiter">'</span></span>)
         response = <span class="predefined-constant">self</span>.client.post(
-            <span class="string"><span class="delimiter">'</span><span class="content">/lists/%d/</span><span class="delimiter">'</span></span> % (list1.id,),
+            f<span class="string"><span class="delimiter">'</span><span class="content">/lists/{list1.id}/</span><span class="delimiter">'</span></span>,
             data={<span class="string"><span class="delimiter">'</span><span class="content">text</span><span class="delimiter">'</span></span>: <span class="string"><span class="delimiter">'</span><span class="content">textey</span><span class="delimiter">'</span></span>}
         )
 
@@ -786,9 +786,9 @@ AssertionError: True is not false</pre>
 <div class="paragraph">
 <p>The next step requires a little knowledge of Django&#8217;s internals, but you
 can read up on it in the Django docs on
-<a href="https://docs.djangoproject.com/en/1.10/ref/models/instances/#validating-objects">model
+<a href="https://docs.djangoproject.com/en/1.11/ref/models/instances/#validating-objects">model
 validation</a> and
-<a href="https://docs.djangoproject.com/en/1.10/ref/forms/validation/">form validation</a>.</p>
+<a href="https://docs.djangoproject.com/en/1.11/ref/forms/validation/">form validation</a>.</p>
 </div>
 <div class="paragraph">
 <p>Django uses a method called <code>validate_unique</code>, both on forms and models, and
@@ -872,7 +872,7 @@ it, let&#8217;s find the tests where we check the form class, and adjust them:</
 
     <span class="keyword">def</span> <span class="function">test_displays_item_form</span>(<span class="predefined-constant">self</span>):
         list_ = List.objects.create()
-        response = <span class="predefined-constant">self</span>.client.get(<span class="string"><span class="delimiter">'</span><span class="content">/lists/%d/</span><span class="delimiter">'</span></span> % (list_.id,))
+        response = <span class="predefined-constant">self</span>.client.get(f<span class="string"><span class="delimiter">'</span><span class="content">/lists/{list_.id}/</span><span class="delimiter">'</span></span>)
         <span class="predefined-constant">self</span>.assertIsInstance(response.context[<span class="string"><span class="delimiter">'</span><span class="content">form</span><span class="delimiter">'</span></span>], ExistingListItemForm)
         <span class="predefined-constant">self</span>.assertContains(response, <span class="string"><span class="delimiter">'</span><span class="content">name="text"</span><span class="delimiter">'</span></span>)
 
@@ -975,13 +975,12 @@ OK</pre>
 <div class="listingblock">
 <div class="content">
 <pre>$ <strong>python manage.py test functional_tests.test_list_item_validation</strong>
-Creating test database for alias 'default'...
+[...]
 ..
  ---------------------------------------------------------------------
 Ran 2 tests in 12.048s
 
-OK
-Destroying test database for alias 'default'...</pre>
+OK</pre>
 </div>
 </div>
 <div class="paragraph">
@@ -990,13 +989,12 @@ Destroying test database for alias 'default'...</pre>
 <div class="listingblock">
 <div class="content">
 <pre>$ <strong>python manage.py test functional_tests</strong>
-Creating test database for alias 'default'...
+[...]
 .....
  ---------------------------------------------------------------------
 Ran 5 tests in 19.048s
 
-OK
-Destroying test database for alias 'default'...</pre>
+OK</pre>
 </div>
 </div>
 <div class="paragraph">
@@ -1014,7 +1012,7 @@ testing views over the last few chapters.
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">class</span> <span class="class">ListViewTest</span>(TestCase):
     <span class="keyword">def</span> <span class="function">test_uses_list_template</span>(<span class="predefined-constant">self</span>):
-        response = <span class="predefined-constant">self</span>.client.get(<span class="string"><span class="delimiter">'</span><span class="content">/lists/%d/</span><span class="delimiter">'</span></span> % (list_.id,)) <i class="conum" data-value="1"></i><b>(1)</b>
+        response = <span class="predefined-constant">self</span>.client.get(f<span class="string"><span class="delimiter">'</span><span class="content">/lists/{list_.id}/</span><span class="delimiter">'</span></span>) <i class="conum" data-value="1"></i><b>(1)</b>
         <span class="predefined-constant">self</span>.assertTemplateUsed(response, <span class="string"><span class="delimiter">'</span><span class="content">list.html</span><span class="delimiter">'</span></span>) <i class="conum" data-value="2"></i><b>(2)</b>
     <span class="keyword">def</span> <span class="function">test_passes_correct_list_to_template</span>(<span class="predefined-constant">self</span>):
         <span class="predefined-constant">self</span>.assertEqual(response.context[<span class="string"><span class="delimiter">'</span><span class="content">list</span><span class="delimiter">'</span></span>], correct_list) <i class="conum" data-value="3"></i><b>(3)</b>
@@ -1029,7 +1027,7 @@ testing views over the last few chapters.
         <span class="predefined-constant">self</span>.assertEqual(Item.objects.count(), <span class="integer">1</span>) <i class="conum" data-value="6"></i><b>(6)</b>
         <span class="predefined-constant">self</span>.assertEqual(new_item.text, <span class="string"><span class="delimiter">'</span><span class="content">A new item for an existing list</span><span class="delimiter">'</span></span>) <i class="conum" data-value="6"></i><b>(6)</b>
     <span class="keyword">def</span> <span class="function">test_POST_redirects_to_list_view</span>(<span class="predefined-constant">self</span>):
-        <span class="predefined-constant">self</span>.assertRedirects(response, <span class="string"><span class="delimiter">'</span><span class="content">/lists/%d/</span><span class="delimiter">'</span></span> % (correct_list.id,)) <i class="conum" data-value="6"></i><b>(6)</b>
+        <span class="predefined-constant">self</span>.assertRedirects(response, f<span class="string"><span class="delimiter">'</span><span class="content">/lists/{correct_list.id}/</span><span class="delimiter">'</span></span>) <i class="conum" data-value="6"></i><b>(6)</b>
     <span class="keyword">def</span> <span class="function">test_for_invalid_input_nothing_saved_to_db</span>(<span class="predefined-constant">self</span>):
         <span class="predefined-constant">self</span>.assertEqual(Item.objects.count(), <span class="integer">0</span>) <i class="conum" data-value="6"></i><b>(6)</b>
     <span class="keyword">def</span> <span class="function">test_for_invalid_input_renders_list_template</span>(<span class="predefined-constant">self</span>):
@@ -1106,7 +1104,7 @@ of client-side code.  Uh-oh, you know what that means&#8230;&#8203;</p>
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2017-02-18 14:32:20 GMT
+Last updated 2017-03-10 10:59:21 GMT
 </div>
 </div>
 <div class="comments" style="padding: 20px">

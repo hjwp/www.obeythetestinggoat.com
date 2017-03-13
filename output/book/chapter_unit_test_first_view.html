@@ -285,6 +285,7 @@ AssertionError: 2 != 3
 Ran 1 test in 0.001s
 
 FAILED (failures=1)
+System check identified no issues (0 silenced).
 Destroying test database for alias 'default'...</pre>
 </div>
 </div>
@@ -320,7 +321,7 @@ Django is broadly structured along a classic <em>Model-View-Controller</em>
 views are more like a controller, and it&#8217;s the templates that are actually the
 view part, but the general idea is there.  If you&#8217;re interested, you can
 look up the finer points of the discussion
-<a href="https://docs.djangoproject.com/en/1.10/faq/general/">in the Django FAQs</a>.</p>
+<a href="https://docs.djangoproject.com/en/1.11/faq/general/">in the Django FAQs</a>.</p>
 </div>
 <div class="paragraph">
 <p>
@@ -444,12 +445,12 @@ home_page = <span class="predefined-constant">None</span></code></pre>
 <div class="paragraph">
 <p>I can hear you because it&#8217;s what I used to say (with feeling) when
 my colleagues first demonstrated TDD to me.  Well, bear with me, we&#8217;ll talk
-about whether or not this is all taking it too far in a little while.  For now,
-let yourself follow along, even if it&#8217;s with some exasperation, and see where
-it takes us.</p>
+about whether or not this is all taking it too far in a little while.  But for
+now, let yourself follow along, even if it&#8217;s with some exasperation, and see
+if our tests can help us write the correct code, one tiny step at a time.</p>
 </div>
 <div class="paragraph">
-<p>Let&#8217;s run the tests again:</p>
+<p>We run the tests again:</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -465,7 +466,7 @@ test_root_url_resolves_to_home_page_view
     found = resolve('/')
   File ".../django/urls/base.py", line 27, in resolve
     return get_resolver(urlconf).resolve(path)
-  File ".../django/urls/resolvers.py", line 300, in resolve
+  File ".../django/urls/resolvers.py", line 392, in resolve
     raise Resolver404({'tried': tried, 'path': new_path})
 django.urls.exceptions.Resolver404: {'tried': [[&lt;RegexURLResolver
 &lt;RegexURLPattern list&gt; (admin:admin) ^admin/&gt;]], 'path': ''}
@@ -474,6 +475,7 @@ django.urls.exceptions.Resolver404: {'tried': [[&lt;RegexURLResolver
 Ran 1 test in 0.002s
 
 FAILED (errors=1)
+System check identified no issues (0 silenced).
 Destroying test database for alias 'default'...</pre>
 </div>
 </div>
@@ -499,7 +501,7 @@ test_root_url_resolves_to_home_page_view
     found = resolve('/')  <i class="conum" data-value="3"></i><b>(3)</b>
   File ".../django/urls/base.py", line 27, in resolve
     return get_resolver(urlconf).resolve(path)
-  File ".../django/urls/resolvers.py", line 300, in resolve
+  File ".../django/urls/resolvers.py", line 392, in resolve
     raise Resolver404({'tried': tried, 'path': new_path})
 django.urls.exceptions.Resolver404: {'tried': [[&lt;RegexURLResolver  <i class="conum" data-value="1"></i><b>(1)</b>
 &lt;RegexURLPattern list&gt; (admin:admin) ^admin/&gt;]], 'path': ''}  <i class="conum" data-value="1"></i><b>(1)</b>
@@ -549,9 +551,9 @@ can&#8217;t find a URL mapping for &#8220;/&#8221;.  Let&#8217;s help it out.</p
 <h3 id="_urls_py">urls.py</h3>
 <div class="paragraph">
 <p>
-Django uses a file called <em>urls.py</em> to define how URLs map to view functions.
-There&#8217;s a main <em>urls.py</em> for the whole site in the
-<em>superlists/superlists</em> folder. Let&#8217;s go take a look:</p>
+Our tests are telling us that we need a URL mapping. Django uses a file called
+<em>urls.py</em> to map URLs to view functions. There&#8217;s a main <em>urls.py</em> for the whole
+site in the <em>superlists/superlists</em> folder. Let&#8217;s go take a look:</p>
 </div>
 <div class="listingblock sourcecode currentcontents">
 <div class="title">superlists/urls.py</div>
@@ -559,7 +561,7 @@ There&#8217;s a main <em>urls.py</em> for the whole site in the
 <pre class="CodeRay highlight"><code data-lang="python"><span class="docstring"><span class="delimiter">"""</span><span class="content">superlists URL Configuration</span><span class="content">
 </span><span class="content">
 </span><span class="content">The `urlpatterns` list routes URLs to views. For more information please see:</span><span class="content">
-</span><span class="content">    https://docs.djangoproject.com/en/1.10/topics/http/urls/</span><span class="content">
+</span><span class="content">    https://docs.djangoproject.com/en/dev/topics/http/urls/</span><span class="content">
 </span><span class="content">Examples:</span><span class="content">
 </span><span class="content">Function views</span><span class="content">
 </span><span class="content">    1. Add an import:  from my_app import views</span><span class="content">
@@ -635,8 +637,8 @@ TypeError: view must be a callable or a list/tuple in the case of include().</pr
 <p>That&#8217;s progress!  We&#8217;re no longer getting a 404.</p>
 </div>
 <div class="paragraph">
-<p>The traceback is messy, but the message at the end is telling us what&#8217;s going on:
-the unit tests have actually made the link between the URL <em>/</em> and the
+<p>The traceback is messy, but the message at the end is telling us what&#8217;s going
+on: the unit tests have actually made the link between the URL <em>/</em> and the
 <code>home_page = None</code> in <em>lists/views.py</em>, and are now complaining that the
 <code>home_page</code> view is not callable. And that gives us a justification for
 changing it from being <code>None</code> to being an actual function. Every single code
@@ -667,6 +669,7 @@ Creating test database for alias 'default'...
 Ran 1 test in 0.003s
 
 OK
+System check identified no issues (0 silenced).
 Destroying test database for alias 'default'...</pre>
 </div>
 </div>
@@ -807,10 +810,12 @@ We can start to settle into the TDD <em>unit-test/code cycle</em> now:</p>
 <div class="paragraph">
 <p>The more nervous we are about getting our code right, the smaller and more
 minimal we make each code change&#8212;&#8203;the idea is to be absolutely sure that each
-bit of code is justified by a test. It may seem laborious, but once you get
-into the swing of things, it really moves quite fast&#8212;&#8203;so much so that,
-at work, we usually keep our code changes microscopic even when we&#8217;re
-confident we could skip ahead.</p>
+bit of code is justified by a test.</p>
+</div>
+<div class="paragraph">
+<p>This may seem laborious, and at first, it will be.  But once you get into the
+swing of things, you&#8217;ll find yourself coding quickly even if you take
+microscopic steps&#8212;&#8203;this is how we write all of our production code at work.</p>
 </div>
 <div class="paragraph">
 <p>Let&#8217;s see how fast we can get this cycle going:</p>
@@ -955,6 +960,7 @@ Creating test database for alias 'default'...
 Ran 2 tests in 0.001s
 
 OK
+System check identified no issues (0 silenced).
 Destroying test database for alias 'default'...</pre>
 </div>
 </div>
@@ -1084,7 +1090,7 @@ ea2b037 Add app for lists, with deliberately failing unit test
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2017-02-18 14:32:20 GMT
+Last updated 2017-03-08 20:24:08 GMT
 </div>
 </div>
 <div class="comments" style="padding: 20px">

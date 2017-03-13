@@ -119,96 +119,138 @@ assume we&#8217;re installing everything on a server we control.</p>
 </td>
 <td class="content">
 It&#8217;s not a good idea to install Jenkins on the same server as our
-staging or production servers.  Apart from anything else, we may want
-Jenkins to be able to reboot the staging server!
+    staging or production servers.  Apart from anything else, we may want
+    Jenkins to be able to reboot the staging server!
 </td>
 </tr>
 </table>
 </div>
 <div class="paragraph">
-<p>We&#8217;ll install the latest version from the official Jenkins apt repo, because the
-Ubuntu default still has a few annoying bugs with locale/unicode support,
+<p>We&#8217;ll install the latest version from the official Jenkins apt repo, because
+the Ubuntu default still has a few annoying bugs with locale/unicode support,
 and it also doesn&#8217;t set itself up to listen on the public Internet by default:</p>
 </div>
 <div class="listingblock skipme">
 <div class="content">
-<pre># instructions taken from jenkins site
-user@server:$ <strong>wget -q -O - https://pkg.jenkins.io/debian/jenkins-ci.org.key |\
-     sudo apt-key add -</strong>
-user@server:$ <strong>echo deb http://pkg.jenkins.io/debian-stable binary/ | sudo tee \
+<pre>root@server:$ <strong>wget -q -O - https://pkg.jenkins.io/debian/jenkins-ci.org.key |\
+     apt-key add -</strong>
+root@server:$ <strong>echo deb http://pkg.jenkins.io/debian-stable binary/ | tee \
     /etc/apt/sources.list.d/jenkins.list</strong>
-user@server:$ <strong>sudo apt-get update</strong>
-user@server:$ <strong>sudo apt-get install jenkins</strong></pre>
+root@server:$ <strong>apt-get update</strong>
+root@server:$ <strong>apt-get install jenkins</strong></pre>
 </div>
+</div>
+<div class="paragraph">
+<p>(Instructions lifted from the [Jenkins site](<a href="https://wiki.jenkins-ci.org/display/JENKINS/Installing+Jenkins+on+Ubuntu)" class="bare">https://wiki.jenkins-ci.org/display/JENKINS/Installing+Jenkins+on+Ubuntu)</a>)</p>
 </div>
 <div class="paragraph">
 <p>While we&#8217;re at we&#8217;ll install a few other dependencies:</p>
 </div>
-<div class="listingblock skipme">
+<div class="listingblock skipme small-code">
 <div class="content">
-<pre>user@server:$ <strong>sudo apt-get install firefox python3-venv xvfb</strong></pre>
+<pre>root@server:$ <strong>apt-get install firefox python3-venv xvfb</strong>
+# and, to build fabric3:
+root@server:$ <strong>apt-get install build-essential libssl-dev libffi-dev</strong></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>You should then be able to visit it at the URL for your server on port <code>8080</code>,
-as in <a href="#jenkin-welcome">A butler! How quaint&#8230;&#8203;</a>.</p>
+<p>And we&#8217;ll download, unzip and install geckodriver too (it was v 0.15 at
+the time of writing, but substitute the latest version as you read this).</p>
+</div>
+<div class="listingblock skipme">
+<div class="content">
+<pre>root@server:$ <strong>wget https://github.com/mozilla/geckodriver/releases\
+/download/v0.15.0/geckodriver-v0.15.0-linux64.tar.gz</strong>
+root@server:$ <strong>tar -xvzf geckodriver-v0.15.0-linux64.tar.gz</strong>
+root@server:$ <strong>mv geckodriver /usr/local/bin</strong>
+root@server:$ <strong>geckodriver --version</strong>
+geckodriver 0.15.0</pre>
+</div>
+</div>
+<div class="sidebarblock">
+<div class="content">
+<div class="title">Adding some swap</div>
+<div class="paragraph">
+<p>Jenkins is quite memory-hungry, and if  you&#8217;re running this on a small VM
+with less than a couple of gigs for RAM, you&#8217;ll probably find it gets
+OOM-killed unless you add some swap.</p>
+</div>
+<div class="listingblock skipme">
+<div class="content">
+<pre>$ <strong>fallocate -l 4G /swapfile</strong>
+$ <strong>mkswap /swapfile</strong>
+$ <strong>chmod 600 /swapfile</strong>
+$ <strong>swapon /swapfile</strong></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>That should be plenty.</p>
+</div>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_configuring_jenkins">Configuring Jenkins</h3>
+<div class="paragraph">
+<p>You should now be able to visit jenkins at the URL/IP for your server on port
+<code>8080</code>, and see something like <a href="#jenkin-unlock">Jenkins unlock screen</a>.</p>
+</div>
+<div id="jenkin-unlock" class="imageblock">
+<div class="content">
+<img src="images/jenkins_unlock.png" alt="Jenkins' default unlock screen">
+</div>
+<div class="title">Figure 1. Jenkins unlock screen</div>
+</div>
+<div class="sect3">
+<h4 id="_initial_unlock">Initial Unlock</h4>
+<div class="paragraph">
+<p>
+The unlock screen is telling us to read a file from disk to unlock
+the server for first time use.  I jumped over to a terminal and printed
+it like this:</p>
+</div>
+<div class="listingblock skipme">
+<div class="content">
+<pre>root@server$ <strong>cat /var/lib/jenkins/secrets/initialAdminPassword</strong></pre>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_suggested_plugins_for_now">Suggested plugins for now</h4>
+<div class="paragraph">
+<p>Next we&#8217;re offered the choice to choose "suggested" plugins. Suggested
+ones are fine for now. (As a self-respecting nerd, our instinct
+is to hit "customize" immediately, and that&#8217;s what I did first time round,
+but it turns out that screen won&#8217;t give us what we want. Don&#8217;t worry, we&#8217;ll add
+some more plugins later).</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_configuring_the_admin_user">Configuring the admin user</h4>
+<div class="paragraph">
+<p>
+Next we set up a username and password to login to jenkins with; see <a href="#jenkins-user">[jenkins-user]</a>:</p>
+</div>
+<div id="jenkin-user" class="imageblock">
+<div class="content">
+<img src="images/jenkins_user.png" alt="Jenkins screen asking for username and password">
+</div>
+<div class="title">Figure 2. Jenkins admin user config</div>
+</div>
+<div class="paragraph">
+<p>And once we log in, we should see a welcome screen:</p>
 </div>
 <div id="jenkin-welcome" class="imageblock">
 <div class="content">
-<img src="images/twdp_2001.png" alt="Jenkins' default welcome screen">
+<img src="images/jenkins_welcome.png" alt="Jenkins welcome screen with invitation to create new job">
 </div>
-<div class="title">Figure 1. A butler! How quaint&#8230;&#8203;</div>
-</div>
-<div class="sect3">
-<h4 id="_configuring_jenkins_security">Configuring Jenkins Security</h4>
-<div class="paragraph">
-<p>
-
-The first thing we&#8217;ll do is set up some authentication, since our server is
-available on the public Internet:</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p>Manage Jenkins &#8594; Configure Global Security &#8594; Enable security.</p>
-</li>
-<li>
-<p>Choose "Jenkins' own user database", "Matrix-based security".</p>
-</li>
-<li>
-<p>Disable all permissions for Anonymous.</p>
-</li>
-<li>
-<p>And add a user for yourself; give it all the permissions
-(<a href="#jenkins-security">Locking it down&#8230;&#8203;</a>).</p>
-</li>
-<li>
-<p>The next screen offers you the option to create an account that matches that
-  username, and set a password.<sup class="footnote">[<a id="_footnoteref_1" class="footnote" href="#_footnote_1" title="View footnote.">1</a>]</sup></p>
-</li>
-</ul>
-</div>
-<div id="jenkins-security" class="imageblock">
-<div class="content">
-<img src="images/twdp_2002.png" alt="Jenkins security config screnshot">
-</div>
-<div class="title">Figure 2. Locking it down&#8230;&#8203;</div>
+<div class="title">Figure 3. A butler, how quaint.</div>
 </div>
 </div>
 <div class="sect3">
-<h4 id="_adding_required_plugins">Adding Required Plugins</h4>
+<h4 id="_adding_plugins">Adding plugins</h4>
 <div class="paragraph">
-<p>
-
-Next we install a few plugins, to help us work with Git, Python, and virtual
-displays; see <a href="#installing-plugins">Installing plugins&#8230;&#8203;</a>:</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p>Manage Jenkins &#8594; Manage Plugins &#8594; Available</p>
-</li>
-</ul>
+<p>Follow the links for <strong>Manage Jenkins</strong> &#8594; <strong>Manage Plugins</strong> &#8594; <strong>Available</strong></p>
 </div>
 <div class="paragraph">
 <p>We&#8217;ll want the plugins for:</p>
@@ -216,53 +258,78 @@ displays; see <a href="#installing-plugins">Installing plugins&#8230;&#8203;</a>
 <div class="ulist">
 <ul>
 <li>
-<p>Git</p>
+<p><em>ShiningPanda</em></p>
 </li>
 <li>
-<p>ShiningPanda</p>
-</li>
-<li>
-<p>Xvfb</p>
+<p><em>Xvfb</em></p>
 </li>
 </ul>
+</div>
+<div class="paragraph">
+<p>And hit install.</p>
 </div>
 <div id="installing-plugins" class="imageblock">
 <div class="content">
 <img src="images/twdp_2003.png" alt="Jenkins installing plugins">
 </div>
-<div class="title">Figure 3. Installing plugins&#8230;&#8203;</div>
+<div class="title">Figure 4. Installing plugins&#8230;&#8203;</div>
 </div>
-<div class="paragraph">
-<p>Restart afterwards using either the tick-box on that last screen, or
-from the command line with a <code>sudo service jenkins restart</code>.</p>
 </div>
-<div class="sect4">
-<h5 id="_telling_jenkins_where_to_find_python_3_and_xvfb">Telling Jenkins where to find Python 3 and Xvfb</h5>
+<div class="sect3">
+<h4 id="_telling_jenkins_where_to_find_python_3_and_xvfb">Telling Jenkins where to find Python 3 and Xvfb</h4>
 <div class="paragraph">
-<p>We need to tell the ShiningPanda plugin where Python 3 is installed
-(usually <em>/usr/bin/python3</em>, but you can check with a <code>which python3</code>):
+<p>
 
 
-
-* Manage Jenkins &#8594; Configure System.</p>
+We need to tell the ShiningPanda plugin where Python 3 is installed
+(usually <em>/usr/bin/python3</em>, but you can check with a <code>which python3</code>):</p>
 </div>
 <div class="ulist">
 <ul>
 <li>
-<p>Python &#8594; Python installations &#8594; Add Python (<a href="#add-python-to-jenkins">Where did I leave that Python?</a>).</p>
+<p><strong>Manage Jenkins</strong> &#8594; <strong>Global Tool Configuration</strong></p>
 </li>
 <li>
-<p>Xvfb installation &#8594; Add Xvfb installation; enter <strong><code>/usr/bin</code></strong> as the
+<p><strong>Python</strong> &#8594; <strong>Python installations</strong> &#8594; <strong>Add Python</strong> (see <a href="#add-python-to-jenkins">Where did I leave that Python?</a>, it&#8217;s
+safe to ignore the warning message)</p>
+</li>
+<li>
+<p><strong>Xvfb installation</strong> &#8594; <strong>Add Xvfb installation</strong>; enter <strong><code>/usr/bin</code></strong> as the
 installation directory.</p>
 </li>
 </ul>
 </div>
 <div id="add-python-to-jenkins" class="imageblock">
 <div class="content">
-<img src="images/twdp_2004.png" alt="Adding Python 3">
+<img src="images/jenkins_python_config.png" alt="Adding Python 3">
 </div>
-<div class="title">Figure 4. Where did I leave that Python?</div>
+<div class="title">Figure 5. Where did I leave that Python?</div>
 </div>
+</div>
+<div class="sect3">
+<h4 id="_finishing_off_with_https">Finishing off with HTTPS</h4>
+<div class="paragraph">
+<p>To finish off securing your Jenkins instance, you&#8217;ll want to set up HTTPS, by
+getting nginx HTTPS to use a self-signed cert, and proxy requests from port 443
+to port 8080. Then you can even block port 8080 on the firewall.  I won&#8217;t go
+into detail on that now, but here are a few links to instructions which I found
+useful:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><a href="https://wiki.jenkins-ci.org/display/JENKINS/Installing+Jenkins+on+Ubuntu">Official
+Jenkins Ubuntu installation guide</a>,</p>
+</li>
+<li>
+<p><a href="https://www.digitalocean.com/community/tutorials/how-to-create-an-ssl-certificate-on-nginx-for-ubuntu-14-04">how
+to create a self-signed SSL certificate</a></p>
+</li>
+<li>
+<p><a href="http://serverfault.com/questions/250476/how-to-force-or-redirect-to-ssl-in-nginx#424016">how
+to redirect HTTP to HTTPS</a></p>
+</li>
+</ul>
 </div>
 </div>
 </div>
@@ -270,12 +337,16 @@ installation directory.</p>
 <h3 id="_setting_up_our_project">Setting Up Our Project</h3>
 <div class="paragraph">
 <p>
-Now we&#8217;ve got the basic Jenkins configured, let&#8217;s set up our project:</p>
+Now we&#8217;ve got the basic Jenkins configured, let&#8217;s set up our project.</p>
 </div>
 <div class="ulist">
 <ul>
 <li>
-<p>New Job &#8594; Build a free-style software project.</p>
+<p>Hit the <strong>New Item</strong> button</p>
+</li>
+<li>
+<p>Enter <em>Superlists</em> as the name, and then choose <strong>Freestyle project</strong>, and hit
+<strong>OK</strong></p>
 </li>
 <li>
 <p>Add the Git repo, as in <a href="#choose-git-repo">Get it from Git</a>.</p>
@@ -286,7 +357,7 @@ Now we&#8217;ve got the basic Jenkins configured, let&#8217;s set up our project
 <div class="content">
 <img src="images/twdp_2005.png" alt="Setting the git repo">
 </div>
-<div class="title">Figure 5. Get it from Git</div>
+<div class="title">Figure 6. Get it from Git</div>
 </div>
 <div class="ulist">
 <ul>
@@ -299,7 +370,7 @@ Now we&#8217;ve got the basic Jenkins configured, let&#8217;s set up our project
 <div class="content">
 <img src="images/twdp_2006.png" alt="Config polling github">
 </div>
-<div class="title">Figure 6. Poll Github for changes</div>
+<div class="title">Figure 7. Poll Github for changes</div>
 </div>
 <div class="ulist">
 <ul>
@@ -316,7 +387,7 @@ Now we&#8217;ve got the basic Jenkins configured, let&#8217;s set up our project
 <div class="content">
 <img src="images/twdp_2007.png" alt="Adding Python 3">
 </div>
-<div class="title">Figure 7. Virtualenv build steps</div>
+<div class="title">Figure 8. Virtualenv build steps</div>
 </div>
 </div>
 <div class="sect2">
@@ -334,7 +405,7 @@ Fetching upstream changes from https://github.com/hjwp/book-example.git
 Checking out Revision d515acebf7e173f165ce713b30295a4a6ee17c07 (origin/master)
 [workspace] $ /bin/sh -xe /tmp/shiningpanda7260707941304155464.sh
 + pip install -r requirements.txt
-Requirement already satisfied (use --upgrade to upgrade): Django==1.10 in
+Requirement already satisfied (use --upgrade to upgrade): Django==1.11 in
 /var/lib/jenkins/shiningpanda/jobs/ddc1aed1/virtualenvs/d41d8cd9/lib/python3.3/site-packages
 (from -r requirements.txt (line 1))
 
@@ -350,15 +421,26 @@ Installing collected packages: requests
 Successfully installed requests
 Cleaning up...
 + python manage.py test lists accounts
-...................................................
+...................................................................
  ---------------------------------------------------------------------
-Ran 51 tests in 0.323s
+Ran 67 tests in 0.429s
 
 OK
 Creating test database for alias 'default'...
 Destroying test database for alias 'default'...
 + python manage.py test functional_tests
+EEEEEE
+======================================================================
+ERROR: functional_tests.test_layout_and_styling (unittest.loader._FailedTest)
+ ---------------------------------------------------------------------
+ImportError: Failed to import test module: functional_tests.test_layout_and_styling
+[...]
 ImportError: No module named 'selenium'
+
+Ran 6 tests in 0.001s
+
+FAILED (errors=6)
+
 Build step 'Virtualenv Builder' marked build as failure</pre>
 </div>
 </div>
@@ -373,8 +455,8 @@ steps:</p>
 <div class="listingblock skipme">
 <div class="content">
 <pre>    pip install -r requirements.txt
-    pip install selenium
     python manage.py test accounts lists
+    pip install selenium
     python manage.py test functional_tests</pre>
 </div>
 </div>
@@ -392,19 +474,28 @@ Some people like to use a file called <em>test-requirements.txt</em> to specify
 </table>
 </div>
 <div class="paragraph">
-<p>Now what?</p>
+<p>And hit "Build Now" again.</p>
+</div>
+<div class="paragraph">
+<p>Next one of two things will happen.  Either you&#8217;ll see some error messages
+like this in your console output:</p>
 </div>
 <div class="listingblock skipme">
 <div class="content">
-<pre>  File
-  "/var/lib/jenkins/shiningpanda/jobs/ddc1aed1/virtualenvs/d41d8cd9/lib/python3.
-  line 100, in _wait_until_connectable
-    self._get_firefox_output())
+<pre>    self.browser = webdriver.Firefox()
+[...]
 selenium.common.exceptions.WebDriverException: Message: 'The browser appears to
 have exited before we could connect. The output was: b"\\n(process:19757):
 GLib-CRITICAL **: g_slice_set_config: assertion \'sys_page_size == 0\'
-failed\\nError: no display specified\\n"'</pre>
+failed\\nError: no display specified\\n"'
+[...]
+selenium.common.exceptions.WebDriverException: Message: connection refused</pre>
 </div>
+</div>
+<div class="paragraph">
+<p>Or possibly your build will just hang altogether (that happened to me at
+least once).  The reason is that Firefox can&#8217;t start, because it doesn&#8217;t
+have a display to run on.</p>
 </div>
 </div>
 <div class="sect2">
@@ -423,9 +514,8 @@ a headless browser, like PhantomJS or SlimerJS.  Those tools definitely have
 their place&#8212;&#8203;they&#8217;re faster, for one thing&#8212;&#8203;but they also have
 disadvantages.  The first is that they&#8217;re not "real" web browsers, so you can&#8217;t
 be sure you&#8217;re going to catch all the strange quirks and behaviours of the
-actual browsers your users use.  The second is that they behave quite
-differently inside Selenium, and will require substantial amounts of rewriting
-of FT code.</p>
+actual browsers your users use.  The second is that they can behave quite
+differently inside Selenium, and often require some rewriting of FT code.</p>
 </div>
 <div class="admonitionblock tip">
 <table>
@@ -446,9 +536,9 @@ I would look into using headless browsers as a "dev-only" tool, to speed
 The alternative is to set up a virtual display:  we get the server to pretend
 it has a screen attached to it, so Firefox runs happily. There&#8217;s a few tools
 out there to do this; we&#8217;ll use one called "Xvfb"
-(X Virtual Framebuffer)<sup class="footnote">[<a id="_footnoteref_2" class="footnote" href="#_footnote_2" title="View footnote.">2</a>]</sup>
+(X Virtual Framebuffer)<sup class="footnote">[<a id="_footnoteref_1" class="footnote" href="#_footnote_1" title="View footnote.">1</a>]</sup>
 because it&#8217;s easy to install and use, and because it has a convenient Jenkins
-plugin.</p>
+plugin (now you know why we installed it earlier)</p>
 </div>
 <div class="paragraph">
 <p>We go back to our project and hit "Configure" again, then find the section
@@ -460,7 +550,7 @@ as in <a href="#xvfb-tickbox">Sometimes config is easy</a>.</p>
 <div class="content">
 <img src="images/twdp_2008.png" alt="Tickbox saying we want Xvfb">
 </div>
-<div class="title">Figure 8. Sometimes config is easy</div>
+<div class="title">Figure 9. Sometimes config is easy</div>
 </div>
 <div class="paragraph">
 <p>The build does much better now:</p>
@@ -472,9 +562,9 @@ Xvfb starting$ /usr/bin/Xvfb :2 -screen 0 1024x768x24 -fbdir
 /var/lib/jenkins/2013-11-04_03-27-221510012427739470928xvfb
 [...]
 + python manage.py test lists accounts
-...................................................
+...............................................................
  ---------------------------------------------------------------------
-Ran 51 tests in 0.410s
+Ran 63 tests in 0.410s
 
 OK
 Creating test database for alias 'default'...
@@ -662,7 +752,7 @@ uses to store our source code and run the tests in, as in
 <div class="content">
 <img src="images/twdp_2009.png" alt="workspace files including screenshot">
 </div>
-<div class="title">Figure 9. Visiting the project workspace</div>
+<div class="title">Figure 10. Visiting the project workspace</div>
 </div>
 <div class="paragraph">
 <p>And then we look at the screenshot, as shown in <a href="#normal-screenshot">Screenshot looking normal</a>.</p>
@@ -671,13 +761,20 @@ uses to store our source code and run the tests in, as in
 <div class="content">
 <img src="images/twdp_2010.png" alt="Screenshot of site page">
 </div>
-<div class="title">Figure 10. Screenshot looking normal</div>
+<div class="title">Figure 11. Screenshot looking normal</div>
 </div>
 </div>
 <div class="sect2">
-<h3 id="_bumping_our_timeout">Bumping our timeout</h3>
+<h3 id="_if_in_doubt_try_bumping_the_timeout">If in doubt, try bumping the timeout!</h3>
 <div class="paragraph">
-<p>TODO: insert discussion on bumping the timeout here</p>
+<p>Hm.  No obvious clues there.  Well, when in doubt, bump the timeout, as the
+old adage goes.</p>
+</div>
+<div class="listingblock sourcecode skipme">
+<div class="title">functional_tests/base.py</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python">MAX_WAIT = <span class="integer">20</span></code></pre>
+</div>
 </div>
 <div class="paragraph">
 <p>
@@ -689,7 +786,7 @@ works, as in <a href="#outlook-brighter">The outlook is brighter</a>.</p>
 <div class="content">
 <img src="images/twdp_2011.png" alt="Build showing a recent pass and sun-peeking-through-clouds logo">
 </div>
-<div class="title">Figure 11. The outlook is brighter</div>
+<div class="title">Figure 12. The outlook is brighter</div>
 </div>
 <div class="paragraph">
 <p>Jenkins uses blue to indicate passing builds rather than green, which is a bit
@@ -721,14 +818,14 @@ up with node.js on our computers.  It&#8217;s just the way it has to be.</p>
 <div class="paragraph">
 <p>Follow the instructions on the <a href="http://nodejs.org/download/">node.js download
 page</a>. There are installers for Windows and Mac, and repositories for popular
-Linux distros.<sup class="footnote">[<a id="_footnoteref_3" class="footnote" href="#_footnote_3" title="View footnote.">3</a>]</sup></p>
+Linux distros.<sup class="footnote">[<a id="_footnoteref_2" class="footnote" href="#_footnote_2" title="View footnote.">2</a>]</sup></p>
 </div>
 <div class="paragraph">
 <p>Once we have node, we can install phantom:</p>
 </div>
 <div class="listingblock skipme">
 <div class="content">
-<pre>$ <strong>npm install -g phantomjs</strong>  # the -g means "system-wide". May need sudo.</pre>
+<pre>root@server $ <strong>npm install -g phantomjs</strong>  # the -g means "system-wide".</pre>
 </div>
 </div>
 <div class="paragraph">
@@ -811,17 +908,17 @@ JavaScript tests, as per <a href="#js-unit-tests-jenkey">Add a build step for ou
 <div class="content">
 <img src="images/twdp_2012.png" alt="Jenkins' default welcome screen">
 </div>
-<div class="title">Figure 12. Add a build step for our JavaScript unit tests</div>
+<div class="title">Figure 13. Add a build step for our JavaScript unit tests</div>
 </div>
 <div class="paragraph">
 <p>You&#8217;ll also need to install PhantomJS on the server:</p>
 </div>
 <div class="listingblock skipme">
 <div class="content">
-<pre>elspeth@server:$ <strong>sudo add-apt-repository -y ppa:chris-lea/node.js</strong>
-elspeth@server:$ <strong>sudo apt-get update</strong>
-elspeth@server:$ <strong>sudo apt-get install nodejs</strong>
-elspeth@server:$ <strong>sudo npm install -g phantomjs</strong></pre>
+<pre>root@server:$ <strong>add-apt-repository -y ppa:chris-lea/node.js</strong>
+root@server:$ <strong>apt-get update</strong>
+root@server:$ <strong>apt-get install nodejs</strong>
+root@server:$ <strong>npm install -g phantomjs</strong></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -843,7 +940,7 @@ Xvfb starting$ /usr/bin/Xvfb :1 -screen 0 1024x768x24 -fbdir /var/lib/jenkins/20
 + python manage.py test lists
 .................................
  ---------------------------------------------------------------------
-Ran 33 tests in 0.229s
+Ran 43 tests in 0.229s
 
 OK
 Creating test database for alias 'default'...
@@ -927,18 +1024,16 @@ server, to make sure that all your tests are getting run somewhere.
 at when the failure occurs.  This is particularly useful for debugging
 CI failures, but it&#8217;s also very useful for tests that you run locally.</p>
 </dd>
-<dt class="hdlist1">Use waits in Selenium tests</dt>
+<dt class="hdlist1">Be prepared to bump your timeouts</dt>
 <dd>
-<p>Selenium&#8217;s <code>implicitly_wait</code> only applies to uses of its <code>find_element</code>
-functions, and even that can be unreliable (it can find an element that&#8217;s
-still on the old page).  Build a <code>wait_for</code> helper function, and alternate
-between actions on the site, and then some sort of wait to see that they&#8217;ve
+<p>A CI server may not be a speedy as your laptop, especially if it&#8217;s under
+load, running multiple tests at the same time.  Be prepared to be even
+more generous with your timeouts, in order to minimise the chance of
+random failures.
 taken effect.
-
-
 </p>
 </dd>
-<dt class="hdlist1">Look in to hooking up CI and staging</dt>
+<dt class="hdlist1">Look into hooking up CI and staging</dt>
 <dd>
 <p>Tests that use <code>LiveServerTestCase</code> are all very well for dev boxes,
 but the true reassurance comes from running your tests against a real
@@ -952,68 +1047,21 @@ of testing your automated deploy scripts.
 </div>
 </div>
 </div>
-<div class="sect2">
-<h3 id="_notes_for_latest_jenkins">Notes for latest jenkins</h3>
-<div class="paragraph">
-<p>(feel free to ignore these, just my working notes)</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p>follow screens to set up user</p>
-</li>
-<li>
-<p>nginx + self signed cert guides</p>
-</li>
-</ul>
-</div>
-<div class="paragraph">
-<p><a href="https://wiki.jenkins-ci.org/display/JENKINS/Installing+Jenkins+on+Ubuntu" class="bare">https://wiki.jenkins-ci.org/display/JENKINS/Installing+Jenkins+on+Ubuntu</a></p>
-</div>
-<div class="paragraph">
-<p><a href="https://www.digitalocean.com/community/tutorials/how-to-create-an-ssl-certificate-on-nginx-for-ubuntu-14-04" class="bare">https://www.digitalocean.com/community/tutorials/how-to-create-an-ssl-certificate-on-nginx-for-ubuntu-14-04</a></p>
-</div>
-<div class="paragraph">
-<p><a href="http://serverfault.com/questions/250476/how-to-force-or-redirect-to-ssl-in-nginx#424016" class="bare">http://serverfault.com/questions/250476/how-to-force-or-redirect-to-ssl-in-nginx#424016</a></p>
-</div>
-<div class="literalblock">
-<div class="content">
-<pre>curl -L 'https://download.mozilla.org/?product=firefox-45.4.0esr-SSL&amp;os=linux64&amp;lang=en-US' | tar -xvj -C /usr/share</pre>
-</div>
-</div>
-<div class="literalblock">
-<div class="content">
-<pre>apt-get remove firefox  # otherwise it found the old one somehow
-ln -s /usr/share/firefox/firefox /usr/bin/firefox</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Global Tool Configuration -&#8594; add python3</p>
-</div>
-<div class="literalblock">
-<div class="content">
-<pre>apt-get install python3-venv python-virtualenv</pre>
-</div>
-</div>
-</div>
 </div>
 </div>
 </div>
 <div id="footnotes">
 <hr>
 <div class="footnote" id="_footnote_1">
-<a href="#_footnoteref_1">1</a>. If you miss that screen, you can still hit "signup", and as long as you use the same username you specified earlier, you&#8217;ll have an account set up.
+<a href="#_footnoteref_1">1</a>. Check out <a href="https://pypi.python.org/pypi/PyVirtualDisplay">pyvirtualdisplay</a> as a way of controlling virtual displays from Python.
 </div>
 <div class="footnote" id="_footnote_2">
-<a href="#_footnoteref_2">2</a>. Check out <a href="https://pypi.python.org/pypi/PyVirtualDisplay">pyvirtualdisplay</a> as a way of controlling virtual displays from Python.
-</div>
-<div class="footnote" id="_footnote_3">
-<a href="#_footnoteref_3">3</a>. Make sure you get the latest version. On Ubuntu, use the PPA rather than the default package.
+<a href="#_footnoteref_2">2</a>. Make sure you get the latest version. On Ubuntu, use the PPA rather than the default package.
 </div>
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2017-02-18 14:32:20 GMT
+Last updated 2017-03-12 18:35:41 GMT
 </div>
 </div>
 <div class="comments" style="padding: 20px">

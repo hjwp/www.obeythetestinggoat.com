@@ -141,7 +141,7 @@ User = get_user_model()
         session.save()
         <span class="comment">## to set a cookie we need to first visit the domain.</span>
         <span class="comment">## 404 pages load the quickest!</span>
-        <span class="predefined-constant">self</span>.browser.get(<span class="predefined-constant">self</span>.server_url + <span class="string"><span class="delimiter">"</span><span class="content">/404_no_such_url/</span><span class="delimiter">"</span></span>)
+        <span class="predefined-constant">self</span>.browser.get(<span class="predefined-constant">self</span>.live_server_url + <span class="string"><span class="delimiter">"</span><span class="content">/404_no_such_url/</span><span class="delimiter">"</span></span>)
         <span class="predefined-constant">self</span>.browser.add_cookie(<span class="predefined">dict</span>(
             name=settings.SESSION_COOKIE_NAME,
             value=session.session_key, <i class="conum" data-value="2"></i><b>(2)</b>
@@ -241,7 +241,7 @@ In [3]: print(session.get_decoded())
 as a way of temporarily keeping track of some state. This works for
 non-logged-in users too.  Just use <code>request.session</code> inside any
 view, and it works as a dict. There&#8217;s more information in the
-<a href="https://docs.djangoproject.com/en/1.10/topics/http/sessions/">Django docs on
+<a href="https://docs.djangoproject.com/en/1.11/topics/http/sessions/">Django docs on
 sessions</a>.</p>
 </div>
 </div>
@@ -330,12 +330,12 @@ our pre-authenticated session creator really does work:</p>
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="python">    <span class="keyword">def</span> <span class="function">test_logged_in_users_lists_are_saved_as_my_lists</span>(<span class="predefined-constant">self</span>):
         email = <span class="string"><span class="delimiter">'</span><span class="content">edith@example.com</span><span class="delimiter">'</span></span>
-        <span class="predefined-constant">self</span>.browser.get(<span class="predefined-constant">self</span>.server_url)
+        <span class="predefined-constant">self</span>.browser.get(<span class="predefined-constant">self</span>.live_server_url)
         <span class="predefined-constant">self</span>.wait_to_be_logged_out(email)
 
         <span class="comment"># Edith is a logged-in user</span>
         <span class="predefined-constant">self</span>.create_pre_authenticated_session(email)
-        <span class="predefined-constant">self</span>.browser.get(<span class="predefined-constant">self</span>.server_url)
+        <span class="predefined-constant">self</span>.browser.get(<span class="predefined-constant">self</span>.live_server_url)
         <span class="predefined-constant">self</span>.wait_to_be_logged_in(email)</code></pre>
 </div>
 </div>
@@ -650,225 +650,12 @@ ORM, or a tool like <a href="https://factoryboy.readthedocs.org/">factory_boy</a
 </div>
 </div>
 </div>
-<div class="sect2">
-<h3 id="_stuff_from_the_old_edition_that_we_might_want_to_save">Stuff from the old edition that we might want to save</h3>
-<div class="sect3">
-<h4 id="_using_hierarchical_logging_config">Using Hierarchical Logging Config</h4>
-<div class="admonitionblock note">
-<table>
-<tr>
-<td class="icon">
-<i class="fa icon-note" title="Note"></i>
-</td>
-<td class="content">
-this section has not yet been adapted to the new version, feel free to
-    ignore it
-</td>
-</tr>
-</table>
-</div>
-<div class="paragraph">
-<p>
-When we hacked in the <code>logging.warning</code> earlier, we were using the root logger.
-That&#8217;s not normally a good idea, since any third-party package can mess with the
-root logger.  The normal pattern is to use a logger named after the file you&#8217;re
-in, by using:</p>
-</div>
-<div class="listingblock skipme">
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="python">logger = logging.getLogger(__name__)</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Logging configuration is hierarchical, so you can define "parent" loggers for
-top-level modules, and all the Python modules inside them will inherit that
-config.</p>
-</div>
-<div class="paragraph">
-<p>Here&#8217;s how we add a logger for both our apps into <em>settings.py</em>:</p>
-</div>
-<div class="listingblock sourcecode skipme">
-<div class="title">superlists/settings.py</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="python">LOGGING = {
-   <span class="string"><span class="delimiter">'</span><span class="content">version</span><span class="delimiter">'</span></span>: <span class="integer">1</span>,
-   <span class="string"><span class="delimiter">'</span><span class="content">disable_existing_loggers</span><span class="delimiter">'</span></span>: <span class="predefined-constant">False</span>,
-   <span class="string"><span class="delimiter">'</span><span class="content">handlers</span><span class="delimiter">'</span></span>: {
-       <span class="string"><span class="delimiter">'</span><span class="content">console</span><span class="delimiter">'</span></span>: {
-           <span class="string"><span class="delimiter">'</span><span class="content">level</span><span class="delimiter">'</span></span>: <span class="string"><span class="delimiter">'</span><span class="content">DEBUG</span><span class="delimiter">'</span></span>,
-           <span class="string"><span class="delimiter">'</span><span class="content">class</span><span class="delimiter">'</span></span>: <span class="string"><span class="delimiter">'</span><span class="content">logging.StreamHandler</span><span class="delimiter">'</span></span>,
-       },
-   },
-   <span class="string"><span class="delimiter">'</span><span class="content">loggers</span><span class="delimiter">'</span></span>: {
-        <span class="string"><span class="delimiter">'</span><span class="content">django</span><span class="delimiter">'</span></span>: {
-            <span class="string"><span class="delimiter">'</span><span class="content">handlers</span><span class="delimiter">'</span></span>: [<span class="string"><span class="delimiter">'</span><span class="content">console</span><span class="delimiter">'</span></span>],
-        },
-        <span class="string"><span class="delimiter">'</span><span class="content">accounts</span><span class="delimiter">'</span></span>: {
-            <span class="string"><span class="delimiter">'</span><span class="content">handlers</span><span class="delimiter">'</span></span>: [<span class="string"><span class="delimiter">'</span><span class="content">console</span><span class="delimiter">'</span></span>],
-        },
-        <span class="string"><span class="delimiter">'</span><span class="content">lists</span><span class="delimiter">'</span></span>: {
-            <span class="string"><span class="delimiter">'</span><span class="content">handlers</span><span class="delimiter">'</span></span>: [<span class="string"><span class="delimiter">'</span><span class="content">console</span><span class="delimiter">'</span></span>],
-        },
-    },
-    <span class="string"><span class="delimiter">'</span><span class="content">root</span><span class="delimiter">'</span></span>: {<span class="string"><span class="delimiter">'</span><span class="content">level</span><span class="delimiter">'</span></span>: <span class="string"><span class="delimiter">'</span><span class="content">INFO</span><span class="delimiter">'</span></span>},
-}</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Now <em>accounts.models</em>, <em>accounts.views</em>, <em>accounts.authentication</em>, and all
-the others will inherit the <code>logging.StreamHandler</code> from the parent <em>accounts</em>
-logger.</p>
-</div>
-<div class="paragraph">
-<p>Unfortunately, because of Django&#8217;s project structure, there&#8217;s no
-way of defining a top-level logger for your whole project (aside from using
-the root logger), so you have to define one logger per app.</p>
-</div>
-<div class="paragraph">
-<p>Here&#8217;s how to write a test for logging behaviour:</p>
-</div>
-<div class="listingblock sourcecode skipme">
-<div class="title">accounts/tests/test_authentication.py (ch18l023)</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">import</span> <span class="include">logging</span>
-[...]
-
-<span class="decorator">@patch</span>(<span class="string"><span class="delimiter">'</span><span class="content">accounts.authentication.requests.post</span><span class="delimiter">'</span></span>)
-<span class="keyword">class</span> <span class="class">AuthenticateTest</span>(TestCase):
-    [...]
-
-    <span class="keyword">def</span> <span class="function">test_logs_non_okay_responses_from_persona</span>(<span class="predefined-constant">self</span>, mock_post):
-        response_json = {
-            <span class="string"><span class="delimiter">'</span><span class="content">status</span><span class="delimiter">'</span></span>: <span class="string"><span class="delimiter">'</span><span class="content">not okay</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">reason</span><span class="delimiter">'</span></span>: <span class="string"><span class="delimiter">'</span><span class="content">eg, audience mismatch</span><span class="delimiter">'</span></span>
-        }
-        mock_post.return_value.ok = <span class="predefined-constant">True</span>
-        mock_post.return_value.json.return_value = response_json  <i class="conum" data-value="1"></i><b>(1)</b>
-
-        logger = logging.getLogger(<span class="string"><span class="delimiter">'</span><span class="content">accounts.authentication</span><span class="delimiter">'</span></span>)  <i class="conum" data-value="2"></i><b>(2)</b>
-        <span class="keyword">with</span> patch.object(logger, <span class="string"><span class="delimiter">'</span><span class="content">warning</span><span class="delimiter">'</span></span>) <span class="keyword">as</span> mock_log_warning:  <i class="conum" data-value="3"></i><b>(3)</b>
-            <span class="predefined-constant">self</span>.backend.authenticate(<span class="string"><span class="delimiter">'</span><span class="content">an assertion</span><span class="delimiter">'</span></span>)
-
-        mock_log_warning.assert_called_once_with(
-            <span class="string"><span class="delimiter">'</span><span class="content">Persona says no. Json was: {}</span><span class="delimiter">'</span></span>.format(response_json)  <i class="conum" data-value="4"></i><b>(4)</b>
-        )</code></pre>
-</div>
-</div>
-<div class="colist arabic">
-<table>
-<tr>
-<td><i class="conum" data-value="1"></i><b>1</b></td>
-<td>We set up our test with some data that should cause some logging.</td>
-</tr>
-<tr>
-<td><i class="conum" data-value="2"></i><b>2</b></td>
-<td>We retrieve the actual logger for the module we&#8217;re testing.</td>
-</tr>
-<tr>
-<td><i class="conum" data-value="3"></i><b>3</b></td>
-<td>We use <code>patch.object</code> to temporarily mock out its warning function,
-by using <code>with</code> to make it a <em>context manager</em> around the function we&#8217;re
-testing.</td>
-</tr>
-<tr>
-<td><i class="conum" data-value="4"></i><b>4</b></td>
-<td>And then it&#8217;s available for us to make assertions against.</td>
-</tr>
-</table>
-</div>
-<div class="paragraph">
-<p>That gives us:</p>
-</div>
-<div class="listingblock skipme">
-<div class="content">
-<pre>AssertionError: Expected 'warning' to be called once. Called 0 times.</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Let&#8217;s just try it out, to make sure we really are testing what we think
-we are:</p>
-</div>
-<div class="listingblock sourcecode skipme">
-<div class="title">accounts/authentication.py (ch18l024)</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">import</span> <span class="include">logging</span>
-logger = logging.getLogger(__name__)
-[...]
-
-        <span class="keyword">if</span> response.ok <span class="keyword">and</span> response.json()[<span class="string"><span class="delimiter">'</span><span class="content">status</span><span class="delimiter">'</span></span>] == <span class="string"><span class="delimiter">'</span><span class="content">okay</span><span class="delimiter">'</span></span>:
-            [...]
-        <span class="keyword">else</span>:
-            logger.warning(<span class="string"><span class="delimiter">'</span><span class="content">foo</span><span class="delimiter">'</span></span>)</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>We get the expected failure:</p>
-</div>
-<div class="listingblock skipme">
-<div class="content">
-<pre>AssertionError: Expected call: warning("Persona says no. Json was: {'status':
-'not okay', 'reason': 'eg, audience mismatch'}")
-Actual call: warning('foo')</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>And so we settle in with our real implementation:</p>
-</div>
-<div class="listingblock sourcecode skipme">
-<div class="title">accounts/authentication.py (ch18l025)</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="python">    <span class="keyword">else</span>:
-        logger.warning(
-            <span class="string"><span class="delimiter">'</span><span class="content">Persona says no. Json was: {}</span><span class="delimiter">'</span></span>.format(response.json())
-        )</code></pre>
-</div>
-</div>
-<div class="listingblock skipme">
-<div class="content">
-<pre>$ <strong>python manage.py test accounts</strong>
-[...]
-Ran 15 tests in 0.033s
-
-OK</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>You can easily imagine how you could test more combinations at this point,
-if you wanted different error messages for <code>response.ok != True</code>, and so on.</p>
-</div>
-<div class="sidebarblock">
-<div class="content">
-<div class="title">More notes</div>
-<div class="dlist">
-<dl>
-<dt class="hdlist1">Use loggers named after the module you&#8217;re in</dt>
-<dd>
-<p>The root logger is a single global object, available to any library that&#8217;s
-loaded in your Python process, so you&#8217;re never quite in control of it.
-Instead, follow the <code>logging.getLogger(__name__)</code> pattern to get one that&#8217;s
-unique to your module, but that inherits from a top-level configuration you
-control.</p>
-</dd>
-<dt class="hdlist1">Test important log messages</dt>
-<dd>
-<p>As we saw, log messages can be critical to debugging issues in production.
-If a log message is important enough to keep in your codebase, it&#8217;s
-probably important enough to test.  We follow the rule of thumb that
-anything above <code>logging.INFO</code> definitely needs a test.  Using
-<code>patch.object</code> on the logger for the module you&#8217;re testing is one
-convenient way of unit testing it.</p>
-</dd>
-</dl>
-</div>
-</div>
-</div>
-</div>
-</div>
 </div>
 </div>
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2017-02-18 16:19:35 GMT
+Last updated 2017-03-09 17:03:58 GMT
 </div>
 </div>
 <div class="comments" style="padding: 20px">

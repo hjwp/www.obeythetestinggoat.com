@@ -149,7 +149,7 @@ back to the home page:</p>
 <div class="content">
 <pre>$ <strong>python manage.py test accounts</strong>
 [...]
-Ran 3 tests in 0.015s
+Ran 4 tests in 0.015s
 
 OK</pre>
 </div>
@@ -254,7 +254,7 @@ we&#8217;re just taking advantage of Python&#8217;s dynamic nature and scoping r
 <div class="paragraph">
 <p>Up until we actually invoke a function, we can modify the variables it has
 access to, as long as we get into the right namespace (that&#8217;s why we import the
-top-level accounts module, to be able to get down to the <code>acccounts.views</code> module,
+top-level accounts module, to be able to get down to the <code>accounts.views</code> module,
 which is the scope that the <code>accounts.views.send_login_email</code> function will run
 in).</p>
 </div>
@@ -362,7 +362,7 @@ something like this:</p>
 <div class="content">
 <pre>$ <strong>python manage.py test accounts</strong>
 
-Ran 4 tests in 0.016s
+Ran 5 tests in 0.016s
 
 OK</pre>
 </div>
@@ -467,7 +467,6 @@ break it just to see:</p>
 <div class="listingblock">
 <div class="content">
 <pre>$ <strong>python manage.py test accounts</strong>
-Creating test database for alias 'default'...
 [...]
 &lt;class 'function'&gt;
 &lt;class 'unittest.mock.MagicMock'&gt;
@@ -476,7 +475,7 @@ AssertionError: Lists differ: ['edith@example.com'] !=
 ['schmedith@example.com']
 [...]
 
-Ran 4 tests in 0.024s
+Ran 5 tests in 0.024s
 
 FAILED (failures=1)</pre>
 </div>
@@ -583,7 +582,7 @@ a success message after we send the user an email.   Let&#8217;s add a test for 
 <p>We&#8217;ll use Django&#8217;s "messages framework", which is often used to display
 ephemeral "success" or "warning" messages to show the results of an action.
 Have a look at the
-<a href="https://docs.djangoproject.com/en/1.10/ref/contrib/messages/">django messages docs</a>
+<a href="https://docs.djangoproject.com/en/1.11/ref/contrib/messages/">django messages docs</a>
 if you haven&#8217;t come across it already.</p>
 </div>
 <div class="paragraph">
@@ -750,7 +749,7 @@ need to actually add the messages to the page.  Something like this:</p>
 <div class="content">
 <pre>$ <strong>python manage.py test accounts</strong>
 [...]
-Ran 5 tests in 0.023s
+Ran 6 tests in 0.023s
 
 OK
 
@@ -847,7 +846,7 @@ It returned None instead.</pre>
 <pre>$ <strong>python manage.py test accounts</strong>
 [...]
 
-Ran 6 tests in 0.029s
+Ran 7 tests in 0.029s
 
 OK</pre>
 </div>
@@ -885,9 +884,7 @@ can use to log in.  Let&#8217;s spec out two tests for that:</p>
         })
 
         token = Token.objects.first()
-        expected_url = <span class="string"><span class="delimiter">'</span><span class="content">http://testserver/accounts/login?token={uid}</span><span class="delimiter">'</span></span>.format(
-            uid=token.uid
-        )
+        expected_url = f<span class="string"><span class="delimiter">'</span><span class="content">http://testserver/accounts/login?token={token.uid}</span><span class="delimiter">'</span></span>
         (subject, body, from_email, to_list), kwargs = mock_send_mail.call_args
         <span class="predefined-constant">self</span>.assertIn(expected_url, body)</code></pre>
 </div>
@@ -957,9 +954,9 @@ FAILED (failures=1)</pre>
     email = request.POST[<span class="string"><span class="delimiter">'</span><span class="content">email</span><span class="delimiter">'</span></span>]
     token = Token.objects.create(email=email)
     url = request.build_absolute_uri(
-        reverse(<span class="string"><span class="delimiter">'</span><span class="content">login</span><span class="delimiter">'</span></span>) + <span class="string"><span class="delimiter">'</span><span class="content">?token={uid}</span><span class="delimiter">'</span></span>.format(uid=<span class="predefined">str</span>(token.uid))
+        reverse(<span class="string"><span class="delimiter">'</span><span class="content">login</span><span class="delimiter">'</span></span>) + <span class="string"><span class="delimiter">'</span><span class="content">?token=</span><span class="delimiter">'</span></span> + <span class="predefined">str</span>(token.uid)
     )
-    message_body = <span class="string"><span class="delimiter">'</span><span class="content">Use this link to log in:</span><span class="char">\n</span><span class="char">\n</span><span class="content">{url}</span><span class="delimiter">'</span></span>.format(url=url)
+    message_body = f<span class="string"><span class="delimiter">'</span><span class="content">Use this link to log in:</span><span class="char">\n</span><span class="char">\n</span><span class="content">{url}</span><span class="delimiter">'</span></span>
     send_mail(
         <span class="string"><span class="delimiter">'</span><span class="content">Your login link for Superlists</span><span class="delimiter">'</span></span>,
         message_body,
@@ -1092,8 +1089,8 @@ User = get_user_model()
 <div class="listingblock">
 <div class="content">
 <pre>$ <strong>python manage.py test accounts</strong>
-Creating test database for alias 'default'...
-.FE........
+
+.FE.........
 ======================================================================
 ERROR: test_returns_new_user_with_correct_email_if_token_exists
 (accounts.tests.test_authentication.AuthenticateTest)
@@ -1116,10 +1113,9 @@ test_returns_existing_user_with_correct_email_if_token_exists
 AssertionError: None != &lt;User: User object&gt;
 
  ---------------------------------------------------------------------
-Ran 11 tests in 0.038s
+Ran 12 tests in 0.038s
 
-FAILED (failures=1, errors=1)
-Destroying test database for alias 'default'...</pre>
+FAILED (failures=1, errors=1)</pre>
 </div>
 </div>
 <div class="paragraph">
@@ -1386,7 +1382,7 @@ if it returns a user, we call <code>django.contrib.auth.login</code>.</p>
 </td>
 <td class="content">
 Check out the
-<a href="https://docs.djangoproject.com/en/1.10/topics/auth/default/#how-to-log-a-user-in">Django docs on authentication</a> at this point.
+<a href="https://docs.djangoproject.com/en/1.11/topics/auth/default/#how-to-log-a-user-in">Django docs on authentication</a> at this point.
 </td>
 </tr>
 </table>
@@ -1595,11 +1591,9 @@ function at all.  Let&#8217;s fix that, but get it deliberately wrong, just to s
 <div class="content">
 <pre>$ <strong>python manage.py test accounts</strong>
 [...]
-TypeError: authenticate() takes 0 positional arguments but 1 was given
-[...]
 AssertionError: call('bang!') != call(uid='abcd123')
 [...]
-FAILED (failures=1, errors=1)</pre>
+FAILED (failures=1)</pre>
 </div>
 </div>
 <div class="paragraph">
@@ -1620,7 +1614,7 @@ FAILED (failures=1, errors=1)</pre>
 <div class="content">
 <pre>$ <strong>python manage.py test accounts</strong>
 [...]
-Ran 14 tests in 0.041s
+Ran 15 tests in 0.041s
 
 OK</pre>
 </div>
@@ -1827,9 +1821,6 @@ AssertionError: True != False</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>TODO: add a failure message?</p>
-</div>
-<div class="paragraph">
 <p>So are we there yet?</p>
 </div>
 </div>
@@ -1909,7 +1900,8 @@ User = auth.get_user_model()
 
     <span class="keyword">def</span> <span class="function">test_user_is_valid_with_email_only</span>(<span class="predefined-constant">self</span>):
         [...]
-
+    <span class="keyword">def</span> <span class="function">test_email_is_primary_key</span>(<span class="predefined-constant">self</span>):
+        [...]
 
     <span class="keyword">def</span> <span class="function">test_no_problem_with_auth_login</span>(<span class="predefined-constant">self</span>):
         user = User.objects.create(email=<span class="string"><span class="delimiter">'</span><span class="content">edith@example.com</span><span class="delimiter">'</span></span>)
@@ -1961,8 +1953,7 @@ auth.signals.user_logged_in.disconnect(auth.models.update_last_login)
  ---------------------------------------------------------------------
 Ran 1 test in 3.282s
 
-OK
-Destroying test database for alias 'default'...</pre>
+OK</pre>
 </div>
 </div>
 <div class="paragraph">
@@ -2115,7 +2106,7 @@ urlpatterns = [
 OK
 $ <strong>python manage.py test</strong>
 [...]
-Ran 58 tests in 78.124s
+Ran 59 tests in 78.124s
 
 OK</pre>
 </div>
@@ -2253,7 +2244,7 @@ be an empty dict:</p>
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2017-02-18 14:32:20 GMT
+Last updated 2017-03-10 11:43:23 GMT
 </div>
 </div>
 <div class="comments" style="padding: 20px">

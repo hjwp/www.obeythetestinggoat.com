@@ -388,7 +388,7 @@ when we run our FTs:</p>
 <div class="listingblock">
 <div class="content">
 <pre>$ <strong>python manage.py test functional_tests</strong>
-Creating test database for alias 'default'...
+[...]
 .F
 ======================================================================
 FAIL: test_multiple_users_can_start_lists_at_different_urls
@@ -404,8 +404,7 @@ AssertionError: Regex didn't match: '/lists/.+' not found in
  ---------------------------------------------------------------------
 Ran 2 tests in 5.786s
 
-FAILED (failures=1)
-Destroying test database for alias 'default'...</pre>
+FAILED (failures=1)</pre>
 </div>
 </div>
 <div class="paragraph">
@@ -458,7 +457,7 @@ that, and only that.</p>
 </div>
 <div class="paragraph">
 <p>The URL comes from the redirect after POST.  In <em>lists/tests.py</em>, find
-<code>test_home_page_redirects_after_POST</code>, and change the expected redirect
+<code>test_redirects_after_POST</code>, and change the expected redirect
 location:</p>
 </div>
 <div class="listingblock sourcecode">
@@ -630,9 +629,7 @@ Watch out for trailing slashes in URLs, both here in the tests and in
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>AttributeError: module 'lists.views' has no attribute 'view_list'
-[...]
-FAILED (errors=6)</pre>
+<pre>AttributeError: module 'lists.views' has no attribute 'view_list'</pre>
 </div>
 </div>
 </div>
@@ -1018,9 +1015,8 @@ simplify the home page view.</p>
 <div class="paragraph">
 <p>
 Open up <em>lists/tests.py</em>, and <em>move</em> the
-<code>test_can_save_a_POST_request</code> and
-<code>test_redirects_after_POST</code> methods into a new class, then change
-the URL they POST to:</p>
+<code>test_can_save_a_POST_request</code> and <code>test_redirects_after_POST</code> methods into a
+new class, then change the URL they POST to:</p>
 </div>
 <div class="listingblock sourcecode small-code">
 <div class="title">lists/tests.py (ch07l021-1)</div>
@@ -1457,7 +1453,7 @@ Need a hint?  Go back and take a look at the steps we took to introduce
 <div class="content">
 <pre>$ <strong>python manage.py makemigrations</strong>
 Migrations for 'lists':
-  lists/migrations/0003_list.py:
+  lists/migrations/0003_list.py
     - Create model List</pre>
 </div>
 </div>
@@ -1503,7 +1499,7 @@ django.db.utils.OperationalError: no such column: lists_item.list
 
 $ <strong>python manage.py makemigrations</strong>
 Migrations for 'lists':
-  lists/migrations/0004_item_list.py:
+  lists/migrations/0004_item_list.py
     - Add field list to item</pre>
 </div>
 </div>
@@ -1545,7 +1541,7 @@ delete it and replace it with a new one:</p>
 <pre>$ <strong>rm lists/migrations/0004_item_list.py</strong>
 $ <strong>python manage.py makemigrations</strong>
 Migrations for 'lists':
-  lists/migrations/0004_item_list.py:
+  lists/migrations/0004_item_list.py
     - Add field list to item</pre>
 </div>
 </div>
@@ -1741,7 +1737,7 @@ only the items for a specific list are displayed:</p>
 
     <span class="keyword">def</span> <span class="function">test_uses_list_template</span>(<span class="predefined-constant">self</span>):
         list_ = List.objects.create()
-        response = <span class="predefined-constant">self</span>.client.get(<span class="string"><span class="delimiter">'</span><span class="content">/lists/%d/</span><span class="delimiter">'</span></span> % (list_.id,))
+        response = <span class="predefined-constant">self</span>.client.get(f<span class="string"><span class="delimiter">'</span><span class="content">/lists/{list_.id}/</span><span class="delimiter">'</span></span>)
         <span class="predefined-constant">self</span>.assertTemplateUsed(response, <span class="string"><span class="delimiter">'</span><span class="content">list.html</span><span class="delimiter">'</span></span>)
 
 
@@ -1753,7 +1749,7 @@ only the items for a specific list are displayed:</p>
         Item.objects.create(text=<span class="string"><span class="delimiter">'</span><span class="content">other list item 1</span><span class="delimiter">'</span></span>, list=other_list)
         Item.objects.create(text=<span class="string"><span class="delimiter">'</span><span class="content">other list item 2</span><span class="delimiter">'</span></span>, list=other_list)
 
-        response = <span class="predefined-constant">self</span>.client.get(<span class="string"><span class="delimiter">'</span><span class="content">/lists/%d/</span><span class="delimiter">'</span></span> % (correct_list.id,))
+        response = <span class="predefined-constant">self</span>.client.get(f<span class="string"><span class="delimiter">'</span><span class="content">/lists/{correct_list.id}/</span><span class="delimiter">'</span></span>)
 
         <span class="predefined-constant">self</span>.assertContains(response, <span class="string"><span class="delimiter">'</span><span class="content">itemey 1</span><span class="delimiter">'</span></span>)
         <span class="predefined-constant">self</span>.assertContains(response, <span class="string"><span class="delimiter">'</span><span class="content">itemey 2</span><span class="delimiter">'</span></span>)
@@ -1768,11 +1764,11 @@ only the items for a specific list are displayed:</p>
 <i class="fa icon-note" title="Note"></i>
 </td>
 <td class="content">
-If you&#8217;re not familiar with Python string substitutions, or the
-    <code>printf</code> function from C, maybe that <code>%d</code> is a little confusing?
-    <a href="http://www.diveintopython.net/"><em>Dive Into Python</em></a> has a good overview, if
-    you want to go look them up quickly.  We&#8217;ll see an alternative string
-    substitution syntax later in the book too.
+A couple more of those lovely f-strings in this listing!  If they&#8217;re
+    still a bit of a mystery, take a look at the
+<a href="https://docs.python.org/3/reference/lexical_analysis.html#f-strings">docs</a>,
+    (although if your formal CS education is as bad as mine, you&#8217;ll probably
+    skip the formal grammar).
     
 </td>
 </tr>
@@ -1907,7 +1903,7 @@ new list it just created:</p>
 <pre class="CodeRay highlight"><code data-lang="python">    <span class="keyword">def</span> <span class="function">test_redirects_after_POST</span>(<span class="predefined-constant">self</span>):
         response = <span class="predefined-constant">self</span>.client.post(<span class="string"><span class="delimiter">'</span><span class="content">/lists/new</span><span class="delimiter">'</span></span>, data={<span class="string"><span class="delimiter">'</span><span class="content">item_text</span><span class="delimiter">'</span></span>: <span class="string"><span class="delimiter">'</span><span class="content">A new list item</span><span class="delimiter">'</span></span>})
         new_list = List.objects.first()
-        <span class="predefined-constant">self</span>.assertRedirects(response, <span class="string"><span class="delimiter">'</span><span class="content">/lists/%d/</span><span class="delimiter">'</span></span> % (new_list.id,))</code></pre>
+        <span class="predefined-constant">self</span>.assertRedirects(response, f<span class="string"><span class="delimiter">'</span><span class="content">/lists/{new_list.id}/</span><span class="delimiter">'</span></span>)</code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -1920,7 +1916,7 @@ itself, and change it so it redirects to a valid place:</p>
 <pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">def</span> <span class="function">new_list</span>(request):
     list_ = List.objects.create()
     Item.objects.create(text=request.POST[<span class="string"><span class="delimiter">'</span><span class="content">item_text</span><span class="delimiter">'</span></span>], list=list_)
-    <span class="keyword">return</span> redirect(<span class="string"><span class="delimiter">'</span><span class="content">/lists/%d/</span><span class="delimiter">'</span></span> % (list_.id,))</code></pre>
+    <span class="keyword">return</span> redirect(f<span class="string"><span class="delimiter">'</span><span class="content">/lists/{list_.id}/</span><span class="delimiter">'</span></span>)</code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -1928,13 +1924,13 @@ itself, and change it so it redirects to a valid place:</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>Creating test database for alias 'default'...
+<pre>$ <strong>python3 manage.py test lists</strong>
+[...]
 ......
  ---------------------------------------------------------------------
 Ran 6 tests in 0.033s
 
-OK
-Destroying test database for alias 'default'...</pre>
+OK</pre>
 </div>
 </div>
 <div class="paragraph">
@@ -2021,7 +2017,7 @@ let&#8217;s knock one together quickly:</p>
         correct_list = List.objects.create()
 
         <span class="predefined-constant">self</span>.client.post(
-            <span class="string"><span class="delimiter">'</span><span class="content">/lists/%d/add_item</span><span class="delimiter">'</span></span> % (correct_list.id,),
+            f<span class="string"><span class="delimiter">'</span><span class="content">/lists/{correct_list.id}/add_item</span><span class="delimiter">'</span></span>,
             data={<span class="string"><span class="delimiter">'</span><span class="content">item_text</span><span class="delimiter">'</span></span>: <span class="string"><span class="delimiter">'</span><span class="content">A new item for an existing list</span><span class="delimiter">'</span></span>}
         )
 
@@ -2036,11 +2032,11 @@ let&#8217;s knock one together quickly:</p>
         correct_list = List.objects.create()
 
         response = <span class="predefined-constant">self</span>.client.post(
-            <span class="string"><span class="delimiter">'</span><span class="content">/lists/%d/add_item</span><span class="delimiter">'</span></span> % (correct_list.id,),
+            f<span class="string"><span class="delimiter">'</span><span class="content">/lists/{correct_list.id}/add_item</span><span class="delimiter">'</span></span>,
             data={<span class="string"><span class="delimiter">'</span><span class="content">item_text</span><span class="delimiter">'</span></span>: <span class="string"><span class="delimiter">'</span><span class="content">A new item for an existing list</span><span class="delimiter">'</span></span>}
         )
 
-        <span class="predefined-constant">self</span>.assertRedirects(response, <span class="string"><span class="delimiter">'</span><span class="content">/lists/%d/</span><span class="delimiter">'</span></span> % (correct_list.id,))</code></pre>
+        <span class="predefined-constant">self</span>.assertRedirects(response, f<span class="string"><span class="delimiter">'</span><span class="content">/lists/{correct_list.id}/</span><span class="delimiter">'</span></span>)</code></pre>
 </div>
 </div>
 <div class="admonitionblock note">
@@ -2054,7 +2050,7 @@ Are you wondering about <code>other_list</code>?  A bit like in the tests for
     viewing a specific list, it&#8217;s important that we add items to a specific
     list.  Adding this second object to the database prevents me from using
     a hack like List.objects.first() in the implementation.  That would be
-    a stupid thing to do, and you can&#8217;t go too far down the road of testing
+    a stupid thing to do, and you mustn&#8217;t go too far down the road of testing
     for all the stupid things you must not do (there are an infinite number
     of those after all). It&#8217;s a judgement call, but this one feels worth it.
     There&#8217;s some more discussion of this in <a href="#Chapter%0A%20%20%20%2012">testing-for-stupidity</a>
@@ -2223,7 +2219,7 @@ It returned None instead.</pre>
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">def</span> <span class="function">add_item</span>(request, list_id):
     list_ = List.objects.get(id=list_id)
-    <span class="keyword">return</span> redirect(<span class="string"><span class="delimiter">'</span><span class="content">/lists/%d/</span><span class="delimiter">'</span></span> % (list_.id,))</code></pre>
+    <span class="keyword">return</span> redirect(f<span class="string"><span class="delimiter">'</span><span class="content">/lists/{list_.id}/</span><span class="delimiter">'</span></span>)</code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -2244,7 +2240,7 @@ AssertionError: 0 != 1</pre>
 <pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">def</span> <span class="function">add_item</span>(request, list_id):
     list_ = List.objects.get(id=list_id)
     Item.objects.create(text=request.POST[<span class="string"><span class="delimiter">'</span><span class="content">item_text</span><span class="delimiter">'</span></span>], list=list_)
-    <span class="keyword">return</span> redirect(<span class="string"><span class="delimiter">'</span><span class="content">/lists/%d/</span><span class="delimiter">'</span></span> % (list_.id,))</code></pre>
+    <span class="keyword">return</span> redirect(f<span class="string"><span class="delimiter">'</span><span class="content">/lists/{list_.id}/</span><span class="delimiter">'</span></span>)</code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -2295,7 +2291,7 @@ Let&#8217;s create a new unit test in <code>ListViewTest</code>:</p>
 <pre class="CodeRay highlight"><code data-lang="python">    <span class="keyword">def</span> <span class="function">test_passes_correct_list_to_template</span>(<span class="predefined-constant">self</span>):
         other_list = List.objects.create()
         correct_list = List.objects.create()
-        response = <span class="predefined-constant">self</span>.client.get(<span class="string"><span class="delimiter">'</span><span class="content">/lists/%d/</span><span class="delimiter">'</span></span> % (correct_list.id,))
+        response = <span class="predefined-constant">self</span>.client.get(f<span class="string"><span class="delimiter">'</span><span class="content">/lists/{correct_list.id}/</span><span class="delimiter">'</span></span>)
         <span class="predefined-constant">self</span>.assertEqual(response.context[<span class="string"><span class="delimiter">'</span><span class="content">list</span><span class="delimiter">'</span></span>], correct_list)  <i class="conum" data-value="1"></i><b>(1)</b></code></pre>
 </div>
 </div>
@@ -2364,7 +2360,7 @@ AssertionError: False is not true : Couldn't find 'itemey 1' in response</pre>
 <tr>
 <td><i class="conum" data-value="2"></i><b>2</b></td>
 <td><code>.item_set</code> is called a
-<a href="https://docs.djangoproject.com/en/1.10/topics/db/queries/#following-relationships-backward">reverse lookup</a>.
+<a href="https://docs.djangoproject.com/en/1.11/topics/db/queries/#following-relationships-backward">reverse lookup</a>.
 It&#8217;s one of Django&#8217;s incredibly useful bits of ORM that lets you look up an
 object&#8217;s related items from a different table&#8230;&#8203;</td>
 </tr>
@@ -2386,13 +2382,12 @@ OK</pre>
 <div class="listingblock">
 <div class="content">
 <pre>$ <strong>python manage.py test functional_tests</strong>
-Creating test database for alias 'default'...
+[...]
 ..
  ---------------------------------------------------------------------
 Ran 2 tests in 9.771s
 
-OK
-Destroying test database for alias 'default'...</pre>
+OK</pre>
 </div>
 </div>
 <div class="paragraph">
@@ -2584,7 +2579,7 @@ methodology that helps us avoid this trap.</p>
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2017-02-18 14:32:20 GMT
+Last updated 2017-03-08 20:24:08 GMT
 </div>
 </div>
 <div class="comments" style="padding: 20px">
