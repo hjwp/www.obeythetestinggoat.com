@@ -45,11 +45,10 @@ REDIRECTS = {
 @app.route('/book/chapter_<n>.html')
 def chapter_redirector(n):
     old_name = 'chapter_{n}.html'.format(n=n)
-    return redirect('/book/' + REDIRECTS[old_name])
-
+    return redirect('/book/' + REDIRECTS[old_name], code=301)
 
 @app.route('/book/appendix_<thing>.html')
 def appendix_redirector(thing):
     old_name = 'appendix_{thing}.html'.format(thing=thing)
-    return redirect('/book/' + REDIRECTS[old_name])
+    return redirect('/book/' + REDIRECTS[old_name], code=301)
 
