@@ -123,15 +123,15 @@ Table of contents follows:
 ### Epilogue and appendices:
 
 * [Epilogue: Obey the Testing Goat!](/book/epilogue.html)
-* [Appendix I: PythonAnywhere](/book/appendix_I_PythonAnywhere.html)
-* [Appendix II: Django Class-Based Views](/book/appendix_Django_Class-Based_Views.html)
-* [Appendix III: Provisioning with Ansible](/book/appendix_III_provisioning_with_ansible.html)
-* [Appendix IV: Testing Database Migrations](/book/appendix_IV_testing_migrations.html)
-* [Appendix V: Behaviour-Driven Development (BDD)](/book/appendix_bdd.html)
-* [Appendix VI: Building a REST API: JSON, Ajax, and mocking with JavaScript](/book/appendix_rest_api.html)
-* [Appendix VII: Django-Rest-Framework](/book/appendix_DjangoRestFramework.html)
-* [Appendix IX: Cheat Sheet](/book/appendix_IX_cheat_sheet.html)
-* [Appendix X: What to Do Next](/book/appendix_X_what_to_do_next.html)
+* [Appendix A: PythonAnywhere](/book/appendix_I_PythonAnywhere.html)
+* [Appendix B: Django Class-Based Views](/book/appendix_Django_Class-Based_Views.html)
+* [Appendix C: Provisioning with Ansible](/book/appendix_III_provisioning_with_ansible.html)
+* [Appendix D: Testing Database Migrations](/book/appendix_IV_testing_migrations.html)
+* [Appendix E: Behaviour-Driven Development (BDD)](/book/appendix_bdd.html)
+* [Appendix F: Building a REST API: JSON, Ajax, and mocking with JavaScript](/book/appendix_rest_api.html)
+* [Appendix G: Django-Rest-Framework](/book/appendix_DjangoRestFramework.html)
+* [Appendix H: Cheat Sheet](/book/appendix_IX_cheat_sheet.html)
+* [Appendix I: What to Do Next](/book/appendix_X_what_to_do_next.html)
 * [Bibliography](/book/bibliography.html)
 
 
