@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="generator" content="Asciidoctor 1.5.4">
 <title>Improving Functional Tests: Ensuring Isolation and Removing Voodoo Sleeps</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:300,300italic,400,400italic,600,600italic%7CNoto+Serif:400,400italic,700,700italic%7CDroid+Sans+Mono:400,700">
 <link rel="stylesheet" href="./asciidoctor.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.5.0/css/font-awesome.min.css">
 <link rel="stylesheet" href="./coderay-asciidoctor.css">
@@ -69,6 +68,20 @@ that different test runs were interfering with each other, so we&#8217;ll fix
 that.  I&#8217;m also not happy with all these <code>time.sleeps</code> peppered through
 the code, they seem a bit unscientific, so we&#8217;ll replace them with something
 more reliable.</p>
+</div>
+<div class="sidebarblock scratchpad">
+<div class="content">
+<div class="ulist">
+<ul>
+<li>
+<p><em>Clean up after FT runs</em></p>
+</li>
+<li>
+<p><em>Remove time.sleeps</em></p>
+</li>
+</ul>
+</div>
+</div>
 </div>
 <div class="paragraph">
 <p>Both of these changes will be moving towards testing "best practices",
@@ -196,6 +209,8 @@ class to make it use <code>LiveServerTestCase</code>:</p>
 <pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> <span class="include">django.test</span> <span class="keyword">import</span> <span class="include">LiveServerTestCase</span>
 <span class="keyword">from</span> <span class="include">selenium</span> <span class="keyword">import</span> <span class="include">webdriver</span>
 <span class="keyword">from</span> <span class="include">selenium.webdriver.common.keys</span> <span class="keyword">import</span> <span class="include">Keys</span>
+<span class="keyword">import</span> <span class="include">time</span>
+
 
 <span class="keyword">class</span> <span class="class">NewVisitorTest</span>(LiveServerTestCase):
 
@@ -204,8 +219,8 @@ class to make it use <code>LiveServerTestCase</code>:</p>
 </div>
 </div>
 <div class="paragraph">
-<p>Next, instead of hardcoding the visit to localhost port 8000, <code>LiveServerTestCase</code>
-gives us an attribute called <code>live_server_url</code>:</p>
+<p>Next, instead of hardcoding the visit to localhost port 8000,
+<code>LiveServerTestCase</code> gives us an attribute called <code>live_server_url</code>:</p>
 </div>
 <div class="listingblock dofirst-ch06l003 sourcecode">
 <div class="title">functional_tests/tests.py (ch06l002)</div>
@@ -334,6 +349,69 @@ functional tests once all the unit tests are passing, so if in doubt, try both!<
 </div>
 </div>
 <div class="sect2">
+<h3 id="_aside_upgrading_selenium_and_geckodriver">Aside: Upgrading Selenium and Geckodriver</h3>
+<div class="paragraph">
+<p>As I was running through this chapter again today, I found the FTs hung when I
+tried to run them.</p>
+</div>
+<div class="paragraph">
+<p>It turns out that Firefox had auto-updated itself overnight, and my versions
+of Selenium and Geckodriver needed upgrading too.  A quick visit to the
+<a href="https://github.com/mozilla/geckodriver/releases">geckodriver releases page</a>
+confirmed there was a new version out.  So a few downloads and upgrades were
+in order:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>A quick <code>pip install --upgrade selenium</code> first.</p>
+</li>
+<li>
+<p>Then quick download of the new geckodriver.</p>
+</li>
+<li>
+<p>I saved a backup copy of the old one somewhere, and put the new one in its
+place somewhere on the <code>PATH</code>.</p>
+</li>
+<li>
+<p>And a quick check with <code>geckodriver --version</code> confirms the new one was
+ready to go.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>The FTs were then back to running the way I expected them to.</p>
+</div>
+<div class="paragraph">
+<p>There was no particular reason that it happened at this point in the book,
+indeed it&#8217;s quite unlikely that it&#8217;ll happen right now for you, but it may
+happen at some point, and this seemed as good a place as any to talk about
+it, since we&#8217;re doing some housekeeping.</p>
+</div>
+<div class="paragraph">
+<p>It&#8217;s one of the things you have to put up with, when using Selenium. Although
+it is possible to pin your browser and selenium versions (on a CI server for
+example), browser versions don&#8217;t stand still out in the real world., and you
+need to keep up with what your users have.</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+If something strange is going on with your FTs, it&#8217;s always worth
+    trying to upgrade Selenium.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>Back to our regular programming now.</p>
+</div>
+</div>
+<div class="sect2">
 <h3 id="_on_implicit_and_explicit_waits_and_voodoo_time_sleeps">On implicit and explicit waits, and voodoo time.sleeps</h3>
 <div class="paragraph">
 <p>Let&#8217;s talk about the <code>time.sleep</code> in our FT:</p>
@@ -424,7 +502,9 @@ MAX_WAIT = <span class="integer">10</span>  <i class="conum" data-value="1"></i>
 <td><i class="conum" data-value="1"></i><b>1</b></td>
 <td>We&#8217;ll use a constant called <code>MAX_WAIT</code> to set how long is the maximum
 amount of time we&#8217;re prepared to wait.  10 seconds should be more than
-enough to catch any glitches or random slowness.</td>
+enough to catch any glitches or random slowness.
+//TODO: see if we can&#8217;t reduce this down to eg 5s and still have reliable
+//CI</td>
 </tr>
 <tr>
 <td><i class="conum" data-value="2"></i><b>2</b></td>
@@ -468,7 +548,7 @@ failed.</td>
 </td>
 <td class="content">
 Are you thinking this code is a little ugly, and makes it a bit harder
-    to see exactly what we&#8217;re doing?  I agree. <a href="#self.wait-for">Later on</a>,
+    to see exactly what we&#8217;re doing?  I agree. <a href="/book/chapter_organising_test_files.html#self.wait-for">Later on</a>,
     we&#8217;ll refactor out a general <code>wait_for</code> helper, to separate the timing and
     re-raising logic from the test assertions.  But we&#8217;ll wait until we need it
     in multiple places.
@@ -650,7 +730,7 @@ than implict", as the Zen of Python says, so prefer explicit waits.</p>
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2017-03-13 06:18:07 GMT
+Last updated 2017-03-30 07:47:47 BST
 </div>
 </div>
 <div class="comments" style="padding: 20px">

@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="generator" content="Asciidoctor 1.5.4">
 <title>Testing Deployment Using a Staging Site</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:300,300italic,400,400italic,600,600italic%7CNoto+Serif:400,400italic,700,700italic%7CDroid+Sans+Mono:400,700">
 <link rel="stylesheet" href="./asciidoctor.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.5.0/css/font-awesome.min.css">
 <link rel="stylesheet" href="./coderay-asciidoctor.css">
@@ -97,9 +96,9 @@ real, live web server.</p>
 <div class="paragraph">
 <p>You might be tempted to skip this chapter&#8212;&#8203;there&#8217;s lots of daunting stuff
 in it, and maybe you think this isn&#8217;t what you signed up for. But I <em>strongly</em>
-urge you to give it a go.  This is one of the chapters I&#8217;m most pleased with,
-and it&#8217;s one that people often write to me saying they were really glad they
-stuck through it.</p>
+urge you to give it a go.  This is one of the sections of the book I&#8217;m most
+pleased with, and it&#8217;s one that people often write to me saying they were
+really glad they stuck through it.</p>
 </div>
 <div class="paragraph">
 <p>If you&#8217;ve never done a server deployment before, it will demystify a whole
@@ -197,14 +196,17 @@ testing fits in.</p>
 </div>
 <div class="sidebarblock">
 <div class="content">
-<div class="title">Chapter Overview</div>
+<div class="title">Deployment Chapters Overview</div>
 <div class="paragraph">
 <p>
-There&#8217;s lots of stuff in this chapter, so here&#8217;s an overview to help you keep
-your bearings:</p>
+There&#8217;s lots of stuff in the next 3 chapters, so here&#8217;s an overview to help you
+keep your bearings:</p>
 </div>
-<div class="olist arabic">
-<ol class="arabic">
+<div class="paragraph">
+<p><strong>This chapter: getting it up and running</strong></p>
+</div>
+<div class="ulist">
+<ul>
 <li>
 <p>Adapt our FTs so they can run against a staging server.</p>
 </li>
@@ -220,16 +222,32 @@ staging and live domains at it.</p>
 using the Django dev server.</p>
 </li>
 <li>
-<p>Manually set up a virtualenv on the server (without virtualenvwrapper).</p>
+<p>Manually set up a virtualenv on the server (without virtualenvwrapper), and
+make sure the database and static files are working.</p>
 </li>
 <li>
 <p>As we go, we&#8217;ll keep running our FT, to tell us what&#8217;s working and what&#8217;s
 not.</p>
 </li>
+</ul>
+</div>
+<div class="paragraph">
+<p><strong>Next chapter: moving to a production-ready config</strong></p>
+</div>
+<div class="ulist">
+<ul>
 <li>
-<p>Move from our quick &amp; dirty version to a production-ready configuration,
-using Gunicorn, Systemd, and domain sockets.</p>
+<p>Move from our quick &amp; dirty version to a production-ready configuration;
+stop using the Django dev server, set our app to start automatically on
+boot, set DEBUG to False, and so on.</p>
 </li>
+</ul>
+</div>
+<div class="paragraph">
+<p><strong>Third deployment chapter: automating the deployment</strong></p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
 <li>
 <p>Once we have a working config, we&#8217;ll write a script to automate the process
 we&#8217;ve just been through manually, so that we can deploy our site
@@ -256,7 +274,7 @@ used to change the address which the test&#8217;s temporary server gets run on:<
 <div class="listingblock sourcecode">
 <div class="title">functional_tests/tests.py (ch08l001)</div>
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">import</span> <span class="include">sys</span>
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">import</span> <span class="include">os</span>
 [...]
 
 <span class="keyword">class</span> <span class="class">NewVisitorTest</span>(StaticLiveServerTestCase):
@@ -265,7 +283,7 @@ used to change the address which the test&#8217;s temporary server gets run on:<
         <span class="predefined-constant">self</span>.browser = webdriver.Firefox()
         staging_server = os.environ.get(<span class="string"><span class="delimiter">'</span><span class="content">STAGING_SERVER</span><span class="delimiter">'</span></span>)  <i class="conum" data-value="1"></i><b>(1)</b>
         <span class="keyword">if</span> staging_server:
-            <span class="predefined">setattr</span>(<span class="predefined-constant">self</span>, <span class="string"><span class="delimiter">'</span><span class="content">live_server_url</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">http://</span><span class="delimiter">'</span></span> + staging_server)  <i class="conum" data-value="2"></i><b>(2)</b></code></pre>
+            <span class="predefined-constant">self</span>.live_server_url = <span class="string"><span class="delimiter">'</span><span class="content">http://</span><span class="delimiter">'</span></span> + staging_server  <i class="conum" data-value="2"></i><b>(2)</b></code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -284,10 +302,8 @@ bother, and to use a real server instead.</p>
 </tr>
 <tr>
 <td><i class="conum" data-value="2"></i><b>2</b></td>
-<td>We can&#8217;t just assign to <code>self.live_server_url</code> because it&#8217;s a special
-property on this class, but we can get around that by using <code>setattr</code>.
-I did promise you a
-hack<sup class="footnote">[<a id="_footnoteref_2" class="footnote" href="#_footnote_2" title="View footnote.">2</a>]</sup>!</td>
+<td>Here&#8217;s the hack: we replace <code>self.live_server_url</code> with the address of
+our "real" server.</td>
 </tr>
 </table>
 </div>
@@ -305,8 +321,8 @@ OK</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>And now we can try them against our staging server URL.  I&#8217;m hosting my staging
-server at <em>superlists-staging.ottg.eu</em>:</p>
+<p>And now we can try them against our staging server URL.  I&#8217;m planning to
+host my staging server at <em>superlists-staging.ottg.eu</em>:</p>
 </div>
 <div class="listingblock skipme">
 <div class="content">
@@ -336,7 +352,7 @@ test_layout_and_styling
     inputbox = self.browser.find_element_by_id('id_new_item')
 [...]
 selenium.common.exceptions.NoSuchElementException: Message: Unable to locate
-element: {"method":"id","selector":"id_new_item"}
+element: [id="id_new_item"]
 [...]
 
 
@@ -347,7 +363,7 @@ Traceback (most recent call last):
   File
 [...]
 selenium.common.exceptions.NoSuchElementException: Message: Unable to locate
-element: {"method":"id","selector":"id_new_item"}
+element: [id="id_new_item"]
 [...]
 
 Ran 3 tests in 19.480s:
@@ -355,11 +371,24 @@ Ran 3 tests in 19.480s:
 FAILED (failures=3)</pre>
 </div>
 </div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+If, on Windows, you see an error saying something like:
+    "STAGING_SERVER is not recognized as a command", it&#8217;s probably because
+    you&#8217;re not using Git-Bash.  Take another look at the <a href="/book/pre-requisite-installations.html">[pre-requisites]</a>.
+</td>
+</tr>
+</table>
+</div>
 <div class="paragraph">
 <p>You can see that both tests are failing, as expected, since I haven&#8217;t
-actually set up my staging site yet. In fact, you can see from the
-first traceback that the test is actually ending up on the home page of
-my domain registrar.</p>
+actually set up my domain yet. In fact, you can see from the first traceback
+that the test is actually ending up on the home page of my domain registrar.</p>
 </div>
 <div class="paragraph">
 <p>The FT seems to be testing the right things though, so let&#8217;s commit:</p>
@@ -435,8 +464,8 @@ fall into two camps:</p>
 <p>Running your own (possibly virtual) server</p>
 </li>
 <li>
-<p>Using a Platform-As-A-Service (PaaS) offering like Heroku, DotCloud,
-OpenShift, or PythonAnywhere</p>
+<p>Using a Platform-As-A-Service (PaaS) offering like Heroku, OpenShift, or
+PythonAnywhere</p>
 </li>
 </ul>
 </div>
@@ -473,7 +502,7 @@ solution you choose.</p>
 <p>
 
 I&#8217;m not going to
-dictate<sup class="footnote">[<a id="_footnoteref_3" class="footnote" href="#_footnote_3" title="View footnote.">3</a>]</sup>
+dictate<sup class="footnote">[<a id="_footnoteref_2" class="footnote" href="#_footnote_2" title="View footnote.">2</a>]</sup>
 how you do this&#8212;&#8203;whether you choose Amazon AWS, Rackspace, Digital Ocean, your
 own server in your own data centre or a Raspberry Pi in a cupboard under the
 stairs, any solution should be fine, as long as:</p>
@@ -495,10 +524,10 @@ stairs, any solution should be fine, as long as:</p>
 </ul>
 </div>
 <div class="paragraph">
-<p>I&#8217;m recommending Ubuntu as a distro because it has Python 3.6 and it has some
-specific ways of configuring Nginx, which I&#8217;m going to make use of next.  If
-you know what you&#8217;re doing, you can probably get away with using something
-else, but you&#8217;re on your own.</p>
+<p>I&#8217;m recommending Ubuntu as a distro because it&#8217;s easy to get Python 3.6 on it
+and it has some specific ways of configuring Nginx, which I&#8217;m going to make use
+of next.  If you know what you&#8217;re doing, you can probably get away with using
+something else, but you&#8217;re on your own.</p>
 </div>
 <div class="admonitionblock note">
 <table>
@@ -592,10 +621,19 @@ elspeth@server:$ <strong>sudo systemctl start nginx</strong></pre>
 <p>You should be able to go to the IP address of your server, and see the
 "Welcome to nginx" page at this point, as in <a href="#nginx-it-works">Nginx&#8212;&#8203;it works!</a>.</p>
 </div>
-<div class="paragraph">
-<p>If you don&#8217;t see it, it may be because your firewall does not open port 80 to
-the world. On AWS for example, you may need to configure the "security group"
-for your server to open port 80.</p>
+<div class="admonitionblock tip">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-tip" title="Tip"></i>
+</td>
+<td class="content">
+If you don&#8217;t see it, it may be because your firewall does not open port 80
+    to the world. On AWS for example, you may need to configure the "security
+    group" for your server to open port 80.
+</td>
+</tr>
+</table>
 </div>
 <div id="nginx-it-works" class="imageblock">
 <div class="content">
@@ -660,18 +698,19 @@ To confirm  this works, we can rerun our functional tests and see that their
 failure messages have changed slightly&#8212;&#8203;one of them in particular should
 now mention Nginx:</p>
 </div>
-<div class="listingblock">
+<div class="listingblock skipme">
 <div class="content">
 <pre>$ <strong>STAGING_SERVER=superlists-staging.ottg.eu python manage.py test functional_tests</strong>
 [...]
 selenium.common.exceptions.NoSuchElementException: Message: Unable to locate
-element: {"method":"id","selector":"id_new_item"}
+element: [id="id_new_item"]
 [...]
 AssertionError: 'To-Do' not found in 'Welcome to nginx!'</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>Progress!
+<p>Progress!  Give yourself a pat on the back, and maybe a nice cup of tea
+and a <a href="https://en.wikipedia.org/wiki/Digestive_biscuit">Chocolate biscuit</a>.
 
 
 
@@ -695,10 +734,10 @@ should be thinking about how we can automate the process, as we go.</p>
 </td>
 <td class="content">
 One rule of thumb for distinguishing provisioning from deployment is
-that you tend to need root permissions for the former, but we don&#8217;t for the
-latter.
-
-
+    that you tend to need root permissions for the former, but we don&#8217;t for the
+    latter.
+    
+    
 </td>
 </tr>
 </table>
@@ -777,10 +816,10 @@ DATABASES = {
 </td>
 <td class="content">
 Check out the way <code>BASE_DIR</code> is defined, further up in <em>settings.py</em>.
-Notice the <code>abspath</code> gets done first (i.e., innermost).  Always follow this
-pattern when path-wrangling, otherwise you can see strange things happening
-depending on how the file is imported.  Thanks to
-<a href="https://github.com/CleanCut/green">Green Nathan</a> for that tip!
+    Notice the <code>abspath</code> gets done first (i.e., innermost).  Always follow this
+    pattern when path-wrangling, otherwise you can see strange things happening
+    depending on how the file is imported.  Thanks to
+    <a href="https://github.com/CleanCut/green">Green Nathan</a> for that tip!
 </td>
 </tr>
 </table>
@@ -792,7 +831,9 @@ depending on how the file is imported.  Thanks to
 <div class="content">
 <pre>$ <strong>mkdir ../database</strong>
 $ <strong>python manage.py migrate --noinput</strong>
-Creating tables ...
+Operations to perform:
+Apply all migrations: auth, contenttypes, lists, sessions
+Running migrations:
 [...]
 $ <strong>ls ../database/</strong>
 db.sqlite3</pre>
@@ -839,10 +880,10 @@ Resolving deltas: 100% [...]</pre>
 </td>
 <td class="content">
 A bash variable defined using <code>export</code> only lasts as long as that console
-session. If you log out of the server and log back in again, you&#8217;ll need to
-redefine it. It&#8217;s devious because Bash won&#8217;t error, it will just substitute
-the empty string for the variable, which will lead to weird results&#8230;&#8203;if in
-doubt, do a quick <strong><code>echo $SITENAME</code></strong>.
+    session. If you log out of the server and log back in again, you&#8217;ll need to
+    redefine it. It&#8217;s devious because Bash won&#8217;t error, it will just substitute
+    the empty string for the variable, which will lead to weird results&#8230;&#8203;if in
+    doubt, do a quick <strong><code>echo $SITENAME</code></strong>.
 </td>
 </tr>
 </table>
@@ -874,7 +915,7 @@ re-create it on the server, we create a <em>requirements.txt</em> file:</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>$ <strong>echo "Django==1.11.5" &gt; requirements.txt</strong>
+<pre>$ <strong>echo "django==1.11rc1" &gt; requirements.txt</strong>
 $ <strong>git add requirements.txt</strong>
 $ <strong>git commit -m "Add requirements.txt for virtualenv"</strong></pre>
 </div>
@@ -939,7 +980,7 @@ pip:</p>
 <div class="listingblock server-commands">
 <div class="content">
 <pre>elspeth@server:$ <strong>../virtualenv/bin/pip install -r requirements.txt</strong>
-Downloading/unpacking Django==1.11.5 (from -r requirements.txt (line 1))
+Downloading/unpacking Django==1.11rc1 (from -r requirements.txt (line 1))
 [...]
 Successfully installed Django</pre>
 </div>
@@ -956,9 +997,31 @@ Validating models...
 [...]</pre>
 </div>
 </div>
+<div class="admonitionblock tip">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-tip" title="Tip"></i>
+</td>
+<td class="content">
+Depending on your firewall configuration, you may even be able to manually
+    visit your site at this point, by going to <em><a href="http://your.domain.com:8000" class="bare">http://your.domain.com:8000</a></em>
+</td>
+</tr>
+</table>
+</div>
 <div class="paragraph">
 <p>That looks like it&#8217;s running happily.  We can Ctrl-C it for now.
 </p>
+</div>
+<div class="paragraph">
+<p>More progress!  We&#8217;ve got a system for getting code to and from the server (git
+push and pull), and we&#8217;ve got a virtualenv set up to match our local one, and
+a single file, <em>requirements.txt</em>, to keep them in sync.</p>
+</div>
+<div class="paragraph">
+<p>Next we&#8217;ll configure the Nginx web server to talk to Django and get our site
+up on the standard port 80.</p>
 </div>
 </div>
 <div class="sect3">
@@ -966,7 +1029,7 @@ Validating models...
 <div class="paragraph">
 <p>
 
-Next we create an Nginx config file to tell it to send requests for our staging
+We create an Nginx config file to tell it to send requests for our staging
 site along to Django. A minimal config looks like this:</p>
 </div>
 <div class="listingblock sourcecode">
@@ -983,9 +1046,9 @@ site along to Django. A minimal config looks like this:</p>
 </div>
 </div>
 <div class="paragraph">
-<p>This config says it will only work for our staging domain, and will "proxy"
+<p>This config says it will only listen for our staging domain, and will "proxy"
 all requests to the local port 8000 where it expects to find Django
-waiting to respond to requests.</p>
+waiting to respond.</p>
 </div>
 <div class="paragraph">
 <p>I saved this to a file called <em>superlists-staging.ottg.eu</em>
@@ -999,10 +1062,11 @@ inside the <em>/etc/nginx/sites-available</em> folder</p>
 </td>
 <td class="content">
 Not sure how to edit a file on the server?  There&#8217;s always vi, which I&#8217;ll
-    keep encouraging you to learn a bit of. Alternatively, try the relatively
-    beginner-friendly
-    <a href="http://www.howtogeek.com/howto/42980/the-beginners-guide-to-nano-the-linux-command-line-text-editor/"><code>nano</code></a>.
-    Note you&#8217;ll also need to use <code>sudo</code> because the file is in a system folder.
+    keep encouraging you to learn a bit of, but perhaps today is already too
+    full of new things. Try the relatively beginner-friendly
+    <a href="http://www.howtogeek.com/howto/42980/the-beginners-guide-to-nano-the-linux-command-line-text-editor/"><code>nano</code></a>
+    instead. Note you&#8217;ll also need to use <code>sudo</code> because the file is in a
+    system folder.
 </td>
 </tr>
 </table>
@@ -1010,12 +1074,11 @@ Not sure how to edit a file on the server?  There&#8217;s always vi, which I&#82
 <div class="paragraph">
 <p>We then add it to the enabled sites for the server by creating a symlink to it:</p>
 </div>
-<div class="listingblock server-commands">
+<div class="listingblock server-commands small-code">
 <div class="content">
 <pre>elspeth@server:$ <strong>echo $SITENAME</strong> # check this still has our site in
 superlists-staging.ottg.eu
-elspeth@server:$ <strong>sudo ln -s ../sites-available/$SITENAME \
-/etc/nginx/sites-enabled/$SITENAME</strong>
+elspeth@server:$ <strong>sudo ln -s ../sites-available/$SITENAME /etc/nginx/sites-enabled/$SITENAME</strong>
 elspeth@server:$ <strong>ls -l /etc/nginx/sites-enabled</strong> # check our symlink is there</pre>
 </div>
 </div>
@@ -1050,9 +1113,9 @@ elspeth@server:$ <strong>../virtualenv/bin/python manage.py runserver</strong></
 </td>
 <td class="content">
 I also had to edit <em>/etc/nginx/nginx.conf</em> and uncomment a line saying
-<code>server_names_hash_bucket_size 64;</code> to get my long domain name to work.  You
-may not have this problem; Nginx will warn you when you do a <code>reload</code> if it has
-any trouble with its config files.
+    <code>server_names_hash_bucket_size 64;</code> to get my long domain name to work.
+    You may not have this problem; Nginx will warn you when you do a <code>reload</code>
+    if it has any trouble with its config files.
 </td>
 </tr>
 </table>
@@ -1074,8 +1137,8 @@ any trouble with its config files.
 </td>
 <td class="content">
 If you ever find Nginx isn&#8217;t behaving as expected, try the command
-<code>sudo nginx -t</code>, which does a config test, and will warn you of any
-problems in your configuration files.
+    <code>sudo nginx -t</code>, which does a config test, and will warn you of any
+    problems in your configuration files.
 </td>
 </tr>
 </table>
@@ -1083,7 +1146,7 @@ problems in your configuration files.
 <div class="paragraph">
 <p>Let&#8217;s see what our functional tests say:</p>
 </div>
-<div class="listingblock">
+<div class="listingblock skipme">
 <div class="content">
 <pre>$ <strong>STAGING_SERVER=superlists-staging.ottg.eu python manage.py test functional_tests</strong>
 [...]
@@ -1100,6 +1163,12 @@ haven&#8217;t set up the database. You&#8217;ll probably have spotted the yellow
 debug page (<a href="#django-debug-screen">But the database isn&#8217;t</a>) telling us as much as the tests went
 through, or if you tried it manually.</p>
 </div>
+<div id="django-debug-screen" class="imageblock">
+<div class="content">
+<img src="images/twdp_0804.png" alt="Django DEBUG page showing database error">
+</div>
+<div class="title">Figure 4. But the database isn&#8217;t</div>
+</div>
 <div class="admonitionblock note">
 <table>
 <tr>
@@ -1108,22 +1177,16 @@ through, or if you tried it manually.</p>
 </td>
 <td class="content">
 The tests saved us from potential embarrassment there.  The site <em>looked</em>
-fine when we loaded its front page.  If we&#8217;d been a little hasty, we might have
-thought we were done, and it would have been the first users that discovered
-that nasty Django DEBUG page.  Okay, slight exaggeration for effect, maybe we
-<em>would</em> have checked, but what happens as the site gets bigger and more
-complex? You can&#8217;t check everything. The tests can.
-
-
+    fine when we loaded its front page.  If we&#8217;d been a little hasty, we might
+    have thought we were done, and it would have been the first users that
+    discovered that nasty Django DEBUG page.  Okay, slight exaggeration for
+    effect, maybe we <em>would</em> have checked, but what happens as the site gets
+    bigger and more complex? You can&#8217;t check everything. The tests can.
+    
+    
 </td>
 </tr>
 </table>
-</div>
-<div id="django-debug-screen" class="imageblock">
-<div class="content">
-<img src="images/twdp_0804.png" alt="Django DEBUG page showing database error">
-</div>
-<div class="title">Figure 4. But the database isn&#8217;t</div>
 </div>
 </div>
 <div class="sect3">
@@ -1147,7 +1210,7 @@ elspeth@server:$ <strong>../virtualenv/bin/python manage.py runserver</strong></
 <div class="paragraph">
 <p>Let&#8217;s try the FTs again:</p>
 </div>
-<div class="listingblock">
+<div class="listingblock skipme">
 <div class="content">
 <pre>$ <strong>STAGING_SERVER=superlists-staging.ottg.eu python manage.py test functional_tests</strong>
 [...]
@@ -1171,331 +1234,17 @@ well-earned tea break at this point, before moving on to the next section&#8230;
 </td>
 <td class="content">
 If you see a "502 - Bad Gateway", it&#8217;s probably because you forgot to
-restart the dev server with <code>manage.py runserver</code> after the <code>migrate</code>.
+    restart the dev server with <code>manage.py runserver</code> after the <code>migrate</code>.
 </td>
 </tr>
 </table>
 </div>
-</div>
-</div>
-<div class="sect2">
-<h3 id="_getting_to_a_production_ready_deployment">Getting to a Production-Ready Deployment</h3>
 <div class="paragraph">
-<p>
-We&#8217;re at least reassured that the basic piping works, but we really can&#8217;t be
-using the Django dev server in production.  We also can&#8217;t be relying on
-manually starting it up with <code>runserver</code>.</p>
-</div>
-<div class="sect3">
-<h4 id="_switching_to_gunicorn">Switching to Gunicorn</h4>
-<div class="paragraph">
-<p>
-
-Do you know why the Django mascot is a pony?  The story is that Django
-comes with so many things you want: an ORM, all sorts of middleware,
-the admin site&#8230;&#8203; "What else do you want, a pony?" Well, Gunicorn stands
-for "Green Unicorn", which I guess is what you&#8217;d want next if you already
-had a pony&#8230;&#8203;</p>
-</div>
-<div class="listingblock server-commands">
-<div class="content">
-<pre>elspeth@server:$ <strong>../virtualenv/bin/pip install gunicorn</strong></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Gunicorn will need to know a path to a WSGI server, which is usually
-a function called <code>application</code>.  Django provides one in <em>superlists/wsgi.py</em>:</p>
-</div>
-<div class="listingblock server-commands">
-<div class="content">
-<pre>elspeth@server:$ <strong>../virtualenv/bin/gunicorn superlists.wsgi:application</strong>
-2013-05-27 16:22:01 [10592] [INFO] Starting gunicorn 0.19.6
-2013-05-27 16:22:01 [10592] [INFO] Listening at: http://127.0.0.1:8000 (10592)
-[...]</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>If you now take a look at the site, you&#8217;ll find the CSS is all broken, as in
-<a href="#site-with-broken-css">Broken CSS</a>.</p>
-</div>
-<div class="paragraph">
-<p>
-And if we run the functional tests, you&#8217;ll see they confirm that something
-is wrong. The test for adding list items passes happily, but the test for
-layout + styling fails.  Good job tests!</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>$ <strong>STAGING_SERVER=superlists-staging.ottg.eu python manage.py test functional_tests</strong>
-[...]
-AssertionError: 125.0 != 512 within 3 delta
-FAILED (failures=1)</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>The reason that the CSS is broken is that although the Django dev server will
-serve static files magically for you, Gunicorn doesn&#8217;t.  Now is the time to
-tell Nginx to do it instead.</p>
-</div>
-<div id="site-with-broken-css" class="imageblock">
-<div class="content">
-<img src="images/twdp_0805.png" alt="The site is up, but CSS is broken">
-</div>
-<div class="title">Figure 5. Broken CSS</div>
-</div>
-</div>
-<div class="sect3">
-<h4 id="_getting_nginx_to_serve_static_files">Getting Nginx to Serve Static Files</h4>
-<div class="paragraph">
-<p>
-
-First we run <code>collectstatic</code> to copy all the static files to a folder where
-Nginx can find them:</p>
-</div>
-<div class="listingblock server-commands">
-<div class="content">
-<pre>elspeth@server:$ <strong>../virtualenv/bin/python manage.py collectstatic --noinput</strong>
-elspeth@server:$ <strong>ls ../static/</strong>
-base.css  bootstrap</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Now we tell Nginx to start serving those static files for us:</p>
-</div>
-<div class="listingblock sourcecode">
-<div class="title">server: /etc/nginx/sites-available/superlists-staging.ottg.eu</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="nginx">server {
-    listen 80;
-    server_name superlists-staging.ottg.eu;
-
-    location /static {
-        alias /home/elspeth/sites/superlists-staging.ottg.eu/static;
-    }
-
-    location / {
-        proxy_pass http://localhost:8000;
-    }
-}</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Reload Nginx and restart Gunicorn&#8230;&#8203;</p>
-</div>
-<div class="listingblock server-commands">
-<div class="content">
-<pre>elspeth@server:$ <strong>sudo systemctl reload nginx</strong>
-elspeth@server:$ <strong>../virtualenv/bin/gunicorn superlists.wsgi:application</strong></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>And if we take another look at the site, things are looking much healthier. We
-can rerun our FTs:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>$ <strong>STAGING_SERVER=superlists-staging.ottg.eu python manage.py test functional_tests</strong>
-[...]
-
-...
- ---------------------------------------------------------------------
-Ran 3 tests in 10.718s
-
-OK</pre>
-</div>
-</div>
-</div>
-<div class="sect3">
-<h4 id="_switching_to_using_unix_sockets">Switching to Using Unix Sockets</h4>
-<div class="paragraph">
-<p>
-When we want to serve both staging and live, we can&#8217;t have both servers trying
-to use port 8000.  We could decide to allocate different ports, but that&#8217;s a
-bit arbitrary, and it would be dangerously easy to get it wrong and start
-the staging server on the live port, or vice versa.</p>
-</div>
-<div class="paragraph">
-<p>A better solution is to use Unix domain sockets&#8212;&#8203;they&#8217;re like files on disk,
-but can be used by Nginx and Gunicorn to talk to each other.  We&#8217;ll put our
-sockets in <em>/tmp</em>.  Let&#8217;s change the proxy settings in Nginx:</p>
-</div>
-<div class="listingblock sourcecode">
-<div class="title">server: /etc/nginx/sites-available/superlists-staging.ottg.eu</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="nginx">[...]
-    location / {
-        proxy_set_header Host $host;
-        proxy_pass http://unix:/tmp/superlists-staging.ottg.eu.socket;
-    }
-}</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p><code>proxy_set_header</code> is used to make sure Gunicorn and Django know what domain
-it&#8217;s running on.  We need that for the <code>ALLOWED_HOSTS</code> security feature, which
-we&#8217;re about to switch on.</p>
-</div>
-<div class="paragraph">
-<p>Now we restart Gunicorn, but this time telling it to listen on a socket instead
-of on the default port:</p>
-</div>
-<div class="listingblock server-commands">
-<div class="content">
-<pre>elspeth@server:$ <strong>sudo systemctl reload nginx</strong>
-elspeth@server:$ <strong>../virtualenv/bin/gunicorn --bind \
-    unix:/tmp/superlists-staging.ottg.eu.socket superlists.wsgi:application</strong></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>And again, we rerun the functional test again, to make sure things still pass:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>$ <strong>STAGING_SERVER=superlists-staging.ottg.eu python manage.py test functional_tests</strong>
-OK</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>A couple more steps!</p>
-</div>
-</div>
-<div class="sect3">
-<h4 id="_switching_debug_to_false_and_setting_allowed_hosts">Switching DEBUG to False and Setting ALLOWED_HOSTS</h4>
-<div class="paragraph">
-<p>
-
-
-Django&#8217;s DEBUG mode is all very well for hacking about on your own server, but
-leaving those pages full of tracebacks available
-<a href="http://bit.ly/SuvluV">isn&#8217;t secure</a>.</p>
-</div>
-<div class="paragraph">
-<p>You&#8217;ll find the <code>DEBUG</code> setting at the top of <em>settings.py</em>. When we set this
-to <code>False</code>, we also need to set another setting called <code>ALLOWED_HOSTS</code>. This
-was
-<a href="https://docs.djangoproject.com/en/1.11/ref/settings/#std:setting-ALLOWED_HOSTS">added
-as a security feature</a> in Django 1.5.  Unfortunately it doesn&#8217;t have a helpful
-comment in the default <em>settings.py</em>, but we can add one ourselves.  Do this on
-the server:</p>
-</div>
-<div class="listingblock sourcecode">
-<div class="title">server: superlists/settings.py</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="comment"># SECURITY WARNING: don't run with debug turned on in production!</span>
-DEBUG = <span class="predefined-constant">False</span>
-
-TEMPLATE_DEBUG = DEBUG
-
-<span class="comment"># Needed when DEBUG=False</span>
-ALLOWED_HOSTS = [<span class="string"><span class="delimiter">'</span><span class="content">superlists-staging.ottg.eu</span><span class="delimiter">'</span></span>]
-[...]</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>And, once again, we restart Gunicorn and run the FT to check things still work.</p>
-</div>
-<div class="admonitionblock note">
-<table>
-<tr>
-<td class="icon">
-<i class="fa icon-note" title="Note"></i>
-</td>
-<td class="content">
-Don&#8217;t commit these changes on the server. At the moment this is just a
-hack to get things working, not a change we want to keep in our repo. In
-general, to keep things simple, I&#8217;m only going to do Git commits from the local
-PC, using <code>git push</code> and <code>git pull</code> when I need to sync them up to the server.
-</td>
-</tr>
-</table>
-</div>
-</div>
-<div class="sect3">
-<h4 id="_using_systemd_to_make_sure_gunicorn_starts_on_boot">Using Systemd to Make Sure Gunicorn Starts on Boot</h4>
-<div class="paragraph">
-<p>
-Our final step is to make sure that the server starts up Gunicorn automatically
-on boot, and reloads it automatically if it crashes.  On Ubuntu, the way to do
-this is using Systemd:</p>
-</div>
-<div class="listingblock sourcecode">
-<div class="title">server: /etc/systemd/system/gunicorn-superlists-staging.ottg.eu.service</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="bash">[Unit]
-Description=Gunicorn server for superlists-staging.ottg.eu
-
-[Service]
-Restart=on-failure  <i class="conum" data-value="1"></i><b>(1)</b>
-User=elspeth  <i class="conum" data-value="2"></i><b>(2)</b>
-WorkingDirectory=/home/elspeth/sites/superlists-staging.ottg.eu/source  <i class="conum" data-value="3"></i><b>(3)</b>
-ExecStart=/home/elspeth/sites/superlists-staging.ottg.eu/virtualenv/bin/gunicorn \
-    --bind unix:/tmp/superlists-staging.ottg.eu.socket \
-    superlists.wsgi:application  <i class="conum" data-value="4"></i><b>(4)</b>
-
-[Install]
-WantedBy=multi-user.target <i class="conum" data-value="5"></i><b>(5)</b></code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Systemd is joyously simple to configure (especially if you&#8217;ve ever had the
-dubious pleasure of writing an <code>init.d</code> script), and is fairly
-self-explanatory.</p>
-</div>
-<div class="colist arabic">
-<table>
-<tr>
-<td><i class="conum" data-value="1"></i><b>1</b></td>
-<td><code>Restart=on-failure</code> will restart the process automatically if it crashes.</td>
-</tr>
-<tr>
-<td><i class="conum" data-value="2"></i><b>2</b></td>
-<td><code>User=elspeth</code> makes the process run as the "elspeth" user.</td>
-</tr>
-<tr>
-<td><i class="conum" data-value="3"></i><b>3</b></td>
-<td><code>WorkingDirectory</code> sets the working directory.</td>
-</tr>
-<tr>
-<td><i class="conum" data-value="4"></i><b>4</b></td>
-<td><code>ExecStart</code> is the actual process to execute.  We use the `\ ` line
-continuation characters to split the full command over multiple lines,
-for readability, but it could all go on one line.</td>
-</tr>
-<tr>
-<td><i class="conum" data-value="5"></i><b>5</b></td>
-<td><code>WantedBy</code> in the <code>[Install]</code> section is what tells Systemd we want this
-service to start on boot.</td>
-</tr>
-</table>
-</div>
-<div class="paragraph">
-<p>Systemd scripts live in <em>/etc/systemd/system</em>, and their names must end in
-<em>.service</em>.</p>
-</div>
-<div class="paragraph">
-<p>Now we tell Systemd to start Gunicorn with the <code>systemctl</code> command:</p>
-</div>
-<div class="listingblock server-commands">
-<div class="content">
-<pre># this command is necessary to tell Systemd to load our new config file
-elspeth@server:$ <strong>sudo systemctl daemon-reload</strong>
-# this command tells Systemd to always load our service on boot
-elspeth@server:$ <strong>sudo systemctl enable gunicorn-superlists-staging.ottg.eu</strong>
-# this command actually starts our service
-elspeth@server:$ <strong>sudo systemctl start gunicorn-superlists-staging.ottg.eu</strong></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>(you should find the <code>systemctl</code> command responds to tab-completion, including
-of the service name, by the way)</p>
-</div>
-<div class="paragraph">
-<p>Now we can rerun the FTs to see that everything still works. You can even test
-that the site comes back up if you reboot the server!</p>
+<p>There&#8217;s a few more debugging tips in the sidebar that follows.</p>
 </div>
 <div class="sidebarblock">
 <div class="content">
-<div class="title">Debugging Tips</div>
+<div class="title">Server Debugging Tips</div>
 <div class="paragraph">
 <p>Deployments are tricky!  If ever things don&#8217;t go exactly as expected, here are
 a few tips and things to look out for:
@@ -1512,28 +1261,7 @@ all the difference.</p>
 <p>Nginx error logs go into <em>/var/log/nginx/error.log</em>.</p>
 </li>
 <li>
-<p>You can ask Nginx to "check" its config using the -t flag:</p>
-<div class="literalblock">
-<div class="content">
-<pre>nginx -t</pre>
-</div>
-</div>
-</li>
-<li>
-<p>You can ask Ubuntu to check the validity of your init script with
-<a href="http://manpages.ubuntu.com/manpages/precise/man8/init-checkconf.8.html">init-checkconf</a></p>
-</li>
-<li>
-<p>Check the Systemd logs for using
-<code>sudo journalctl -u gunicorn-superlists-staging.ottg.eu</code></p>
-</li>
-<li>
-<p>Remember to restart both services whenever you make changes.</p>
-</li>
-<li>
-<p>If you make changes to the Systemd config file, you need to
-run <code>daemon-reload</code> before <code>systemctl restart</code> to see the effect
-of your changes.</p>
+<p>You can ask Nginx to "check" its config using the -t flag: <code>nginx -t</code></p>
 </li>
 <li>
 <p>Make sure your browser isn&#8217;t caching an out-of-date response.  Use
@@ -1554,246 +1282,15 @@ time&#8230;&#8203;</p>
 </div>
 </div>
 </div>
-<div class="sect3">
-<h4 id="_saving_our_changes_adding_gunicorn_to_our_requirements_txt">Saving Our Changes: Adding Gunicorn to Our requirements.txt</h4>
-<div class="paragraph">
-<p>Back in the <em>local</em> copy of your repo, we should add Gunicorn to the list
-of packages we need in our virtualenvs:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>$ <strong>pip install gunicorn</strong>
-$ <strong>pip freeze | grep gunicorn &gt;&gt; requirements.txt</strong>
-$ <strong>git commit -am "Add gunicorn to virtualenv requirements"</strong>
-$ <strong>git push</strong></pre>
-</div>
-</div>
-<div class="paragraph">
-<p></p>
-</div>
-<div class="admonitionblock note">
-<table>
-<tr>
-<td class="icon">
-<i class="fa icon-note" title="Note"></i>
-</td>
-<td class="content">
-On Windows, at the time of writing, Gunicorn would pip install quite
-    happily, but it wouldn&#8217;t actually work if you tried to use it.  Thankfully
-    we only ever run it on the server, so that&#8217;s not a problem. And, Windows
-    support is
-    <a href="http://stackoverflow.com/questions/11087682/does-gunicorn-run-on-windows">being discussed</a>&#8230;&#8203;
-</td>
-</tr>
-</table>
-</div>
-</div>
 </div>
 <div class="sect2">
-<h3 id="_automating">Automating</h3>
+<h3 id="_success_our_hack_deployment_works">Success!  Our hack deployment works</h3>
 <div class="paragraph">
-<p>
-
-
-Let&#8217;s recap our provisioning and deployment procedures:</p>
-</div>
-<div class="dlist">
-<dl>
-<dt class="hdlist1">Provisioning</dt>
-<dd>
-<div class="olist arabic">
-<ol class="arabic">
-<li>
-<p>Assume we have a user account and home folder</p>
-</li>
-<li>
-<p><code>add-apt-repository ppa:fkrull/deadsnakes</code></p>
-</li>
-<li>
-<p><code>apt-get install nginx git python3.6 python3.6-venv</code></p>
-</li>
-<li>
-<p>Add Nginx config for virtual host</p>
-</li>
-<li>
-<p>Add Systemd job for Gunicorn</p>
-</li>
-</ol>
-</div>
-</dd>
-<dt class="hdlist1">Deployment</dt>
-<dd>
-<div class="olist arabic">
-<ol class="arabic">
-<li>
-<p>Create directory structure in <em>~/sites</em></p>
-</li>
-<li>
-<p>Pull down source code into folder named <em>source</em></p>
-</li>
-<li>
-<p>Start virtualenv in <em>../virtualenv</em></p>
-</li>
-<li>
-<p><code>pip install -r requirements.txt</code></p>
-</li>
-<li>
-<p><code>manage.py migrate</code> for database</p>
-</li>
-<li>
-<p><code>collectstatic</code> for static files</p>
-</li>
-<li>
-<p>Set DEBUG = False and ALLOWED_HOSTS in <em>settings.py</em></p>
-</li>
-<li>
-<p>Restart Gunicorn job</p>
-</li>
-<li>
-<p>Run FTs to check everything works</p>
-</li>
-</ol>
-</div>
-</dd>
-</dl>
-</div>
-<div class="paragraph">
-<p>Assuming we&#8217;re not ready to entirely automate our provisioning process, how
-should we save the results of our investigation so far?  I would say that
-the Nginx and Systemd config files should probably be saved somewhere, in
-a way that makes it easy to reuse them later.  Let&#8217;s save them in a new
-subfolder in our repo:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>$ <strong>mkdir deploy_tools</strong></pre>
-</div>
-</div>
-<div class="listingblock sourcecode">
-<div class="title">deploy_tools/nginx.template.conf</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="nginx">server {
-    listen 80;
-    server_name SITENAME;
-
-    location /static {
-        alias /home/elspeth/sites/SITENAME/static;
-    }
-
-    location / {
-        proxy_set_header Host $host;
-        proxy_pass http://unix:/tmp/SITENAME.socket;
-    }
-}</code></pre>
-</div>
-</div>
-<div class="listingblock sourcecode">
-<div class="title">deploy_tools/gunicorn-systemd.template.service</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="bash">[Unit]
-Description=Gunicorn server for SITENAME
-
-[Service]
-Restart=on-failure
-User=elspeth
-WorkingDirectory=/home/elspeth/sites/SITENAME/source
-ExecStart=/home/elspeth/sites/SITENAME/virtualenv/bin/gunicorn \
-    --bind unix:/tmp/SITENAME.socket \
-    superlists.wsgi:application
-
-[Install]
-WantedBy=multi-user.target</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Then it&#8217;s easy for us to use those two files to generate
-a new site, by doing a find &amp; replace on  <code>SITENAME</code>.</p>
-</div>
-<div class="paragraph">
-<p>For the rest, just keeping a few notes is OK. Why not keep
-them in a file in the repo too?</p>
-</div>
-<div class="listingblock sourcecode">
-<div class="title">deploy_tools/provisioning_notes.md</div>
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="rst">Provisioning a new site
-=======================
-
-## Required packages:
-
-* nginx
-* Python 3.6
-* Git
-* pip
-* virtualenv
-
-e.g.,, on Ubuntu:
-
-    sudo add-apt-repository ppa:fkrull/deadsnakes
-    sudo apt-get install nginx git python36 python3.6-venv
-
-## Nginx Virtual Host config
-
-* see nginx.template.conf
-* replace SITENAME with, e.g., staging.my-domain.com
-
-## Systemd service
-
-* see gunicorn-systemd.template.service
-* replace SITENAME with, e.g., staging.my-domain.com
-
-## Folder structure:
-Assume we have a user account at /home/username
-
-/home/username
-&#9492;&#9472;&#9472; sites
- &#160;&#160; &#9492;&#9472;&#9472; SITENAME
- &#160;&#160;      &#9500;&#9472;&#9472; database
- &#160;&#160;      &#9500;&#9472;&#9472; source
- &#160;&#160;      &#9500;&#9472;&#9472; static
- &#160;&#160;      &#9492;&#9472;&#9472; virtualenv</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>We can do a commit for those:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>$ <strong>git add deploy_tools</strong>
-$ <strong>git status</strong> # see three new files
-$ <strong>git commit -m "Notes and template config files for provisioning"</strong></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>
-
-Our source tree will now look something like this:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>$ tree -I __pycache__
-.
-&#9500;&#9472;&#9472; deploy_tools
-&#9474;&#160;&#160; &#9500;&#9472;&#9472; gunicorn-systemd.template.service
-&#9474;&#160;&#160; &#9500;&#9472;&#9472; nginx.template.conf
-&#9474;&#160;&#160; &#9492;&#9472;&#9472; provisioning_notes.md
-&#9500;&#9472;&#9472; functional_tests
-&#9474;&#160;&#160; &#9500;&#9472;&#9472; __init__.py
-&#9474;&#160;&#160; &#9500;&#9472;&#9472; [...]
-&#9500;&#9472;&#9472; lists
-&#9474;&#160;&#160; &#9500;&#9472;&#9472; __init__.py
-&#9474;&#160;&#160; &#9500;&#9472;&#9472; models.py
-&#9474;&#160;&#160; &#9500;&#9472;&#9472; static
-&#9474;&#160;&#160; &#9474;   &#9500;&#9472;&#9472; base.css
-&#9474;&#160;&#160; &#9474;   &#9500;&#9472;&#9472; [...]
-&#9474;&#160;&#160; &#9500;&#9472;&#9472; templates
-&#9474;&#160;&#160; &#9474;   &#9500;&#9472;&#9472; base.html
-&#9474;&#160;&#160; &#9474;   &#9500;&#9472;&#9472; [...]
-&#9500;&#9472;&#9472; manage.py
-&#9500;&#9472;&#9472; requirements.txt
-&#9492;&#9472;&#9472; superlists
- &#160;&#160; &#9500;&#9472;&#9472; [...]</pre>
-</div>
+<p>Phew.  Assuming you managed to get that up and running, we are at least
+reassured that the basic piping works, but we really can&#8217;t be using the Django
+dev server in production.  We also can&#8217;t be relying on
+manually starting it up with <code>runserver</code>.  In the next chapter, we&#8217;ll
+make our hacky deployment more production-ready.</p>
 </div>
 <div class="sidebarblock">
 <div class="content">
@@ -1820,26 +1317,15 @@ need to think through each of these for your own deployments.</p>
 <dd>
 <p>Whenever we make a change to our server configuration, we can rerun the
 test suite, and be confident that everything works as well as it did
-before.  It allows us to experiment with our setup with less fear.</p>
+before.  It allows us to experiment with our setup with less fear (as
+we&#8217;ll see in the next chapter).</p>
 </dd>
 </dl>
 </div>
 </div>
 </div>
-<div class="sect3">
-<h4 id="__saving_your_progress">"Saving Your Progress"</h4>
 <div class="paragraph">
-<p>
-Being able to run our FTs against a staging server can be very reassuring.
-But, in most cases, you don&#8217;t want to run your FTs against your "real" server.
-In order to "save our work", and reassure ourselves that the production server
-will work just as well as the real server, we need to make our deployment
-process repeatable.</p>
-</div>
-<div class="paragraph">
-<p>Automation is the answer, and it&#8217;s the topic of the next chapter.
-</p>
-</div>
+<p></p>
 </div>
 </div>
 </div>
@@ -1851,15 +1337,12 @@ process repeatable.</p>
 <a href="#_footnoteref_1">1</a>. What I&#8217;m calling a "staging" server, some people would call a "development" server, and some others would also like to distinguish "preproduction" servers.  Whatever we call it, the point is to have somewhere we can try our code out in an environment that&#8217;s as similar as possible to the real production server.
 </div>
 <div class="footnote" id="_footnote_2">
-<a href="#_footnoteref_2">2</a>. At this point, you can google "setattr" and "Python properties" if your curiosity is piqued.
-</div>
-<div class="footnote" id="_footnote_3">
-<a href="#_footnoteref_3">3</a>. But if you insist on a recommendation, I like <a href="https://m.do.co/c/876844cd6b2e">Digital Ocean</a>.  Good value for money, fast servers, and you can get $10 of free credit (which should cover a couple of months, enough for the book at least), by following <a href="https://m.do.co/c/876844cd6b2e">my referral link</a>
+<a href="#_footnoteref_2">2</a>. But if you insist on a recommendation, I like <a href="https://m.do.co/c/876844cd6b2e">Digital Ocean</a>.  Good value for money, fast servers, and you can get a couple of months' worth of free credit by following <a href="https://m.do.co/c/876844cd6b2e">my referral link</a>
 </div>
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2017-03-13 06:23:22 GMT
+Last updated 2017-04-01 12:57:06 BST
 </div>
 </div>
 <div class="comments" style="padding: 20px">
