@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="generator" content="Asciidoctor 1.5.4">
 <title>Provisioning with Ansible</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:300,300italic,400,400italic,600,600italic%7CNoto+Serif:400,400italic,700,700italic%7CDroid+Sans+Mono:400,700">
 <link rel="stylesheet" href="./asciidoctor.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.5.0/css/font-awesome.min.css">
 <link rel="stylesheet" href="./coderay-asciidoctor.css">
@@ -62,13 +61,13 @@ can run against:</p>
 <div class="title">deploy_tools/inventory.ansible</div>
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="ini">[live]
-superlists.ottg.eu ansible_user=root
+superlists.ottg.eu ansible_become=yes ansible_ssh_user=elspeth
 
 [staging]
-superlists-staging.ottg.eu ansible_user=root
+superlists-staging.ottg.eu ansible_become=yes ansible_ssh_user=elspeth
 
 [local]
-localhost ansible_user=root ansible_ssh_port=6666 ansible_host=127.0.0.1</code></pre>
+localhost ansible_ssh_user=root ansible_ssh_port=6666 ansible_host=127.0.0.1</code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -92,8 +91,12 @@ uses a syntax called YAML:</p>
       <span class="key">host</span>: <span class="string"><span class="delimiter">"</span><span class="content">{{ inventory_hostname }}</span><span class="delimiter">"</span></span>
 
   <span class="key">tasks</span>:
+
+    - <span class="string"><span class="content">name: Deadsnakes PPA to get Python 3.6</span></span>
+      <span class="key">apt_repository</span>:
+        <span class="error">repo='ppa:fkrull/deadsnakes'</span>
     - <span class="string"><span class="content">name: make sure required packages are installed</span></span>
-      <span class="key">apt</span>: <span class="string"><span class="content">pkg=nginx,git,python3,python3-venv state=present</span></span>
+      <span class="key">apt</span>: <span class="string"><span class="content">pkg=nginx,git,python3.6,python3.6-venv state=present</span></span>
 
     - <span class="string"><span class="content">name: allow long hostnames in nginx</span></span>
       <span class="key">lineinfile</span>:
@@ -137,7 +140,7 @@ actually a lot like the Django template syntax:</p>
     server_name {{ host }};
 
     location /static {
-        alias /home/{{ user }}/sites/{{ host }}/static;
+        alias /home/{{ ansible_ssh_user }}/sites/{{ host }}/static;
     }
 
     location / {
@@ -163,17 +166,16 @@ actually a lot like the Django template syntax:</p>
       <span class="key">notify</span>:
           - <span class="string"><span class="content">restart gunicorn</span></span>
 
-    - <span class="string"><span class="content">name: make sure nginx is running</span></span>
-      <span class="key">service</span>: <span class="string"><span class="content">name=nginx state=running</span></span>
-    - <span class="string"><span class="content">name: make sure gunicorn is running</span></span>
-      <span class="key">service</span>: <span class="string"><span class="content">name=gunicorn-{{ host }} state=running</span></span>
-
   <span class="key">handlers</span>:
     - <span class="string"><span class="content">name: restart nginx</span></span>
       <span class="key">service</span>:  <span class="string"><span class="content">name=nginx state=restarted</span></span>
 
     - <span class="string"><span class="content">name: restart gunicorn</span></span>
-      <span class="key">service</span>:  <span class="string"><span class="content">name=gunicorn-{{ host }} state=restarted</span></span></code></pre>
+      <span class="key">systemd</span>:
+          <span class="error">name=gunicorn-{{ host }}</span>
+          <span class="error">daemon_reload=yes</span>
+          <span class="error">enabled=yes</span>
+          <span class="error">state=restarted</span></code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -187,10 +189,10 @@ Once again we use a template for our Gunicorn config:</p>
 Description=Gunicorn server for {{ host }}
 
 [Service]
-User={{ user }}
-WorkingDirectory=/home/{{ user }}/sites/{{ host }}/source
+User={{ ansible_ssh_user }}
+WorkingDirectory=/home/{{ ansible_ssh_user }}/sites/{{ host }}/source
 Restart=on-failure
-ExecStart=/home/{{ user }}/sites/{{ host }}/virtualenv/bin/gunicorn \
+ExecStart=/home/{{ ansible_ssh_user }}/sites/{{ host }}/virtualenv/bin/gunicorn \
     --bind unix:/tmp/{{ host }}.socket \
     --access-logfile ../access.log \
     --error-logfile ../error.log \
@@ -208,13 +210,13 @@ waits until the last one before calling it.</p>
 <div class="paragraph">
 <p>And that&#8217;s it!  The command to kick all these off is:</p>
 </div>
-<div class="listingblock">
+<div class="listingblock small-code">
 <div class="content">
-<pre>ansible-playbook -i inventory.ansible provision.ansible.yaml --limit=staging</pre>
+<pre>ansible-playbook -i inventory.ansible provision.ansible.yaml --limit=staging --ask-become-pass</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>Lots more info in the <a href="http://www.ansibleworks.com/docs/">Ansible docs</a>.</p>
+<p>Lots more info in the <a href="https://docs.ansible.com/">Ansible docs</a>.</p>
 </div>
 </div>
 <div class="sect2">
@@ -262,7 +264,7 @@ like yours.</p>
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2017-03-08 20:24:08 GMT
+Last updated 2017-03-30 07:47:47 BST
 </div>
 </div>
 <div class="comments" style="padding: 20px">

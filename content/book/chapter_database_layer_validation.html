@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="generator" content="Asciidoctor 1.5.4">
 <title>Validation at the Database Layer</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:300,300italic,400,400italic,600,600italic%7CNoto+Serif:400,400italic,700,700italic%7CDroid+Sans+Mono:400,700">
 <link rel="stylesheet" href="./asciidoctor.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.5.0/css/font-awesome.min.css">
 <link rel="stylesheet" href="./coderay-asciidoctor.css">
@@ -80,12 +79,8 @@ promise we&#8217;ll get right back into some of the real nitty-gritty discussion
 TDD methodology&#8212;&#8203;unit tests vs integrated tests, mocking and more.  Stay tuned!</p>
 </div>
 <div class="paragraph">
-<p>But for now, a little validation.</p>
-</div>
-<div class="sect2">
-<h3 id="_unit_testing_model_validation">Unit Testing Model Validation</h3>
-<div class="paragraph">
-<p>Let&#8217;s just remind ourselves where our FT is pointing us:</p>
+<p>But for now, a little validation. Let&#8217;s just remind ourselves where our FT is
+pointing us:</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -112,6 +107,25 @@ element: .has-error</pre>
 <p>It&#8217;s expecting to see an error message if the user tries to input an empty
 item.</p>
 </div>
+<div class="sect2">
+<h3 id="_model_layer_validation">Model-Layer Validation</h3>
+<div class="paragraph">
+<p>
+
+
+In a web app, there are two places you can do validation: on the client-side
+(using Javascript or HTML5 properties, as we&#8217;ll see later), and on the
+server-side.  The server side is "safer" because someone can always bypass
+the client-side, whether it&#8217;s maliciously or due to some bug.</p>
+</div>
+<div class="paragraph">
+<p>Similarly on the server-side, in Django, there are two levels at which you can
+do validation in Django. One is at the model level, and the other is higher up
+at the forms level.  I like to use the lower level whenever possible, partially
+because I&#8217;m a bit too fond of databases and database integrity rules, and
+partially because, again, it&#8217;s safer&#8212;&#8203;you can sometimes forget which form you
+use to validate input, but you&#8217;re always going to use the same database.</p>
+</div>
 <div class="sect3">
 <h4 id="_the_code_self_assertraises_code_context_manager">The <code>self.assertRaises</code> context manager</h4>
 <div class="paragraph">
@@ -119,7 +133,9 @@ item.</p>
 
 
 Let&#8217;s go down and write a unit test at the models layer. Add a new test method
-to <code>ListAndItemModelsTest</code>, which tries to create a blank list item:</p>
+to <code>ListAndItemModelsTest</code>, which tries to create a blank list item.  This test
+is interesting because it&#8217;s testing that the code under test should raise an
+exception:</p>
 </div>
 <div class="listingblock sourcecode">
 <div class="title">lists/tests/test_models.py (ch11l018)</div>
@@ -212,7 +228,9 @@ No changes detected</pre>
 </div>
 <div class="paragraph">
 <p>Django does have a method to manually run full validation however, called
-<code>full_clean</code>.  Let&#8217;s hack it in to see it work:</p>
+<code>full_clean</code> (more info in
+<a href="https://docs.djangoproject.com/en/1.11/ref/models/instances/#django.db.models.Model.full_clean">the docs</a>).
+Let&#8217;s hack it in to see it work:</p>
 </div>
 <div class="listingblock sourcecode">
 <div class="title">lists/tests/test_models.py</div>
@@ -231,7 +249,7 @@ No changes detected</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>That taught us a little about Django validation, and the test is there to
+<p>Good. That taught us a little about Django validation, and the test is there to
 warn us if we ever forget our requirement and set <code>blank=True</code> on the <code>text</code>
 field (try it!).
 </p>
@@ -251,18 +269,17 @@ been passed an error variable, and if so, we display it next to the form:</p>
 <div class="listingblock sourcecode">
 <div class="title">lists/templates/base.html (ch11l020)</div>
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="html"><span class="tag">&lt;form</span> <span class="attribute-name">method</span>=<span class="string"><span class="delimiter">"</span><span class="content">POST</span><span class="delimiter">"</span></span> <span class="attribute-name">action</span>=<span class="string"><span class="delimiter">"</span><span class="content">{% block form_action %}{% endblock %}</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>
+<pre class="CodeRay highlight"><code data-lang="html">  <span class="tag">&lt;form</span> <span class="attribute-name">method</span>=<span class="string"><span class="delimiter">"</span><span class="content">POST</span><span class="delimiter">"</span></span> <span class="attribute-name">action</span>=<span class="string"><span class="delimiter">"</span><span class="content">{% block form_action %}{% endblock %}</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>
     <span class="tag">&lt;input</span> <span class="attribute-name">name</span>=<span class="string"><span class="delimiter">"</span><span class="content">item_text</span><span class="delimiter">"</span></span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">"</span><span class="content">id_new_item</span><span class="delimiter">"</span></span>
            <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">"</span><span class="content">form-control input-lg</span><span class="delimiter">"</span></span>
-           <span class="attribute-name">placeholder</span>=<span class="string"><span class="delimiter">"</span><span class="content">Enter a to-do item</span><span class="delimiter">"</span></span>
-    <span class="tag">/&gt;</span>
+           <span class="attribute-name">placeholder</span>=<span class="string"><span class="delimiter">"</span><span class="content">Enter a to-do item</span><span class="delimiter">"</span></span> <span class="tag">/&gt;</span>
     {% csrf_token %}
     {% if error %}
-        <span class="tag">&lt;div</span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">"</span><span class="content">form-group has-error</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>
-            <span class="tag">&lt;span</span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">"</span><span class="content">help-block</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>{{ error }}<span class="tag">&lt;/span&gt;</span>
-        <span class="tag">&lt;/div&gt;</span>
+      <span class="tag">&lt;div</span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">"</span><span class="content">form-group has-error</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>
+        <span class="tag">&lt;span</span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">"</span><span class="content">help-block</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>{{ error }}<span class="tag">&lt;/span&gt;</span>
+      <span class="tag">&lt;/div&gt;</span>
     {% endif %}
-<span class="tag">&lt;/form&gt;</span></code></pre>
+  <span class="tag">&lt;/form&gt;</span></code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -441,8 +458,8 @@ the apostrophe:</p>
 <div class="listingblock">
 <div class="content">
 <pre>[...]
-&lt;span class="help-block"&gt;You can&amp;#39;t have an
-empty list item&lt;/span&gt;</pre>
+&lt;span class="help-block"&gt;You can&amp;#39;t have an empty list
+item&lt;/span&gt;</pre>
 </div>
 </div>
 <div class="paragraph">
@@ -644,12 +661,12 @@ peacock feathers']</pre>
 </td>
 <td class="content">
 In this section we&#8217;re performing a refactor at the application level.
-We execute our application-level refactor by changing or adding unit tests, and
-then adjusting our code. We use the functional tests to tell us when our
-refactor is complete and things are back to working as before.  Have
-another look at the diagram from the end of <a href="/book/chapter_philosophy_and_refactoring.html">[chapter_philosophy_and_refactoring]</a> if you need to get your
-bearings.
-
+    We execute our application-level refactor by changing or adding unit tests,
+    and then adjusting our code. We use the functional tests to tell us when
+    our refactor is complete and things are back to working as before.  Have
+    another look at the diagram from the end of
+    <a href="/book/chapter_philosophy_and_refactoring.html">[chapter_philosophy_and_refactoring]</a> if you need to get your bearings.
+    
 </td>
 </tr>
 </table>
@@ -802,8 +819,8 @@ So did I break the rule about never refactoring against failing tests?
     In this case, it&#8217;s allowed, because the refactor is required to get our new
     functionality to work.  You should definitely never refactor against
     failing <em>unit</em> tests.  But in my book it&#8217;s OK for the FT for the current
-    story you&#8217;re working on to be failing. If you prefer a clean test run, you
-    could add a skip to the current FT.
+    story you&#8217;re working on to be
+    failing<sup class="footnote">[<a id="_footnoteref_1" class="footnote" href="#_footnote_1" title="View footnote.">1</a>]</sup>.
     
     
 </td>
@@ -1080,7 +1097,7 @@ there is one that makes sense; it takes no time at all.</p>
 </div>
 </div>
 <div class="paragraph">
-<p>And the implementation is to use Django&#8217;s <code>reverse</code> function, which
+<p>The implementation is to use Django&#8217;s <code>reverse</code> function, which
 essentially does the reverse of what Django normally does with <em>urls.py</em>
 (see
 <a href="https://docs.djangoproject.com/en/1.11/topics/http/urls/#reverse-resolution-of-urls">docs</a>):</p>
@@ -1148,7 +1165,7 @@ OK</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>Cross off our to-dos:</p>
+<p>Cross off our to-dos&#8230;&#8203;</p>
 </div>
 <div class="sidebarblock scratchpad">
 <div class="content">
@@ -1168,7 +1185,7 @@ OK</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>Let&#8217;s do a commit:</p>
+<p>And a commit&#8230;&#8203;</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -1176,9 +1193,12 @@ OK</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>That final to-do item will be the subject of the next chapter&#8230;&#8203;
-
+<p>And we&#8217;re done with that bit!    We have working model-layer validation,
+and we&#8217;ve taken the opportunity to do a few refactors along the way.
 </p>
+</div>
+<div class="paragraph">
+<p>That final scratchpad item will be the subject of the next chapter&#8230;&#8203;</p>
 </div>
 <div class="sidebarblock">
 <div class="content">
@@ -1220,9 +1240,15 @@ send them.</p>
 </div>
 </div>
 </div>
+<div id="footnotes">
+<hr>
+<div class="footnote" id="_footnote_1">
+<a href="#_footnoteref_1">1</a>. If you really want a "clean" test run, you could add a     skip or an early return to the current FT, but you&#8217;d need to make sure you     didn&#8217;t accidentally forget it.
+</div>
+</div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2017-03-13 06:17:54 GMT
+Last updated 2017-03-30 07:47:47 BST
 </div>
 </div>
 <div class="comments" style="padding: 20px">

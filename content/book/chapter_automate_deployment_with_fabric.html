@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="generator" content="Asciidoctor 1.5.4">
 <title>Automating Deployment with Fabric</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:300,300italic,400,400italic,600,600italic%7CNoto+Serif:400,400italic,700,700italic%7CDroid+Sans+Mono:400,700">
 <link rel="stylesheet" href="./asciidoctor.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.5.0/css/font-awesome.min.css">
 <link rel="stylesheet" href="./coderay-asciidoctor.css">
@@ -82,9 +81,7 @@ assurances that everything will go well when we deploy to production.</p>
 <div class="paragraph">
 <p>
 Fabric is a tool which lets you automate commands that you want to run on
-servers. You can install fabric systemwide&#8212;&#8203;it&#8217;s not part of the core
-functionality of our site, so it doesn&#8217;t need to go into our virtualenv and
-<em>requirements.txt</em>. So, on your local PC:</p>
+servers.  "fabric3" is the Python 3 fork:</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -96,15 +93,15 @@ functionality of our site, so it doesn&#8217;t need to go into our virtualenv an
 contain one or more functions that can later be invoked from a command-line
 tool called <code>fab</code>, like this:</p>
 </div>
-<div class="listingblock">
+<div class="listingblock skipme">
 <div class="content">
 <pre>fab function_name,host=SERVER_ADDRESS</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>That will invoke the function called <code>function_name</code>, passing in a connection
-to the server at <code>SERVER_ADDRESS</code>.  There are many other options for specifying
-usernames and passwords, which you can find out about using <code>fab --help</code>.</p>
+<p>That will call <code>function_name</code>, passing in a connection to the server at
+<code>SERVER_ADDRESS</code>.  There are lots of other options for specifying usernames and
+passwords, which you can find out about using <code>fab --help</code>.</p>
 </div>
 <div class="sect2">
 <h3 id="_breakdown_of_a_fabric_script_for_our_deployment">Breakdown of a Fabric Script for Our Deployment</h3>
@@ -115,11 +112,11 @@ The best way to see how it works is with an example.
 <a href="http://www.bbc.co.uk/cult/classic/bluepeter/valpetejohn/trivia.shtml">Here&#8217;s one
 I made earlier</a>, automating all the deployment steps we&#8217;ve been going through.
 The main function is called <code>deploy</code>; that&#8217;s the one we&#8217;ll invoke from the
-command line. It uses several helper functions.  <code>env.host</code> will contain the
-server address that we&#8217;ve passed in:</p>
+command line. It then calls out to several helper functions, which we&#8217;ll build
+together one by one, explaining as we go.</p>
 </div>
 <div class="listingblock sourcecode">
-<div class="title">deploy_tools/fabfile.py</div>
+<div class="title">deploy_tools/fabfile.py (ch09l001)</div>
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> <span class="include">fabric.contrib.files</span> <span class="keyword">import</span> <span class="include">append</span>, <span class="include">exists</span>, <span class="include">sed</span>
 <span class="keyword">from</span> <span class="include">fabric.api</span> <span class="keyword">import</span> <span class="include">env</span>, <span class="include">local</span>, <span class="include">run</span>
@@ -160,15 +157,17 @@ command line, e.g., <em>superlists.ottg.eu</em>.</td>
 <p>Hopefully each of those helper functions have fairly self-descriptive names.
 Because any function in a fabfile can theoretically be invoked from the
 command line, I&#8217;ve used the convention of a leading underscore to indicate
-that they&#8217;re not meant to be part of the "public API" of the fabfile. Here
-they are in chronological order.</p>
+that they&#8217;re not meant to be part of the "public API" of the fabfile. Let&#8217;s
+take a look at each one, in chronological order.</p>
 </div>
+<div class="sect3">
+<h4 id="_creating_the_directory_structure">Creating the directory structure</h4>
 <div class="paragraph">
 <p>Here&#8217;s how we build our directory structure, in a way that doesn&#8217;t fall
 down if it already exists:</p>
 </div>
 <div class="listingblock sourcecode">
-<div class="title">deploy_tools/fabfile.py</div>
+<div class="title">deploy_tools/fabfile.py (ch09l002)</div>
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">def</span> <span class="function">_create_directory_structure_if_necessary</span>(site_folder):
     <span class="keyword">for</span> subfolder <span class="keyword">in</span> (<span class="string"><span class="delimiter">'</span><span class="content">database</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">static</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">virtualenv</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">source</span><span class="delimiter">'</span></span>):
@@ -180,7 +179,8 @@ down if it already exists:</p>
 <tr>
 <td><i class="conum" data-value="1"></i><b>1</b></td>
 <td><code>run</code> is the most common Fabric command.  It says "run this shell command
-on the server".</td>
+on the server".  The <code>run</code> commands in this chapter will replicate many
+of the commands we did manually in the last two.</td>
 </tr>
 <tr>
 <td><i class="conum" data-value="2"></i><b>2</b></td>
@@ -193,11 +193,15 @@ on the server".</td>
 </tr>
 </table>
 </div>
+</div>
+<div class="sect3">
+<h4 id="_pulling_down_our_source_code_with_git">Pulling down our source code with git</h4>
 <div class="paragraph">
-<p>Next we want to pull down our source code:</p>
+<p>Next we want to download the latest version of our source code to the server,
+like we did with <code>git pull</code> in the previous chapters:</p>
 </div>
 <div class="listingblock sourcecode">
-<div class="title">deploy_tools/fabfile.py</div>
+<div class="title">deploy_tools/fabfile.py (ch09l003)</div>
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">def</span> <span class="function">_get_latest_source</span>(source_folder):
     <span class="keyword">if</span> exists(source_folder + <span class="string"><span class="delimiter">'</span><span class="content">/.git</span><span class="delimiter">'</span></span>):  <i class="conum" data-value="1"></i><b>(1)</b>
@@ -225,7 +229,8 @@ directory you&#8217;re in from one <code>run</code> to the next.<sup class="foot
 <tr>
 <td><i class="conum" data-value="3"></i><b>3</b></td>
 <td><code>git fetch</code> inside an existing repository pulls down all the latest commits
-from the Web.</td>
+from the Web (it&#8217;s like <code>git pull</code>, but without immediately updating the
+live source tree).</td>
 </tr>
 <tr>
 <td><i class="conum" data-value="4"></i><b>4</b></td>
@@ -236,8 +241,8 @@ source tree.</td>
 <td><i class="conum" data-value="5"></i><b>5</b></td>
 <td>Fabric&#8217;s <code>local</code> command runs a command on your local machine&#8212;&#8203;it&#8217;s just
 a wrapper around <code>subprocess.Popen</code> really, but it&#8217;s quite convenient.
-Here we capture the output from that <code>git log</code> invocation to get the hash
-of the current commit that&#8217;s in your local tree.  That means the server
+Here we capture the output from that <code>git log</code> invocation to get the id
+of the current commit that&#8217;s on your local PC.  That means the server
 will end up with whatever code is currently checked out on your machine
 (as long as you&#8217;ve pushed it up to the server).</td>
 </tr>
@@ -248,6 +253,13 @@ in the server&#8217;s code directory.</td>
 </tr>
 </table>
 </div>
+<div class="paragraph">
+<p>The end result of this is that we either do a <code>git clone</code> if it&#8217;s a fresh
+deploy, or we do a <code>git fetch + git reset --hard</code> if a previous version of
+the code is already there; the equivalent of the <code>git pull</code> we used when we
+did it manually, but with the <code>reset --hard</code> to force overwriting any local
+changes.</p>
+</div>
 <div class="admonitionblock note">
 <table>
 <tr>
@@ -256,19 +268,23 @@ in the server&#8217;s code directory.</td>
 </td>
 <td class="content">
 For this script to work, you need to have done a <code>git push</code> of your
-current local commit, so that the server can pull it down and <code>reset</code> to it.
-If you see an error saying <code>Could not parse object</code>, try doing a <code>git push</code>.
+    current local commit, so that the server can pull it down and <code>reset</code> to
+    it. If you see an error saying <code>Could not parse object</code>, try doing a <code>git
+    push</code>.
 </td>
 </tr>
 </table>
 </div>
+</div>
+<div class="sect3">
+<h4 id="_updating_settings_py">Updating settings.py</h4>
 <div class="paragraph">
-<p>Next we update our settings file, to set the <code>ALLOWED_HOSTS</code> and <code>DEBUG</code>, and
-to create a new secret key:
+<p>Next we update our settings file, to set the <code>ALLOWED_HOSTS</code> and <code>DEBUG</code>
+variables, and to create a new <code>SECRET_KEY</code>:
 </p>
 </div>
 <div class="listingblock sourcecode">
-<div class="title">deploy_tools/fabfile.py</div>
+<div class="title">deploy_tools/fabfile.py (ch09l004)</div>
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">def</span> <span class="function">_update_settings</span>(source_folder, site_name):
     settings_path = source_folder + <span class="string"><span class="delimiter">'</span><span class="content">/superlists/settings.py</span><span class="delimiter">'</span></span>
@@ -299,12 +315,12 @@ right line.</td>
 </tr>
 <tr>
 <td><i class="conum" data-value="3"></i><b>3</b></td>
-<td>Django uses <code>SECRET_KEY</code> for some of its crypto&#8212;&#8203;cookies and CSRF
-protection. It&#8217;s good practice to make sure the secret key on the server
-is different from the one in your (possibly public) source code repo. This
-code will generate a new key to import into settings, if there isn&#8217;t one
-there already (once you have a secret key, it should stay the same between
-deploys).  Find out more in the
+<td>Django uses <code>SECRET_KEY</code> for some of its crypto&#8212;&#8203;things like cookies and
+CSRF protection. It&#8217;s good practice to make sure the secret key on the
+server is different from the one in your source code repo, because that
+code might be visible to strangers. This section will generate a new key to
+import into settings, if there isn&#8217;t one there already (once you have a
+secret key, it should stay the same between deploys).  Find out more in the
 <a href="https://docs.djangoproject.com/en/1.11/topics/signing/">Django docs</a>.</td>
 </tr>
 <tr>
@@ -338,11 +354,14 @@ Hacking the settings file like this is one way of changing configuration
 </tr>
 </table>
 </div>
+</div>
+<div class="sect3">
+<h4 id="_updating_the_virtualenv">Updating the virtualenv</h4>
 <div class="paragraph">
 <p>Next we create or update the virtualenv:</p>
 </div>
 <div class="listingblock sourcecode small-code">
-<div class="title">deploy_tools/fabfile.py</div>
+<div class="title">deploy_tools/fabfile.py (ch09l005)</div>
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">def</span> <span class="function">_update_virtualenv</span>(source_folder):
     virtualenv_folder = source_folder + <span class="string"><span class="delimiter">'</span><span class="content">/../virtualenv</span><span class="delimiter">'</span></span>
@@ -368,7 +387,7 @@ checking whether it already exists.</td>
 <p>Updating static files is a single command:</p>
 </div>
 <div class="listingblock sourcecode small-code">
-<div class="title">deploy_tools/fabfile.py</div>
+<div class="title">deploy_tools/fabfile.py (ch09l006)</div>
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">def</span> <span class="function">_update_static_files</span>(source_folder):
     run(
@@ -382,8 +401,8 @@ checking whether it already exists.</td>
 <tr>
 <td><i class="conum" data-value="1"></i><b>1</b></td>
 <td>You can split long strings across multiple lines like this in Python, they
-concatenate to a single string. It&#8217;s a common source of bugs when what you actually
-wanted was a list of strings, but you forgot a comma!</td>
+concatenate to a single string. It&#8217;s a common source of bugs when what you
+actually wanted was a list of strings, but you forgot a comma!</td>
 </tr>
 <tr>
 <td><i class="conum" data-value="2"></i><b>2</b></td>
@@ -393,13 +412,16 @@ not the system one.</td>
 </tr>
 </table>
 </div>
+</div>
+<div class="sect3">
+<h4 id="_migrating_the_database_if_necessary">Migrating the database if necessary</h4>
 <div class="paragraph">
 <p>
 
 Finally, we update the database with <code>manage.py migrate</code>:</p>
 </div>
 <div class="listingblock sourcecode">
-<div class="title">deploy_tools/fabfile.py</div>
+<div class="title">deploy_tools/fabfile.py (ch09l007)</div>
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">def</span> <span class="function">_update_database</span>(source_folder):
     run(
@@ -408,16 +430,27 @@ Finally, we update the database with <code>manage.py migrate</code>:</p>
     )</code></pre>
 </div>
 </div>
+<div class="paragraph">
+<p>The <code>--noinput</code> removes any interactive yes/no confirmations that fabric
+would find hard to deal with.</p>
+</div>
+<div class="paragraph">
+<p>And we&#8217;re done!  Lots of new things to take in I imagine, but I hope you
+can see how this is all replicating the work we did manually earlier, with
+a bit of logic to make it work both for brand new deployments and for existing
+ones that just need updating. If you like words with Latin roots, you might
+describe it as <em>idempotent</em>, which means it has the same effect, whether you
+run it once or multiple times.</p>
+</div>
+</div>
 </div>
 <div class="sect2">
 <h3 id="_trying_it_out">Trying It Out</h3>
 <div class="paragraph">
-<p>We can try this command out on our existing staging site&#8212;&#8203;the script should
-work for an existing site as well as for a new one.  If you like words with
-Latin roots, you might describe it as idempotent, which means it does nothing
-if run twice&#8230;&#8203;</p>
+<p>Let&#8217;s try it out on our existing staging site, and see it working to update
+a deployment that already exists:</p>
 </div>
-<div class="listingblock">
+<div class="listingblock skipme">
 <div class="content">
 <pre>$ <strong>cd deploy_tools</strong>
 $ <strong>fab deploy:host=elspeth@superlists-staging.ottg.eu</strong>
@@ -502,7 +535,7 @@ username, the location of the SSH key to use, or the password.</p>
 <p>
 So, let&#8217;s try using it for our live site!</p>
 </div>
-<div class="listingblock">
+<div class="listingblock skipme">
 <div class="content">
 <pre>$ <strong>fab deploy:host=elspeth@superlists.ottg.eu</strong>
 
@@ -614,23 +647,25 @@ our provisioning notes, which tell us to use the template files to create our
 Nginx virtual host and the Systemd service.  How about a little Unix
 command-line magic?</p>
 </div>
-<div class="listingblock server-commands">
+<div class="listingblock server-commands small-code">
 <div class="content">
 <pre>elspeth@server:$ <strong>sed "s/SITENAME/superlists.ottg.eu/g" \
-    deploy_tools/nginx.template.conf | sudo tee \
-    /etc/nginx/sites-available/superlists.ottg.eu</strong></pre>
+    source/deploy_tools/nginx.template.conf \
+    | sudo tee /etc/nginx/sites-available/superlists.ottg.eu</strong></pre>
 </div>
 </div>
 <div class="paragraph">
 <p><code>sed</code> ("stream editor") takes a stream of text and performs edits on it. It&#8217;s
 no accident that the fabric string substitution command has the same name.  In
 this case we ask it to substitute the string <em>SITENAME</em> for the address of our
-site, with the <code>s/replaceme/withthis/g</code> syntax.  We pipe (<code>|</code>) the output of
-that to a root-user process (<code>sudo</code>), which uses <code>tee</code> to write what&#8217;s piped to it
-to a file, in this case the Nginx sites-available virtualhost config file.</p>
+site, with the <code>s/replaceme/withthis/g</code>
+syntax<sup class="footnote">[<a id="_footnoteref_3" class="footnote" href="#_footnote_3" title="View footnote.">3</a>]</sup>.
+We pipe (<code>|</code>) the output of that to a root-user process (<code>sudo</code>), which uses
+<code>tee</code> to write what&#8217;s piped to it to a file, in this case the Nginx
+sites-available virtualhost config file.</p>
 </div>
 <div class="paragraph">
-<p>We can now activate that file:</p>
+<p>Next we activate that file with a symlink:</p>
 </div>
 <div class="listingblock server-commands">
 <div class="content">
@@ -639,13 +674,13 @@ to a file, in this case the Nginx sites-available virtualhost config file.</p>
 </div>
 </div>
 <div class="paragraph">
-<p>Then we write the Systemd service:</p>
+<p>And we write the Systemd service, with another <code>sed</code>:</p>
 </div>
 <div class="listingblock server-commands">
 <div class="content">
 <pre>elspeth@server: <strong>sed "s/SITENAME/superlists.ottg.eu/g" \
-    deploy_tools/gunicorn-systemd.template.service | sudo tee \
-    /etc/systemd/system/gunicorn-superlists.ottg.eu.service</strong></pre>
+    source/deploy_tools/gunicorn-systemd.template.service \
+    | sudo tee /etc/systemd/system/gunicorn-superlists.ottg.eu.service</strong></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -660,10 +695,18 @@ elspeth@server:$ <strong>sudo systemctl start gunicorn-superlists.ottg.eu</stron
 </div>
 </div>
 <div class="paragraph">
-<p>And we take a look at our site.  It works, hooray!</p>
+<p>And we take a look at our site: <a href="#working-production-deploy">Brrp, brrp, brrp&#8230;&#8203; it worked!</a>.  It works,
+hooray!</p>
+</div>
+<div id="working-production-deploy" class="imageblock">
+<div class="content">
+<img src="images/final_production_deploy.png" alt="A screenshot of the production site, working">
+</div>
+<div class="title">Figure 1. Brrp, brrp, brrp&#8230;&#8203; it worked!</div>
 </div>
 <div class="paragraph">
-<p>Let&#8217;s add the fabfile to our repo:</p>
+<p>It&#8217;s done a good job.  Good fabfile, have a biscuit.  You have earned the
+privilege of being added to the repo:</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -681,10 +724,10 @@ One final bit of admin.  In order to preserve a historical marker,
 we&#8217;ll use Git tags to mark the state of the codebase that reflects
 what&#8217;s currently live on the server:</p>
 </div>
-<div class="listingblock">
+<div class="listingblock skipme">
 <div class="content">
 <pre>$ <strong>git tag LIVE</strong>
-$ <strong>export TAG=`date +DEPLOYED-%F/%H%M`</strong>  # this generates a timestamp
+$ <strong>export TAG=$(date +DEPLOYED-%F/%H%M)</strong>  # this generates a timestamp
 $ <strong>echo $TAG</strong> # should show "DEPLOYED-" and then the timestamp
 $ <strong>git tag $TAG</strong>
 $ <strong>git push origin LIVE $TAG</strong> # pushes the tags up</pre>
@@ -698,12 +741,13 @@ a look at the tag in the history:</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>$ <strong>git log --graph --oneline --decorate</strong></pre>
+<pre>$ <strong>git log --graph --oneline --decorate</strong>
+[...]</pre>
 </div>
 </div>
 <div class="paragraph">
 <p>Anyway, you now have a live website!  Tell all your friends!  Tell your mum, if
-no one else is interested! And, in the next chapter, it&#8217;s back to coding
+no one else is interested!  And, in the next chapter, it&#8217;s back to coding
 again.</p>
 </div>
 </div>
@@ -791,15 +835,18 @@ even easier.  Ansible and Vagrant are two worth checking out (see
 <div id="footnotes">
 <hr>
 <div class="footnote" id="_footnote_1">
-<a href="#_footnoteref_1">1</a>. If you&#8217;re wondering why we&#8217;re building up paths manually with f-strings instead of the <code>os.path.join</code> command we saw earlier, it&#8217;s because <code>path.join</code> will use backslashes if you run the script from Windows, but we definitely want forward slashes on the server
+<a href="#_footnoteref_1">1</a>. If you&#8217;re wondering why we&#8217;re building up paths manually with f-strings instead of the <code>os.path.join</code> command we saw earlier, it&#8217;s because <code>path.join</code> will use backslashes if you run the script from Windows, but we definitely want forward slashes on the server. That&#8217;s a common gotcha!
 </div>
 <div class="footnote" id="_footnote_2">
 <a href="#_footnoteref_2">2</a>. There is a Fabric "cd" command, but I figured it was one thing too many to add in this chapter.
 </div>
+<div class="footnote" id="_footnote_3">
+<a href="#_footnoteref_3">3</a>. You might have seen nerdy people using this strange s/change-this/to-this/ notation on the Internet.  Now you know why!
+</div>
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2017-03-13 06:17:36 GMT
+Last updated 2017-03-30 07:47:47 BST
 </div>
 </div>
 <div class="comments" style="padding: 20px">

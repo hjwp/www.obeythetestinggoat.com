@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="generator" content="Asciidoctor 1.5.4">
 <title>Splitting our tests into multiple files, and a generic wait helper</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:300,300italic,400,400italic,600,600italic%7CNoto+Serif:400,400italic,700,700italic%7CDroid+Sans+Mono:400,700">
 <link rel="stylesheet" href="./asciidoctor.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.5.0/css/font-awesome.min.css">
 <link rel="stylesheet" href="./coderay-asciidoctor.css">
@@ -184,7 +183,9 @@ I think it&#8217;s slightly unfair.</p>
 design.  But what often happens is that people forget the "Refactor" in "Red,
 Green, Refactor". The methodology allows you to throw together any old code to
 get your tests to pass, but it <em>also</em> asks you to then spend some time
-refactoring it to improve its design.</p>
+refactoring it to improve its design.  Otherwise, it&#8217;s too easy to allow
+<a href="https://martinfowler.com/bliki/TechnicalDebtQuadrant.html">"Technical debt"</a>
+to build up.</p>
 </div>
 <div class="paragraph">
 <p>Often, however, the best ideas for how to refactor code don&#8217;t occur to you
@@ -432,12 +433,17 @@ $ <strong>git add functional_tests</strong>
 $ <strong>git commit -m "Moved Fts into their own individual files"</strong></pre>
 </div>
 </div>
+<div class="paragraph">
+<p>Great.  We&#8217;ve split our functional tests nicely out into different files.
+Next we&#8217;ll start writing our FT, but before long, as you may be guessing,
+we&#8217;ll do something similar to our unit test files.</p>
+</div>
 </div>
 </div>
 <div class="sect2">
 <h3 id="_a_new_functional_test_tool_a_generic_explicit_wait_helper">A new functional test tool: a generic explicit wait helper</h3>
 <div class="paragraph">
-<p>Now let&#8217;s start implementing the test, or at least the beginning of it:</p>
+<p>First let&#8217;s start implementing the test, or at least the beginning of it:</p>
 </div>
 <div class="listingblock sourcecode">
 <div class="title">functional_tests/test_list_item_validation.py (ch11l008)</div>
@@ -502,9 +508,9 @@ Whenever you submit a form with <code>Keys.ENTER</code> or click something that
 </div>
 <div class="paragraph">
 <p>Our first explicit wait was built into a helper method.  For this one, we
-might decide that building a helper method is overkill at this stage, but
-it might be nice to have some way of saying, in our tests, "wait until this
-assertion passes".  Something like this:</p>
+might decide that building a specific helper method is overkill at this stage,
+but it might be nice to have some generic way of saying, in our tests, "wait
+until this assertion passes".  Something like this:</p>
 </div>
 <div class="listingblock sourcecode">
 <div class="title">functional_tests/test_list_item_validation.py (ch11l009)</div>
@@ -751,19 +757,20 @@ even more functionally fun, you&#8217;ll see.</p>
     <span class="predefined-constant">self</span>.wait_for_row_in_list_table(<span class="string"><span class="delimiter">'</span><span class="content">2: Make tea</span><span class="delimiter">'</span></span>)</code></pre>
 </div>
 </div>
-<div class="paragraph">
-<p>
-.Helper methods in FTs</p>
-</div>
 <div class="sidebarblock">
 <div class="content">
+<div class="title">Helper methods in FTs</div>
 <div class="paragraph">
-<p>We&#8217;ve got two helper methods now, our generic <code>self.wait_for</code> helper, and
+<p>
+We&#8217;ve got two helper methods now, our generic <code>self.wait_for</code> helper, and
 <code>wait_for_row_in_list_table</code>.  The former is a general utility&#8201;&#8212;&#8201;any of our
-FTs might need to do a wait.  The second also helps prevent duplication across
-your functional test code.  The day we decide to change the implementation of
-how our list table works, we want to make sure we only have to change our FT
-code in one place, not in dozens of places across loads of FTs&#8230;&#8203;</p>
+FTs might need to do a wait.</p>
+</div>
+<div class="paragraph">
+<p>The second also helps prevent duplication across your functional test code.
+The day we decide to change the implementation of how our list table works, we
+want to make sure we only have to change our FT code in one place, not in
+dozens of places across loads of FTs&#8230;&#8203;</p>
 </div>
 <div class="paragraph">
 <p>See also <a href="/book/chapter_page_pattern.html">[chapter_page_pattern]</a> and <a href="/book/appendix_bdd.html">[appendix_bdd]</a> for more on structuring
@@ -772,33 +779,22 @@ your FT code.</p>
 </div>
 </div>
 <div class="paragraph">
-<p>And we&#8217;re off! I&#8217;ll let you do your own "first-cut FT" commit.</p>
+<p>I&#8217;ll let you do your own "first-cut FT" commit.</p>
 </div>
 </div>
 <div class="sect2">
-<h3 id="_using_model_layer_validation">Using Model-Layer Validation</h3>
+<h3 id="_refactoring_unit_tests_into_several_files">Refactoring Unit Tests into Several Files</h3>
 <div class="paragraph">
 <p>
 
 
-There are two levels at which you can do validation in Django. One is
-at the model level, and the other is higher up at the forms level.  I
-like to use the lower level whenever possible, partially because I&#8217;m
-a bit too fond of databases and database integrity rules, and partially
-because it&#8217;s safer&#8212;&#8203;you can sometimes forget which form you use to
-validate input, but you&#8217;re always going to use the same database.</p>
+When we (finally!) start coding our solution, we&#8217;re going to want to add
+another test for our <em>models.py</em>. Before we do so, it&#8217;s time to tidy up our
+unit tests in a similar way to the functional tests.</p>
 </div>
-<div class="sect3">
-<h4 id="_refactoring_unit_tests_into_several_files">Refactoring Unit Tests into Several Files</h4>
 <div class="paragraph">
-<p>
-
-
-We&#8217;re going to want to add another test for our model, but before we
-do so, it&#8217;s time to tidy up our unit tests in a similar way to the
-functional tests.  A difference will be that, because the <code>lists</code>
-app contains real application code as well as tests, we&#8217;ll separate
-out the tests into their own folder:</p>
+<p>A difference will be that, because the <code>lists</code> app contains real application
+code as well as tests, we&#8217;ll separate out the tests into their own folder:</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -822,7 +818,8 @@ package&#8230;&#8203;<sup class="footnote">[<a id="_footnoteref_1" class="footno
 </div>
 <div class="paragraph">
 <p>Now we turn <em>test_all.py</em> into two files, one called <em>test_views.py</em>, which
-only contains view tests, and one called <em>test_models.py</em>:</p>
+will only contains view tests, and one called <em>test_models.py</em>.  I&#8217;ll start
+by making two copies:</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -831,7 +828,7 @@ $ <strong>cp lists/tests/test_views.py lists/tests/test_models.py</strong></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>We strip <em>test_models.py</em> down to being just the one test&#8212;&#8203;it means
+<p>And strip <em>test_models.py</em> down to being just the one test&#8212;&#8203;it means
 it needs far fewer imports:</p>
 </div>
 <div class="listingblock sourcecode">
@@ -878,7 +875,7 @@ OK</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>Great!</p>
+<p>Great!   That&#8217;s another small, working step:</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -905,13 +902,13 @@ Some people like to make their unit tests into a tests folder straight
 <p>Well, that&#8217;s our FTs and unit test nicely reorganised.  In the next chapter
 we&#8217;ll get down to some validation proper.</p>
 </div>
-<div class="paragraph">
-<p>
-
-.Tips on Organising Tests and Refactoring</p>
-</div>
 <div class="sidebarblock">
 <div class="content">
+<div class="title">Tips on Organising Tests and Refactoring</div>
+<div class="paragraph">
+<p>
+</p>
+</div>
 <div class="dlist">
 <dl>
 <dt class="hdlist1">Use a tests folder</dt>
@@ -922,14 +919,14 @@ split your tests out into multiple files.
 <div class="ulist">
 <ul>
 <li>
-<p>Use a folder called <em>tests</em>, with a <i>__init__.py</i>.</p>
-</li>
-<li>
 <p>For functional tests, group them into tests for a particular feature or
 user story.</p>
 </li>
 <li>
-<p>For unit tests, you want a separate test file for each tested source code
+<p>For unit tests, use a folder called <em>tests</em>, with a <i>__init__.py</i>.</p>
+</li>
+<li>
+<p>You probably want a separate test file for each tested source code
 file. For Django, that&#8217;s typically <em>test_models.py</em>, <em>test_views.py</em>, and
 <em>test_forms.py</em>.</p>
 </li>
@@ -942,7 +939,7 @@ file. For Django, that&#8217;s typically <em>test_models.py</em>, <em>test_views
 <dt class="hdlist1">Don&#8217;t forget the "Refactor" in "Red, Green, Refactor"</dt>
 <dd>
 <p>The whole point of having tests is to allow you to refactor your code!
-Use them, and make your code as clean as you can.</p>
+Use them, and make your code (including your tests) as clean as you can.</p>
 </dd>
 <dt class="hdlist1">Don&#8217;t refactor against failing tests</dt>
 <dd>
@@ -986,7 +983,6 @@ different pattern works for you.</p>
 </div>
 </div>
 </div>
-</div>
 <div id="footnotes">
 <hr>
 <div class="footnote" id="_footnote_1">
@@ -995,7 +991,7 @@ different pattern works for you.</p>
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2017-03-13 06:18:38 GMT
+Last updated 2017-03-30 07:47:47 BST
 </div>
 </div>
 <div class="comments" style="padding: 20px">
