@@ -13,6 +13,17 @@ httpRequest.onreadystatechange = function() {
   if (httpRequest.readyState === XMLHttpRequest.DONE) {
     if (httpRequest.status === 200) {
       document.getElementById('header').innerHTML += httpRequest.responseText;
+      var subheaders = document.getElementsByClassName('sectlevel2');
+      var section;
+      for (var i=0; i<subheaders.length; i++) {
+        section = subheaders[i];
+        if (section.innerHTML.indexOf(window.location.pathname) === -1) {
+          section.style.display = 'none';
+        } else {
+          section.scrollIntoView && section.scrollIntoView();
+        }
+      }
+
     }
   }
 };
@@ -502,10 +513,9 @@ solution you choose.</p>
 <p>
 
 I&#8217;m not going to
-dictate<sup class="footnote">[<a id="_footnoteref_2" class="footnote" href="#_footnote_2" title="View footnote.">2</a>]</sup>
-how you do this&#8212;&#8203;whether you choose Amazon AWS, Rackspace, Digital Ocean, your
-own server in your own data centre or a Raspberry Pi in a cupboard under the
-stairs, any solution should be fine, as long as:</p>
+dictate how you do this&#8212;&#8203;whether you choose Amazon AWS, Rackspace, Digital
+Ocean, your own server in your own data centre or a Raspberry Pi in a cupboard
+under the stairs, any solution should be fine, as long as:</p>
 </div>
 <div class="ulist">
 <ul>
@@ -529,6 +539,11 @@ and it has some specific ways of configuring Nginx, which I&#8217;m going to mak
 of next.  If you know what you&#8217;re doing, you can probably get away with using
 something else, but you&#8217;re on your own.</p>
 </div>
+<div class="paragraph">
+<p>If you&#8217;ve never started a Linux server before and you have absolutely no idea
+where to start, I wrote a
+<a href="https://github.com/hjwp/Book-TDD-Web-Dev-Python/blob/master/server-quickstart.md">very brief guide here</a>.</p>
+</div>
 <div class="admonitionblock note">
 <table>
 <tr>
@@ -550,49 +565,13 @@ Some people get to this chapter, and are tempted to skip the domain bit,
 <div class="sect3">
 <h4 id="_user_accounts_ssh_and_privileges">User Accounts, SSH, and Privileges</h4>
 <div class="paragraph">
-<p>
-In these instructions, I&#8217;m assuming that you have a nonroot user account set
+<p>In these instructions, I&#8217;m assuming that you have a nonroot user account set
 up that has "sudo" privileges, so whenever we need to do something that
 requires root access, we use sudo, and I&#8217;m explicit about that in the various
-instructions below. If you need to create a nonroot user, here&#8217;s how:</p>
-</div>
-<div class="listingblock skipme">
-<div class="content">
-<pre># these commands must be run as root
-root@server:$ <strong>useradd -m -s /bin/bash elspeth</strong> # add user named elspeth
-# -m creates a home folder, -s sets elspeth to use bash by default
-root@server:$ <strong>usermod -a -G sudo elspeth</strong> # add elspeth to the sudoers group
-root@server:$ <strong>passwd elspeth</strong> # set password for elspeth
-root@server:$ <strong>su - elspeth</strong> # switch-user to being elspeth!
-elspeth@server:$</pre>
-</div>
+instructions below.</p>
 </div>
 <div class="paragraph">
-<p>
-Name your own user whatever you like! I also recommend learning up how to use
-private key authentication rather than passwords for SSH.  It&#8217;s a matter of
-taking the public key from your own PC, and appending it to
-<em>~/.ssh/authorized_keys</em> in the user account on the server. You probably went
-through a similar procedure if you signed up for Bitbucket or Github.</p>
-</div>
-<div class="paragraph">
-<p>There are some good instructions
-<a href="https://library.linode.com/security/ssh-keys">here</a> (note that <code>ssh-keygen</code> <em>is</em>
-available as part of Git-Bash on Windows).</p>
-</div>
-<div class="admonitionblock tip">
-<table>
-<tr>
-<td class="icon">
-<i class="fa icon-tip" title="Tip"></i>
-</td>
-<td class="content">
-Look out for that <code>elspeth@server</code> in the command-line listings in this
-    chapter. It indicates commands that must be run on the server, as opposed
-    to commands you run on your own PC.
-</td>
-</tr>
-</table>
+<p>My user is called "elspeth", but you can call yours whatever you like!</p>
 </div>
 </div>
 <div class="sect3">
@@ -616,6 +595,20 @@ elspeth@server:$ <strong>sudo systemctl start nginx</strong></pre>
 </div>
 <div class="paragraph">
 <p>(You may need to do an <code>apt-get update</code> and/or an <code>apt-get upgrade</code> first.)</p>
+</div>
+<div class="admonitionblock tip">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-tip" title="Tip"></i>
+</td>
+<td class="content">
+Look out for that <code>elspeth@server</code> in the command-line listings in this
+    chapter. It indicates commands that must be run on the server, as opposed
+    to commands you run on your own PC.
+</td>
+</tr>
+</table>
 </div>
 <div class="paragraph">
 <p>You should be able to go to the IP address of your server, and see the
@@ -743,11 +736,11 @@ One rule of thumb for distinguishing provisioning from deployment is
 </table>
 </div>
 <div class="paragraph">
-<p>We need a directory for the source to live in.  Let&#8217;s assume we have a home
-folder for a nonroot user; in my case it would be at <em>/home/elspeth</em> (this is
-likely to be the setup on any shared hosting system, but you should always run
-your web apps as a nonroot user, in any case). I&#8217;m going to set up my
-sites like this:</p>
+<p>We need a directory for the source to live in.  We&#8217;ll put it somewhere
+in the home folder of our nonroot user; in my case it would be at
+<em>/home/elspeth</em> (this is likely to be the setup on any shared hosting system,
+but you should always run your web apps as a nonroot user, in any case). I&#8217;m
+going to set up my sites like this:</p>
 </div>
 <div class="listingblock skipme">
 <div class="content">
@@ -1336,13 +1329,10 @@ we&#8217;ll see in the next chapter).</p>
 <div class="footnote" id="_footnote_1">
 <a href="#_footnoteref_1">1</a>. What I&#8217;m calling a "staging" server, some people would call a "development" server, and some others would also like to distinguish "preproduction" servers.  Whatever we call it, the point is to have somewhere we can try our code out in an environment that&#8217;s as similar as possible to the real production server.
 </div>
-<div class="footnote" id="_footnote_2">
-<a href="#_footnoteref_2">2</a>. But if you insist on a recommendation, I like <a href="https://m.do.co/c/876844cd6b2e">Digital Ocean</a>.  Good value for money, fast servers, and you can get a couple of months' worth of free credit by following <a href="https://m.do.co/c/876844cd6b2e">my referral link</a>
-</div>
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2017-04-01 12:57:06 BST
+Last updated 2017-04-02 05:30:46 BST
 </div>
 </div>
 <div class="comments" style="padding: 20px">
