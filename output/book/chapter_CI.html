@@ -43,47 +43,15 @@ httpRequest.send();
 <div class="sect1">
 <h2 id="chapter_CI">Continuous Integration (CI)</h2>
 <div class="sectionbody">
-<table class="tableblock frame-all grid-all" style="float: right;">
-<colgroup>
-<col>
-<col>
-</colgroup>
-<tbody>
-<tr>
-<td class="tableblock halign-left valign-top" colspan="2"><p class="tableblock">Chapter info</p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">shortname:</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">chapter_CI</p></td>
-</tr>
-</tbody>
-</table>
-<div class="admonitionblock warning">
-<table>
-<tr>
-<td class="icon">
-<i class="fa icon-warning" title="Warning"></i>
-</td>
-<td class="content">
-2017-03-13: Book upgraded to Python 3.6 and Django 1.11 beta.
-    Before that, there was a big upgrade to Selenium 3 on 2017-01-30. More
-    info <a href="https://www.obeythetestinggoat.com/latest-release-the-last-big-one-python-36-django-111-beta.html">on the blog</a>.
-</td>
-</tr>
-</table>
-</div>
 <div class="paragraph">
-<p>
-
-
-As our site grows, it takes longer and longer to run all of our functional
+<p>As our site grows, it takes longer and longer to run all of our functional
 tests.  If this continues, the danger is that we&#8217;re going to stop bothering.</p>
 </div>
 <div class="paragraph">
 <p>Rather than let that happen, we can automate the running of functional tests
 by setting up a "Continuous Integration" or CI server.  That way, in day-to-day
 development, we can just run the FT that we&#8217;re working on at that time, and
-rely on the CI server to run all the tests automatically, and let us know if
+rely on the CI server to run all the tests automatically and let us know if
 we&#8217;ve broken anything accidentally.  The unit tests should stay fast enough
 that we can keep running them every few seconds.</p>
 </div>
@@ -92,27 +60,10 @@ that we can keep running them every few seconds.</p>
 crashy, a bit ugly, but it&#8217;s what everyone uses, and it has a great plugin
 ecosystem, so let&#8217;s get it up and running.</p>
 </div>
-<div class="admonitionblock note">
-<table>
-<tr>
-<td class="icon">
-<i class="fa icon-note" title="Note"></i>
-</td>
-<td class="content">
-this chapter has not yet been updated for the new edition. Some of the
-    specific problems discussed with Persona in CI may not be relevant, but
-    the basic lessons of the chapter are all still correct.
-</td>
-</tr>
-</table>
-</div>
 <div class="sect2">
 <h3 id="_installing_jenkins">Installing Jenkins</h3>
 <div class="paragraph">
-<p>
-
-
-There are several hosted-CI services out there that essentially provide you
+<p>There are several hosted-CI services out there that essentially provide you
 with a Jenkins server, ready to go.  I&#8217;ve come across Sauce Labs, Travis,
 Circle-CI, ShiningPanda, and there are probably lots more.  But I&#8217;m going to
 assume we&#8217;re installing everything on a server we control.</p>
@@ -134,7 +85,7 @@ It&#8217;s not a good idea to install Jenkins on the same server as our
 <div class="paragraph">
 <p>We&#8217;ll install the latest version from the official Jenkins apt repo, because
 the Ubuntu default still has a few annoying bugs with locale/unicode support,
-and it also doesn&#8217;t set itself up to listen on the public Internet by default:</p>
+and it also doesn&#8217;t set itself up to listen on the public internet by default:</p>
 </div>
 <div class="listingblock skipme">
 <div class="content">
@@ -147,10 +98,10 @@ root@server:$ <strong>apt-get install jenkins</strong></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>(Instructions lifted from the [Jenkins site](<a href="https://wiki.jenkins-ci.org/display/JENKINS/Installing+Jenkins+on+Ubuntu)" class="bare">https://wiki.jenkins-ci.org/display/JENKINS/Installing+Jenkins+on+Ubuntu)</a>)</p>
+<p>(Instructions lifted from the <a href="https://wiki.jenkins-ci.org/display/JENKINS/Installing+Jenkins+on+Ubuntu">Jenkins site</a>.)</p>
 </div>
 <div class="paragraph">
-<p>While we&#8217;re at we&#8217;ll install a few other dependencies:</p>
+<p>While we&#8217;re at it, we&#8217;ll install a few other dependencies:</p>
 </div>
 <div class="listingblock skipme small-code">
 <div class="content">
@@ -160,26 +111,26 @@ root@server:$ <strong>apt-get install build-essential libssl-dev libffi-dev</str
 </div>
 </div>
 <div class="paragraph">
-<p>And we&#8217;ll download, unzip and install geckodriver too (it was v 0.15 at
-the time of writing, but substitute the latest version as you read this).</p>
+<p>And we&#8217;ll download, unzip, and install geckodriver too (it was v0.16 at
+the time of writing, but substitute the latest version as you read this):</p>
 </div>
 <div class="listingblock skipme">
 <div class="content">
 <pre>root@server:$ <strong>wget https://github.com/mozilla/geckodriver/releases\
-/download/v0.15.0/geckodriver-v0.15.0-linux64.tar.gz</strong>
-root@server:$ <strong>tar -xvzf geckodriver-v0.15.0-linux64.tar.gz</strong>
+/download/v0.16.0/geckodriver-v0.16.0-linux64.tar.gz</strong>
+root@server:$ <strong>tar -xvzf geckodriver-v0.16.0-linux64.tar.gz</strong>
 root@server:$ <strong>mv geckodriver /usr/local/bin</strong>
 root@server:$ <strong>geckodriver --version</strong>
-geckodriver 0.15.0</pre>
+geckodriver 0.16.0</pre>
 </div>
 </div>
 <div class="sidebarblock">
 <div class="content">
-<div class="title">Adding some swap</div>
+<div class="title">Adding Some Swap</div>
 <div class="paragraph">
 <p>Jenkins is quite memory-hungry, and if  you&#8217;re running this on a small VM
 with less than a couple of gigs for RAM, you&#8217;ll probably find it gets
-OOM-killed unless you add some swap.</p>
+OOM-killed unless you add some swap:</p>
 </div>
 <div class="listingblock skipme">
 <div class="content">
@@ -198,21 +149,20 @@ $ <strong>swapon /swapfile</strong></pre>
 <div class="sect2">
 <h3 id="_configuring_jenkins">Configuring Jenkins</h3>
 <div class="paragraph">
-<p>You should now be able to visit jenkins at the URL/IP for your server on port
+<p>You should now be able to visit Jenkins at the URL/IP for your server on port
 <code>8080</code>, and see something like <a href="#jenkin-unlock">Jenkins unlock screen</a>.</p>
 </div>
 <div id="jenkin-unlock" class="imageblock">
 <div class="content">
-<img src="images/jenkins_unlock.png" alt="Jenkins' default unlock screen">
+<img src="images/twp2_2401.png" alt="Jenkins' default unlock screen">
 </div>
 <div class="title">Figure 1. Jenkins unlock screen</div>
 </div>
 <div class="sect3">
 <h4 id="_initial_unlock">Initial Unlock</h4>
 <div class="paragraph">
-<p>
-The unlock screen is telling us to read a file from disk to unlock
-the server for first time use.  I jumped over to a terminal and printed
+<p>The unlock screen is telling us to read a file from disk to unlock
+the server for first-time use.  I jumped over to a terminal and printed
 it like this:</p>
 </div>
 <div class="listingblock skipme">
@@ -222,41 +172,40 @@ it like this:</p>
 </div>
 </div>
 <div class="sect3">
-<h4 id="_suggested_plugins_for_now">Suggested plugins for now</h4>
+<h4 id="_suggested_plugins_for_now">Suggested Plugins for Now</h4>
 <div class="paragraph">
 <p>Next we&#8217;re offered the choice to choose "suggested" plugins. Suggested
 ones are fine for now. (As a self-respecting nerd, our instinct
 is to hit "customize" immediately, and that&#8217;s what I did first time round,
 but it turns out that screen won&#8217;t give us what we want. Don&#8217;t worry, we&#8217;ll add
-some more plugins later).</p>
+some more plugins later.)</p>
 </div>
 </div>
 <div class="sect3">
-<h4 id="_configuring_the_admin_user">Configuring the admin user</h4>
+<h4 id="_configuring_the_admin_user">Configuring the Admin User</h4>
 <div class="paragraph">
-<p>
-Next we set up a username and password to login to jenkins with; see <a href="#jenkins-user">[jenkins-user]</a>:</p>
+<p>Next we set up a username and password to log in to Jenkins with; see <a href="#jenkins-user">Jenkins admin user config</a>.</p>
 </div>
-<div id="jenkin-user" class="imageblock">
+<div id="jenkins-user" class="imageblock">
 <div class="content">
-<img src="images/jenkins_user.png" alt="Jenkins screen asking for username and password">
+<img src="images/twp2_2402.png" alt="Jenkins screen asking for username and password">
 </div>
 <div class="title">Figure 2. Jenkins admin user config</div>
 </div>
 <div class="paragraph">
-<p>And once we log in, we should see a welcome screen:</p>
+<p>And once we log in, we should see a welcome screen (<a href="#jenkin-welcome">A butler&#8212;&#8203;how quaint</a>).</p>
 </div>
 <div id="jenkin-welcome" class="imageblock">
 <div class="content">
-<img src="images/jenkins_welcome.png" alt="Jenkins welcome screen with invitation to create new job">
+<img src="images/twp2_2403.png" alt="Jenkins welcome screen with invitation to create new job">
 </div>
-<div class="title">Figure 3. A butler, how quaint.</div>
+<div class="title">Figure 3. A butler&#8212;&#8203;how quaint</div>
 </div>
 </div>
 <div class="sect3">
-<h4 id="_adding_plugins">Adding plugins</h4>
+<h4 id="_adding_plugins">Adding Plugins</h4>
 <div class="paragraph">
-<p>Follow the links for <strong>Manage Jenkins</strong> &#8594; <strong>Manage Plugins</strong> &#8594; <strong>Available</strong></p>
+<p>Follow the links for <em>Manage Jenkins</em> &#8594; <em>Manage Plugins</em> &#8594; <em>Available</em>.</p>
 </div>
 <div class="paragraph">
 <p>We&#8217;ll want the plugins for:</p>
@@ -272,48 +221,45 @@ Next we set up a username and password to login to jenkins with; see <a href="#j
 </ul>
 </div>
 <div class="paragraph">
-<p>And hit install.</p>
+<p>And hit install (<a href="#installing-plugins">Installing plugins&#8230;&#8203;</a>).</p>
 </div>
 <div id="installing-plugins" class="imageblock">
 <div class="content">
-<img src="images/twdp_2003.png" alt="Jenkins installing plugins">
+<img src="images/twp2_2404.png" alt="Jenkins installing plugins">
 </div>
 <div class="title">Figure 4. Installing plugins&#8230;&#8203;</div>
 </div>
 </div>
 <div class="sect3">
-<h4 id="_telling_jenkins_where_to_find_python_3_and_xvfb">Telling Jenkins where to find Python 3 and Xvfb</h4>
+<h4 id="_telling_jenkins_where_to_find_python_3_and_xvfb">Telling Jenkins Where to Find Python 3 and Xvfb</h4>
 <div class="paragraph">
-<p>
-
-
-We need to tell the ShiningPanda plugin where Python 3 is installed
+<p>We need to tell the ShiningPanda plugin where Python 3 is installed
 (usually <em>/usr/bin/python3</em>, but you can check with a <code>which python3</code>):</p>
 </div>
 <div class="ulist">
 <ul>
 <li>
-<p><strong>Manage Jenkins</strong> &#8594; <strong>Global Tool Configuration</strong></p>
+<p><em>Manage Jenkins</em> &#8594; <em>Global Tool Configuration</em></p>
 </li>
 <li>
-<p><strong>Python</strong> &#8594; <strong>Python installations</strong> &#8594; <strong>Add Python</strong> (see <a href="#add-python-to-jenkins">Where did I leave that Python?</a>, it&#8217;s
+<p><em>Python</em> &#8594; <em>Python installations</em> &#8594; <em>Add Python</em> (see <a href="#add-python-to-jenkins">Where did I leave that Python?</a>; it&#8217;s
 safe to ignore the warning message)</p>
 </li>
 <li>
-<p><strong>Xvfb installation</strong> &#8594; <strong>Add Xvfb installation</strong>; enter <strong><code>/usr/bin</code></strong> as the
-installation directory.</p>
+<p><em>Xvfb installation</em> &#8594; <em>Add Xvfb installation</em>; enter <strong><code>/usr/bin</code></strong> as the
+installation directory</p>
 </li>
 </ul>
 </div>
 <div id="add-python-to-jenkins" class="imageblock">
 <div class="content">
-<img src="images/jenkins_python_config.png" alt="Adding Python 3">
+<img src="images/twp2_2405.png" alt="Adding Python 3">
 </div>
 <div class="title">Figure 5. Where did I leave that Python?</div>
 </div>
 </div>
 <div class="sect3">
-<h4 id="_finishing_off_with_https">Finishing off with HTTPS</h4>
+<h4 id="_finishing_off_with_https">Finishing Off with HTTPS</h4>
 <div class="paragraph">
 <p>To finish off securing your Jenkins instance, you&#8217;ll want to set up HTTPS, by
 getting nginx HTTPS to use a self-signed cert, and proxy requests from port 443
@@ -325,14 +271,14 @@ useful:</p>
 <ul>
 <li>
 <p><a href="https://wiki.jenkins-ci.org/display/JENKINS/Installing+Jenkins+on+Ubuntu">Official
-Jenkins Ubuntu installation guide</a>,</p>
+Jenkins Ubuntu installation guide</a></p>
 </li>
 <li>
-<p><a href="https://www.digitalocean.com/community/tutorials/how-to-create-an-ssl-certificate-on-nginx-for-ubuntu-14-04">how
+<p><a href="https://www.digitalocean.com/community/tutorials/how-to-create-an-ssl-certificate-on-nginx-for-ubuntu-14-04">How
 to create a self-signed SSL certificate</a></p>
 </li>
 <li>
-<p><a href="http://serverfault.com/questions/250476/how-to-force-or-redirect-to-ssl-in-nginx#424016">how
+<p><a href="http://serverfault.com/questions/250476/how-to-force-or-redirect-to-ssl-in-nginx#424016">How
 to redirect HTTP to HTTPS</a></p>
 </li>
 </ul>
@@ -342,17 +288,16 @@ to redirect HTTP to HTTPS</a></p>
 <div class="sect2">
 <h3 id="_setting_up_our_project">Setting Up Our Project</h3>
 <div class="paragraph">
-<p>
-Now we&#8217;ve got the basic Jenkins configured, let&#8217;s set up our project.</p>
+<p>Now we&#8217;ve got the basic Jenkins configured, let&#8217;s set up our project:</p>
 </div>
 <div class="ulist">
 <ul>
 <li>
-<p>Hit the <strong>New Item</strong> button</p>
+<p>Hit the New Item button.</p>
 </li>
 <li>
-<p>Enter <em>Superlists</em> as the name, and then choose <strong>Freestyle project</strong>, and hit
-<strong>OK</strong></p>
+<p>Enter <em>Superlists</em> as the name, and then choose "Freestyle project", and hit
+OK.</p>
 </li>
 <li>
 <p>Add the Git repo, as in <a href="#choose-git-repo">Get it from Git</a>.</p>
@@ -361,22 +306,22 @@ Now we&#8217;ve got the basic Jenkins configured, let&#8217;s set up our project
 </div>
 <div id="choose-git-repo" class="imageblock">
 <div class="content">
-<img src="images/twdp_2005.png" alt="Setting the git repo">
+<img src="images/twp2_2406.png" alt="Setting the git repo">
 </div>
 <div class="title">Figure 6. Get it from Git</div>
 </div>
 <div class="ulist">
 <ul>
 <li>
-<p>Set it to poll every hour (<a href="#poll-hourly">Poll Github for changes</a>) (check out the help text here&#8212;&#8203;there are many other options for ways of triggering builds).</p>
+<p>Set it to poll every hour (<a href="#poll-hourly">Poll GitHub for changes</a>; check out the help text here&#8212;&#8203;there are many other options for ways of triggering builds).</p>
 </li>
 </ul>
 </div>
 <div id="poll-hourly" class="imageblock">
 <div class="content">
-<img src="images/twdp_2006.png" alt="Config polling github">
+<img src="images/twp2_2407.png" alt="Config polling GitHub">
 </div>
-<div class="title">Figure 7. Poll Github for changes</div>
+<div class="title">Figure 7. Poll GitHub for changes</div>
 </div>
 <div class="ulist">
 <ul>
@@ -391,7 +336,7 @@ Now we&#8217;ve got the basic Jenkins configured, let&#8217;s set up our project
 </div>
 <div id="virtualenv-buildstep" class="imageblock">
 <div class="content">
-<img src="images/twdp_2007.png" alt="Adding Python 3">
+<img src="images/twp2_2408.png" alt="Adding Python 3">
 </div>
 <div class="title">Figure 8. Virtualenv build steps</div>
 </div>
@@ -399,7 +344,7 @@ Now we&#8217;ve got the basic Jenkins configured, let&#8217;s set up our project
 <div class="sect2">
 <h3 id="_first_build">First Build!</h3>
 <div class="paragraph">
-<p>Hit "Build Now!", then go and take a look at the "Console Output". You
+<p>Hit "Build Now", then go and take a look at the "Console Output". You
 should see something like this:</p>
 </div>
 <div class="listingblock skipme small-code">
@@ -454,8 +399,7 @@ Build step 'Virtualenv Builder' marked build as failure</pre>
 <p>Ah.  We need Selenium in our virtualenv.</p>
 </div>
 <div class="paragraph">
-<p>
-Let&#8217;s add a manual installation of Selenium to our build
+<p>Let&#8217;s add a manual installation of Selenium to our build
 steps:</p>
 </div>
 <div class="listingblock skipme">
@@ -505,17 +449,13 @@ have a display to run on.</p>
 </div>
 </div>
 <div class="sect2">
-<h3 id="_setting_up_a_virtual_display_so_the_fts_can_run_headless">Setting Up a Virtual Display so the FTs Can Run Headless</h3>
+<h3 id="_setting_up_a_virtual_display_so_the_fts_can_run_headless">Setting Up a Virtual Display So the FTs Can Run Headless</h3>
 <div class="paragraph">
-<p>
-
-As you can see from the traceback, Firefox is unable to start because the
+<p>As you can see from the traceback, Firefox is unable to start because the
 server doesn&#8217;t have a display.</p>
 </div>
 <div class="paragraph">
-<p>
-
-There are two ways to deal with this problem. The first is to switch to using
+<p>There are two ways to deal with this problem. The first is to switch to using
 a headless browser, like PhantomJS or SlimerJS.  Those tools definitely have
 their place&#8212;&#8203;they&#8217;re faster, for one thing&#8212;&#8203;but they also have
 disadvantages.  The first is that they&#8217;re not "real" web browsers, so you can&#8217;t
@@ -538,23 +478,22 @@ I would look into using headless browsers as a "dev-only" tool, to speed
 </table>
 </div>
 <div class="paragraph">
-<p>
-The alternative is to set up a virtual display:  we get the server to pretend
-it has a screen attached to it, so Firefox runs happily. There&#8217;s a few tools
+<p>The alternative is to set up a virtual display:  we get the server to pretend
+it has a screen attached to it, so Firefox runs happily. There are a few tools
 out there to do this; we&#8217;ll use one called "Xvfb"
 (X Virtual Framebuffer)<sup class="footnote">[<a id="_footnoteref_1" class="footnote" href="#_footnote_1" title="View footnote.">1</a>]</sup>
 because it&#8217;s easy to install and use, and because it has a convenient Jenkins
-plugin (now you know why we installed it earlier)</p>
+plugin (now you know why we installed it earlier).</p>
 </div>
 <div class="paragraph">
 <p>We go back to our project and hit "Configure" again, then find the section
 called "Build Environment".  Using the virtual display is as simple as
-ticking the box marked "Start Xvfb before the build, and shut it down after,"
+ticking the box marked "Start Xvfb before the build, and shut it down after",
 as in <a href="#xvfb-tickbox">Sometimes config is easy</a>.</p>
 </div>
 <div id="xvfb-tickbox" class="imageblock">
 <div class="content">
-<img src="images/twdp_2008.png" alt="Tickbox saying we want Xvfb">
+<img src="images/twp2_2409.png" alt="Tickbox saying we want Xvfb">
 </div>
 <div class="title">Figure 9. Sometimes config is easy</div>
 </div>
@@ -612,8 +551,7 @@ Finished: FAILURE</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>
-Pretty close!  To debug that failure, we&#8217;ll need screenshots though.</p>
+<p>Pretty close!  To debug that failure, we&#8217;ll need screenshots though.</p>
 </div>
 <div class="admonitionblock note">
 <table>
@@ -623,9 +561,8 @@ Pretty close!  To debug that failure, we&#8217;ll need screenshots though.</p>
 </td>
 <td class="content">
 This error was due to the performance of my Jenkins instance&#8212;&#8203;you may see
-    a different error, or none at all. In any case, the tools below for taking
+    a different error, or none at all. In any case, the following tools for taking
     screenshots and dealing with race conditions will come in useful. Read on!
-
 </td>
 </tr>
 </table>
@@ -634,18 +571,17 @@ This error was due to the performance of my Jenkins instance&#8212;&#8203;you ma
 <div class="sect2">
 <h3 id="_taking_screenshots">Taking Screenshots</h3>
 <div class="paragraph">
-<p>
-
-
-To be able to debug unexpected failures that happen on a remote PC, it
+<p>To be able to debug unexpected failures that happen on a remote PC, it
 would be good to see a picture of the screen at the moment of the failure,
 and maybe also a dump of the HTML of the page.  We can do that using some
 custom logic in our FT class <code>tearDown</code>. We have to do a bit of introspection of
 <code>unittest</code> internals, a private attribute called <code>_outcomeForDoCleanups</code>, but
 this will work:</p>
 </div>
-<div class="listingblock sourcecode">
+<div class="exampleblock sourcecode">
 <div class="title">functional_tests/base.py (ch21l006)</div>
+<div class="content">
+<div class="listingblock">
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">import</span> <span class="include">os</span>
 <span class="keyword">from</span> <span class="include">datetime</span> <span class="keyword">import</span> <span class="include">datetime</span>
@@ -674,14 +610,18 @@ SCREEN_DUMP_LOCATION = os.path.join(
         <span class="keyword">return</span> <span class="predefined">any</span>(error <span class="keyword">for</span> (method, error) <span class="keyword">in</span> <span class="predefined-constant">self</span>._outcome.errors)</code></pre>
 </div>
 </div>
+</div>
+</div>
 <div class="paragraph">
 <p>We first create a directory for our screenshots if necessary. Then we
 iterate through all the open browser tabs and pages, and use some Selenium
 methods, <code>get_screenshot_as_file</code> and <code>browser.page_source</code>, for our image and
 HTML dumps:</p>
 </div>
-<div class="listingblock sourcecode">
+<div class="exampleblock sourcecode">
 <div class="title">functional_tests/base.py (ch21l007)</div>
+<div class="content">
+<div class="listingblock">
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="python">    <span class="keyword">def</span> <span class="function">take_screenshot</span>(<span class="predefined-constant">self</span>):
         filename = <span class="predefined-constant">self</span>._get_filename() + <span class="string"><span class="delimiter">'</span><span class="content">.png</span><span class="delimiter">'</span></span>
@@ -696,12 +636,16 @@ HTML dumps:</p>
             f.write(<span class="predefined-constant">self</span>.browser.page_source)</code></pre>
 </div>
 </div>
+</div>
+</div>
 <div class="paragraph">
 <p>And finally here&#8217;s a way of generating a unique filename identifier, which
 includes the name of the test and its class, as well as a timestamp:</p>
 </div>
-<div class="listingblock sourcecode small-code">
+<div class="exampleblock sourcecode small-code">
 <div class="title">functional_tests/base.py (ch21l008)</div>
+<div class="content">
+<div class="listingblock">
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="python">    <span class="keyword">def</span> <span class="function">_get_filename</span>(<span class="predefined-constant">self</span>):
         timestamp = datetime.now().isoformat().replace(<span class="string"><span class="delimiter">'</span><span class="content">:</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">.</span><span class="delimiter">'</span></span>)[:<span class="integer">19</span>]
@@ -712,6 +656,8 @@ includes the name of the test and its class, as well as a timestamp:</p>
             windowid=<span class="predefined-constant">self</span>._windowid,
             timestamp=timestamp
         )</code></pre>
+</div>
+</div>
 </div>
 </div>
 <div class="paragraph">
@@ -750,13 +696,13 @@ screendumps/LoginTest.test_login_with_persona-window0-2014-01-22T17.45.12.html</
 </div>
 </div>
 <div class="paragraph">
-<p>We can go and visit these in the "workspace", which is the folder which Jenkins
+<p>We can go and visit these in the "workspace", which is the folder Jenkins
 uses to store our source code and run the tests in, as in
 <a href="#screenshots-in-workspace">Visiting the project workspace</a>.</p>
 </div>
 <div id="screenshots-in-workspace" class="imageblock">
 <div class="content">
-<img src="images/twdp_2009.png" alt="workspace files including screenshot">
+<img src="images/twp2_2410.png" alt="workspace files including screenshot">
 </div>
 <div class="title">Figure 10. Visiting the project workspace</div>
 </div>
@@ -765,32 +711,34 @@ uses to store our source code and run the tests in, as in
 </div>
 <div id="normal-screenshot" class="imageblock">
 <div class="content">
-<img src="images/twdp_2010.png" alt="Screenshot of site page">
+<img src="images/twp2_2411.png" alt="Screenshot of site page">
 </div>
 <div class="title">Figure 11. Screenshot looking normal</div>
 </div>
 </div>
 <div class="sect2">
-<h3 id="_if_in_doubt_try_bumping_the_timeout">If in doubt, try bumping the timeout!</h3>
+<h3 id="_if_in_doubt_try_bumping_the_timeout">If in Doubt, Try Bumping the Timeout!</h3>
 <div class="paragraph">
 <p>Hm.  No obvious clues there.  Well, when in doubt, bump the timeout, as the
-old adage goes.</p>
+old adage goes:</p>
 </div>
-<div class="listingblock sourcecode skipme">
+<div class="exampleblock sourcecode skipme">
 <div class="title">functional_tests/base.py</div>
+<div class="content">
+<div class="listingblock">
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="python">MAX_WAIT = <span class="integer">20</span></code></pre>
 </div>
 </div>
+</div>
+</div>
 <div class="paragraph">
-<p>
-
-Then we can rerun the build on Jenkins using "Build now", and confirm it now
+<p>Then we can rerun the build on Jenkins using "Build Now", and confirm it now
 works, as in <a href="#outlook-brighter">The outlook is brighter</a>.</p>
 </div>
 <div id="outlook-brighter" class="imageblock">
 <div class="content">
-<img src="images/twdp_2011.png" alt="Build showing a recent pass and sun-peeking-through-clouds logo">
+<img src="images/twp2_2412.png" alt="Build showing a recent pass and sun-peeking-through-clouds logo">
 </div>
 <div class="title">Figure 12. The outlook is brighter</div>
 </div>
@@ -798,19 +746,13 @@ works, as in <a href="#outlook-brighter">The outlook is brighter</a>.</p>
 <p>Jenkins uses blue to indicate passing builds rather than green, which is a bit
 disappointing, but look at the sun peeking through the clouds:  that&#8217;s cheery!
 It&#8217;s an indicator of a moving average ratio of passing builds to failing
-builds.  Things are looking up!
-
-
-</p>
+builds.  Things are looking up!</p>
 </div>
 </div>
 <div class="sect2">
 <h3 id="_running_our_qunit_javascript_tests_in_jenkins_with_phantomjs">Running Our QUnit JavaScript Tests in Jenkins with PhantomJS</h3>
 <div class="paragraph">
-<p>
-
-
-There&#8217;s a set of tests we almost forgot&#8212;&#8203;the JavaScript tests. Currently
+<p>There&#8217;s a set of tests we almost forgot&#8212;&#8203;the JavaScript tests. Currently
 our "test runner" is an actual web browser.  To get Jenkins to run them, we
 need a command-line test runner.  Here&#8217;s a chance to use PhantomJS.</p>
 </div>
@@ -869,12 +811,16 @@ Took 24ms to run 2 tests. 2 passed, 0 failed.</pre>
 <div class="paragraph">
 <p>Just to be sure, let&#8217;s deliberately break something:</p>
 </div>
-<div class="listingblock sourcecode">
+<div class="exampleblock sourcecode">
 <div class="title">lists/static/list.js (ch21l019)</div>
+<div class="content">
+<div class="listingblock">
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="javascript">  <span class="predefined">$</span>(<span class="string"><span class="delimiter">'</span><span class="content">input[name="text"]</span><span class="delimiter">'</span></span>).on(<span class="string"><span class="delimiter">'</span><span class="content">keypress</span><span class="delimiter">'</span></span>, <span class="keyword">function</span> () {
     <span class="comment">// $('.has-error').hide();</span>
   });</code></pre>
+</div>
+</div>
 </div>
 </div>
 <div class="paragraph">
@@ -912,7 +858,7 @@ JavaScript tests, as per <a href="#js-unit-tests-jenkey">Add a build step for ou
 </div>
 <div id="js-unit-tests-jenkey" class="imageblock">
 <div class="content">
-<img src="images/twdp_2012.png" alt="Jenkins' default welcome screen">
+<img src="images/twp2_2413.png" alt="Jenkins' default welcome screen">
 </div>
 <div class="title">Figure 13. Add a build step for our JavaScript unit tests</div>
 </div>
@@ -982,13 +928,9 @@ OK</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>
-
-
-Nice to know that, no matter how lazy I get about running the full test suite
+<p>Nice to know that, no matter how lazy I get about running the full test suite
 on my own machine, the CI server will catch me.  Another one of the Testing
-Goat&#8217;s agents in cyberspace, watching over us&#8230;&#8203;
-</p>
+Goat&#8217;s agents in cyberspace, watching over us&#8230;&#8203;</p>
 </div>
 </div>
 </div>
@@ -1000,9 +942,7 @@ For example, you can make it much smarter about how it monitors your repo for
 new commits.</p>
 </div>
 <div class="paragraph">
-<p>
-
-Perhaps more interestingly, you can use your CI server to automate your staging
+<p>Perhaps more interestingly, you can use your CI server to automate your staging
 tests as well as your normal functional tests.  If all the FTs pass, you can
 add a build step that deploys the code to staging, and then reruns the FTs
 against that&#8212;&#8203;automating one more step of the process, and ensuring that your
@@ -1021,23 +961,20 @@ releases!</p>
 <dd>
 <p>As soon as your functional tests take more than a few seconds to run,
 you&#8217;ll find yourself avoiding running them all. Give this job to a CI
-server, to make sure that all your tests are getting run somewhere.
-</p>
+server, to make sure that all your tests are getting run somewhere.</p>
 </dd>
 <dt class="hdlist1">Set up screenshots and HTML dumps for failures</dt>
 <dd>
 <p>Debugging test failures is easier if you can see what the page looked
-at when the failure occurs.  This is particularly useful for debugging
+like when the failure occurred.  This is particularly useful for debugging
 CI failures, but it&#8217;s also very useful for tests that you run locally.</p>
 </dd>
 <dt class="hdlist1">Be prepared to bump your timeouts</dt>
 <dd>
-<p>A CI server may not be a speedy as your laptop, especially if it&#8217;s under
+<p>A CI server may not be as speedy as your laptop, especially if it&#8217;s under
 load, running multiple tests at the same time.  Be prepared to be even
 more generous with your timeouts, in order to minimise the chance of
-random failures.
-taken effect.
-</p>
+random failures.</p>
 </dd>
 <dt class="hdlist1">Look into hooking up CI and staging</dt>
 <dd>
@@ -1045,8 +982,7 @@ taken effect.
 but the true reassurance comes from running your tests against a real
 server.  Look into getting your CI server to deploy to your staging server,
 and run the functional tests against that instead.  It has the side benefit
-of testing your automated deploy scripts.
-</p>
+of testing your automated deploy scripts.</p>
 </dd>
 </dl>
 </div>
@@ -1067,7 +1003,7 @@ of testing your automated deploy scripts.
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2017-03-30 07:47:47 BST
+Last updated 2017-07-04 11:01:42 BST
 </div>
 </div>
 <div class="comments" style="padding: 20px">

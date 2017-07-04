@@ -43,39 +43,8 @@ httpRequest.send();
 <div class="sect1">
 <h2 id="chapter_purist_unit_tests">Test Isolation, and "Listening to Your Tests"</h2>
 <div class="sectionbody">
-<table class="tableblock frame-all grid-all" style="float: right;">
-<colgroup>
-<col>
-<col>
-</colgroup>
-<tbody>
-<tr>
-<td class="tableblock halign-left valign-top" colspan="2"><p class="tableblock">Chapter info</p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">shortname:</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">chapter_purist_unit_tests</p></td>
-</tr>
-</tbody>
-</table>
-<div class="admonitionblock warning">
-<table>
-<tr>
-<td class="icon">
-<i class="fa icon-warning" title="Warning"></i>
-</td>
-<td class="content">
-2017-03-13: Book upgraded to Python 3.6 and Django 1.11 beta.
-    Before that, there was a big upgrade to Selenium 3 on 2017-01-30. More
-    info <a href="https://www.obeythetestinggoat.com/latest-release-the-last-big-one-python-36-django-111-beta.html">on the blog</a>.
-</td>
-</tr>
-</table>
-</div>
 <div class="paragraph">
-<p>
-
-In the last chapter, we made the decision to leave a unit test failing in
+<p>In the preceding chapter, we made the decision to leave a unit test failing in
 the views layer while we proceeded to write more tests and more code at
 the models layer to get it to pass.</p>
 </div>
@@ -95,7 +64,6 @@ to work on lower levels while you&#8217;re not sure that the higher levels are
 I&#8217;m grateful to Gary Bernhardt, who took a look at an early draft of the
     previous chapter, and encouraged me to get into a longer discussion of test
     isolation.
-    
 </td>
 </tr>
 </table>
@@ -108,15 +76,14 @@ see in this chapter.</p>
 <div class="sect2">
 <h3 id="_revisiting_our_decision_point_the_views_layer_depends_on_unwritten_models_code">Revisiting Our Decision Point: The Views Layer Depends on Unwritten Models Code</h3>
 <div class="paragraph">
-<p>
-
-Let&#8217;s revisit the point we were at half-way through the last chapter, when we
+<p>Let&#8217;s revisit the point we were at halfway through the last chapter, when we
 couldn&#8217;t get the <code>new_list</code> view to work because lists didn&#8217;t have the <code>.owner</code>
 attribute yet.</p>
 </div>
 <div class="paragraph">
-<p>We&#8217;ll actually go back in time and check out the old codebase, so that we can
-see how things would have worked if we&#8217;d used more isolated tests.</p>
+<p>We&#8217;ll actually go back in time and check out the old codebase using the tag we
+saved earlier, so that we can see how things would have worked if we&#8217;d used
+more isolated tests:</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -125,10 +92,12 @@ $ <strong>git reset --hard revisit_this_point_with_isolated_tests</strong></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>Here&#8217;s what our failing tests looks like:</p>
+<p>Here&#8217;s what our failing test looks like:</p>
 </div>
-<div class="listingblock sourcecode currentcontents">
+<div class="exampleblock sourcecode currentcontents">
 <div class="title">lists/tests/test_views.py</div>
+<div class="content">
+<div class="listingblock">
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">class</span> <span class="class">NewListTest</span>(TestCase):
     [...]
@@ -141,11 +110,15 @@ $ <strong>git reset --hard revisit_this_point_with_isolated_tests</strong></pre>
         <span class="predefined-constant">self</span>.assertEqual(list_.owner, user)</code></pre>
 </div>
 </div>
+</div>
+</div>
 <div class="paragraph">
 <p>And here&#8217;s what our attempted solution looked like:</p>
 </div>
-<div class="listingblock sourcecode currentcontents">
+<div class="exampleblock sourcecode currentcontents">
 <div class="title">lists/views.py</div>
+<div class="content">
+<div class="listingblock">
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">def</span> <span class="function">new_list</span>(request):
     form = ItemForm(data=request.POST)
@@ -157,6 +130,8 @@ $ <strong>git reset --hard revisit_this_point_with_isolated_tests</strong></pre>
         <span class="keyword">return</span> redirect(list_)
     <span class="keyword">else</span>:
         <span class="keyword">return</span> render(request, <span class="string"><span class="delimiter">'</span><span class="content">home.html</span><span class="delimiter">'</span></span>, {<span class="string"><span class="delimiter">"</span><span class="content">form</span><span class="delimiter">"</span></span>: form})</code></pre>
+</div>
+</div>
 </div>
 </div>
 <div class="paragraph">
@@ -177,7 +152,7 @@ AttributeError: 'List' object has no attribute 'owner'</pre>
 </td>
 <td class="content">
 You won&#8217;t see this error unless you actually check out the old code
-    and revert <em>lists/models.py</em>.  You should definitely do this, part of
+    and revert <em>lists/models.py</em>.  You should definitely do this; part of
     the objective of this chapter is to see whether we really can write
     tests for a models layer that doesn&#8217;t exist yet.
 </td>
@@ -188,15 +163,13 @@ You won&#8217;t see this error unless you actually check out the old code
 <div class="sect2">
 <h3 id="_a_first_attempt_at_using_mocks_for_isolation">A First Attempt at Using Mocks for Isolation</h3>
 <div class="paragraph">
-<p>
-
-
-
-Lists don&#8217;t have owners yet, but we can let the views layer tests pretend they
+<p>Lists don&#8217;t have owners yet, but we can let the views layer tests pretend they
 do by using a bit of mocking:</p>
 </div>
-<div class="listingblock sourcecode">
+<div class="exampleblock sourcecode">
 <div class="title">lists/tests/test_views.py (ch20l003)</div>
+<div class="content">
+<div class="listingblock">
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> <span class="include">unittest.mock</span> <span class="keyword">import</span> <span class="include">patch</span>
 [...]
@@ -215,6 +188,8 @@ do by using a bit of mocking:</p>
         <span class="predefined-constant">self</span>.assertEqual(mock_list.owner, user)  <i class="conum" data-value="5"></i><b>(5)</b></code></pre>
 </div>
 </div>
+</div>
+</div>
 <div class="colist arabic">
 <table>
 <tr>
@@ -224,9 +199,9 @@ that might be created by the view.</td>
 </tr>
 <tr>
 <td><i class="conum" data-value="2"></i><b>2</b></td>
-<td>We also mock out the <code>ItemForm</code>, because otherwise our form will
+<td>We also mock out the <code>ItemForm</code>. Otherwise, our form will
 raise an error when we call <code>form.save()</code>, because it can&#8217;t use a
-mock object as the foreign key for the Item it wants to create.
+mock object as the foreign key for the <code>Item</code> it wants to create.
 Once you start mocking, it can be hard to stop!</td>
 </tr>
 <tr>
@@ -239,7 +214,7 @@ used to it!</td>
 <tr>
 <td><i class="conum" data-value="4"></i><b>4</b></td>
 <td>The list instance that the view will have access to
-will be the return value of the mocked List class.</td>
+will be the return value of the mocked <code>List</code> class.</td>
 </tr>
 <tr>
 <td><i class="conum" data-value="5"></i><b>5</b></td>
@@ -249,7 +224,7 @@ it.</td>
 </table>
 </div>
 <div class="paragraph">
-<p>If we try to run this test now, it should pass.</p>
+<p>If we try to run this test now, it should pass:</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -279,13 +254,14 @@ Using mocks does tie you to specific ways of using an API.  This is one
 <div class="sect3">
 <h4 id="_using_mock_side_effects_to_check_the_sequence_of_events">Using Mock side_effects to Check the Sequence of Events</h4>
 <div class="paragraph">
-<p>
-The trouble with this test is that it can still let us get away with writing
+<p>The trouble with this test is that it can still let us get away with writing
 the wrong code by mistake.  Imagine if we accidentally call save before we
 we assign the owner:</p>
 </div>
-<div class="listingblock sourcecode">
+<div class="exampleblock sourcecode">
 <div class="title">lists/views.py</div>
+<div class="content">
+<div class="listingblock">
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="python">    <span class="keyword">if</span> form.is_valid():
         list_ = List()
@@ -293,6 +269,8 @@ we assign the owner:</p>
         list_.owner = request.user
         form.save(for_list=list_)
         <span class="keyword">return</span> redirect(list_)</code></pre>
+</div>
+</div>
 </div>
 </div>
 <div class="paragraph">
@@ -304,16 +282,18 @@ we assign the owner:</p>
 </div>
 </div>
 <div class="paragraph">
-<p>So we actually need to check, not just that the owner is assigned, but that
+<p>So strictly speaking, we need to check not just that the owner is assigned, but that
 it&#8217;s assigned <em>before</em> we call save on our list object.</p>
 </div>
 <div class="paragraph">
-<p>Here&#8217;s how we can test the sequence of events using mocks&#8212;&#8203;you can mock out
+<p>Here&#8217;s how we could test the sequence of events using mocks&#8212;&#8203;you can mock out
 a function, and use it as a spy to check on the state of the world at the
 moment it&#8217;s called:</p>
 </div>
-<div class="listingblock sourcecode">
+<div class="exampleblock sourcecode">
 <div class="title">lists/tests/test_views.py (ch20l005)</div>
+<div class="content">
+<div class="listingblock">
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="python">    <span class="decorator">@patch</span>(<span class="string"><span class="delimiter">'</span><span class="content">lists.views.List</span><span class="delimiter">'</span></span>)
     <span class="decorator">@patch</span>(<span class="string"><span class="delimiter">'</span><span class="content">lists.views.ItemForm</span><span class="delimiter">'</span></span>)
@@ -333,12 +313,14 @@ moment it&#8217;s called:</p>
         mock_list.save.assert_called_once_with()  <i class="conum" data-value="3"></i><b>(3)</b></code></pre>
 </div>
 </div>
+</div>
+</div>
 <div class="colist arabic">
 <table>
 <tr>
 <td><i class="conum" data-value="1"></i><b>1</b></td>
 <td>We define a function that makes the assertion about the thing we
-want to happen first: checking the list&#8217;s owner has been set.</td>
+want to happen first: checking that the list&#8217;s owner has been set.</td>
 </tr>
 <tr>
 <td><i class="conum" data-value="2"></i><b>2</b></td>
@@ -350,7 +332,7 @@ set this up before we actually call the function we&#8217;re testing.</td>
 <tr>
 <td><i class="conum" data-value="3"></i><b>3</b></td>
 <td>Finally, we make sure that the function with the <code>side_effect</code> was
-actually triggered, ie we did <code>.save()</code>.  Otherwise our assertion
+actually triggered&#8212;&#8203;that is, that we did <code>.save()</code>.  Otherwise, our assertion
 may actually never have been run.</td>
 </tr>
 </table>
@@ -362,17 +344,17 @@ may actually never have been run.</td>
 <i class="fa icon-tip" title="Tip"></i>
 </td>
 <td class="content">
-Two common mistakes when using mock side-effects are:  assigning the
-    side effect too late, i.e. <em>after</em> you call the function under test, and
+Two common mistakes when you&#8217;re using mock side effects are assigning the
+    side effect too late (i.e., <em>after</em> you call the function under test), and
     forgetting to check that the side-effect function was actually called. And
     by common, I mean, "I made both these mistakes several times <em>while writing
-    this chapter</em>".
+    this chapter</em>&#8221;.
 </td>
 </tr>
 </table>
 </div>
 <div class="paragraph">
-<p>At this point, if you&#8217;ve still got the "broken" code from above, where we
+<p>At this point, if you&#8217;ve still got the "broken" code from earlier, where we
 assign the owner but call save in the wrong order, you should now see a
 fail:</p>
 </div>
@@ -392,14 +374,16 @@ User object&gt;</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>Notice how the failure happens when we try and save, and then go inside
+<p>Notice how the failure happens when we try to save, and then go inside
 our <code>side_effect</code> function.</p>
 </div>
 <div class="paragraph">
 <p>We can get it passing again like this:</p>
 </div>
-<div class="listingblock sourcecode">
+<div class="exampleblock sourcecode">
 <div class="title">lists/views.py</div>
+<div class="content">
+<div class="listingblock">
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="python">    <span class="keyword">if</span> form.is_valid():
         list_ = List()
@@ -407,6 +391,8 @@ our <code>side_effect</code> function.</p>
         list_.save()
         form.save(for_list=list_)
         <span class="keyword">return</span> redirect(list_)</code></pre>
+</div>
+</div>
 </div>
 </div>
 <div class="paragraph">
@@ -418,25 +404,20 @@ our <code>side_effect</code> function.</p>
 </div>
 </div>
 <div class="paragraph">
-<p>But, boy, that&#8217;s getting to be an ugly test!
-
-</p>
+<p>But, boy, that&#8217;s getting to be an ugly test!</p>
 </div>
 </div>
 </div>
 <div class="sect2">
 <h3 id="_listen_to_your_tests_ugly_tests_signal_a_need_to_refactor">Listen to Your Tests: Ugly Tests Signal a Need to Refactor</h3>
 <div class="paragraph">
-<p>
-
-Whenever you find yourself having to write a test like this, and you&#8217;re finding
+<p>Whenever you find yourself having to write a test like this, and you&#8217;re finding
 it hard work, it&#8217;s likely that your tests are trying to tell you something.
-Nine lines of setup (three lines for the mock user, four more lines for
-the request object, and three for our side-effect function) is way too many.</p>
+Eight lines of setup (two lines for mocks, three to set up a user, and three more for our side-effect function) is way too many.</p>
 </div>
 <div class="paragraph">
 <p>What this test is trying to tell us is that our view is doing too much work,
-dealing with creating a form, creating a new list object <em>and</em> deciding whether
+dealing with creating a form, creating a new list object, <em>and</em> deciding whether
 or not to save an owner for the list.</p>
 </div>
 <div class="paragraph">
@@ -448,11 +429,13 @@ does the view need to make decisions about whether or not to save the
 </div>
 <div class="paragraph">
 <p>While we&#8217;re giving this form more responsibilities, it feels like it should
-probably get a new name too.  We could call <code>NewListForm</code> instead, since
-that&#8217;s a better representation of what it does&#8230;&#8203; something like this?</p>
+probably get a new name too.  We could call it <code>NewListForm</code> instead, since
+that&#8217;s a better representation of what it does&#8230;&#8203;something like this?</p>
 </div>
-<div class="listingblock sourcecode skipme">
+<div class="exampleblock sourcecode skipme">
 <div class="title">lists/views.py</div>
+<div class="content">
+<div class="listingblock">
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="python"><span class="comment"># don't enter this code yet, we're only imagining it.</span>
 
@@ -465,6 +448,8 @@ that&#8217;s a better representation of what it does&#8230;&#8203; something lik
         <span class="keyword">return</span> render(request, <span class="string"><span class="delimiter">'</span><span class="content">home.html</span><span class="delimiter">'</span></span>, {<span class="string"><span class="delimiter">"</span><span class="content">form</span><span class="delimiter">"</span></span>: form})</code></pre>
 </div>
 </div>
+</div>
+</div>
 <div class="paragraph">
 <p>That would be neater!  Let&#8217;s see how we&#8217;d get to that state by using
 fully isolated tests.</p>
@@ -473,10 +458,9 @@ fully isolated tests.</p>
 <div class="sect2">
 <h3 id="_rewriting_our_tests_for_the_view_to_be_fully_isolated">Rewriting Our Tests for the View to Be Fully Isolated</h3>
 <div class="paragraph">
-<p>
-Our first attempt at a test suite is for this view was highly <em>integrated</em>.  It
+<p>Our first attempt at a test suite for this view was highly <em>integrated</em>.  It
 needed the database layer and the forms layer to be fully functional in order
-for it to pass.   We&#8217;ve started trying to make it more isolated, let&#8217;s now go
+for it to pass.   We&#8217;ve started trying to make it more isolated, so let&#8217;s now go
 all the way.</p>
 </div>
 <div class="sect3">
@@ -486,8 +470,10 @@ all the way.</p>
 and throw away our attempt at a mocky test for saving the owner, putting
 back the integrated version, with a skip on it for now:</p>
 </div>
-<div class="listingblock sourcecode">
+<div class="exampleblock sourcecode">
 <div class="title">lists/tests/test_views.py (ch20l008)</div>
+<div class="content">
+<div class="listingblock">
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">import</span> <span class="include">unittest</span>
 [...]
@@ -506,6 +492,8 @@ back the integrated version, with a skip on it for now:</p>
         <span class="predefined-constant">self</span>.assertEqual(list_.owner, user)</code></pre>
 </div>
 </div>
+</div>
+</div>
 <div class="admonitionblock tip">
 <table>
 <tr>
@@ -514,10 +502,8 @@ back the integrated version, with a skip on it for now:</p>
 </td>
 <td class="content">
 Have you heard the term "integration test" and are wondering what the
-    difference is with an "integrated test"?  Go and take a peek at the
+    difference is from an "integrated test"?  Go and take a peek at the
     definitions box in <a href="/book/chapter_hot_lava.html">[chapter_hot_lava]</a>.
-    
-    
 </td>
 </tr>
 </table>
@@ -536,11 +522,13 @@ OK</pre>
 <div class="paragraph">
 <p>Let&#8217;s start with a blank slate, and see if we can use isolated tests to drive
 a replacement of our <code>new_list</code> view.  We&#8217;ll call it <code>new_list2</code>, build it
-alongside the old view, and when we&#8217;re ready, we can swap it in and see if
-the old integrated tests all still pass.</p>
+alongside the old view, and when we&#8217;re ready, swap it in and see if
+the old integrated tests all still pass:</p>
 </div>
-<div class="listingblock sourcecode">
+<div class="exampleblock sourcecode">
 <div class="title">lists/views.py (ch20l009)</div>
+<div class="content">
+<div class="listingblock">
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">def</span> <span class="function">new_list</span>(request):
     [...]
@@ -550,11 +538,12 @@ the old integrated tests all still pass.</p>
 </div>
 </div>
 </div>
+</div>
+</div>
 <div class="sect3">
 <h4 id="_thinking_in_terms_of_collaborators">Thinking in Terms of Collaborators</h4>
 <div class="paragraph">
-<p>
-In order to rewrite our tests to be fully isolated, we need to throw out our
+<p>In order to rewrite our tests to be fully isolated, we need to throw out our
 old way of thinking about the tests in terms of the "real" effects of the view
 on things like the database, and instead think of it in terms of the objects it
 collaborates with, and how it interacts with them.</p>
@@ -562,10 +551,12 @@ collaborates with, and how it interacts with them.</p>
 <div class="paragraph">
 <p>In the new world, the view&#8217;s main collaborator will be a form object, so we
 mock that out in order to be able to fully control it, and in order to be able
-to define, by wishful thinking, the way we want our form to work.</p>
+to define, by wishful thinking, the way we want our form to work:</p>
 </div>
-<div class="listingblock sourcecode">
+<div class="exampleblock sourcecode">
 <div class="title">lists/tests/test_views.py (ch20l010)</div>
+<div class="content">
+<div class="listingblock">
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> <span class="include">unittest.mock</span> <span class="keyword">import</span> <span class="include">patch</span>
 <span class="keyword">from</span> <span class="include">django.http</span> <span class="keyword">import</span> <span class="include">HttpRequest</span>
@@ -584,17 +575,19 @@ to define, by wishful thinking, the way we want our form to work.</p>
         mockNewListForm.assert_called_once_with(data=<span class="predefined-constant">self</span>.request.POST)  <i class="conum" data-value="4"></i><b>(4)</b></code></pre>
 </div>
 </div>
+</div>
+</div>
 <div class="colist arabic">
 <table>
 <tr>
 <td><i class="conum" data-value="1"></i><b>1</b></td>
 <td>The Django <code>TestCase</code> class makes it too easy to write integrated tests.
 As a way of making sure we&#8217;re writing "pure", isolated unit tests, we&#8217;ll
-only use <code>unittest.TestCase</code></td>
+only use <code>unittest.TestCase</code>.</td>
 </tr>
 <tr>
 <td><i class="conum" data-value="2"></i><b>2</b></td>
-<td>We mock out the NewListForm class (which doesn&#8217;t even exist yet). It&#8217;s
+<td>We mock out the <code>NewListForm</code> class (which doesn&#8217;t even exist yet). It&#8217;s
 going to be used in all the tests, so we mock it out at the class level.</td>
 </tr>
 <tr>
@@ -612,7 +605,7 @@ data from the request.</td>
 </div>
 <div class="paragraph">
 <p>That will start with a failure, saying we don&#8217;t have a <code>NewListForm</code> in
-our view yet.</p>
+our view yet:</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -623,18 +616,24 @@ does not have the attribute 'NewListForm'</pre>
 <div class="paragraph">
 <p>Let&#8217;s create a placeholder for it:</p>
 </div>
-<div class="listingblock sourcecode">
+<div class="exampleblock sourcecode">
 <div class="title">lists/views.py (ch20l011)</div>
+<div class="content">
+<div class="listingblock">
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> <span class="include">lists.forms</span> <span class="keyword">import</span> <span class="include">ExistingListItemForm</span>, <span class="include">ItemForm</span>, <span class="include">NewListForm</span>
 [...]</code></pre>
 </div>
 </div>
+</div>
+</div>
 <div class="paragraph">
 <p>and:</p>
 </div>
-<div class="listingblock sourcecode">
+<div class="exampleblock sourcecode">
 <div class="title">lists/forms.py (ch20l012)</div>
+<div class="content">
+<div class="listingblock">
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">class</span> <span class="class">ItemForm</span>(forms.models.ModelForm):
     [...]
@@ -644,6 +643,8 @@ does not have the attribute 'NewListForm'</pre>
 
 <span class="keyword">class</span> <span class="class">ExistingListItemForm</span>(ItemForm):
     [...]</code></pre>
+</div>
+</div>
 </div>
 </div>
 <div class="paragraph">
@@ -657,11 +658,15 @@ does not have the attribute 'NewListForm'</pre>
 <div class="paragraph">
 <p>And we implement like this:</p>
 </div>
-<div class="listingblock sourcecode">
+<div class="exampleblock sourcecode">
 <div class="title">lists/views.py (ch20l012-2)</div>
+<div class="content">
+<div class="listingblock">
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">def</span> <span class="function">new_list2</span>(request):
     NewListForm(data=request.POST)</code></pre>
+</div>
+</div>
 </div>
 </div>
 <div class="listingblock">
@@ -675,8 +680,10 @@ OK</pre>
 <div class="paragraph">
 <p>Let&#8217;s continue.  If the form is valid, we want to call save on it:</p>
 </div>
-<div class="listingblock sourcecode">
+<div class="exampleblock sourcecode">
 <div class="title">lists/tests/test_views.py (ch20l013)</div>
+<div class="content">
+<div class="listingblock">
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> <span class="include">unittest.mock</span> <span class="keyword">import</span> <span class="include">patch</span>, <span class="include">Mock</span>
 [...]
@@ -702,15 +709,21 @@ OK</pre>
         mock_form.save.assert_called_once_with(owner=<span class="predefined-constant">self</span>.request.user)</code></pre>
 </div>
 </div>
+</div>
+</div>
 <div class="paragraph">
 <p>That takes us to this:</p>
 </div>
-<div class="listingblock sourcecode">
+<div class="exampleblock sourcecode">
 <div class="title">lists/views.py (ch20l014)</div>
+<div class="content">
+<div class="listingblock">
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">def</span> <span class="function">new_list2</span>(request):
     form = NewListForm(data=request.POST)
     form.save(owner=request.user)</code></pre>
+</div>
+</div>
 </div>
 </div>
 <div class="paragraph">
@@ -718,8 +731,10 @@ OK</pre>
 to send us to see the object that the form has just created.  So we mock out
 another of the view&#8217;s collaborators, the <code>redirect</code> function:</p>
 </div>
-<div class="listingblock sourcecode">
+<div class="exampleblock sourcecode">
 <div class="title">lists/tests/test_views.py (ch20l015)</div>
+<div class="content">
+<div class="listingblock">
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="python">    <span class="decorator">@patch</span>(<span class="string"><span class="delimiter">'</span><span class="content">lists.views.redirect</span><span class="delimiter">'</span></span>)  <i class="conum" data-value="1"></i><b>(1)</b>
     <span class="keyword">def</span> <span class="function">test_redirects_to_form_returned_object_if_form_valid</span>(
@@ -732,6 +747,8 @@ another of the view&#8217;s collaborators, the <code>redirect</code> function:</
 
         <span class="predefined-constant">self</span>.assertEqual(response, mock_redirect.return_value)  <i class="conum" data-value="4"></i><b>(4)</b>
         mock_redirect.assert_called_once_with(mock_form.save.return_value)  <i class="conum" data-value="5"></i><b>(5)</b></code></pre>
+</div>
+</div>
 </div>
 </div>
 <div class="colist arabic">
@@ -747,7 +764,7 @@ to our method as before the <code>mockNewListForm</code>.</td>
 </tr>
 <tr>
 <td><i class="conum" data-value="3"></i><b>3</b></td>
-<td>We specify we&#8217;re testing the case where the form is valid.</td>
+<td>We specify that we&#8217;re testing the case where the form is valid.</td>
 </tr>
 <tr>
 <td><i class="conum" data-value="4"></i><b>4</b></td>
@@ -764,13 +781,17 @@ the form returns on save.</td>
 <div class="paragraph">
 <p>That takes us to here:</p>
 </div>
-<div class="listingblock sourcecode">
+<div class="exampleblock sourcecode">
 <div class="title">lists/views.py (ch20l016)</div>
+<div class="content">
+<div class="listingblock">
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">def</span> <span class="function">new_list2</span>(request):
     form = NewListForm(data=request.POST)
     list_ = form.save(owner=request.user)
     <span class="keyword">return</span> redirect(list_)</code></pre>
+</div>
+</div>
 </div>
 </div>
 <div class="listingblock">
@@ -782,12 +803,13 @@ OK</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>
-And now the failure case&#8212;&#8203;if the form is invalid, we want to render
+<p>And now the failure case&#8212;&#8203;if the form is invalid, we want to render
 the home page template:</p>
 </div>
-<div class="listingblock sourcecode">
+<div class="exampleblock sourcecode">
 <div class="title">lists/tests/test_views.py (ch20l017)</div>
+<div class="content">
+<div class="listingblock">
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="python">    <span class="decorator">@patch</span>(<span class="string"><span class="delimiter">'</span><span class="content">lists.views.render</span><span class="delimiter">'</span></span>)
     <span class="keyword">def</span> <span class="function">test_renders_home_template_with_form_if_form_invalid</span>(
@@ -802,6 +824,8 @@ the home page template:</p>
         mock_render.assert_called_once_with(
             <span class="predefined-constant">self</span>.request, <span class="string"><span class="delimiter">'</span><span class="content">home.html</span><span class="delimiter">'</span></span>, {<span class="string"><span class="delimiter">'</span><span class="content">form</span><span class="delimiter">'</span></span>: mock_form}
         )</code></pre>
+</div>
+</div>
 </div>
 </div>
 <div class="paragraph">
@@ -824,7 +848,7 @@ When using assert methods on mocks, like <code>assert_called_</code> <code>once_
     it&#8217;s doubly important to make sure you run the test and see it fail.
     It&#8217;s all too easy to make a typo in your assert function name and
     end up calling a mock method that does nothing (mine was to write
-    <code>asssert_called_once_with</code> with three essses, try it!)
+    <code>asssert_called_once_with</code> with three essses; try it!).
 </td>
 </tr>
 </table>
@@ -832,8 +856,10 @@ When using assert methods on mocks, like <code>assert_called_</code> <code>once_
 <div class="paragraph">
 <p>We make a deliberate mistake, just to make sure our tests are comprehensive:</p>
 </div>
-<div class="listingblock sourcecode">
+<div class="exampleblock sourcecode">
 <div class="title">lists/views.py (ch20l018)</div>
+<div class="content">
+<div class="listingblock">
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">def</span> <span class="function">new_list2</span>(request):
     form = NewListForm(data=request.POST)
@@ -843,17 +869,23 @@ When using assert methods on mocks, like <code>assert_called_</code> <code>once_
     <span class="keyword">return</span> render(request, <span class="string"><span class="delimiter">'</span><span class="content">home.html</span><span class="delimiter">'</span></span>, {<span class="string"><span class="delimiter">'</span><span class="content">form</span><span class="delimiter">'</span></span>: form})</code></pre>
 </div>
 </div>
-<div class="paragraph">
-<p>That passes but it shouldn&#8217;t!  One more test then:</p>
 </div>
-<div class="listingblock sourcecode">
+</div>
+<div class="paragraph">
+<p>That passes, but it shouldn&#8217;t!  One more test then:</p>
+</div>
+<div class="exampleblock sourcecode">
 <div class="title">lists/tests/test_views.py (ch20l019)</div>
+<div class="content">
+<div class="listingblock">
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="python">    <span class="keyword">def</span> <span class="function">test_does_not_save_if_form_invalid</span>(<span class="predefined-constant">self</span>, mockNewListForm):
         mock_form = mockNewListForm.return_value
         mock_form.is_valid.return_value = <span class="predefined-constant">False</span>
         new_list2(<span class="predefined-constant">self</span>.request)
         <span class="predefined-constant">self</span>.assertFalse(mock_form.save.called)</code></pre>
+</div>
+</div>
 </div>
 </div>
 <div class="paragraph">
@@ -866,12 +898,12 @@ AssertionError: True is not false</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>
-
-And we get to to our neat, small finished view:</p>
+<p>And we get to to our neat, small finished view:</p>
 </div>
-<div class="listingblock sourcecode">
+<div class="exampleblock sourcecode">
 <div class="title">lists/views.py</div>
+<div class="content">
+<div class="listingblock">
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">def</span> <span class="function">new_list2</span>(request):
     form = NewListForm(data=request.POST)
@@ -879,6 +911,8 @@ And we get to to our neat, small finished view:</p>
         list_ = form.save(owner=request.user)
         <span class="keyword">return</span> redirect(list_)
     <span class="keyword">return</span> render(request, <span class="string"><span class="delimiter">'</span><span class="content">home.html</span><span class="delimiter">'</span></span>, {<span class="string"><span class="delimiter">'</span><span class="content">form</span><span class="delimiter">'</span></span>: form})</code></pre>
+</div>
+</div>
 </div>
 </div>
 <div class="paragraph">
@@ -897,9 +931,7 @@ OK</pre>
 <div class="sect2">
 <h3 id="_moving_down_to_the_forms_layer">Moving Down to the Forms Layer</h3>
 <div class="paragraph">
-<p>
-
-So we&#8217;ve built up our view function based on a "wishful thinking" version
+<p>So we&#8217;ve built up our view function based on a "wishful thinking" version
 of a form called <code>NewListForm</code>, which doesn&#8217;t even exist yet.</p>
 </div>
 <div class="paragraph">
@@ -924,7 +956,7 @@ use the ORM, the code might look something a bit like this:</p>
 </div>
 <div class="paragraph">
 <p>This implementation depends on two classes from the model layer, <code>Item</code> and
-<code>List</code>.  So, what would a well isolated test look like?</p>
+<code>List</code>.  So, what would a well-isolated test look like?</p>
 </div>
 <div class="listingblock skipme">
 <div class="content">
@@ -966,7 +998,7 @@ dictionary where it stores validated data.</td>
 <tr>
 <td><i class="conum" data-value="3"></i><b>3</b></td>
 <td>We use the <code>side_effect</code> method to make sure that, when we save the new
-item object, we&#8217;re doing so with a saved List and with the correct item
+item object, we&#8217;re doing so with a saved <code>List</code> and with the correct item
 text.</td>
 </tr>
 <tr>
@@ -995,17 +1027,19 @@ this:</p>
 </div>
 </div>
 <div class="paragraph">
-<p>Our wishful thinking says: how about we had a helper method that
-would live on the List
+<p>Our wishful thinking says: how about a helper method that
+would live on the <code>List</code>
 class<sup class="footnote">[<a id="_footnoteref_1" class="footnote" href="#_footnote_1" title="View footnote.">1</a>]</sup>
-and it will encapsulate all the logic of saving a new list object and
-its associated first item.</p>
+and encapsulate all the logic of saving a new list object and
+its associated first item?</p>
 </div>
 <div class="paragraph">
 <p>So let&#8217;s write a test for that instead:</p>
 </div>
-<div class="listingblock sourcecode">
+<div class="exampleblock sourcecode">
 <div class="title">lists/tests/test_forms.py (ch20l021)</div>
+<div class="content">
+<div class="listingblock">
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">import</span> <span class="include">unittest</span>
 <span class="keyword">from</span> <span class="include">unittest.mock</span> <span class="keyword">import</span> <span class="include">patch</span>, <span class="include">Mock</span>
@@ -1034,12 +1068,16 @@ its associated first item.</p>
         )</code></pre>
 </div>
 </div>
+</div>
+</div>
 <div class="paragraph">
-<p>And while we&#8217;re at it we can test the case where the user is an authenticated
+<p>And while we&#8217;re at it, we can test the case where the user is an authenticated
 user too:</p>
 </div>
-<div class="listingblock sourcecode">
+<div class="exampleblock sourcecode">
 <div class="title">lists/tests/test_forms.py (ch20l022)</div>
+<div class="content">
+<div class="listingblock">
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="python">    <span class="decorator">@patch</span>(<span class="string"><span class="delimiter">'</span><span class="content">lists.forms.List.create_new</span><span class="delimiter">'</span></span>)
     <span class="keyword">def</span> <span class="function">test_save_creates_new_list_with_owner_if_user_authenticated</span>(
@@ -1054,14 +1092,20 @@ user too:</p>
         )</code></pre>
 </div>
 </div>
+</div>
+</div>
 <div class="paragraph">
 <p>You can see this is a much more readable test. Let&#8217;s start implementing
 our new form.  We start with the import:</p>
 </div>
-<div class="listingblock sourcecode">
+<div class="exampleblock sourcecode">
 <div class="title">lists/forms.py (ch20l023)</div>
 <div class="content">
+<div class="listingblock">
+<div class="content">
 <pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> <span class="include">lists.models</span> <span class="keyword">import</span> <span class="include">Item</span>, <span class="include">List</span></code></pre>
+</div>
+</div>
 </div>
 </div>
 <div class="paragraph">
@@ -1073,8 +1117,10 @@ our new form.  We start with the import:</p>
 'create_new'</pre>
 </div>
 </div>
-<div class="listingblock sourcecode">
+<div class="exampleblock sourcecode">
 <div class="title">lists/models.py</div>
+<div class="content">
+<div class="listingblock">
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">class</span> <span class="class">List</span>(models.Model):
 
@@ -1085,11 +1131,15 @@ our new form.  We start with the import:</p>
         <span class="keyword">pass</span></code></pre>
 </div>
 </div>
+</div>
+</div>
 <div class="paragraph">
 <p>And after a few steps, we should end up with a form save method like this:</p>
 </div>
-<div class="listingblock sourcecode small-code">
+<div class="exampleblock sourcecode small-code">
 <div class="title">lists/forms.py (ch20l025)</div>
+<div class="content">
+<div class="listingblock">
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">class</span> <span class="class">NewListForm</span>(ItemForm):
 
@@ -1098,6 +1148,8 @@ our new form.  We start with the import:</p>
             List.create_new(first_item_text=<span class="predefined-constant">self</span>.cleaned_data[<span class="string"><span class="delimiter">'</span><span class="content">text</span><span class="delimiter">'</span></span>], owner=owner)
         <span class="keyword">else</span>:
             List.create_new(first_item_text=<span class="predefined-constant">self</span>.cleaned_data[<span class="string"><span class="delimiter">'</span><span class="content">text</span><span class="delimiter">'</span></span>])</code></pre>
+</div>
+</div>
 </div>
 </div>
 <div class="paragraph">
@@ -1110,10 +1162,6 @@ Ran 44 tests in 0.192s
 OK</pre>
 </div>
 </div>
-<div class="paragraph">
-<p>
-</p>
-</div>
 <div class="sidebarblock">
 <div class="content">
 <div class="title">Hiding ORM Code Behind Helper Methods</div>
@@ -1124,13 +1172,13 @@ OK</pre>
 <div class="paragraph">
 <p>Django&#8217;s ORM lets you get things done quickly with a reasonably readable
 syntax (it&#8217;s certainly much nicer than raw SQL!).  But some people like to
-try and minimise the amount of ORM code in the application&#8212;&#8203;particularly
+try to minimise the amount of ORM code in the application&#8212;&#8203;particularly
 removing it from the views and forms layers.</p>
 </div>
 <div class="paragraph">
 <p>One reason is that it makes it much easier to test those layers.  But another
 is that it forces us to build helper functions that express our domain
-logic more clearly. Compare:</p>
+logic more clearly. <span class="keep-together">Compare</span>:</p>
 </div>
 <div class="listingblock skipme">
 <div class="content">
@@ -1151,7 +1199,7 @@ logic more clearly. Compare:</p>
 </div>
 </div>
 <div class="paragraph">
-<p>This also applies to read queries as well as write. Imagine something like
+<p>This applies to read queries as well as write. Imagine something like
 this:</p>
 </div>
 <div class="listingblock skipme">
@@ -1171,8 +1219,7 @@ this:</p>
 <p>When we build helper functions, we can give them names that express what we
 are doing in terms of the business domain, which can actually make our code
 more legible, as well as giving us the benefit of keeping all ORM calls at
-the model layer, and thus making our whole application more loosely coupled.
-</p>
+the model layer, and thus making our whole application more loosely coupled.</p>
 </div>
 </div>
 </div>
@@ -1181,14 +1228,14 @@ the model layer, and thus making our whole application more loosely coupled.
 <div class="sect2">
 <h3 id="_finally_moving_down_to_the_models_layer">Finally, Moving Down to the Models Layer</h3>
 <div class="paragraph">
-<p>
-At the models layer, we no longer need to write isolated tests&#8212;&#8203;the whole
+<p>At the models layer, we no longer need to write isolated tests&#8212;&#8203;the whole
 point of the models layer is to integrate with the database, so it&#8217;s appropriate
-to write integrated tests:
-</p>
+to write integrated tests:</p>
 </div>
-<div class="listingblock sourcecode">
+<div class="exampleblock sourcecode">
 <div class="title">lists/tests/test_models.py (ch20l026)</div>
+<div class="content">
+<div class="listingblock">
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">class</span> <span class="class">ListModelTest</span>(TestCase):
 
@@ -1205,6 +1252,8 @@ to write integrated tests:
         <span class="predefined-constant">self</span>.assertEqual(new_item.list, new_list)</code></pre>
 </div>
 </div>
+</div>
+</div>
 <div class="paragraph">
 <p>Which gives:</p>
 </div>
@@ -1216,8 +1265,10 @@ to write integrated tests:
 <div class="paragraph">
 <p>And that will take us to a first cut implementation that looks like this:</p>
 </div>
-<div class="listingblock sourcecode">
+<div class="exampleblock sourcecode">
 <div class="title">lists/models.py (ch20l027)</div>
+<div class="content">
+<div class="listingblock">
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">class</span> <span class="class">List</span>(models.Model):
 
@@ -1230,17 +1281,21 @@ to write integrated tests:
         Item.objects.create(text=first_item_text, list=list_)</code></pre>
 </div>
 </div>
+</div>
+</div>
 <div class="paragraph">
 <p>Notice we&#8217;ve been able to get all the way down to the models layer,
-driving a nice design for the views and forms layers, and the List
+driving a nice design for the views and forms layers, and the <code>List</code>
 model still doesn&#8217;t support having an owner!</p>
 </div>
 <div class="paragraph">
 <p>Now let&#8217;s test the case where the list should have an owner, and
 add:</p>
 </div>
-<div class="listingblock sourcecode">
+<div class="exampleblock sourcecode">
 <div class="title">lists/tests/test_models.py (ch20l028)</div>
+<div class="content">
+<div class="listingblock">
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> <span class="include">django.contrib.auth</span> <span class="keyword">import</span> <span class="include">get_user_model</span>
 User = get_user_model()
@@ -1253,11 +1308,15 @@ User = get_user_model()
         <span class="predefined-constant">self</span>.assertEqual(new_list.owner, user)</code></pre>
 </div>
 </div>
+</div>
+</div>
 <div class="paragraph">
 <p>And while we&#8217;re at it, we can write the tests for the new owner attribute:</p>
 </div>
-<div class="listingblock sourcecode">
+<div class="exampleblock sourcecode">
 <div class="title">lists/tests/test_models.py (ch20l029)</div>
+<div class="content">
+<div class="listingblock">
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">class</span> <span class="class">ListModelTest</span>(TestCase):
     [...]
@@ -1270,10 +1329,12 @@ User = get_user_model()
         List().full_clean()  <span class="comment"># should not raise</span></code></pre>
 </div>
 </div>
+</div>
+</div>
 <div class="paragraph">
 <p>These two are almost exactly the same tests we used in the last chapter,
 but I&#8217;ve re-written them slightly so they don&#8217;t actually save objects&#8212;&#8203;just
-having them as in-memory objects is enough to for this test.</p>
+having them as in-memory objects is enough for this test.</p>
 </div>
 <div class="admonitionblock tip">
 <table>
@@ -1282,9 +1343,8 @@ having them as in-memory objects is enough to for this test.</p>
 <i class="fa icon-tip" title="Tip"></i>
 </td>
 <td class="content">
-Use in-memory (unsaved) model objects in your tests whenever you can, it
+Use in-memory (unsaved) model objects in your tests whenever you can; it
     makes your tests faster.
-    
 </td>
 </tr>
 </table>
@@ -1309,8 +1369,10 @@ FAILED (errors=2)</pre>
 <div class="paragraph">
 <p>We implement, just like we did in the last chapter:</p>
 </div>
-<div class="listingblock sourcecode">
+<div class="exampleblock sourcecode">
 <div class="title">lists/models.py (ch20l030-1)</div>
+<div class="content">
+<div class="listingblock">
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> <span class="include">django.conf</span> <span class="keyword">import</span> <span class="include">settings</span>
 [...]
@@ -1319,6 +1381,8 @@ FAILED (errors=2)</pre>
 <span class="keyword">class</span> <span class="class">List</span>(models.Model):
     owner = models.ForeignKey(settings.AUTH_USER_MODEL, blank=<span class="predefined-constant">True</span>, null=<span class="predefined-constant">True</span>)
     [...]</code></pre>
+</div>
+</div>
 </div>
 </div>
 <div class="paragraph">
@@ -1348,8 +1412,10 @@ ValueError: Cannot assign "&lt;SimpleLazyObject:
 <div class="paragraph">
 <p>Let&#8217;s deal with the first one, which is for our <code>create_new</code> method:</p>
 </div>
-<div class="listingblock sourcecode">
+<div class="exampleblock sourcecode">
 <div class="title">lists/models.py (ch20l030-3)</div>
+<div class="content">
+<div class="listingblock">
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="python">    <span class="decorator">@staticmethod</span>
     <span class="keyword">def</span> <span class="function">create_new</span>(first_item_text, owner=<span class="predefined-constant">None</span>):
@@ -1357,15 +1423,12 @@ ValueError: Cannot assign "&lt;SimpleLazyObject:
         Item.objects.create(text=first_item_text, list=list_)</code></pre>
 </div>
 </div>
-<div class="paragraph">
-<p></p>
+</div>
 </div>
 <div class="sect3">
 <h4 id="_back_to_views">Back to Views</h4>
 <div class="paragraph">
-<p>
-
-Two of our old integrated tests for the views layer are failing. What&#8217;s happening?</p>
+<p>Two of our old integrated tests for the views layer are failing. What&#8217;s happening?</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -1378,8 +1441,10 @@ Two of our old integrated tests for the views layer are failing. What&#8217;s ha
 <p>Ah, the old view isn&#8217;t discerning enough about what it does with list
 owners yet:</p>
 </div>
-<div class="listingblock sourcecode currentcontents">
+<div class="exampleblock sourcecode currentcontents">
 <div class="title">lists/views.py</div>
+<div class="content">
+<div class="listingblock">
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="python">    <span class="keyword">if</span> form.is_valid():
         list_ = List()
@@ -1387,12 +1452,16 @@ owners yet:</p>
         list_.save()</code></pre>
 </div>
 </div>
+</div>
+</div>
 <div class="paragraph">
 <p>This is the point at which we realise that our old code wasn&#8217;t fit for purpose.
 Let&#8217;s fix it to get all our tests passing:</p>
 </div>
-<div class="listingblock sourcecode">
+<div class="exampleblock sourcecode">
 <div class="title">lists/views.py (ch20l031)</div>
+<div class="content">
+<div class="listingblock">
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">def</span> <span class="function">new_list</span>(request):
     form = ItemForm(data=request.POST)
@@ -1409,6 +1478,8 @@ Let&#8217;s fix it to get all our tests passing:</p>
 
 <span class="keyword">def</span> <span class="function">new_list2</span>(request):
     [...]</code></pre>
+</div>
+</div>
 </div>
 </div>
 <div class="admonitionblock note">
@@ -1440,23 +1511,28 @@ OK</pre>
 <div class="sect2">
 <h3 id="_the_moment_of_truth_and_the_risks_of_mocking">The Moment of Truth (and the Risks of Mocking)</h3>
 <div class="paragraph">
-<p>
-So let&#8217;s try switching out our old view, and activating our new view. We
+<p>So let&#8217;s try switching out our old view, and activating our new view. We
 can make the swap in <em>urls.py</em>:</p>
 </div>
-<div class="listingblock sourcecode">
+<div class="exampleblock sourcecode">
 <div class="title">lists/urls.py</div>
+<div class="content">
+<div class="listingblock">
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="python">[...]
     url(<span class="string"><span class="modifier">r</span><span class="delimiter">'</span><span class="content">^new$</span><span class="delimiter">'</span></span>, views.new_list2, name=<span class="string"><span class="delimiter">'</span><span class="content">new_list</span><span class="delimiter">'</span></span>),</code></pre>
+</div>
+</div>
 </div>
 </div>
 <div class="paragraph">
 <p>We should also remove the <code>unittest.skip</code> from our integrated test class, to
 see if our new code for list owners really works:</p>
 </div>
-<div class="listingblock sourcecode">
+<div class="exampleblock sourcecode">
 <div class="title">lists/tests/test_views.py (ch20l033)</div>
+<div class="content">
+<div class="listingblock">
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">class</span> <span class="class">NewListViewIntegratedTest</span>(TestCase):
 
@@ -1466,6 +1542,8 @@ see if our new code for list owners really works:</p>
     <span class="keyword">def</span> <span class="function">test_list_owner_is_saved_if_user_is_authenticated</span>(<span class="predefined-constant">self</span>):
         [...]
         <span class="predefined-constant">self</span>.assertEqual(list_.owner, user)</code></pre>
+</div>
+</div>
 </div>
 </div>
 <div class="paragraph">
@@ -1496,18 +1574,24 @@ verify the integration <em>between</em> your layers.</p>
 <p>What&#8217;s happened here is that the view was expecting the form to return
 a list item:</p>
 </div>
-<div class="listingblock sourcecode currentcontents">
+<div class="exampleblock sourcecode currentcontents">
 <div class="title">lists/views.py</div>
+<div class="content">
+<div class="listingblock">
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="python">        list_ = form.save(owner=request.user)
         <span class="keyword">return</span> redirect(list_)</code></pre>
 </div>
 </div>
+</div>
+</div>
 <div class="paragraph">
 <p>But we forgot to make it return anything:</p>
 </div>
-<div class="listingblock sourcecode currentcontents small-code">
+<div class="exampleblock sourcecode currentcontents small-code">
 <div class="title">lists/forms.py</div>
+<div class="content">
+<div class="listingblock">
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="python">    <span class="keyword">def</span> <span class="function">save</span>(<span class="predefined-constant">self</span>, owner):
         <span class="keyword">if</span> owner.is_authenticated:
@@ -1517,11 +1601,12 @@ a list item:</p>
 </div>
 </div>
 </div>
+</div>
+</div>
 <div class="sect2">
 <h3 id="_thinking_of_interactions_between_layers_as_contracts">Thinking of Interactions Between Layers as "Contracts"</h3>
 <div class="paragraph">
-<p>
-Ultimately, even if we had been writing nothing but isolated unit tests, our
+<p>Ultimately, even if we had been writing nothing but isolated unit tests, our
 functional tests would have picked up this particular slip-up.  But ideally
 we&#8217;d want our feedback cycle to be quicker&#8212;&#8203;functional tests may take a
 couple of minutes to run, or even a few hours once your app starts to grow.  Is
@@ -1537,8 +1622,10 @@ a test at the layer below.</p>
 <div class="paragraph">
 <p>Here&#8217;s the part of the contract that we missed:</p>
 </div>
-<div class="listingblock sourcecode currentcontents">
+<div class="exampleblock sourcecode currentcontents">
 <div class="title">lists/tests/test_views.py</div>
+<div class="content">
+<div class="listingblock">
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="python">    <span class="decorator">@patch</span>(<span class="string"><span class="delimiter">'</span><span class="content">lists.views.redirect</span><span class="delimiter">'</span></span>)
     <span class="keyword">def</span> <span class="function">test_redirects_to_form_returned_object_if_form_valid</span>(
@@ -1553,6 +1640,8 @@ a test at the layer below.</p>
         mock_redirect.assert_called_once_with(mock_form.save.return_value)  <i class="conum" data-value="1"></i><b>(1)</b></code></pre>
 </div>
 </div>
+</div>
+</div>
 <div class="colist arabic">
 <table>
 <tr>
@@ -1565,13 +1654,13 @@ our view to be able to use.</td>
 <div class="sect3">
 <h4 id="_identifying_implicit_contracts">Identifying Implicit Contracts</h4>
 <div class="paragraph">
-<p>
-
-It&#8217;s worth reviewing each of the tests in <code>NewListViewUnitTest</code> and seeing
+<p>It&#8217;s worth reviewing each of the tests in <code>NewListViewUnitTest</code> and seeing
 what each mock is saying about the implicit contract:</p>
 </div>
-<div class="listingblock sourcecode currentcontents">
+<div class="exampleblock sourcecode currentcontents">
 <div class="title">lists/tests/test_views.py</div>
+<div class="content">
+<div class="listingblock">
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="python">    <span class="keyword">def</span> <span class="function">test_passes_POST_data_to_NewListForm</span>(<span class="predefined-constant">self</span>, mockNewListForm):
         [...]
@@ -1604,6 +1693,8 @@ what each mock is saying about the implicit contract:</p>
         [...]</code></pre>
 </div>
 </div>
+</div>
+</div>
 <div class="colist arabic">
 <table>
 <tr>
@@ -1613,7 +1704,7 @@ as data.</td>
 </tr>
 <tr>
 <td><i class="conum" data-value="2"></i><b>2</b></td>
-<td>It should have an <code>is_valid()</code> function which returns True or False
+<td>It should have an <code>is_valid()</code> function which returns <code>True</code> or <code>False</code>
 appropriately, based on the input data.</td>
 </tr>
 <tr>
@@ -1629,13 +1720,13 @@ to redirect the user to.</td>
 </table>
 </div>
 <div class="paragraph">
-<p>If we have a look through our form tests, we&#8217;ll see that, actually, only item %3%
-is tested explicitly.  On items %1% and %2% we were lucky&#8212;&#8203;they&#8217;re default
+<p>If we have a look through our form tests, we&#8217;ll see that, actually, only item (3)
+is tested explicitly.  On items (1) and (2) we were lucky&#8212;&#8203;they&#8217;re default
 features of a Django <code>ModelForm</code>, and they are actually covered by our
 tests for the parent <code>ItemForm</code> class.</p>
 </div>
 <div class="paragraph">
-<p>But contract clause number &#10125; managed to slip through the net.</p>
+<p>But contract clause number (4) managed to slip through the net.</p>
 </div>
 <div class="admonitionblock note">
 <table>
@@ -1644,7 +1735,7 @@ tests for the parent <code>ItemForm</code> class.</p>
 <i class="fa icon-note" title="Note"></i>
 </td>
 <td class="content">
-When doing outside-in TDD with isolated tests, you need to keep track of
+When doing Outside-In TDD with isolated tests, you need to keep track of
     each test&#8217;s implicit assumptions about the contract which the next layer
     should implement, and remember to test each of those in turn later.  You
     could use our scratchpad for this, or create a placeholder test with
@@ -1659,8 +1750,10 @@ When doing outside-in TDD with isolated tests, you need to keep track of
 <div class="paragraph">
 <p>Let&#8217;s add a new test that our form should return the new saved list:</p>
 </div>
-<div class="listingblock sourcecode">
+<div class="exampleblock sourcecode">
 <div class="title">lists/tests/test_forms.py (ch20l038-1)</div>
+<div class="content">
+<div class="listingblock">
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="python">    <span class="decorator">@patch</span>(<span class="string"><span class="delimiter">'</span><span class="content">lists.forms.List.create_new</span><span class="delimiter">'</span></span>)
     <span class="keyword">def</span> <span class="function">test_save_returns_new_list_object</span>(<span class="predefined-constant">self</span>, mock_List_create_new):
@@ -1671,13 +1764,17 @@ When doing outside-in TDD with isolated tests, you need to keep track of
         <span class="predefined-constant">self</span>.assertEqual(response, mock_List_create_new.return_value)</code></pre>
 </div>
 </div>
+</div>
+</div>
 <div class="paragraph">
 <p>And, actually, this is a good example&#8212;&#8203;we have an implicit contract
-with the <code>List.create_new</code>, we want it to return the new list object.
-Let&#8217;s add a placeholder test for that.</p>
+with the <code>List.create_new</code>; we want it to return the new list object.
+Let&#8217;s add a placeholder test for that:</p>
 </div>
-<div class="listingblock sourcecode">
+<div class="exampleblock sourcecode">
 <div class="title">lists/tests/test_models.py (ch20l038-2)</div>
+<div class="content">
+<div class="listingblock">
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">class</span> <span class="class">ListModelTest</span>(TestCase):
     [...]
@@ -1686,8 +1783,10 @@ Let&#8217;s add a placeholder test for that.</p>
         <span class="predefined-constant">self</span>.fail()</code></pre>
 </div>
 </div>
+</div>
+</div>
 <div class="paragraph">
-<p>So, we have one test failures that&#8217;s telling us to fix the form save:</p>
+<p>So, we have one test failure that&#8217;s telling us to fix the form save:</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -1698,8 +1797,10 @@ FAILED (failures=2, errors=3)</pre>
 <div class="paragraph">
 <p>Like this:</p>
 </div>
-<div class="listingblock sourcecode small-code">
+<div class="exampleblock sourcecode small-code">
 <div class="title">lists/forms.py (ch20l039-1)</div>
+<div class="content">
+<div class="listingblock">
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">class</span> <span class="class">NewListForm</span>(ItemForm):
 
@@ -1710,8 +1811,10 @@ FAILED (failures=2, errors=3)</pre>
             <span class="keyword">return</span> List.create_new(first_item_text=<span class="predefined-constant">self</span>.cleaned_data[<span class="string"><span class="delimiter">'</span><span class="content">text</span><span class="delimiter">'</span></span>])</code></pre>
 </div>
 </div>
+</div>
+</div>
 <div class="paragraph">
-<p>That&#8217;s a start, now we should look at our placeholder test:</p>
+<p>That&#8217;s a start; now we should look at our placeholder test:</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -1726,13 +1829,17 @@ FAILED (failures=1, errors=3)</pre>
 <div class="paragraph">
 <p>We flesh it out:</p>
 </div>
-<div class="listingblock sourcecode">
+<div class="exampleblock sourcecode">
 <div class="title">lists/tests/test_models.py (ch20l039-2)</div>
+<div class="content">
+<div class="listingblock">
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="python">    <span class="keyword">def</span> <span class="function">test_create_returns_new_list_object</span>(<span class="predefined-constant">self</span>):
         returned = List.create_new(first_item_text=<span class="string"><span class="delimiter">'</span><span class="content">new item text</span><span class="delimiter">'</span></span>)
         new_list = List.objects.first()
         <span class="predefined-constant">self</span>.assertEqual(returned, new_list)</code></pre>
+</div>
+</div>
 </div>
 </div>
 <div class="paragraph">
@@ -1746,14 +1853,18 @@ FAILED (failures=1, errors=3)</pre>
 <div class="paragraph">
 <p>And we add our return value:</p>
 </div>
-<div class="listingblock sourcecode">
+<div class="exampleblock sourcecode">
 <div class="title">lists/models.py (ch20l039-3)</div>
+<div class="content">
+<div class="listingblock">
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="python">    <span class="decorator">@staticmethod</span>
     <span class="keyword">def</span> <span class="function">create_new</span>(first_item_text, owner=<span class="predefined-constant">None</span>):
         list_ = List.objects.create(owner=owner)
         Item.objects.create(text=first_item_text, list=list_)
         <span class="keyword">return</span> list_</code></pre>
+</div>
+</div>
 </div>
 </div>
 <div class="paragraph">
@@ -1787,8 +1898,10 @@ element: Reticulate splines</pre>
 <p>It&#8217;s because we have one last feature to implement, the <code>.name</code> attribute on list
 objects.  Again, we can grab the test and code from the last chapter:</p>
 </div>
-<div class="listingblock sourcecode">
+<div class="exampleblock sourcecode">
 <div class="title">lists/tests/test_models.py (ch20l040)</div>
+<div class="content">
+<div class="listingblock">
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="python">    <span class="keyword">def</span> <span class="function">test_list_name_is_first_item_text</span>(<span class="predefined-constant">self</span>):
         list_ = List.objects.create()
@@ -1797,16 +1910,22 @@ objects.  Again, we can grab the test and code from the last chapter:</p>
         <span class="predefined-constant">self</span>.assertEqual(list_.name, <span class="string"><span class="delimiter">'</span><span class="content">first item</span><span class="delimiter">'</span></span>)</code></pre>
 </div>
 </div>
+</div>
+</div>
 <div class="paragraph">
 <p>(Again, since this is a model-layer test, it&#8217;s OK to use the ORM. You could
-conceivably write this test using mocks, but there wouldn&#8217;t be much point).</p>
+conceivably write this test using mocks, but there wouldn&#8217;t be much point.)</p>
 </div>
-<div class="listingblock sourcecode">
+<div class="exampleblock sourcecode">
 <div class="title">lists/models.py (ch20l041)</div>
+<div class="content">
+<div class="listingblock">
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="python">    <span class="decorator">@property</span>
     <span class="keyword">def</span> <span class="function">name</span>(<span class="predefined-constant">self</span>):
         <span class="keyword">return</span> <span class="predefined-constant">self</span>.item_set.first().text</code></pre>
+</div>
+</div>
 </div>
 </div>
 <div class="paragraph">
@@ -1825,8 +1944,7 @@ OK</pre>
 <div class="sect2">
 <h3 id="_tidy_up_what_to_keep_from_our_integrated_test_suite">Tidy Up: What to Keep from Our Integrated Test Suite</h3>
 <div class="paragraph">
-<p>
-Now everything is working, we can remove some redundant tests, and decide
+<p>Now everything is working, we can remove some redundant tests, and decide
 whether we want to keep any of our old integrated tests.</p>
 </div>
 <div class="sect3">
@@ -1834,8 +1952,10 @@ whether we want to keep any of our old integrated tests.</p>
 <div class="paragraph">
 <p>We can get rid of the test for the old save method on the <code>ItemForm</code>:</p>
 </div>
-<div class="listingblock sourcecode">
+<div class="exampleblock sourcecode">
 <div class="title">lists/tests/test_forms.py</div>
+<div class="content">
+<div class="listingblock">
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="diff"><span class="line head"><span class="head">--- </span><span class="filename">a/lists/tests/test_forms.py</span></span>
 <span class="line head"><span class="head">+++ </span><span class="filename">b/lists/tests/test_forms.py</span></span>
@@ -1854,12 +1974,16 @@ whether we want to keep any of our old integrated tests.</p>
 <span class="line delete"><span class="delete">-</span></span></code></pre>
 </div>
 </div>
+</div>
+</div>
 <div class="paragraph">
 <p>And in our actual code, we can get rid of two redundant save methods in
 <em>forms.py</em>:</p>
 </div>
-<div class="listingblock sourcecode">
+<div class="exampleblock sourcecode">
 <div class="title">lists/forms.py</div>
+<div class="content">
+<div class="listingblock">
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="diff"><span class="line head"><span class="head">--- </span><span class="filename">a/lists/forms.py</span></span>
 <span class="line head"><span class="head">+++ </span><span class="filename">b/lists/forms.py</span></span>
@@ -1888,14 +2012,18 @@ whether we want to keep any of our old integrated tests.</p>
 </div>
 </div>
 </div>
+</div>
+</div>
 <div class="sect3">
 <h4 id="_removing_the_old_implementation_of_the_view">Removing the Old Implementation of the View</h4>
 <div class="paragraph">
 <p>We can now completely remove the old <code>new_list</code> view, and rename <code>new_list2</code> to
 <code>new_list</code>:</p>
 </div>
-<div class="listingblock sourcecode skipme">
+<div class="exampleblock sourcecode skipme">
 <div class="title">lists/tests/test_views.py</div>
+<div class="content">
+<div class="listingblock">
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="diff"><span class="line delete"><span class="delete">-</span>from lists.views import new_list<span class="eyecatcher">, new_list2</span></span>
 <span class="line insert"><span class="insert">+</span>from lists.views import new_list</span>
@@ -1920,8 +2048,12 @@ whether we want to keep any of our old integrated tests.</p>
 <span class="line comment">[.. several more]</span></code></pre>
 </div>
 </div>
-<div class="listingblock sourcecode dofirst-ch20l045">
+</div>
+</div>
+<div class="exampleblock sourcecode dofirst-ch20l045">
 <div class="title">lists/urls.py</div>
+<div class="content">
+<div class="listingblock">
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="diff"><span class="line head"><span class="head">--- </span><span class="filename">a/lists/urls.py</span></span>
 <span class="line head"><span class="head">+++ </span><span class="filename">b/lists/urls.py</span></span>
@@ -1936,14 +2068,20 @@ whether we want to keep any of our old integrated tests.</p>
  ]</code></pre>
 </div>
 </div>
-<div class="listingblock sourcecode">
+</div>
+</div>
+<div class="exampleblock sourcecode">
 <div class="title">lists/views.py (ch20l047)</div>
+<div class="content">
+<div class="listingblock">
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">def</span> <span class="function">new_list</span>(request):
     form = NewListForm(data=request.POST)
     <span class="keyword">if</span> form.is_valid():
         list_ = form.save(owner=request.user)
         [...]</code></pre>
+</div>
+</div>
 </div>
 </div>
 <div class="paragraph">
@@ -1968,13 +2106,15 @@ integration problems.  That&#8217;s perfectly valid.</p>
 <div class="paragraph">
 <p>On the other hand, we saw how integrated tests can warn you when you&#8217;ve made
 small mistakes in integrating your layers.  We could keep just a couple of
-tests around as "sanity-checks", to give us a quicker feedback cycle.</p>
+tests around as "sanity checks", to give us a quicker feedback cycle.</p>
 </div>
 <div class="paragraph">
 <p>How about these three:</p>
 </div>
-<div class="listingblock sourcecode">
+<div class="exampleblock sourcecode">
 <div class="title">lists/tests/test_views.py (ch20l048)</div>
+<div class="content">
+<div class="listingblock">
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">class</span> <span class="class">NewListViewIntegratedTest</span>(TestCase):
 
@@ -1999,32 +2139,30 @@ tests around as "sanity-checks", to give us a quicker feedback cycle.</p>
         <span class="predefined-constant">self</span>.assertEqual(list_.owner, user)</code></pre>
 </div>
 </div>
+</div>
+</div>
 <div class="paragraph">
 <p>If you&#8217;re going to keep any intermediate-level tests at all,  I like these
 three because they feel like they&#8217;re doing the most "integration" jobs:  they
 test the full stack, from the request down to the actual database, and they
-cover the three most important use cases of our view.
-</p>
+cover the three most important use cases of our view.</p>
 </div>
 </div>
 </div>
 <div class="sect2">
 <h3 id="_conclusions_when_to_write_isolated_versus_integrated_tests">Conclusions: When to Write Isolated Versus Integrated Tests</h3>
 <div class="paragraph">
-<p>
-
-
-Django&#8217;s testing tools make it very easy to quickly put together integrated
+<p>Django&#8217;s testing tools make it very easy to quickly put together integrated
 tests.  The test runner helpfully creates a fast, in-memory version of your
-database and resets it for you in between each tests.  The <code>TestCase</code> class
-and the Test Client make it easy to test your views, from checking whether
+database and resets it for you in between each test.  The <code>TestCase</code> class
+and the test client make it easy to test your views, from checking whether
 database objects are modified, confirming that your URL mappings work, and
 inspecting the rendering of the templates.  This lets you get started with
 testing very easily and get good coverage across your whole stack.</p>
 </div>
 <div class="paragraph">
 <p>On the other hand, these kinds of integrated tests won&#8217;t necessarily deliver
-the full benefit that rigorous unit testing and outside-in TDD are meant to
+the full benefit that rigorous unit testing and Outside-In TDD are meant to
 confer in terms of design.</p>
 </div>
 <div class="paragraph">
@@ -2063,23 +2201,20 @@ after:</p>
 refactor the view function?  I know I didn&#8217;t in the first draft of this book.
 I&#8217;d like to think I would have "in real life", but it&#8217;s hard to be sure.  But
 writing isolated tests does make you very aware of where the complexities in
-your code lie.
-
-</p>
+your code lie.</p>
 </div>
 <div class="sect3">
 <h4 id="_let_complexity_be_your_guide">Let Complexity Be Your Guide</h4>
 <div class="paragraph">
-<p>
-I&#8217;d say the point at which isolated tests start to become worth it is to do
+<p>I&#8217;d say the point at which isolated tests start to become worth it is to do
 with complexity.  The example in this book is extremely simple, so it&#8217;s not
-often been worth it so far.  Even in the example in this chapter, I can
+usually been worth it so far.  Even in the example in this chapter, I can
 convince myself I didn&#8217;t really <em>need</em> to write those isolated tests.</p>
 </div>
 <div class="paragraph">
 <p>But once an application gains a little more complexity&#8212;&#8203;if it starts growing
 any more layers between views and models, if you find yourself writing  helper
-methods, or your own classes, then you will probably gain from writing more
+methods, or if you&#8217;re writing your own classes, then you will probably gain from writing more
 isolated tests.</p>
 </div>
 </div>
@@ -2109,13 +2244,14 @@ benefits.</p>
 </div>
 <div class="paragraph">
 <p>It&#8217;s a judgement call.  I hope that, by going through this chapter, I&#8217;ve given
-you a feel for what the trade-offs are.</p>
+you a feel for what the trade-offs are. There&#8217;s more discussion on this in
+<a href="/book/chapter_hot_lava.html">[chapter_hot_lava]</a>.</p>
 </div>
 </div>
 <div class="sect3">
 <h4 id="_onwards">Onwards!</h4>
 <div class="paragraph">
-<p>We&#8217;re happy with our new version, so let&#8217;s bring them across to master:</p>
+<p>We&#8217;re happy with our new version, so let&#8217;s bring it across to master:</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -2129,13 +2265,11 @@ $ <strong>git reset --hard more-isolation</strong>  # reset master to our branch
 </div>
 <div class="paragraph">
 <p>In the meantime&#8212;&#8203;those FTs are taking an annoyingly long time to run.  I
-wonder if there&#8217;s something we can do about that?
-
-</p>
+wonder if there&#8217;s something we can do about that?</p>
 </div>
 <div class="sidebarblock">
 <div class="content">
-<div class="title">On the Pros and Cons of Different Types of Test, and Decoupling ORM code</div>
+<div class="title">On the Pros and Cons of Different Types of Tests, and Decoupling ORM Code</div>
 <div class="dlist">
 <dl>
 <dt class="hdlist1">Functional tests</dt>
@@ -2144,38 +2278,35 @@ wonder if there&#8217;s something we can do about that?
 <ul>
 <li>
 <p>Provide the best guarantee that your application really works correctly,
-from the point of view of the user.</p>
+from the point of view of the user</p>
 </li>
 <li>
-<p>But: it&#8217;s a slower feedback cycle,</p>
+<p>But: it&#8217;s a slower feedback cycle</p>
 </li>
 <li>
-<p>And they don&#8217;t necessarily help you write clean code.
-
-</p>
+<p>And they don&#8217;t necessarily help you write clean code</p>
 </li>
 </ul>
 </div>
 </dd>
-<dt class="hdlist1">Integrated tests (reliant on, e.g., the ORM or the Django Test Client)</dt>
+<dt class="hdlist1">Integrated tests (reliant on, for example, the ORM or the Django Test Client)</dt>
 <dd>
 <div class="ulist">
 <ul>
 <li>
-<p>Are quick to write,</p>
+<p>Are quick to write</p>
 </li>
 <li>
-<p>Easy to understand,</p>
+<p>Are easy to understand</p>
 </li>
 <li>
-<p>Will warn you of any integration issues,</p>
+<p>Will warn you of any integration issues</p>
 </li>
 <li>
-<p>But may not always drive good design (that&#8217;s up to you!).</p>
+<p>But: may not always drive good design (that&#8217;s up to you!)</p>
 </li>
 <li>
-<p>And are usually slower than isolated tests
-</p>
+<p>And are usually slower than isolated tests</p>
 </li>
 </ul>
 </div>
@@ -2185,30 +2316,28 @@ from the point of view of the user.</p>
 <div class="ulist">
 <ul>
 <li>
-<p>These involve the most hard work.</p>
+<p>Involve the most hard work</p>
 </li>
 <li>
-<p>They can be harder to read and understand,</p>
+<p>Can be harder to read and understand</p>
 </li>
 <li>
-<p>But: these are the best ones for guiding you towards better design.</p>
+<p>But: are the best ones for guiding you towards better design</p>
 </li>
 <li>
-<p>And they run the fastest.
-</p>
+<p>And run the fastest</p>
 </li>
 </ul>
 </div>
 </dd>
 <dt class="hdlist1">Decoupling our application from ORM code</dt>
 <dd>
-<p>When striving to write isolated tests, one of the consequences is that we
+<p>One of the consequences of striving to write isolated tests is that we
 find ourselves forced to remove ORM code from places like views and forms,
 by hiding it behind helper functions or methods.  This can be beneficial in
 terms of decoupling your application from the ORM, but also just because it
 makes your code more readable. As with all things, it&#8217;s a judgement call as
-to whether the additional effort is worth it in particular circumstances.
-</p>
+to whether the additional effort is worth it in particular circumstances.</p>
 </dd>
 </dl>
 </div>
@@ -2227,7 +2356,7 @@ to whether the additional effort is worth it in particular circumstances.
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2017-03-30 07:47:47 BST
+Last updated 2017-07-04 11:15:47 BST
 </div>
 </div>
 <div class="comments" style="padding: 20px">

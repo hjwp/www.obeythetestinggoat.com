@@ -44,11 +44,9 @@ httpRequest.send();
 <h2 id="data-migrations-appendix">Appendix D: Testing Database Migrations: Testing Database Migrations</h2>
 <div class="sectionbody">
 <div class="paragraph">
-<p>
-
-Django-migrations and its predecessor South have been around for ages,
+<p>Django-migrations and its predecessor South have been around for ages,
 so it&#8217;s not usually necessary to test database migrations.  But it just
-so happens that we&#8217;re introducing a dangerous type of migration, ie one
+so happens that we&#8217;re introducing a dangerous type of migration&#8212;&#8203;that is, one
 that introduces a new integrity constraint on our data.  When I first ran
 the migration script against staging, I saw an error.</p>
 </div>
@@ -67,8 +65,7 @@ might be.</p>
 <div class="sect2">
 <h3 id="_an_attempted_deploy_to_staging">An Attempted Deploy to Staging</h3>
 <div class="paragraph">
-<p>
-Here&#8217;s what happened to me when I first tried to deploy our new validation
+<p>Here&#8217;s what happened to me when I first tried to deploy our new validation
 constraints in <a href="/book/chapter_deploying_validation.html">[chapter_deploying_validation]</a>:</p>
 </div>
 <div class="listingblock skipme">
@@ -91,8 +88,7 @@ sqlite3.IntegrityError: columns list_id, text are not unique
 </div>
 </div>
 <div class="paragraph">
-<p>
-What happened was that some of the existing data in the database violated
+<p>What happened was that some of the existing data in the database violated
 the integrity constraint, so the database was complaining when I tried to
 apply it.</p>
 </div>
@@ -129,7 +125,7 @@ Be very, very, very careful when using real data for testing.  For
 </div>
 <div id="dupe-data" class="imageblock">
 <div class="content">
-<img src="images/twdp_ae01.png" alt="This list has 3 identical items">
+<img src="images/twp2_ad01.png" alt="This list has 3 identical items">
 </div>
 <div class="title">Figure 1. A list with duplicate items</div>
 </div>
@@ -174,7 +170,7 @@ sqlite3.IntegrityError: columns list_id, text are not unique</pre>
 <div class="sect2">
 <h3 id="_inserting_a_data_migration">Inserting a Data Migration</h3>
 <div class="paragraph">
-<p><a href="https://docs.djangoproject.com/en/dev/topics/migrations/#data-migrations">Data
+<p><a href="https://docs.djangoproject.com/en/1.11/topics/migrations/#data-migrations">Data
 migrations</a> are a special type of migration that modifies data in the database
 rather than changing the schema.  We need to create one that will run before
 we apply the integrity constraint, to preventively remove any duplicates.
@@ -190,12 +186,14 @@ $ <strong>mv lists/migrations/0005_*.py lists/migrations/0005_remove_duplicates.
 </div>
 </div>
 <div class="paragraph">
-<p>Check out <a href="https://docs.djangoproject.com/en/dev/topics/migrations/#data-migrations">the
+<p>Check out <a href="https://docs.djangoproject.com/en/1.11/topics/migrations/#data-migrations">the
 Django docs on data migrations</a> for more info, but here&#8217;s how we add some
 instructions to change existing data:</p>
 </div>
-<div class="listingblock sourcecode">
+<div class="exampleblock sourcecode">
 <div class="title">lists/migrations/0005_remove_duplicates.py</div>
+<div class="content">
+<div class="listingblock">
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="python"><span class="comment"># encoding: utf8</span>
 <span class="keyword">from</span> <span class="include">django.db</span> <span class="keyword">import</span> <span class="include">models</span>, <span class="include">migrations</span>
@@ -221,6 +219,8 @@ instructions to change existing data:</p>
     operations = [
         migrations.RunPython(find_dupes),
     ]</code></pre>
+</div>
+</div>
 </div>
 </div>
 <div class="sect3">
@@ -264,7 +264,7 @@ $ <strong>fab deploy:host=elspeth@superlists-staging.ottg.eu</strong>
 <div class="paragraph">
 <p>And we can now run our FTs against staging:</p>
 </div>
-<div class="listingblock skipme">
+<div class="listingblock skipme small-code">
 <div class="content">
 <pre>$ <strong>STAGING_SERVER=superlists-staging.ottg.eu python manage.py test functional_tests</strong>
 [...]
@@ -286,7 +286,7 @@ OK</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>And that&#8217;s a wrap.  <code>git add lists/migrations</code>, <code>git commit</code>, etc.</p>
+<p>And that&#8217;s a wrap.  <code>git add lists/migrations</code>, <code>git commit</code>, and so on.</p>
 </div>
 </div>
 <div class="sect2">
@@ -299,7 +299,7 @@ automated tests to check that all your data was preserved, comparing the
 database contents before and after.  You could write individual unit tests
 for the helper functions in a data migration.  You could spend more time
 measuring the time taken for migrations, and experiment with ways to speed
-it up by, e.g., breaking up migrations into more or fewer component steps.</p>
+it up by, for example, breaking up migrations into more or fewer component steps.</p>
 </div>
 <div class="paragraph">
 <p>Remember that this should be a relatively rare case. In my experience, I
@@ -328,18 +328,15 @@ your staging site to find out how long a migration will take.</p>
 </dd>
 <dt class="hdlist1">Be extremely careful if using a dump of production data</dt>
 <dd>
-<p>    In order to do so, you&#8217;ll want fill your staging site&#8217;s database with an
-    amount of data that&#8217;s commensurate to the size of your production data.
-    Explaining how to do that is outside of the scope of this book, but I will
-    say this:  if you&#8217;re tempted to just take a dump of your production
-    database and load it into staging, be <em>very</em> careful.  Production data
-    contains real customer details, and I&#8217;ve personally been responsible for
-    accidentally sending out a few hundred incorrect invoices after an
-    automated process on my staging server started processing the copied
-    production data I&#8217;d just loaded into it. Not a fun afternoon.
-
-
-</p>
+<p>In order to do so, you&#8217;ll want fill your staging site&#8217;s database with an
+amount of data that&#8217;s commensurate to the size of your production data.
+Explaining how to do that is outside of the scope of this book, but I will
+say this:  if you&#8217;re tempted to just take a dump of your production
+database and load it into staging, be <em>very</em> careful.  Production data
+contains real customer details, and I&#8217;ve personally been responsible for
+accidentally sending out a few hundred incorrect invoices after an
+automated process on my staging server started processing the copied
+production data I&#8217;d just loaded into it. Not a fun afternoon.</p>
 </dd>
 </dl>
 </div>
@@ -351,7 +348,7 @@ your staging site to find out how long a migration will take.</p>
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2017-03-30 07:47:47 BST
+Last updated 2017-07-04 10:59:52 BST
 </div>
 </div>
 <div class="comments" style="padding: 20px">

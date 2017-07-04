@@ -44,26 +44,23 @@ httpRequest.send();
 <h2 id="appendix_bdd">Appendix E: Behaviour-Driven Development (BDD): Behaviour-Driven Development (BDD)</h2>
 <div class="sectionbody">
 <div class="paragraph">
-<p>
-Now I haven&#8217;t used BDD "in anger," so I can&#8217;t claim any sort of expertise, but I
+<p>Now I haven&#8217;t used BDD "in anger," so I can&#8217;t claim any sort of expertise, but I
 really like what I have seen of it, and I thought that you deserved at least a
 whirlwind tour.  In this appendix, we&#8217;ll take some of the tests we wrote in a
 "normal" FT, and convert them to using BDD tools.</p>
 </div>
 <div class="sect2">
-<h3 id="_what_is_bdd">What is BDD?</h3>
+<h3 id="_what_is_bdd">What Is BDD?</h3>
 <div class="paragraph">
 <p>BDD, <em>strictly</em> speaking, is a methodology rather than a toolset&#8212;&#8203;it&#8217;s the
 approach of testing your application by testing the behaviour that we expect it
 to display to a user (the
 <a href="https://en.wikipedia.org/wiki/Behavior-driven_development">Wikipedia entry</a>
-has quite a good overview). So, in some ways, the selenium-based FTs that I&#8217;ve
+has quite a good overview). So, in some ways, the Selenium-based FTs that I&#8217;ve
 shown in the rest of the book <em>could</em> be called BDD.</p>
 </div>
 <div class="paragraph">
-<p>
-
-But the term has become closely associated with a particular set of tools for
+<p>But the term has become closely associated with a particular set of tools for
 doing BDD, most importantly the
 <a href="https://github.com/cucumber/cucumber/wiki/Gherkin">Gherkin syntax</a>, which is a
 human-readable DSL for writing functional (or acceptance) tests. Gherkin
@@ -71,9 +68,7 @@ originally came out of the Ruby world, where it&#8217;s associated with a test r
 called <a href="http://cukes.info/">Cucumber</a>.</p>
 </div>
 <div class="paragraph">
-<p>
-
-In the Python world, we have a couple of equivalent test running tools,
+<p>In the Python world, we have a couple of equivalent test running tools,
 <a href="http://lettuce.it/">Lettuce</a> and <a href="http://pythonhosted.org/behave/">Behave</a>.
 Of these, only Behave was compatible with Python 3 at the time of writing, so
 that&#8217;s what we&#8217;ll use. We&#8217;ll also use a plugin called
@@ -83,7 +78,7 @@ that&#8217;s what we&#8217;ll use. We&#8217;ll also use a plugin called
 <div class="content">
 <div class="title">Getting the Code for These Examples</div>
 <div class="paragraph">
-<p>I&#8217;m going to use the example from <a href="/book/chapter_outside_in.html">Chapter 18</a>.
+<p>I&#8217;m going to use the example from <a href="/book/chapter_outside_in.html">[chapter_outside_in]</a>.
 We have a basic to-do lists site, and we want to add a new feature:
 logged-in users should be able to view the lists they&#8217;ve authored in one place.
 Up until this point, all lists are effectively anonymous.</p>
@@ -100,7 +95,7 @@ place to go is the
 <div class="sect2">
 <h3 id="_basic_housekeeping">Basic Housekeeping</h3>
 <div class="paragraph">
-<p>We make a directory for our BDD "features," add a steps directory (we&#8217;ll find
+<p>We make a directory for our BDD "features," add a <em>steps</em> directory (we&#8217;ll find
 out what these are shortly!), and placeholder for our first feature:</p>
 </div>
 <div class="listingblock">
@@ -116,15 +111,17 @@ features
 </div>
 </div>
 <div class="paragraph">
-<p>We install behave-django, and add it to settings.py:</p>
+<p>We install <code>behave-django</code>, and add it to <em>settings.py</em>:</p>
 </div>
 <div class="listingblock dofirst-ch35l000">
 <div class="content">
 <pre>$ <strong>pip install behave-django</strong></pre>
 </div>
 </div>
-<div class="listingblock sourcecode">
+<div class="exampleblock sourcecode">
 <div class="title">superlists/settings.py</div>
+<div class="content">
+<div class="listingblock">
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="diff"><span class="line head"><span class="head">--- </span><span class="filename">a/superlists/settings.py</span></span>
 <span class="line head"><span class="head">+++ </span><span class="filename">b/superlists/settings.py</span></span>
@@ -134,6 +131,8 @@ features
      <span class="string"><span class="delimiter">'</span><span class="content">functional_tests</span><span class="delimiter">'</span></span>,
 <span class="line insert"><span class="insert">+</span>    <span class="string"><span class="delimiter">'</span><span class="content">behave_django</span><span class="delimiter">'</span></span>,</span>
  ]</code></pre>
+</div>
+</div>
 </div>
 </div>
 <div class="paragraph">
@@ -152,24 +151,26 @@ Destroying test database for alias 'default'...</pre>
 </div>
 </div>
 <div class="sect2">
-<h3 id="_writing_an_ft_as_a_feature_using_gherkin_syntax">Writing an FT as a "Feature" using Gherkin Syntax</h3>
+<h3 id="_writing_an_ft_as_a_feature_using_gherkin_syntax">Writing an FT as a "Feature" Using Gherkin Syntax</h3>
 <div class="paragraph">
 <p>Up until now, we&#8217;ve been writing our FTs using human-readable comments
 that describe the new feature in terms of a user story, interspersed
-with the selenium code required to execute each step in the story.</p>
+with the Selenium code required to execute each step in the story.</p>
 </div>
 <div class="paragraph">
 <p>BDD enforces a distinction between those two&#8212;&#8203;we write our human-readable
 story using a human-readable (if occasionally somewhat awkward) syntax
 called "Gherkin", and that is called the "Feature".  Later, we&#8217;ll map
-each line of Gherkin to a function that contains the selenium code necessary
+each line of Gherkin to a function that contains the Selenium code necessary
 to implement that "step."</p>
 </div>
 <div class="paragraph">
 <p>Here&#8217;s what a Feature for our new "My lists" page could look like:</p>
 </div>
-<div class="listingblock sourcecode">
+<div class="exampleblock sourcecode">
 <div class="title">features/my_lists.feature</div>
+<div class="content">
+<div class="listingblock">
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="gherkin">Feature: My Lists
     As a logged-in user
@@ -194,12 +195,14 @@ to implement that "step."</p>
         Then I will be on the "Reticulate Splines" list page</code></pre>
 </div>
 </div>
+</div>
+</div>
 <div class="sect3">
 <h4 id="_as_a_i_want_to_so_that">As-a /I want to/So that</h4>
 <div class="paragraph">
 <p>At the top you&#8217;ll notice the As-a/I want to/So that clause.  This is
 optional, and it has no executable counterpart&#8212;&#8203;it&#8217;s just a slightly
-formalised way of capturing the "Who and Why?" aspects of a user story,
+formalised way of capturing the "who and why?" aspects of a user story,
 gently encouraging the team to think about the justifications for each
 feature.</p>
 </div>
@@ -215,12 +218,12 @@ a subsequent assertion/observation phase.  There&#8217;s more info on the
 </div>
 </div>
 <div class="sect3">
-<h4 id="_not_always_a_perfect_fit">Not Always A Perfect Fit!</h4>
+<h4 id="_not_always_a_perfect_fit">Not Always a Perfect Fit!</h4>
 <div class="paragraph">
 <p>As you can see, it&#8217;s not always easy to shoe-horn a user story into exactly
 three steps!  We can use the <code>And</code> clause to expand on a step, and I&#8217;ve
 added multiple <code>When</code> steps and subsequent <code>Then</code>'s to illustrate further
-aspects of our My lists page.</p>
+aspects of our "My lists" page.</p>
 </div>
 </div>
 </div>
@@ -228,7 +231,7 @@ aspects of our My lists page.</p>
 <h3 id="_coding_the_step_functions">Coding the Step Functions</h3>
 <div class="paragraph">
 <p>We now build the counterpart to our Gherkin-syntax feature, which are the
-"step" functions which will actually implement them in code.</p>
+"step" functions that will actually implement them in code.</p>
 </div>
 <div class="sect3">
 <h4 id="_generating_placeholder_steps">Generating Placeholder Steps</h4>
@@ -285,7 +288,7 @@ def step_impl(context):
 </div>
 <div id="behave-output" class="imageblock">
 <div class="content">
-<img src="images/behave-output-colour.png" alt="Colourful console output">
+<img src="images/twp2_ae01.png" alt="Colourful console output">
 </div>
 <div class="title">Figure 1. Behave with coloured console ouptut</div>
 </div>
@@ -304,8 +307,10 @@ from <em>functional_tests/test_my_lists.py</em>, and adapting it slightly (remov
 the server-side version, for example, although it would be easy to re-add
 later).</p>
 </div>
-<div class="listingblock sourcecode small-code">
+<div class="exampleblock sourcecode small-code">
 <div class="title">features/steps/my_lists.py</div>
+<div class="content">
+<div class="listingblock">
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> <span class="include">behave</span> <span class="keyword">import</span> <span class="include">given</span>, <span class="include">when</span>, <span class="include">then</span>
 <span class="keyword">from</span> <span class="include">functional_tests.management.commands.create_session</span> <span class="keyword">import</span> \
@@ -326,8 +331,10 @@ later).</p>
     ))</code></pre>
 </div>
 </div>
+</div>
+</div>
 <div class="paragraph">
-<p>The <em>context</em> variable needs a little explaining&#8201;&#8212;&#8201;it&#8217;s a sort of global
+<p>The <em>context</em> variable needs a little explaining&#8212;it&#8217;s a sort of global
 variable, in the sense that it&#8217;s passed to each step that&#8217;s executed, and it
 can be used to store information that we need to share between steps. Here
 we&#8217;ve assumed we&#8217;ll be storing a browser object on it, and the <code>server_url</code>.
@@ -342,8 +349,10 @@ FTs.</p>
 preliminary set-up, the equivalent of <code>setUp</code>, is in a file called
 <em>environment.py</em>:</p>
 </div>
-<div class="listingblock sourcecode">
+<div class="exampleblock sourcecode">
 <div class="title">features/environment.py</div>
+<div class="content">
+<div class="listingblock">
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> <span class="include">selenium</span> <span class="keyword">import</span> <span class="include">webdriver</span>
 
@@ -355,6 +364,8 @@ preliminary set-up, the equivalent of <code>setUp</code>, is in a file called
 
 <span class="keyword">def</span> <span class="function">before_feature</span>(context, feature):
     <span class="keyword">pass</span></code></pre>
+</div>
+</div>
 </div>
 </div>
 </div>
@@ -379,20 +390,26 @@ the first step; let&#8217;s define the rest of them.</p>
 <div class="sect2">
 <h3 id="_capturing_parameters_in_steps">Capturing Parameters in Steps</h3>
 <div class="paragraph">
-<p>We&#8217;ll see how behave allows you to capture parameters from step descriptions.
+<p>We&#8217;ll see how Behave allows you to capture parameters from step descriptions.
 Our next step says:</p>
 </div>
-<div class="listingblock sourcecode currentcontents">
+<div class="exampleblock sourcecode currentcontents">
 <div class="title">features/my_lists.feature</div>
+<div class="content">
+<div class="listingblock">
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="gherkin">    When I create a list with first item "Reticulate Splines"</code></pre>
 </div>
 </div>
-<div class="paragraph">
-<p>And the auto-generated step definition looked like this:</p>
 </div>
-<div class="listingblock sourcecode small-code skipme">
+</div>
+<div class="paragraph">
+<p>And the autogenerated step definition looked like this:</p>
+</div>
+<div class="exampleblock sourcecode small-code skipme">
 <div class="title">features/steps/my_lists.py</div>
+<div class="content">
+<div class="listingblock">
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="python"><span class="decorator">@given</span>(<span class="string"><span class="delimiter">'</span><span class="content">I create a list with first item "Reticulate Splines"</span><span class="delimiter">'</span></span>)
 <span class="keyword">def</span> <span class="function">step_impl</span>(context):
@@ -401,15 +418,19 @@ Our next step says:</p>
     )</code></pre>
 </div>
 </div>
+</div>
+</div>
 <div class="paragraph">
 <p>We want to be able to create lists with arbitrary first items, so it would be
 nice to somehow capture whatever is between those quotes, and pass them in as
 an argument to a more generic function.  That&#8217;s a common requirement in BDD,
-and behave has a nice syntax for it, reminiscent of the new-style Python string
+and Behave has a nice syntax for it, reminiscent of the new-style Python string
 formatting syntax:</p>
 </div>
-<div class="listingblock sourcecode">
+<div class="exampleblock sourcecode">
 <div class="title">features/steps/my_lists.py (ch35l006)</div>
+<div class="content">
+<div class="listingblock">
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="python">[...]
 
@@ -419,6 +440,8 @@ formatting syntax:</p>
     context.browser.find_element_by_id(<span class="string"><span class="delimiter">'</span><span class="content">id_text</span><span class="delimiter">'</span></span>).send_keys(first_item_text)
     context.browser.find_element_by_id(<span class="string"><span class="delimiter">'</span><span class="content">id_text</span><span class="delimiter">'</span></span>).send_keys(Keys.ENTER)
     wait_for_list_item(context, first_item_text)</code></pre>
+</div>
+</div>
 </div>
 </div>
 <div class="paragraph">
@@ -438,11 +461,13 @@ Capturing parameters for steps is one of the most powerful features
 </table>
 </div>
 <div class="paragraph">
-<p>As usual with selenium tests, we will need an explicit wait.  Let&#8217;s re-use
+<p>As usual with Selenium tests, we will need an explicit wait.  Let&#8217;s re-use
 our <code>@wait</code> decorator from <em>base.py</em>:</p>
 </div>
-<div class="listingblock sourcecode">
+<div class="exampleblock sourcecode">
 <div class="title">features/steps/my_lists.py (ch35l007)</div>
+<div class="content">
+<div class="listingblock">
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> <span class="include">functional_tests.base</span> <span class="keyword">import</span> <span class="include">wait</span>
 [...]
@@ -456,11 +481,15 @@ our <code>@wait</code> decorator from <em>base.py</em>:</p>
     )</code></pre>
 </div>
 </div>
-<div class="paragraph">
-<p>Similarly, we can do adding to an existing list, and see or click on links:</p>
 </div>
-<div class="listingblock sourcecode">
+</div>
+<div class="paragraph">
+<p>Similarly, we can add to an existing list, and see or click on links:</p>
+</div>
+<div class="exampleblock sourcecode">
 <div class="title">features/steps/my_lists.py (ch35l008)</div>
+<div class="content">
+<div class="listingblock">
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> <span class="include">selenium.webdriver.common.keys</span> <span class="keyword">import</span> <span class="include">Keys</span>
 [...]
@@ -484,6 +513,8 @@ our <code>@wait</code> decorator from <em>base.py</em>:</p>
     context.browser.find_element_by_link_text(link_text).click()</code></pre>
 </div>
 </div>
+</div>
+</div>
 <div class="paragraph">
 <p>Notice we can even use our <code>@wait</code> decorator on steps themselves.</p>
 </div>
@@ -491,8 +522,10 @@ our <code>@wait</code> decorator from <em>base.py</em>:</p>
 <p>And finally the slightly more complex step that says I am on the
 page for a particular list:</p>
 </div>
-<div class="listingblock sourcecode">
+<div class="exampleblock sourcecode">
 <div class="title">features/steps/my_lists.py (ch35l009)</div>
+<div class="content">
+<div class="listingblock">
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="python"><span class="decorator">@then</span>(<span class="string"><span class="delimiter">'</span><span class="content">I will be on the "{first_item_text}" list page</span><span class="delimiter">'</span></span>)
 <span class="decorator">@wait</span>
@@ -502,6 +535,8 @@ page for a particular list:</p>
     )
     expected_row_text = <span class="string"><span class="delimiter">'</span><span class="content">1: </span><span class="delimiter">'</span></span> + first_item_text
     context.test.assertEqual(first_row.text, expected_row_text)</code></pre>
+</div>
+</div>
 </div>
 </div>
 <div class="paragraph">
@@ -562,8 +597,10 @@ would have.</p>
 <div class="paragraph">
 <p>Let&#8217;s have a look at it, for comparison:</p>
 </div>
-<div class="listingblock sourcecode skipme">
+<div class="exampleblock sourcecode skipme">
 <div class="title">functional_tests/test_my_lists.py</div>
+<div class="content">
+<div class="listingblock">
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">def</span> <span class="function">test_logged_in_users_lists_are_saved_as_my_lists</span>(<span class="predefined-constant">self</span>):
     <span class="comment"># Edith is a logged-in user</span>
@@ -609,6 +646,8 @@ would have.</p>
         <span class="predefined-constant">self</span>.browser.find_elements_by_link_text(<span class="string"><span class="delimiter">'</span><span class="content">My lists</span><span class="delimiter">'</span></span>),
         []
     ))</code></pre>
+</div>
+</div>
 </div>
 </div>
 <div class="paragraph">
@@ -671,7 +710,7 @@ function for each step, so I&#8217;ve already built some very reusable code to:<
 <p>Add an item to an existing list</p>
 </li>
 <li>
-<p>Click a on a link with particular text</p>
+<p>Click on a link with particular text</p>
 </li>
 <li>
 <p>Assert that I&#8217;m looking at a particular list&#8217;s page</p>
@@ -696,11 +735,13 @@ with steps implemented in another language.</p>
 <p>In
 <a href="/book/chapter_page_pattern.html">[chapter_page_pattern]</a>
 of the book, I present an example of the "Page pattern", which is an
-object-oriented approach to structuring your selenium tests.  Here&#8217;s a
+object-oriented approach to structuring your Selenium tests.  Here&#8217;s a
 reminder of what it looks like:</p>
 </div>
-<div class="listingblock sourcecode skipme">
+<div class="exampleblock sourcecode skipme">
 <div class="title">functional_tests/test_sharing.py</div>
+<div class="content">
+<div class="listingblock">
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> .my_lists_page <span class="keyword">import</span> <span class="include">MyListsPage</span>
 [...]
@@ -724,11 +765,15 @@ reminder of what it looks like:</p>
         list_page.share_list_with(<span class="string"><span class="delimiter">'</span><span class="content">oniciferous@example.com</span><span class="delimiter">'</span></span>)</code></pre>
 </div>
 </div>
-<div class="paragraph">
-<p>And the Page class looks like this:</p>
 </div>
-<div class="listingblock sourcecode skipme">
+</div>
+<div class="paragraph">
+<p>And the <code>Page</code> class looks like this:</p>
+</div>
+<div class="exampleblock sourcecode small-code skipme">
 <div class="title">functional_tests/lists_pages.py</div>
+<div class="content">
+<div class="listingblock">
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">class</span> <span class="class">ListPage</span>(<span class="predefined">object</span>):
 
@@ -751,10 +796,12 @@ reminder of what it looks like:</p>
         <span class="keyword">return</span> <span class="predefined-constant">self</span>.test.browser.find_element_by_id(<span class="string"><span class="delimiter">'</span><span class="content">id_text</span><span class="delimiter">'</span></span>)</code></pre>
 </div>
 </div>
+</div>
+</div>
 <div class="paragraph">
 <p>So it&#8217;s definitely possible to implement a similar layer of abstraction,
 and a sort of DSL, in inline-style FTs, whether it&#8217;s by using the Page
-pattern or whatever structure you prefer&#8201;&#8212;&#8201;but now it&#8217;s a matter of
+pattern or whatever structure you prefer&#8212;&#8203;but now it&#8217;s a matter of
 self-discipline, rather than having a framework that pushes you towards
 it.</p>
 </div>
@@ -779,8 +826,10 @@ In fact, you can actually use the Page pattern with BDD as well, as
 feel somewhat restrictive.  Compare how expressive and readable the
 inline-style comments are, with the slightly awkward BDD feature:</p>
 </div>
-<div class="listingblock sourcecode skipme">
+<div class="exampleblock sourcecode skipme">
 <div class="title">functional_tests/test_my_lists.py</div>
+<div class="content">
+<div class="listingblock">
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="python">    <span class="comment"># Edith is a logged-in user</span>
     <span class="comment"># She goes to the home page and starts a list</span>
@@ -791,6 +840,8 @@ inline-style comments are, with the slightly awkward BDD feature:</p>
     <span class="comment"># Under "my lists", her new list appears</span>
     <span class="comment"># She logs out.  The "My lists" option disappears</span>
 [...]</code></pre>
+</div>
+</div>
 </div>
 </div>
 <div class="paragraph">
@@ -815,11 +866,11 @@ potential benefits of BDD.</p>
 <div class="paragraph">
 <p>I&#8217;ve only dipped my toes into the BDD world, so I&#8217;m hesitant to draw any firm
 conclusions. I find the "forced" structuring of FTs into steps very appealing
-though&#8212;&#8203;it looks like it has the potential to encourage a lot of reuse in your
-FT code, and that it neatly separates concerns between describing the story,
+though&#8212;&#8203;in that it looks like it has the potential to encourage a lot of reuse in your
+FT code, and that it neatly separates concerns between describing the story
 and implementing it, and that it forces us to think about things in terms of
 the business domain, rather than in terms of "what we need to do with
-selenium."</p>
+Selenium."</p>
 </div>
 <div class="paragraph">
 <p>But there&#8217;s no free lunch. The Gherkin syntax is restrictive, compared to
@@ -848,7 +899,7 @@ feedback on this chapter.</p>
 <p>By separating concerns, breaking your FTs out into the human-readable,
 Gherkin syntax "feature" file and a separate implementation of steps
 functions, BDD has the potential to encourage more reusable and manageable
-test code</p>
+test code.</p>
 </dd>
 <dt class="hdlist1">It may come at the expense of readability</dt>
 <dd>
@@ -873,7 +924,7 @@ encourage you to do so as well.</p>
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2017-03-30 07:47:47 BST
+Last updated 2017-07-04 10:59:52 BST
 </div>
 </div>
 <div class="comments" style="padding: 20px">

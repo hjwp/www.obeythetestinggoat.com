@@ -43,51 +43,21 @@ httpRequest.send();
 <div class="sect1">
 <h2 id="chapter_making_deployment_production_ready">Getting to a Production-Ready Deployment</h2>
 <div class="sectionbody">
-<table class="tableblock frame-all grid-all" style="float: right;">
-<colgroup>
-<col>
-<col>
-</colgroup>
-<tbody>
-<tr>
-<td class="tableblock halign-left valign-top" colspan="2"><p class="tableblock">Chapter info</p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">shortname:</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">chapter_making_deployment_production_ready</p></td>
-</tr>
-</tbody>
-</table>
-<div class="admonitionblock warning">
-<table>
-<tr>
-<td class="icon">
-<i class="fa icon-warning" title="Warning"></i>
-</td>
-<td class="content">
-2017-03-13: Book upgraded to Python 3.6 and Django 1.11 beta.
-    Before that, there was a big upgrade to Selenium 3 on 2017-01-30. More
-    info <a href="https://www.obeythetestinggoat.com/latest-release-the-last-big-one-python-36-django-111-beta.html">on the blog</a>.
-</td>
-</tr>
-</table>
-</div>
 <div class="paragraph">
 <p>In this chapter we&#8217;ll make some changes to our site to move to a configuration
 that&#8217;s more production-ready.  As we make each change, we&#8217;ll use the tests to
 tell us whether things are still working.</p>
 </div>
 <div class="paragraph">
-<p>
-What&#8217;s wrong with our hacky deployment?  Well, we can&#8217;t use the Django
-dev server for production, it&#8217;s not designed for "real-life" loads.  We&#8217;ll
+<p>What&#8217;s wrong with our hacky deployment?  Well, we can&#8217;t use the Django
+dev server for production; it&#8217;s not designed for "real-life" loads.  We&#8217;ll
 use something called Gunicorn instead to run our Django code, and we&#8217;ll
 get Nginx to serve our static files.</p>
 </div>
 <div class="paragraph">
 <p>Our <em>settings.py</em> currently has <code>DEBUG=True</code>, and that&#8217;s strongly recommended
 against for production (you don&#8217;t want users staring at debug tracebacks of
-your code when your site errors for example).  We&#8217;ll also need to set
+your code when your site errors, for example).  We&#8217;ll also need to set
 <code>ALLOWED_HOSTS</code> for security.</p>
 </div>
 <div class="paragraph">
@@ -95,16 +65,14 @@ your code when your site errors for example).  We&#8217;ll also need to set
 For that we&#8217;ll write a Systemd config file.</p>
 </div>
 <div class="paragraph">
-<p>Finally, hard-coding port 8000 won&#8217;t let us run multiple sites on this server,
+<p>Finally, hardcoding port 8000 won&#8217;t let us run multiple sites on this server,
 so we&#8217;ll switch to using "unix sockets" to communicate between nginx and
 Django.</p>
 </div>
 <div class="sect2">
 <h3 id="_switching_to_gunicorn">Switching to Gunicorn</h3>
 <div class="paragraph">
-<p>
-
-Do you know why the Django mascot is a pony?  The story is that Django
+<p>Do you know why the Django mascot is a pony?  The story is that Django
 comes with so many things you want: an ORM, all sorts of middleware,
 the admin site&#8230;&#8203; "What else do you want, a pony?" Well, Gunicorn stands
 for "Green Unicorn", which I guess is what you&#8217;d want next if you already
@@ -132,12 +100,11 @@ a function called <code>application</code>.  Django provides one in <em>superlis
 <a href="#site-with-broken-css">Broken CSS</a>.</p>
 </div>
 <div class="paragraph">
-<p>
-And if we run the functional tests, you&#8217;ll see they confirm that something
+<p>And if we run the functional tests, you&#8217;ll see they confirm that something
 is wrong. The test for adding list items passes happily, but the test for
-layout + styling fails.  Good job tests!</p>
+layout + styling fails.  Good job, tests!</p>
 </div>
-<div class="listingblock skipme">
+<div class="listingblock skipme small-code">
 <div class="content">
 <pre>$ <strong>STAGING_SERVER=superlists-staging.ottg.eu python manage.py test functional_tests</strong>
 [...]
@@ -152,7 +119,7 @@ tell Nginx to do it instead.</p>
 </div>
 <div id="site-with-broken-css" class="imageblock">
 <div class="content">
-<img src="images/twdp_0805.png" alt="The site is up, but CSS is broken">
+<img src="images/twp2_1001.png" alt="The site is up, but CSS is broken">
 </div>
 <div class="title">Figure 1. Broken CSS</div>
 </div>
@@ -164,9 +131,7 @@ help.  Moving on!</p>
 <div class="sect2">
 <h3 id="_getting_nginx_to_serve_static_files">Getting Nginx to Serve Static Files</h3>
 <div class="paragraph">
-<p>
-
-First we run <code>collectstatic</code> to copy all the static files to a folder where
+<p>First we run <code>collectstatic</code> to copy all the static files to a folder where
 Nginx can find them:</p>
 </div>
 <div class="listingblock server-commands">
@@ -209,7 +174,7 @@ elspeth@server:$ <strong>../virtualenv/bin/gunicorn superlists.wsgi:application<
 <p>And if we take another look at the site, things are looking much healthier. We
 can rerun our FTs:</p>
 </div>
-<div class="listingblock skipme">
+<div class="listingblock skipme small-code">
 <div class="content">
 <pre>$ <strong>STAGING_SERVER=superlists-staging.ottg.eu python manage.py test functional_tests</strong>
 [...]
@@ -228,8 +193,7 @@ OK</pre>
 <div class="sect2">
 <h3 id="_switching_to_using_unix_sockets">Switching to Using Unix Sockets</h3>
 <div class="paragraph">
-<p>
-When we want to serve both staging and live, we can&#8217;t have both servers trying
+<p>When we want to serve both staging and live, we can&#8217;t have both servers trying
 to use port 8000.  We could decide to allocate different ports, but that&#8217;s a
 bit arbitrary, and it would be dangerously easy to get it wrong and start
 the staging server on the live port, or vice versa.</p>
@@ -239,8 +203,10 @@ the staging server on the live port, or vice versa.</p>
 but can be used by Nginx and Gunicorn to talk to each other.  We&#8217;ll put our
 sockets in <em>/tmp</em>.  Let&#8217;s change the proxy settings in Nginx:</p>
 </div>
-<div class="listingblock sourcecode">
+<div class="exampleblock sourcecode">
 <div class="title">server: /etc/nginx/sites-available/superlists-staging.ottg.eu</div>
+<div class="content">
+<div class="listingblock">
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="nginx">[...]
     location / {
@@ -248,6 +214,8 @@ sockets in <em>/tmp</em>.  Let&#8217;s change the proxy settings in Nginx:</p>
         proxy_pass http://unix:/tmp/superlists-staging.ottg.eu.socket;
     }
 }</code></pre>
+</div>
+</div>
 </div>
 </div>
 <div class="paragraph">
@@ -269,7 +237,7 @@ elspeth@server:$ <strong>../virtualenv/bin/gunicorn --bind \
 <div class="paragraph">
 <p>And again, we rerun the functional test again, to make sure things still pass:</p>
 </div>
-<div class="listingblock skipme">
+<div class="listingblock skipme small-code">
 <div class="content">
 <pre>$ <strong>STAGING_SERVER=superlists-staging.ottg.eu python manage.py test functional_tests</strong>
 [...]
@@ -283,10 +251,7 @@ OK</pre>
 <div class="sect2">
 <h3 id="_switching_debug_to_false_and_setting_allowed_hosts">Switching DEBUG to False and Setting ALLOWED_HOSTS</h3>
 <div class="paragraph">
-<p>
-
-
-Django&#8217;s DEBUG mode is all very well for hacking about on your own server, but
+<p>Django&#8217;s <code>DEBUG</code> mode is all very well for hacking about on your own server, but
 leaving those pages full of tracebacks available
 <a href="http://bit.ly/SuvluV">isn&#8217;t secure</a>.</p>
 </div>
@@ -295,12 +260,14 @@ leaving those pages full of tracebacks available
 to <code>False</code>, we also need to set another setting called <code>ALLOWED_HOSTS</code>. This
 was
 <a href="https://docs.djangoproject.com/en/1.11/ref/settings/#std:setting-ALLOWED_HOSTS">added
-as a security feature</a> in Django 1.5.  Unfortunately it doesn&#8217;t have a helpful
+as a security feature</a> in Django 1.5.  Unfortunately, it doesn&#8217;t have a helpful
 comment in the default <em>settings.py</em>, but we can add one ourselves.  Do this on
 the server:</p>
 </div>
-<div class="listingblock sourcecode">
+<div class="exampleblock sourcecode">
 <div class="title">server: superlists/settings.py</div>
+<div class="content">
+<div class="listingblock">
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="python"><span class="comment"># SECURITY WARNING: don't run with debug turned on in production!</span>
 DEBUG = <span class="predefined-constant">False</span>
@@ -312,8 +279,10 @@ ALLOWED_HOSTS = [<span class="string"><span class="delimiter">'</span><span clas
 [...]</code></pre>
 </div>
 </div>
+</div>
+</div>
 <div class="paragraph">
-<p>And, once again, we restart Gunicorn and run the FT to check things still work.</p>
+<p>And, once again, we restart Gunicorn and run the FT to check that things still work.</p>
 </div>
 <div class="admonitionblock note">
 <table>
@@ -334,7 +303,7 @@ Don&#8217;t commit these changes on the server. At the moment this is just a
 <div class="paragraph">
 <p>One more test run to reassure ourselves that things still work?</p>
 </div>
-<div class="listingblock skipme">
+<div class="listingblock skipme small-code">
 <div class="content">
 <pre>$ <strong>STAGING_SERVER=superlists-staging.ottg.eu python manage.py test functional_tests</strong>
 [...]
@@ -348,13 +317,14 @@ OK</pre>
 <div class="sect2">
 <h3 id="_using_systemd_to_make_sure_gunicorn_starts_on_boot">Using Systemd to Make Sure Gunicorn Starts on Boot</h3>
 <div class="paragraph">
-<p>
-Our final step is to make sure that the server starts up Gunicorn automatically
+<p>Our final step is to make sure that the server starts up Gunicorn automatically
 on boot, and reloads it automatically if it crashes.  On Ubuntu, the way to do
 this is using Systemd:</p>
 </div>
-<div class="listingblock sourcecode">
+<div class="exampleblock sourcecode">
 <div class="title">server: /etc/systemd/system/gunicorn-superlists-staging.ottg.eu.service</div>
+<div class="content">
+<div class="listingblock">
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="bash">[Unit]
 Description=Gunicorn server for superlists-staging.ottg.eu
@@ -369,6 +339,8 @@ ExecStart=/home/elspeth/sites/superlists-staging.ottg.eu/virtualenv/bin/gunicorn
 
 [Install]
 WantedBy=multi-user.target <i class="conum" data-value="5"></i><b>(5)</b></code></pre>
+</div>
+</div>
 </div>
 </div>
 <div class="paragraph">
@@ -392,7 +364,7 @@ self-explanatory.</p>
 </tr>
 <tr>
 <td><i class="conum" data-value="4"></i><b>4</b></td>
-<td><code>ExecStart</code> is the actual process to execute.  We use the `\ ` line
+<td><code>ExecStart</code> is the actual process to execute.  We use the <code>\</code> line
 continuation characters to split the full command over multiple lines,
 for readability, but it could all go on one line.</td>
 </tr>
@@ -421,8 +393,8 @@ elspeth@server:$ <strong>sudo systemctl start gunicorn-superlists-staging.ottg.e
 </div>
 </div>
 <div class="paragraph">
-<p>(you should find the <code>systemctl</code> command responds to tab-completion, including
-of the service name, by the way)</p>
+<p>(You should find the <code>systemctl</code> command responds to tab completion, including
+of the service name, by the way.)</p>
 </div>
 <div class="paragraph">
 <p>Now we can rerun the FTs to see that everything still works. You can even test
@@ -435,11 +407,11 @@ that the site comes back up if you reboot the server!</p>
 <ul>
 <li>
 <p>Check the Systemd logs for using
-<code>sudo journalctl -u gunicorn-superlists-staging.ottg.eu</code></p>
+<code>sudo journalctl -u gunicorn-superlists-staging.ottg.eu</code>.</p>
 </li>
 <li>
 <p>You can ask Systemd to check the validity of your service configuration:
-<code>systemd-analyze verify /path/to/my.service</code></p>
+<code>systemd-analyze verify /path/to/my.service</code>.</p>
 </li>
 <li>
 <p>Remember to restart both services whenever you make changes.</p>
@@ -467,9 +439,6 @@ $ <strong>git commit -am "Add gunicorn to virtualenv requirements"</strong>
 $ <strong>git push</strong></pre>
 </div>
 </div>
-<div class="paragraph">
-<p></p>
-</div>
 <div class="admonitionblock note">
 <table>
 <tr>
@@ -477,7 +446,7 @@ $ <strong>git push</strong></pre>
 <i class="fa icon-note" title="Note"></i>
 </td>
 <td class="content">
-On Windows, at the time of writing, Gunicorn would pip install quite
+On Windows, at the time of writing, Gunicorn would <code>pip install</code> quite
     happily, but it wouldn&#8217;t actually work if you tried to use it.  Thankfully
     we only ever run it on the server, so that&#8217;s not a problem. And, Windows
     support is
@@ -489,12 +458,9 @@ On Windows, at the time of writing, Gunicorn would pip install quite
 </div>
 </div>
 <div class="sect2">
-<h3 id="_thinking_about_automating">Thinking about Automating</h3>
+<h3 id="_thinking_about_automating">Thinking About Automating</h3>
 <div class="paragraph">
-<p>
-
-
-Let&#8217;s recap our provisioning and deployment procedures:</p>
+<p>Let&#8217;s recap our provisioning and deployment procedures:</p>
 </div>
 <div class="dlist">
 <dl>
@@ -543,7 +509,7 @@ Let&#8217;s recap our provisioning and deployment procedures:</p>
 <p><code>collectstatic</code> for static files</p>
 </li>
 <li>
-<p>Set DEBUG = False and ALLOWED_HOSTS in <em>settings.py</em></p>
+<p>Set <code>DEBUG = False</code> and <code>ALLOWED_HOSTS</code> in <em>settings.py</em></p>
 </li>
 <li>
 <p>Restart Gunicorn job</p>
@@ -561,17 +527,22 @@ Let&#8217;s recap our provisioning and deployment procedures:</p>
 should we save the results of our investigation so far?  I would say that
 the Nginx and Systemd config files should probably be saved somewhere, in
 a way that makes it easy to reuse them later.  Let&#8217;s save them in a new
-subfolder in our repo:</p>
+subfolder in our repo.</p>
 </div>
 <div class="sect3">
-<h4 id="_saving_templates_for_our_provisioning_config_files">Saving templates for our provisioning config files</h4>
+<h4 id="_saving_templates_for_our_provisioning_config_files">Saving Templates for Our Provisioning Config Files</h4>
+<div class="paragraph">
+<p>First, we create the subfolder:</p>
+</div>
 <div class="listingblock">
 <div class="content">
 <pre>$ <strong>mkdir deploy_tools</strong></pre>
 </div>
 </div>
-<div class="listingblock sourcecode">
+<div class="exampleblock sourcecode">
 <div class="title">deploy_tools/nginx.template.conf</div>
+<div class="content">
+<div class="listingblock">
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="nginx">server {
     listen 80;
@@ -588,8 +559,12 @@ subfolder in our repo:</p>
 }</code></pre>
 </div>
 </div>
-<div class="listingblock sourcecode">
+</div>
+</div>
+<div class="exampleblock sourcecode">
 <div class="title">deploy_tools/gunicorn-systemd.template.service</div>
+<div class="content">
+<div class="listingblock">
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="bash">[Unit]
 Description=Gunicorn server for SITENAME
@@ -606,16 +581,20 @@ ExecStart=/home/elspeth/sites/SITENAME/virtualenv/bin/gunicorn \
 WantedBy=multi-user.target</code></pre>
 </div>
 </div>
+</div>
+</div>
 <div class="paragraph">
 <p>Then it&#8217;s easy for us to use those two files to generate
-a new site, by doing a find &amp; replace on  <code>SITENAME</code>.</p>
+a new site, by doing a find and replace on  <code>SITENAME</code>.</p>
 </div>
 <div class="paragraph">
 <p>For the rest, just keeping a few notes is OK. Why not keep
 them in a file in the repo too?</p>
 </div>
-<div class="listingblock sourcecode">
+<div class="exampleblock sourcecode">
 <div class="title">deploy_tools/provisioning_notes.md</div>
+<div class="content">
+<div class="listingblock">
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="rst">Provisioning a new site
 =======================
@@ -654,6 +633,8 @@ Assume we have a user account at /home/username
  &#160;&#160;      &#9492;&#9472;&#9472; virtualenv</code></pre>
 </div>
 </div>
+</div>
+</div>
 <div class="paragraph">
 <p>We can do a commit for those:</p>
 </div>
@@ -665,9 +646,7 @@ $ <strong>git commit -m "Notes and template config files for provisioning"</stro
 </div>
 </div>
 <div class="paragraph">
-<p>
-
-Our source tree will now look something like this:</p>
+<p>Our source tree will now look something like this:</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -701,10 +680,9 @@ Our source tree will now look something like this:</p>
 </div>
 </div>
 <div class="sect2">
-<h3 id="_saving_our_progress">Saving our Progress</h3>
+<h3 id="_saving_our_progress">Saving Our Progress</h3>
 <div class="paragraph">
-<p>
-Being able to run our FTs against a staging server can be very reassuring.
+<p>Being able to run our FTs against a staging server can be very reassuring.
 But, in most cases, you don&#8217;t want to run your FTs against your "real" server.
 In order to "save our work", and reassure ourselves that the production server
 will work just as well as the real server, we need to make our deployment
@@ -715,10 +693,9 @@ process repeatable.</p>
 </div>
 <div class="sidebarblock">
 <div class="content">
-<div class="title">Production-readiness for server deployments</div>
+<div class="title">Production-Readiness for Server Deployments</div>
 <div class="paragraph">
-<p>A few things to think about when trying to build a production-ready server
-environment.</p>
+<p>A few things to think about when trying to build a production-ready server <span class="keep-together">environment</span>:</p>
 </div>
 <div class="dlist">
 <dl>
@@ -735,7 +712,7 @@ uWSGI.</p>
 </dd>
 <dt class="hdlist1">Check your settings.py for dev-only settings</dt>
 <dd>
-<p>DEBUG=True and ALLOWED_HOSTS are the two we looked at, but you will
+<p><code>DEBUG=True</code> and <code>ALLOWED_HOSTS</code> are the two we looked at, but you will
 probably have others (we&#8217;ll see more when we start to send emails from the
 server).</p>
 </dd>
@@ -744,12 +721,12 @@ server).</p>
 <p>A serious discussion of server security is beyond the scope of this book,
 and I&#8217;d warn against running your own servers without learning a good bit
 more about it. (One reason people choose to use a PaaS to host their
-code, because that means there&#8217;s a few less security issues to worry about).
+code is that it means a slightly fewer security issues to worry about.)
 If you&#8217;d like a place to start, here&#8217;s as good a place as any:
 <a href="https://plusbryan.com/my-first-5-minutes-on-a-server-or-essential-security-for-linux-servers">My first 5 minutes on a server</a>.
 I can definitely recommend the eye-opening experience of installing
 fail2ban and watching its logfiles to see just how quickly it picks up on
-random drive-by attempts to brute force your SSH login.  The Internet is a
+random drive-by attempts to brute force your SSH login.  The internet is a
 dangerous place!</p>
 </dd>
 </dl>
@@ -762,7 +739,7 @@ dangerous place!</p>
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2017-04-02 05:48:47 BST
+Last updated 2017-07-04 10:59:52 BST
 </div>
 </div>
 <div class="comments" style="padding: 20px">

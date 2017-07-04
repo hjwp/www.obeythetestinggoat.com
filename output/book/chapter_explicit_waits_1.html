@@ -43,41 +43,12 @@ httpRequest.send();
 <div class="sect1">
 <h2 id="chapter_explicit_waits_1">Improving Functional Tests: Ensuring Isolation and Removing Voodoo Sleeps</h2>
 <div class="sectionbody">
-<table class="tableblock frame-all grid-all" style="float: right;">
-<colgroup>
-<col>
-<col>
-</colgroup>
-<tbody>
-<tr>
-<td class="tableblock halign-left valign-top" colspan="2"><p class="tableblock">Chapter info</p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">shortname:</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">chapter_explicit_waits_1</p></td>
-</tr>
-</tbody>
-</table>
-<div class="admonitionblock warning">
-<table>
-<tr>
-<td class="icon">
-<i class="fa icon-warning" title="Warning"></i>
-</td>
-<td class="content">
-2017-03-13: Book upgraded to Python 3.6 and Django 1.11 beta.
-    Before that, there was a big upgrade to Selenium 3 on 2017-01-30. More
-    info <a href="https://www.obeythetestinggoat.com/latest-release-the-last-big-one-python-36-django-111-beta.html">on the blog</a>.
-</td>
-</tr>
-</table>
-</div>
 <div class="paragraph">
 <p>Before we dive in and fix our real problem, let&#8217;s take care of a couple
 of housekeeping items. At the end of the last chapter, we made a note
 that different test runs were interfering with each other, so we&#8217;ll fix
-that.  I&#8217;m also not happy with all these <code>time.sleeps</code> peppered through
-the code, they seem a bit unscientific, so we&#8217;ll replace them with something
+that.  I&#8217;m also not happy with all these <code>time.sleep</code>s peppered through
+the code; they seem a bit unscientific, so we&#8217;ll replace them with something
 more reliable.</p>
 </div>
 <div class="sidebarblock scratchpad">
@@ -101,9 +72,7 @@ making our tests more deterministic and more reliable.</p>
 <div class="sect2">
 <h3 id="_ensuring_test_isolation_in_functional_tests">Ensuring Test Isolation in Functional Tests</h3>
 <div class="paragraph">
-<p>
-
-We ended the last chapter with a classic testing problem:  how to ensure
+<p>We ended the last chapter with a classic testing problem:  how to ensure
 <em>isolation</em> between tests.  Each run of our functional tests was leaving list
 items lying around in the database, and that would interfere with the test
 results when you next ran the tests.</p>
@@ -120,10 +89,7 @@ to <em>functional_tests.py</em> which would do the cleaning up. The <code>setUp<
 <code>tearDown</code> methods are perfect for this sort of thing.</p>
 </div>
 <div class="paragraph">
-<p>
-
-
-Since Django 1.4 though, there&#8217;s a new class called <code>LiveServerTestCase</code> which
+<p>Since Django 1.4 though, there&#8217;s a new class called <code>LiveServerTestCase</code> which
 can do this work for you. It will automatically create a test database (just
 like in a unit test run), and start up a development server for the functional
 tests to run against. Although as a tool it has some limitations which we&#8217;ll
@@ -214,8 +180,10 @@ You could mix your functional tests into the tests for the <code>lists</code> ap
 <p>Now let&#8217;s edit <em>functional_tests/tests.py</em> and change our <code>NewVisitorTest</code>
 class to make it use <code>LiveServerTestCase</code>:</p>
 </div>
-<div class="listingblock sourcecode">
+<div class="exampleblock sourcecode">
 <div class="title">functional_tests/tests.py (ch06l001)</div>
+<div class="content">
+<div class="listingblock">
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> <span class="include">django.test</span> <span class="keyword">import</span> <span class="include">LiveServerTestCase</span>
 <span class="keyword">from</span> <span class="include">selenium</span> <span class="keyword">import</span> <span class="include">webdriver</span>
@@ -229,17 +197,23 @@ class to make it use <code>LiveServerTestCase</code>:</p>
         [...]</code></pre>
 </div>
 </div>
+</div>
+</div>
 <div class="paragraph">
 <p>Next, instead of hardcoding the visit to localhost port 8000,
 <code>LiveServerTestCase</code> gives us an attribute called <code>live_server_url</code>:</p>
 </div>
-<div class="listingblock dofirst-ch06l003 sourcecode">
+<div class="exampleblock dofirst-ch06l003 sourcecode">
 <div class="title">functional_tests/tests.py (ch06l002)</div>
+<div class="content">
+<div class="listingblock">
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="python">    <span class="keyword">def</span> <span class="function">test_can_start_a_list_and_retrieve_it_later</span>(<span class="predefined-constant">self</span>):
         <span class="comment"># Edith has heard about a cool new online to-do app. She goes</span>
         <span class="comment"># to check out its homepage</span>
         <span class="predefined-constant">self</span>.browser.get(<span class="predefined-constant">self</span>.live_server_url)</code></pre>
+</div>
+</div>
 </div>
 </div>
 <div class="paragraph">
@@ -290,15 +264,12 @@ $ <strong>git commit</strong>  # msg eg "make functional_tests an app, use LiveS
 <div class="paragraph">
 <p>The <code>-M</code> flag on the <code>git diff</code> is a useful one. It means "detect moves", so it
 will notice that <em>functional_tests.py</em> and <em>functional_tests/tests.py</em> are the
-same file, and show you a more sensible diff (try it without the flag!).
-
-</p>
+same file, and show you a more sensible diff (try it without the flag!).</p>
 </div>
 <div class="sect3">
 <h4 id="_running_just_the_unit_tests">Running Just the Unit Tests</h4>
 <div class="paragraph">
-<p>
-Now if we run <code>manage.py test</code>, Django will run both the functional and the
+<p>Now if we run <code>manage.py test</code>, Django will run both the functional and the
 unit tests:</p>
 </div>
 <div class="listingblock">
@@ -351,7 +322,7 @@ Destroying test database for alias 'default'...</pre>
 </div>
 <div class="paragraph">
 <p>What to do if I say "run the tests", and you&#8217;re not sure which ones I mean?
-Have another look at the flowchart at the end of <a href="/book/chapter_philosophy_and_refactoring.html">[chapter_philosophy_and_refactoring]</a>, and try and
+Have another look at the flowchart at the end of <a href="/book/chapter_philosophy_and_refactoring.html">[chapter_philosophy_and_refactoring]</a>, and try to
 figure out where we are.  As a rule of thumb, we usually only run the
 functional tests once all the unit tests are passing, so if in doubt, try both!</p>
 </div>
@@ -378,7 +349,7 @@ in order:</p>
 <p>A quick <code>pip install --upgrade selenium</code> first.</p>
 </li>
 <li>
-<p>Then quick download of the new geckodriver.</p>
+<p>Then a quick download of the new geckodriver.</p>
 </li>
 <li>
 <p>I saved a backup copy of the old one somewhere, and put the new one in its
@@ -394,15 +365,15 @@ ready to go.</p>
 <p>The FTs were then back to running the way I expected them to.</p>
 </div>
 <div class="paragraph">
-<p>There was no particular reason that it happened at this point in the book,
-indeed it&#8217;s quite unlikely that it&#8217;ll happen right now for you, but it may
+<p>There was no particular reason that it happened at this point in the book;
+indeed, it&#8217;s quite unlikely that it&#8217;ll happen right now for you, but it may
 happen at some point, and this seemed as good a place as any to talk about
-it, since we&#8217;re doing some housekeeping.</p>
+it, since we&#8217;re doing some <span class="keep-together">housekeeping</span>.</p>
 </div>
 <div class="paragraph">
-<p>It&#8217;s one of the things you have to put up with, when using Selenium. Although
-it is possible to pin your browser and selenium versions (on a CI server for
-example), browser versions don&#8217;t stand still out in the real world., and you
+<p>It&#8217;s one of the things you have to put up with when using Selenium. Although
+it is possible to pin your browser and Selenium versions (on a CI server, for
+example), browser versions don&#8217;t stand still out in the real world, and you
 need to keep up with what your users have.</p>
 </div>
 <div class="admonitionblock note">
@@ -423,12 +394,14 @@ If something strange is going on with your FTs, it&#8217;s always worth
 </div>
 </div>
 <div class="sect2">
-<h3 id="_on_implicit_and_explicit_waits_and_voodoo_time_sleeps">On implicit and explicit waits, and voodoo time.sleeps</h3>
+<h3 id="_on_implicit_and_explicit_waits_and_voodoo_time_sleeps">On Implicit and Explicit Waits, and Voodoo time.sleeps</h3>
 <div class="paragraph">
 <p>Let&#8217;s talk about the <code>time.sleep</code> in our FT:</p>
 </div>
-<div class="listingblock sourcecode currentcontents">
+<div class="exampleblock sourcecode currentcontents">
 <div class="title">functional_tests/tests.py</div>
+<div class="content">
+<div class="listingblock">
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="python">        <span class="comment"># When she hits enter, the page updates, and now the page lists</span>
         <span class="comment"># "1: Buy peacock feathers" as an item in a to-do list table</span>
@@ -438,11 +411,13 @@ If something strange is going on with your FTs, it&#8217;s always worth
         <span class="predefined-constant">self</span>.check_for_row_in_list_table(<span class="string"><span class="delimiter">'</span><span class="content">1: Buy peacock feathers</span><span class="delimiter">'</span></span>)</code></pre>
 </div>
 </div>
+</div>
+</div>
 <div class="paragraph">
 <p>This is what&#8217;s called an "explicit wait".  That&#8217;s by contrast with
 "implicit waits":  in certain cases, Selenium tries to wait "automatically" for
 you when it thinks the page is loading.  It even provides a method called
-`implicitly_wait" that lets you control how long it will wait if you ask it for
+<code>implicitly_wait</code> that lets you control how long it will wait if you ask it for
 an element that doesn&#8217;t seem to be on the page yet.</p>
 </div>
 <div class="paragraph">
@@ -450,11 +425,11 @@ an element that doesn&#8217;t seem to be on the page yet.</p>
 The problem is that implicit waits are always a little flakey, and with the
 release of Selenium 3, implicit waits became even more unreliable. At the same
 time, the general opinion from the Selenium team was that implicit waits were
-just a bad idea, and to be avoided.</p>
+just a bad idea, and to be <span class="keep-together">avoided</span>.</p>
 </div>
 <div class="paragraph">
 <p>So this edition has explicit waits from the very beginning. But the problem
-is that those "time.sleeps" have their own issues.  Currently we&#8217;re waiting
+is that those <code>time.sleep</code>s have their own issues.  Currently we&#8217;re waiting
 for one second, but who&#8217;s to say that&#8217;s the right amount of time?  For most
 tests we run against our own machine, one second is way too long, and it&#8217;s
 going to really slow down our FT runs. 0.1s would be fine.  But the problem is
@@ -462,7 +437,7 @@ that if you set it that low, every so often you&#8217;re going to get a spurious
 failure because, for whatever reason, the laptop was being a bit slow just
 then.  And even at 1s you can never be quite sure you&#8217;re not going to get
 random failures that don&#8217;t indicate a real problem, and false positives
-in tests are a real annoyance. (there&#8217;s lots more on this in
+in tests are a real annoyance (there&#8217;s lots more on this in
 <a href="https://martinfowler.com/articles/nonDeterminism.html">an article by Martin Fowler</a>).</p>
 </div>
 <div class="admonitionblock tip">
@@ -485,8 +460,10 @@ needed, up to a nice long timeout to catch any glitches.  We&#8217;ll rename
 <code>check_for_row_in_list_table</code> to <code>wait_for_row_in_list_table</code>, and add some
 polling/retry logic to it:</p>
 </div>
-<div class="listingblock sourcecode">
+<div class="exampleblock sourcecode">
 <div class="title">functional_tests/tests.py (ch06l004)</div>
+<div class="content">
+<div class="listingblock">
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> <span class="include">selenium.common.exceptions</span> <span class="keyword">import</span> <span class="include">WebDriverException</span>
 
@@ -507,15 +484,15 @@ MAX_WAIT = <span class="integer">10</span>  <i class="conum" data-value="1"></i>
                 time.sleep(<span class="float">0.5</span>)  <i class="conum" data-value="5"></i><b>(5)</b></code></pre>
 </div>
 </div>
+</div>
+</div>
 <div class="colist arabic">
 <table>
 <tr>
 <td><i class="conum" data-value="1"></i><b>1</b></td>
-<td>We&#8217;ll use a constant called <code>MAX_WAIT</code> to set how long is the maximum
+<td>We&#8217;ll use a constant called <code>MAX_WAIT</code> to set the maximum
 amount of time we&#8217;re prepared to wait.  10 seconds should be more than
-enough to catch any glitches or random slowness.
-//TODO: see if we can&#8217;t reduce this down to eg 5s and still have reliable
-//CI</td>
+enough to catch any glitches or random slowness.</td>
 </tr>
 <tr>
 <td><i class="conum" data-value="2"></i><b>2</b></td>
@@ -536,7 +513,7 @@ function and escape the loop.</td>
 <td><i class="conum" data-value="5"></i><b>5</b></td>
 <td>But if we catch an exception, we wait a short amount of time and loop
 around to retry.  There are two types of exceptions we want to catch:
-<code>WebDriverException</code> for when the page hasn&#8217;t loaded and selenium can&#8217;t
+<code>WebDriverException</code> for when the page hasn&#8217;t loaded and Selenium can&#8217;t
 find the table element on the page, and <code>AssertionError</code> for when the
 table is there, but it&#8217;s perhaps a table from before the page reloads,
 so it doesn&#8217;t have our row in yet.</td>
@@ -585,10 +562,12 @@ If you&#8217;ve used Selenium before, you may know that it has a few
 </table>
 </div>
 <div class="paragraph">
-<p>Now we can rename our method calls, and remove the voodoo <code>time.sleeps</code></p>
+<p>Now we can rename our method calls, and remove the voodoo <code>time.sleep</code>s:</p>
 </div>
-<div class="listingblock sourcecode">
+<div class="exampleblock sourcecode">
 <div class="title">functional_tests/tests.py (ch06l005)</div>
+<div class="content">
+<div class="listingblock">
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="python">    [...]
     <span class="comment"># When she hits enter, the page updates, and now the page lists</span>
@@ -609,8 +588,10 @@ If you&#8217;ve used Selenium before, you may know that it has a few
     [...]</code></pre>
 </div>
 </div>
+</div>
+</div>
 <div class="paragraph">
-<p>And re-run the tests:</p>
+<p>And rerun the tests:</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -645,12 +626,16 @@ up.</p>
 in a couple of ways and see some errors.  First let&#8217;s check that if we
 look for some row text that will never appear, we get the right error:</p>
 </div>
-<div class="listingblock sourcecode">
+<div class="exampleblock sourcecode">
 <div class="title">functional_tests/tests.py (ch06l006)</div>
+<div class="content">
+<div class="listingblock">
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="python">        rows = table.find_elements_by_tag_name(<span class="string"><span class="delimiter">'</span><span class="content">tr</span><span class="delimiter">'</span></span>)
         <span class="predefined-constant">self</span>.assertIn(<span class="string"><span class="delimiter">'</span><span class="content">foo</span><span class="delimiter">'</span></span>, [row.text <span class="keyword">for</span> row <span class="keyword">in</span> rows])
         <span class="keyword">return</span></code></pre>
+</div>
+</div>
 </div>
 </div>
 <div class="paragraph">
@@ -665,8 +650,10 @@ AssertionError: 'foo' not found in ['1: Buy peacock feathers']</pre>
 <div class="paragraph">
 <p>Let&#8217;s put that back the way it was and break something else:</p>
 </div>
-<div class="listingblock sourcecode">
+<div class="exampleblock sourcecode">
 <div class="title">functional_tests/tests.py (ch06l007)</div>
+<div class="content">
+<div class="listingblock">
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="python">    <span class="keyword">try</span>:
         table = <span class="predefined-constant">self</span>.browser.find_element_by_id(<span class="string"><span class="delimiter">'</span><span class="content">id_nothing</span><span class="delimiter">'</span></span>)
@@ -676,9 +663,11 @@ AssertionError: 'foo' not found in ['1: Buy peacock feathers']</pre>
     [...]</code></pre>
 </div>
 </div>
+</div>
+</div>
 <div class="paragraph">
 <p>Sure enough, we get the errors for when the page doesn&#8217;t contain the element
-we&#8217;re looking for too.</p>
+we&#8217;re looking for too:</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -688,7 +677,7 @@ element: [id="id_nothing"]</pre>
 </div>
 <div class="paragraph">
 <p>Everything seems to be in order.  Let&#8217;s put our code back to way it should be,
-and do one final test run.</p>
+and do one final test run:</p>
 </div>
 <div class="listingblock dofirst-ch06l008">
 <div class="content">
@@ -703,26 +692,24 @@ application actually working for multiple lists.</p>
 </div>
 <div class="sidebarblock">
 <div class="content">
-<div class="title">Testing "best practices" applied in this chapter</div>
+<div class="title">Testing "Best Practices" Applied in this Chapter</div>
 <div class="dlist">
 <dl>
-<dt class="hdlist1">Ensuring Test Isolation and Managing Global State</dt>
+<dt class="hdlist1">Ensuring test isolation and managing global state</dt>
 <dd>
 <p>Different tests shouldn&#8217;t affect one another.  This means we need to
 reset any permanent state at the end of each test. Django&#8217;s test runner
 helps us do this by creating a test database, which it wipes clean in
-between each test.  (See also <a href="/book/chapter_purist_unit_tests.html">[chapter_purist_unit_tests]</a>.)
-
-</p>
+between each test.  (See also <a href="/book/chapter_purist_unit_tests.html">[chapter_purist_unit_tests]</a>.)</p>
 </dd>
 <dt class="hdlist1">Avoid "voodoo" sleeps</dt>
 <dd>
 <p>Whenever we need to wait for something to load, it&#8217;s always tempting to
-throw in a quick and dirty <code>time.sleep</code>.  But the problem is that the
-length of time we wait is always a bit of a shot in the dark, either too
-short and vulnerable to spurious failures, or too long and it&#8217;ll slow down
-our test runs.  Prefer a retry loop that polls our app and moves on as soon
-as possible.</p>
+ throw in a quick-and-dirty <code>time.sleep</code>.  But the problem is that the
+ length of time we wait is always a bit of a shot in the dark, either too
+ short and vulnerable to spurious failures, or too long and it&#8217;ll slow down
+ our test runs.  Prefer a retry loop that polls our app and moves on as soon
+ as possible.</p>
 </dd>
 <dt class="hdlist1">Don&#8217;t rely on Selenium&#8217;s implicit waits</dt>
 <dd>
@@ -741,7 +728,7 @@ than implict", as the Zen of Python says, so prefer explicit waits.</p>
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2017-03-30 07:47:47 BST
+Last updated 2017-07-04 11:28:28 BST
 </div>
 </div>
 <div class="comments" style="padding: 20px">

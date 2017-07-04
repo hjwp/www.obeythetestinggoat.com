@@ -44,9 +44,7 @@ httpRequest.send();
 <h2 id="appendix3">Appendix C: Provisioning with Ansible: Provisioning with Ansible</h2>
 <div class="sectionbody">
 <div class="paragraph">
-<p>
-
-We used Fabric to automate deploying new versions of the source code to our
+<p>We used Fabric to automate deploying new versions of the source code to our
 servers.  But provisioning a fresh server, and updating the Nginx and Gunicorn
 config files, was all left as a manual process.</p>
 </div>
@@ -65,11 +63,13 @@ can get it working with just two files:</p>
 </div>
 </div>
 <div class="paragraph">
-<p>An "inventory file" at <code>deploy_tools/inventory.ansible</code> defines what servers we
+<p>An "inventory file" at <em>deploy_tools/inventory.ansible</em> defines what servers we
 can run against:</p>
 </div>
-<div class="listingblock sourcecode">
+<div class="exampleblock sourcecode">
 <div class="title">deploy_tools/inventory.ansible</div>
+<div class="content">
+<div class="listingblock">
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="ini">[live]
 superlists.ottg.eu ansible_become=yes ansible_ssh_user=elspeth
@@ -79,6 +79,8 @@ superlists-staging.ottg.eu ansible_become=yes ansible_ssh_user=elspeth
 
 [local]
 localhost ansible_ssh_user=root ansible_ssh_port=6666 ansible_host=127.0.0.1</code></pre>
+</div>
+</div>
 </div>
 </div>
 <div class="paragraph">
@@ -91,8 +93,10 @@ forwarding for ports 22 and 80 set up.)</p>
 <p>Next the Ansible "playbook", which defines what to do on the server.  This
 uses a syntax called YAML:</p>
 </div>
-<div class="listingblock sourcecode">
+<div class="exampleblock sourcecode">
 <div class="title">deploy_tools/provision.ansible.yaml</div>
+<div class="content">
+<div class="listingblock">
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="yaml"><span class="head"><span class="head">---</span></span>
 
@@ -130,21 +134,23 @@ uses a syntax called YAML:</p>
           - <span class="string"><span class="content">restart nginx</span></span></code></pre>
 </div>
 </div>
+</div>
+</div>
 <div class="paragraph">
 <p>The <code>inventory_hostname</code> variable is the domain name of the server we&#8217;re running against.
 I&#8217;m using the <code>vars</code> section to rename it to "host", just for convenience.</p>
 </div>
 <div class="paragraph">
-<p>
-In this section, we install our required software using <code>apt</code>, tweak the Nginx
-config to allow long hostnames using a regular expression replacer, and then
-we write the Nginx config file using a template.  This is a modified version
+<p>In this section, we install our required software using <code>apt</code>, tweak the Nginx
+config to allow long hostnames using a regular expression replacer, and then write the Nginx config file using a template.  This is a modified version
 of the template file we saved into <em>deploy_tools/nginx.template.conf</em> in
-<a href="#deployment-chapter">[deployment-chapter]</a>, but it now uses a specific templating syntax&#8212;&#8203;Jinja2, which is
+<a href="/book/chapter_manual_deployment.html">[chapter_manual_deployment]</a>, but it now uses a specific templating syntax&#8212;&#8203;Jinja2, which is
 actually a lot like the Django template syntax:</p>
 </div>
-<div class="listingblock sourcecode">
+<div class="exampleblock sourcecode">
 <div class="title">deploy_tools/nginx.conf.j2</div>
+<div class="content">
+<div class="listingblock">
 <div class="content">
 <pre>server {
     listen 80;
@@ -162,13 +168,17 @@ actually a lot like the Django template syntax:</p>
 </div>
 </div>
 </div>
+</div>
+</div>
 <div class="sect2">
 <h3 id="_configuring_gunicorn_and_using_handlers_to_restart_services">Configuring Gunicorn, and Using Handlers to Restart Services</h3>
 <div class="paragraph">
 <p>Here&#8217;s the second half of our playbook:</p>
 </div>
-<div class="listingblock sourcecode">
+<div class="exampleblock sourcecode">
 <div class="title">deploy_tools/provision.ansible.yaml</div>
+<div class="content">
+<div class="listingblock">
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="yaml">    - <span class="string"><span class="content">name: write gunicorn service script</span></span>
       <span class="key">template</span>:
@@ -189,12 +199,15 @@ actually a lot like the Django template syntax:</p>
           <span class="error">state=restarted</span></code></pre>
 </div>
 </div>
-<div class="paragraph">
-<p>
-Once again we use a template for our Gunicorn config:</p>
 </div>
-<div class="listingblock sourcecode">
+</div>
+<div class="paragraph">
+<p>Once again we use a template for our Gunicorn config:</p>
+</div>
+<div class="exampleblock sourcecode">
 <div class="title">deploy_tools/gunicorn.service.j2</div>
+<div class="content">
+<div class="listingblock">
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="bash">[Unit]
 Description=Gunicorn server for {{ host }}
@@ -211,6 +224,8 @@ ExecStart=/home/{{ ansible_ssh_user }}/sites/{{ host }}/virtualenv/bin/gunicorn 
 
 [Install]
 WantedBy=multi-user.target</code></pre>
+</div>
+</div>
 </div>
 </div>
 <div class="paragraph">
@@ -235,26 +250,21 @@ waits until the last one before calling it.</p>
 <div class="paragraph">
 <p>I&#8217;ve just given a little taster of what&#8217;s possible with Ansible.  But the more
 you automate about your deployments, the more confidence you will have in
-them.  Here&#8217;s a few more things to look into.</p>
+them.  Here are a few more things to look into.</p>
 </div>
 <div class="sect3">
 <h4 id="_move_deployment_out_of_fabric_and_into_ansible">Move Deployment out of Fabric and into Ansible</h4>
 <div class="paragraph">
-<p>
-We&#8217;ve seen that Ansible can help with some aspects of provisioning, but it can
+<p>We&#8217;ve seen that Ansible can help with some aspects of provisioning, but it can
 also do pretty much all of our deployment for us.  See if you can extend the
-playbook to do everything that we currently do in our fabric deploy script,
-including notifying the restarts as required.
-
-</p>
+playbook to do everything that we currently do in our Fabric deploy script,
+including notifying the restarts as required.</p>
 </div>
 </div>
 <div class="sect3">
 <h4 id="_use_vagrant_to_spin_up_a_local_vm">Use Vagrant to Spin Up a Local VM</h4>
 <div class="paragraph">
-<p>
-
-Running tests against the staging site gives us the ultimate confidence that
+<p>Running tests against the staging site gives us the ultimate confidence that
 things are going to work when we go live, but we can also use a VM on our
 local machine.</p>
 </div>
@@ -275,7 +285,7 @@ like yours.</p>
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2017-03-30 07:47:47 BST
+Last updated 2017-07-04 10:59:52 BST
 </div>
 </div>
 <div class="comments" style="padding: 20px">

@@ -43,35 +43,6 @@ httpRequest.send();
 <div class="sect1">
 <h2 id="chapter_database_layer_validation">Validation at the Database Layer</h2>
 <div class="sectionbody">
-<table class="tableblock frame-all grid-all" style="float: right;">
-<colgroup>
-<col>
-<col>
-</colgroup>
-<tbody>
-<tr>
-<td class="tableblock halign-left valign-top" colspan="2"><p class="tableblock">Chapter info</p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">shortname:</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">chapter_database_layer_validation</p></td>
-</tr>
-</tbody>
-</table>
-<div class="admonitionblock warning">
-<table>
-<tr>
-<td class="icon">
-<i class="fa icon-warning" title="Warning"></i>
-</td>
-<td class="content">
-2017-03-13: Book upgraded to Python 3.6 and Django 1.11 beta.
-    Before that, there was a big upgrade to Selenium 3 on 2017-01-30. More
-    info <a href="https://www.obeythetestinggoat.com/latest-release-the-last-big-one-python-36-django-111-beta.html">on the blog</a>.
-</td>
-</tr>
-</table>
-</div>
 <div class="paragraph">
 <p>Over the next few chapters we&#8217;ll talk about testing and implementing validation
 of user inputs.</p>
@@ -81,13 +52,13 @@ of user inputs.</p>
 more about the specifics of Django, and less discussion of TDD philosophy. That
 doesn&#8217;t mean you won&#8217;t be learning anything about testing&#8212;&#8203;there are plenty of
 little testing tidbits in here, but perhaps it&#8217;s more about really getting into
-the swing of things, the rhythm of TDD and how we get work done.</p>
+the swing of things, the rhythm of TDD, and how we get work done.</p>
 </div>
 <div class="paragraph">
 <p>Once we get through these three short chapters, I&#8217;ve saved a bit of fun with
-JavaScript (!) for the end of Part 2. Then it&#8217;s on to <a href="/book/part3.harry.html">Part 3</a>, where I
+JavaScript (!) for the end of <a href="/book/part2.harry.html">[part2]</a>. Then it&#8217;s on to <a href="/book/part3.harry.html">[part3]</a>, where I
 promise we&#8217;ll get right back into some of the real nitty-gritty discussions in
-TDD methodology&#8212;&#8203;unit tests vs integrated tests, mocking and more.  Stay tuned!</p>
+TDD methodology&#8212;&#8203;unit tests versus integrated tests, mocking, and more.  Stay tuned!</p>
 </div>
 <div class="paragraph">
 <p>But for now, a little validation. Let&#8217;s just remind ourselves where our FT is
@@ -121,35 +92,31 @@ item.</p>
 <div class="sect2">
 <h3 id="_model_layer_validation">Model-Layer Validation</h3>
 <div class="paragraph">
-<p>
-
-
-In a web app, there are two places you can do validation: on the client-side
-(using Javascript or HTML5 properties, as we&#8217;ll see later), and on the
-server-side.  The server side is "safer" because someone can always bypass
-the client-side, whether it&#8217;s maliciously or due to some bug.</p>
+<p>In a web app, there are two places you can do validation: on the client side
+(using JavaScript or HTML5 properties, as we&#8217;ll see later), and on the
+server side.  The server side is "safer" because someone can always bypass
+the client side, whether it&#8217;s maliciously or due to some bug.</p>
 </div>
 <div class="paragraph">
-<p>Similarly on the server-side, in Django, there are two levels at which you can
-do validation in Django. One is at the model level, and the other is higher up
+<p>Similarly on the server side, in Django, there are two levels at which you can
+do validation. One is at the model level, and the other is higher up
 at the forms level.  I like to use the lower level whenever possible, partially
 because I&#8217;m a bit too fond of databases and database integrity rules, and
 partially because, again, it&#8217;s safer&#8212;&#8203;you can sometimes forget which form you
 use to validate input, but you&#8217;re always going to use the same database.</p>
 </div>
 <div class="sect3">
-<h4 id="_the_code_self_assertraises_code_context_manager">The <code>self.assertRaises</code> context manager</h4>
+<h4 id="_the_self_assertraises_context_manager">The self.assertRaises Context Manager</h4>
 <div class="paragraph">
-<p>
-
-
-Let&#8217;s go down and write a unit test at the models layer. Add a new test method
+<p>Let&#8217;s go down and write a unit test at the models layer. Add a new test method
 to <code>ListAndItemModelsTest</code>, which tries to create a blank list item.  This test
 is interesting because it&#8217;s testing that the code under test should raise an
 exception:</p>
 </div>
-<div class="listingblock sourcecode">
+<div class="exampleblock sourcecode">
 <div class="title">lists/tests/test_models.py (ch11l018)</div>
+<div class="content">
+<div class="listingblock">
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> <span class="include">django.core.exceptions</span> <span class="keyword">import</span> <span class="include">ValidationError</span>
 [...]
@@ -162,6 +129,8 @@ exception:</p>
         item = Item(list=list_, text=<span class="string"><span class="delimiter">'</span><span class="delimiter">'</span></span>)
         <span class="keyword">with</span> <span class="predefined-constant">self</span>.assertRaises(ValidationError):
             item.save()</code></pre>
+</div>
+</div>
 </div>
 </div>
 <div class="admonitionblock tip">
@@ -208,15 +177,14 @@ AssertionError: ValidationError not raised</pre>
 <div class="sect3">
 <h4 id="_a_django_quirk_model_save_doesn_t_run_validation">A Django Quirk: Model Save Doesn&#8217;t Run Validation</h4>
 <div class="paragraph">
-<p>
-And now we discover one of Django&#8217;s little quirks. <em>This test should already
+<p>And now we discover one of Django&#8217;s little quirks. <em>This test should already
 pass</em>.  If you take a look at the
 <a href="http://bit.ly/SuxPJO">docs for the Django model fields</a>,
 you&#8217;ll see that <code>TextField</code> actually defaults to <code>blank=False</code>, which means
 that it <em>should</em> disallow empty values.</p>
 </div>
 <div class="paragraph">
-<p>So why is the test not failing?  Well, for
+<p>So why is the test still failing?  Well, for
 <a href="https://groups.google.com/forum/#!topic/django-developers/uIhzSwWHj4c">slightly
 counterintuitive historical reasons</a>, Django models don&#8217;t run full validation
 on save.  As we&#8217;ll see later, any constraints that are actually implemented in
@@ -227,8 +195,8 @@ invalid value through silently.</p>
 <div class="paragraph">
 <p>There&#8217;s a way of checking whether the constraint will happen at the database
 level or not:  if it was at the database level, we would need a migration to
-apply the constraint. But, Django knows that SQLite doesn&#8217;t support this type
-of constraint, so if we try and run <code>makemigrations</code>, it will report there&#8217;s
+apply the constraint. But Django knows that SQLite doesn&#8217;t support this type
+of constraint, so if we try to run <code>makemigrations</code>, it will report there&#8217;s
 nothing to do:</p>
 </div>
 <div class="listingblock">
@@ -238,17 +206,21 @@ No changes detected</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>Django does have a method to manually run full validation however, called
+<p>Django does have a method to manually run full validation, however, called
 <code>full_clean</code> (more info in
 <a href="https://docs.djangoproject.com/en/1.11/ref/models/instances/#django.db.models.Model.full_clean">the docs</a>).
 Let&#8217;s hack it in to see it work:</p>
 </div>
-<div class="listingblock sourcecode">
+<div class="exampleblock sourcecode">
 <div class="title">lists/tests/test_models.py</div>
+<div class="content">
+<div class="listingblock">
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="python">    <span class="keyword">with</span> <span class="predefined-constant">self</span>.assertRaises(ValidationError):
         item.save()
         item.full_clean()</code></pre>
+</div>
+</div>
 </div>
 </div>
 <div class="paragraph">
@@ -262,23 +234,22 @@ Let&#8217;s hack it in to see it work:</p>
 <div class="paragraph">
 <p>Good. That taught us a little about Django validation, and the test is there to
 warn us if we ever forget our requirement and set <code>blank=True</code> on the <code>text</code>
-field (try it!).
-</p>
+field (try it!).</p>
 </div>
 </div>
 </div>
 <div class="sect2">
 <h3 id="_surfacing_model_validation_errors_in_the_view">Surfacing Model Validation Errors in the View</h3>
 <div class="paragraph">
-<p>
-
-Let&#8217;s try and enforce our model validation in the views layer and bring it up
+<p>Let&#8217;s try to enforce our model validation in the views layer and bring it up
 through into our templates, so the user can see them. Here&#8217;s how we can
 optionally display an error in our HTML&#8212;&#8203;we check whether the template has
 been passed an error variable, and if so, we display it next to the form:</p>
 </div>
-<div class="listingblock sourcecode">
+<div class="exampleblock sourcecode">
 <div class="title">lists/templates/base.html (ch11l020)</div>
+<div class="content">
+<div class="listingblock">
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="html">  <span class="tag">&lt;form</span> <span class="attribute-name">method</span>=<span class="string"><span class="delimiter">"</span><span class="content">POST</span><span class="delimiter">"</span></span> <span class="attribute-name">action</span>=<span class="string"><span class="delimiter">"</span><span class="content">{% block form_action %}{% endblock %}</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>
     <span class="tag">&lt;input</span> <span class="attribute-name">name</span>=<span class="string"><span class="delimiter">"</span><span class="content">item_text</span><span class="delimiter">"</span></span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">"</span><span class="content">id_new_item</span><span class="delimiter">"</span></span>
@@ -291,6 +262,8 @@ been passed an error variable, and if so, we display it next to the form:</p>
       <span class="tag">&lt;/div&gt;</span>
     {% endif %}
   <span class="tag">&lt;/form&gt;</span></code></pre>
+</div>
+</div>
 </div>
 </div>
 <div class="paragraph">
@@ -307,8 +280,10 @@ slightly different error-handling patterns here.</p>
 same template as the home page, but with the addition of an error message.
 Here&#8217;s a unit test for that:</p>
 </div>
-<div class="listingblock sourcecode">
+<div class="exampleblock sourcecode">
 <div class="title">lists/tests/test_views.py (ch11l021)</div>
+<div class="content">
+<div class="listingblock">
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">class</span> <span class="class">NewListTest</span>(TestCase):
     [...]
@@ -319,6 +294,8 @@ Here&#8217;s a unit test for that:</p>
         <span class="predefined-constant">self</span>.assertTemplateUsed(response, <span class="string"><span class="delimiter">'</span><span class="content">home.html</span><span class="delimiter">'</span></span>)
         expected_error = <span class="string"><span class="delimiter">"</span><span class="content">You can't have an empty list item</span><span class="delimiter">"</span></span>
         <span class="predefined-constant">self</span>.assertContains(response, expected_error)</code></pre>
+</div>
+</div>
 </div>
 </div>
 <div class="paragraph">
@@ -343,14 +320,18 @@ to a working state first.</p>
 <div class="paragraph">
 <p>Let&#8217;s try calling <code>full_clean()</code> in the view:</p>
 </div>
-<div class="listingblock sourcecode">
+<div class="exampleblock sourcecode">
 <div class="title">lists/views.py</div>
+<div class="content">
+<div class="listingblock">
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">def</span> <span class="function">new_list</span>(request):
     list_ = List.objects.create()
     item = Item.objects.create(text=request.POST[<span class="string"><span class="delimiter">'</span><span class="content">item_text</span><span class="delimiter">'</span></span>], list=list_)
     item.full_clean()
     <span class="keyword">return</span> redirect(f<span class="string"><span class="delimiter">'</span><span class="content">/lists/{list_.id}/</span><span class="delimiter">'</span></span>)</code></pre>
+</div>
+</div>
 </div>
 </div>
 <div class="paragraph">
@@ -386,8 +367,10 @@ blank.']}</pre>
 the Testing Goat, we start with just the <code>try/except</code> and nothing else.  The
 tests should tell us what to code next&#8230;&#8203;</p>
 </div>
-<div class="listingblock sourcecode">
+<div class="exampleblock sourcecode">
 <div class="title">lists/views.py (ch11l025)</div>
+<div class="content">
+<div class="listingblock">
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> <span class="include">django.core.exceptions</span> <span class="keyword">import</span> <span class="include">ValidationError</span>
 [...]
@@ -402,6 +385,8 @@ tests should tell us what to code next&#8230;&#8203;</p>
     <span class="keyword">return</span> redirect(f<span class="string"><span class="delimiter">'</span><span class="content">/lists/{list_.id}/</span><span class="delimiter">'</span></span>)</code></pre>
 </div>
 </div>
+</div>
+</div>
 <div class="paragraph">
 <p>That gets us back to the 302 != 200:</p>
 </div>
@@ -414,11 +399,15 @@ tests should tell us what to code next&#8230;&#8203;</p>
 <p>Let&#8217;s return a rendered template then, which should take care of the template
 check as well:</p>
 </div>
-<div class="listingblock sourcecode">
+<div class="exampleblock sourcecode">
 <div class="title">lists/views.py (ch11l026)</div>
+<div class="content">
+<div class="listingblock">
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="python">    <span class="keyword">except</span> ValidationError:
         <span class="keyword">return</span> render(request, <span class="string"><span class="delimiter">'</span><span class="content">home.html</span><span class="delimiter">'</span></span>)</code></pre>
+</div>
+</div>
 </div>
 </div>
 <div class="paragraph">
@@ -433,12 +422,16 @@ item' in response</pre>
 <div class="paragraph">
 <p>We do that by passing a new template variable in:</p>
 </div>
-<div class="listingblock sourcecode">
+<div class="exampleblock sourcecode">
 <div class="title">lists/views.py (ch11l027)</div>
+<div class="content">
+<div class="listingblock">
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="python">    <span class="keyword">except</span> ValidationError:
         error = <span class="string"><span class="delimiter">"</span><span class="content">You can't have an empty list item</span><span class="delimiter">"</span></span>
         <span class="keyword">return</span> render(request, <span class="string"><span class="delimiter">'</span><span class="content">home.html</span><span class="delimiter">'</span></span>, {<span class="string"><span class="delimiter">"</span><span class="content">error</span><span class="delimiter">"</span></span>: error})</code></pre>
+</div>
+</div>
 </div>
 </div>
 <div class="paragraph">
@@ -453,16 +446,20 @@ item' in response</pre>
 <div class="paragraph">
 <p>A little print-based debug&#8230;&#8203;</p>
 </div>
-<div class="listingblock sourcecode">
+<div class="exampleblock sourcecode">
 <div class="title">lists/tests/test_views.py</div>
+<div class="content">
+<div class="listingblock">
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="python">expected_error = <span class="string"><span class="delimiter">"</span><span class="content">You can't have an empty list item</span><span class="delimiter">"</span></span>
 print(response.content.decode())
 <span class="predefined-constant">self</span>.assertContains(response, expected_error)</code></pre>
 </div>
 </div>
+</div>
+</div>
 <div class="paragraph">
-<p>&#8230;&#8203;will show us the cause: Django has
+<p>&#8230;&#8203;will show us the cause&#8212;Django has
 <a href="https://docs.djangoproject.com/en/1.11/ref/templates/builtins/#autoescape">HTML-escaped</a>
 the apostrophe:</p>
 </div>
@@ -484,14 +481,18 @@ item&lt;/span&gt;</pre>
 <div class="paragraph">
 <p>But using Django&#8217;s helper function is probably a better idea:</p>
 </div>
-<div class="listingblock sourcecode">
+<div class="exampleblock sourcecode">
 <div class="title">lists/tests/test_views.py (ch11l029)</div>
+<div class="content">
+<div class="listingblock">
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> <span class="include">django.utils.html</span> <span class="keyword">import</span> <span class="include">escape</span>
 [...]
 
         expected_error = escape(<span class="string"><span class="delimiter">"</span><span class="content">You can't have an empty list item</span><span class="delimiter">"</span></span>)
         <span class="predefined-constant">self</span>.assertContains(response, expected_error)</code></pre>
+</div>
+</div>
 </div>
 </div>
 <div class="paragraph">
@@ -505,14 +506,16 @@ OK</pre>
 </div>
 </div>
 <div class="sect3">
-<h4 id="_checking_invalid_input_isn_t_saved_to_the_database">Checking Invalid Input Isn&#8217;t Saved to the Database</h4>
+<h4 id="_checking_that_invalid_input_isn_t_saved_to_the_database">Checking That Invalid Input Isn&#8217;t Saved to the Database</h4>
 <div class="paragraph">
 <p>Before we go further though, did you notice a little logic error we&#8217;ve allowed
 to creep into our implementation?  We&#8217;re currently creating an object, even
 if validation fails:</p>
 </div>
-<div class="listingblock sourcecode currentcontents">
+<div class="exampleblock sourcecode currentcontents">
 <div class="title">lists/views.py</div>
+<div class="content">
+<div class="listingblock">
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="python">    item = Item.objects.create(text=request.POST[<span class="string"><span class="delimiter">'</span><span class="content">item_text</span><span class="delimiter">'</span></span>], list=list_)
     <span class="keyword">try</span>:
@@ -521,12 +524,16 @@ if validation fails:</p>
         [...]</code></pre>
 </div>
 </div>
+</div>
+</div>
 <div class="paragraph">
 <p>Let&#8217;s add a new unit test to make sure that empty list items don&#8217;t get
 saved:</p>
 </div>
-<div class="listingblock sourcecode">
+<div class="exampleblock sourcecode">
 <div class="title">lists/tests/test_views.py (ch11l030-1)</div>
+<div class="content">
+<div class="listingblock">
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">class</span> <span class="class">NewListTest</span>(TestCase):
     [...]
@@ -538,6 +545,8 @@ saved:</p>
         <span class="predefined-constant">self</span>.client.post(<span class="string"><span class="delimiter">'</span><span class="content">/lists/new</span><span class="delimiter">'</span></span>, data={<span class="string"><span class="delimiter">'</span><span class="content">item_text</span><span class="delimiter">'</span></span>: <span class="string"><span class="delimiter">'</span><span class="delimiter">'</span></span>})
         <span class="predefined-constant">self</span>.assertEqual(List.objects.count(), <span class="integer">0</span>)
         <span class="predefined-constant">self</span>.assertEqual(Item.objects.count(), <span class="integer">0</span>)</code></pre>
+</div>
+</div>
 </div>
 </div>
 <div class="paragraph">
@@ -556,8 +565,10 @@ AssertionError: 1 != 0</pre>
 <div class="paragraph">
 <p>We fix it like this:</p>
 </div>
-<div class="listingblock sourcecode">
+<div class="exampleblock sourcecode">
 <div class="title">lists/views.py (ch11l030-2)</div>
+<div class="content">
+<div class="listingblock">
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">def</span> <span class="function">new_list</span>(request):
     list_ = List.objects.create()
@@ -570,6 +581,8 @@ AssertionError: 1 != 0</pre>
         error = <span class="string"><span class="delimiter">"</span><span class="content">You can't have an empty list item</span><span class="delimiter">"</span></span>
         <span class="keyword">return</span> render(request, <span class="string"><span class="delimiter">'</span><span class="content">home.html</span><span class="delimiter">'</span></span>, {<span class="string"><span class="delimiter">"</span><span class="content">error</span><span class="delimiter">"</span></span>: error})
     <span class="keyword">return</span> redirect(f<span class="string"><span class="delimiter">'</span><span class="content">/lists/{list_.id}/</span><span class="delimiter">'</span></span>)</code></pre>
+</div>
+</div>
 </div>
 </div>
 <div class="paragraph">
@@ -600,19 +613,12 @@ check&#8212;&#8203;that submitting a second empty item also shows an error.</p>
 <pre>$ <strong>git commit -am "Adjust new list view to do model validation"</strong></pre>
 </div>
 </div>
-<div class="paragraph">
-<p>
-</p>
-</div>
 </div>
 </div>
 <div class="sect2">
 <h3 id="_django_pattern_processing_post_requests_in_the_same_view_as_renders_the_form">Django Pattern: Processing POST Requests in the Same View as Renders the Form</h3>
 <div class="paragraph">
-<p>
-
-
-This time we&#8217;ll use a slightly different approach, one that&#8217;s actually a very
+<p>This time we&#8217;ll use a slightly different approach, one that&#8217;s actually a very
 common pattern in Django, which is to use the same view to process POST
 requests as to render the form that they come from.  Whilst this doesn&#8217;t fit
 the REST-ful URL model quite as well, it has the important advantage that the
@@ -625,10 +631,14 @@ and one view and URL for processing additions to that list.  We&#8217;re going t
 combine them into one. So, in <em>list.html</em>, our form will have a different
 target:</p>
 </div>
-<div class="listingblock sourcecode">
+<div class="exampleblock sourcecode">
 <div class="title">lists/templates/list.html (ch11l030)</div>
 <div class="content">
+<div class="listingblock">
+<div class="content">
 <pre class="CodeRay highlight"><code data-lang="html">{% block form_action %}/lists/{{ list.id }}/{% endblock %}</code></pre>
+</div>
+</div>
 </div>
 </div>
 <div class="paragraph">
@@ -677,7 +687,6 @@ In this section we&#8217;re performing a refactor at the application level.
     our refactor is complete and things are back to working as before.  Have
     another look at the diagram from the end of
     <a href="/book/chapter_philosophy_and_refactoring.html">[chapter_philosophy_and_refactoring]</a> if you need to get your bearings.
-    
 </td>
 </tr>
 </table>
@@ -685,13 +694,14 @@ In this section we&#8217;re performing a refactor at the application level.
 <div class="sect3">
 <h4 id="_refactor_transferring_the_new_item_functionality_into_view_list">Refactor: Transferring the new_item Functionality into view_list</h4>
 <div class="paragraph">
-<p>
-Let&#8217;s take all the old tests from <code>NewItemTest</code>, the ones that are about saving
+<p>Let&#8217;s take all the old tests from <code>NewItemTest</code>, the ones that are about saving
 POST requests to existing lists, and move them into <code>ListViewTest</code>. As we do
 so, we also make them point at the base list URL, instead of <em>&#8230;&#8203;/add_item</em>:</p>
 </div>
-<div class="listingblock sourcecode">
+<div class="exampleblock sourcecode">
 <div class="title">lists/tests/test_views.py (ch11l031)</div>
+<div class="content">
+<div class="listingblock">
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">class</span> <span class="class">ListViewTest</span>(TestCase):
 
@@ -730,6 +740,8 @@ so, we also make them point at the base list URL, instead of <em>&#8230;&#8203;/
         <span class="predefined-constant">self</span>.assertRedirects(response, f<span class="string"><span class="delimiter">'</span><span class="content">/lists/{correct_list.id}/</span><span class="delimiter">'</span></span>)</code></pre>
 </div>
 </div>
+</div>
+</div>
 <div class="paragraph">
 <p>Note that the <code>NewItemTest</code> class disappears completely.  I&#8217;ve also changed the
 name of the redirect test to make it explicit that it only applies to POST
@@ -752,8 +764,10 @@ AssertionError: 0 != 1</pre>
 <div class="paragraph">
 <p>We change the <code>view_list</code> function to handle two types of request:</p>
 </div>
-<div class="listingblock sourcecode">
+<div class="exampleblock sourcecode">
 <div class="title">lists/views.py (ch11l032-1)</div>
+<div class="content">
+<div class="listingblock">
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">def</span> <span class="function">view_list</span>(request, list_id):
     list_ = List.objects.get(id=list_id)
@@ -761,6 +775,8 @@ AssertionError: 0 != 1</pre>
         Item.objects.create(text=request.POST[<span class="string"><span class="delimiter">'</span><span class="content">item_text</span><span class="delimiter">'</span></span>], list=list_)
         <span class="keyword">return</span> redirect(f<span class="string"><span class="delimiter">'</span><span class="content">/lists/{list_.id}/</span><span class="delimiter">'</span></span>)
     <span class="keyword">return</span> render(request, <span class="string"><span class="delimiter">'</span><span class="content">list.html</span><span class="delimiter">'</span></span>, {<span class="string"><span class="delimiter">'</span><span class="content">list</span><span class="delimiter">'</span></span>: list_})</code></pre>
+</div>
+</div>
 </div>
 </div>
 <div class="paragraph">
@@ -787,13 +803,17 @@ AttributeError: module 'lists.views' has no attribute 'add_item'</pre>
 <p>It&#8217;s because we&#8217;ve deleted the view, but it&#8217;s still being referred to in
 <em>urls.py</em>.  We remove it from there:</p>
 </div>
-<div class="listingblock sourcecode">
+<div class="exampleblock sourcecode">
 <div class="title">lists/urls.py (ch11l033)</div>
+<div class="content">
+<div class="listingblock">
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="python">urlpatterns = [
     url(<span class="string"><span class="modifier">r</span><span class="delimiter">'</span><span class="content">^new$</span><span class="delimiter">'</span></span>, views.new_list, name=<span class="string"><span class="delimiter">'</span><span class="content">new_list</span><span class="delimiter">'</span></span>),
     url(<span class="string"><span class="modifier">r</span><span class="delimiter">'</span><span class="content">^(</span><span class="content">\d</span><span class="content">+)/$</span><span class="delimiter">'</span></span>, views.view_list, name=<span class="string"><span class="delimiter">'</span><span class="content">view_list</span><span class="delimiter">'</span></span>),
 ]</code></pre>
+</div>
+</div>
 </div>
 </div>
 <div class="paragraph">
@@ -831,9 +851,7 @@ So did I break the rule about never refactoring against failing tests?
     functionality to work.  You should definitely never refactor against
     failing <em>unit</em> tests.  But in my book it&#8217;s OK for the FT for the current
     story you&#8217;re working on to be
-    failing<sup class="footnote">[<a id="_footnoteref_1" class="footnote" href="#_footnote_1" title="View footnote.">1</a>]</sup>.
-    
-    
+    failing.<sup class="footnote">[<a id="_footnoteref_1" class="footnote" href="#_footnote_1" title="View footnote.">1</a>]</sup>
 </td>
 </tr>
 </table>
@@ -842,13 +860,14 @@ So did I break the rule about never refactoring against failing tests?
 <div class="sect3">
 <h4 id="_enforcing_model_validation_in_view_list">Enforcing Model Validation in view_list</h4>
 <div class="paragraph">
-<p>
-We still want the addition of items to existing lists to be subject to our
+<p>We still want the addition of items to existing lists to be subject to our
 model validation rules. Let&#8217;s write a new unit test for that; it&#8217;s very similar
 to the one for the home page, with just a couple of tweaks:</p>
 </div>
-<div class="listingblock sourcecode">
+<div class="exampleblock sourcecode">
 <div class="title">lists/tests/test_views.py (ch11l034)</div>
+<div class="content">
+<div class="listingblock">
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">class</span> <span class="class">ListViewTest</span>(TestCase):
     [...]
@@ -865,6 +884,8 @@ to the one for the home page, with just a couple of tweaks:</p>
         <span class="predefined-constant">self</span>.assertContains(response, expected_error)</code></pre>
 </div>
 </div>
+</div>
+</div>
 <div class="paragraph">
 <p>That should fail, because our view currently does not do any validation, and
 just redirects for all POSTs:</p>
@@ -878,8 +899,10 @@ AssertionError: 302 != 200</pre>
 <div class="paragraph">
 <p>Here&#8217;s an implementation:</p>
 </div>
-<div class="listingblock sourcecode">
+<div class="exampleblock sourcecode">
 <div class="title">lists/views.py (ch11l035)</div>
+<div class="content">
+<div class="listingblock">
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">def</span> <span class="function">view_list</span>(request, list_id):
     list_ = List.objects.get(id=list_id)
@@ -897,9 +920,11 @@ AssertionError: 302 != 200</pre>
     <span class="keyword">return</span> render(request, <span class="string"><span class="delimiter">'</span><span class="content">list.html</span><span class="delimiter">'</span></span>, {<span class="string"><span class="delimiter">'</span><span class="content">list</span><span class="delimiter">'</span></span>: list_, <span class="string"><span class="delimiter">'</span><span class="content">error</span><span class="delimiter">'</span></span>: error})</code></pre>
 </div>
 </div>
+</div>
+</div>
 <div class="paragraph">
-<p>It&#8217;s not deeply satisfying is it? There&#8217;s definitely some duplication of code
-here, that <code>try/except</code> occurs twice in <em>views.py</em>, and in general things are
+<p>It&#8217;s not deeply satisfying, is it? There&#8217;s definitely some duplication of code
+here; that <code>try/except</code> occurs twice in <em>views.py</em>, and in general things are
 feeling clunky.</p>
 </div>
 <div class="listingblock">
@@ -960,12 +985,7 @@ OK</pre>
 <div class="paragraph">
 <p>We&#8217;re back to a working state, so we can take a look at some of the items on
 our scratchpad.  This would be a good time for a commit. And possibly a
-tea break.
-
-
-
-
-</p>
+tea break.</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -977,16 +997,19 @@ tea break.
 <div class="sect2">
 <h3 id="_refactor_removing_hardcoded_urls">Refactor: Removing Hardcoded URLs</h3>
 <div class="paragraph">
-<p>
-Do you remember those <code>name=</code> parameters in <em>urls.py</em>? We just copied
+<p>Do you remember those <code>name=</code> parameters in <em>urls.py</em>? We just copied
 them across from the default example Django gave us, and I&#8217;ve been giving
-them some reasonably descriptive names. Now we find out what they&#8217;re for.</p>
+them some reasonably descriptive names. Now we find out what they&#8217;re for:</p>
 </div>
-<div class="listingblock sourcecode currentcontents">
+<div class="exampleblock sourcecode currentcontents">
 <div class="title">lists/urls.py</div>
+<div class="content">
+<div class="listingblock">
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="python">    url(<span class="string"><span class="modifier">r</span><span class="delimiter">'</span><span class="content">^new$</span><span class="delimiter">'</span></span>, views.new_list, name=<span class="string"><span class="delimiter">'</span><span class="content">new_list</span><span class="delimiter">'</span></span>),
     url(<span class="string"><span class="modifier">r</span><span class="delimiter">'</span><span class="content">^(</span><span class="content">\d</span><span class="content">+)/$</span><span class="delimiter">'</span></span>, views.view_list, name=<span class="string"><span class="delimiter">'</span><span class="content">view_list</span><span class="delimiter">'</span></span>),</code></pre>
+</div>
+</div>
 </div>
 </div>
 <div class="sect3">
@@ -995,14 +1018,18 @@ them some reasonably descriptive names. Now we find out what they&#8217;re for.<
 <p>We can replace the hardcoded URL in <em>home.html</em> with a Django template tag
 which refers to the URL&#8217;s "name":</p>
 </div>
-<div class="listingblock sourcecode">
+<div class="exampleblock sourcecode">
 <div class="title">lists/templates/home.html (ch11l036-1)</div>
+<div class="content">
+<div class="listingblock">
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="html">{% block form_action %}{% url 'new_list' %}{% endblock %}</code></pre>
 </div>
 </div>
+</div>
+</div>
 <div class="paragraph">
-<p>We check that doesn&#8217;t break the unit tests:</p>
+<p>We check that this doesn&#8217;t break the unit tests:</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -1012,12 +1039,16 @@ OK</pre>
 </div>
 <div class="paragraph">
 <p>Let&#8217;s do the other template.  This one is more interesting, because we pass it
-a parameter:</p>
+a <span class="keep-together">parameter</span>:</p>
 </div>
-<div class="listingblock sourcecode">
+<div class="exampleblock sourcecode">
 <div class="title">lists/templates/list.html (ch11l036-2)</div>
 <div class="content">
+<div class="listingblock">
+<div class="content">
 <pre class="CodeRay highlight"><code data-lang="html">{% block form_action %}{% url 'view_list' list.id %}{% endblock %}</code></pre>
+</div>
+</div>
 </div>
 </div>
 <div class="paragraph">
@@ -1026,7 +1057,7 @@ a parameter:</p>
 docs on reverse URL resolution</a> for more info.</p>
 </div>
 <div class="paragraph">
-<p>We run the tests again, and check they all pass:</p>
+<p>We run the tests again, and check that they all pass:</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -1065,16 +1096,19 @@ OK</pre>
 <div class="sect3">
 <h4 id="_using_get_absolute_url_for_redirects">Using get_absolute_url for Redirects</h4>
 <div class="paragraph">
-<p>
-Now let&#8217;s tackle <em>views.py</em>. One way of doing it is just like in the
+<p>Now let&#8217;s tackle <em>views.py</em>. One way of doing it is just like in the
 template, passing in the name of the URL and a positional argument:</p>
 </div>
-<div class="listingblock sourcecode">
+<div class="exampleblock sourcecode">
 <div class="title">lists/views.py (ch11l036-3)</div>
+<div class="content">
+<div class="listingblock">
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">def</span> <span class="function">new_list</span>(request):
     [...]
     <span class="keyword">return</span> redirect(<span class="string"><span class="delimiter">'</span><span class="content">view_list</span><span class="delimiter">'</span></span>, list_.id)</code></pre>
+</div>
+</div>
 </div>
 </div>
 <div class="paragraph">
@@ -1091,12 +1125,16 @@ there is one that makes sense; it takes no time at all.</p>
 <div class="paragraph">
 <p>All it takes is a super-simple unit test in <em>test_models.py</em>:</p>
 </div>
-<div class="listingblock sourcecode">
+<div class="exampleblock sourcecode">
 <div class="title">lists/tests/test_models.py (ch11l036-4)</div>
+<div class="content">
+<div class="listingblock">
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="python">    <span class="keyword">def</span> <span class="function">test_get_absolute_url</span>(<span class="predefined-constant">self</span>):
         list_ = List.objects.create()
         <span class="predefined-constant">self</span>.assertEqual(list_.get_absolute_url(), f<span class="string"><span class="delimiter">'</span><span class="content">/lists/{list_.id}/</span><span class="delimiter">'</span></span>)</code></pre>
+</div>
+</div>
 </div>
 </div>
 <div class="paragraph">
@@ -1110,11 +1148,13 @@ there is one that makes sense; it takes no time at all.</p>
 <div class="paragraph">
 <p>The implementation is to use Django&#8217;s <code>reverse</code> function, which
 essentially does the reverse of what Django normally does with <em>urls.py</em>
-(see
+(see the
 <a href="https://docs.djangoproject.com/en/1.11/topics/http/urls/#reverse-resolution-of-urls">docs</a>):</p>
 </div>
-<div class="listingblock sourcecode">
+<div class="exampleblock sourcecode">
 <div class="title">lists/models.py (ch11l036-5)</div>
+<div class="content">
+<div class="listingblock">
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> <span class="include">django.core.urlresolvers</span> <span class="keyword">import</span> <span class="include">reverse</span>
 
@@ -1125,17 +1165,23 @@ essentially does the reverse of what Django normally does with <em>urls.py</em>
         <span class="keyword">return</span> reverse(<span class="string"><span class="delimiter">'</span><span class="content">view_list</span><span class="delimiter">'</span></span>, args=[<span class="predefined-constant">self</span>.id])</code></pre>
 </div>
 </div>
+</div>
+</div>
 <div class="paragraph">
 <p>And now we can use it in the view&#8212;&#8203;the <code>redirect</code> function just takes the
 object we want to redirect to, and it uses <code>get_absolute_url</code> under the
 hood automagically!</p>
 </div>
-<div class="listingblock sourcecode">
+<div class="exampleblock sourcecode">
 <div class="title">lists/views.py (ch11l036-6)</div>
+<div class="content">
+<div class="listingblock">
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">def</span> <span class="function">new_list</span>(request):
     [...]
     <span class="keyword">return</span> redirect(list_)</code></pre>
+</div>
+</div>
 </div>
 </div>
 <div class="paragraph">
@@ -1151,8 +1197,10 @@ docs</a>.  Quick check that the unit tests still pass:</p>
 <div class="paragraph">
 <p>Then we do the same to <code>view_list</code>:</p>
 </div>
-<div class="listingblock sourcecode">
+<div class="exampleblock sourcecode">
 <div class="title">lists/views.py (ch11l036-7)</div>
+<div class="content">
+<div class="listingblock">
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">def</span> <span class="function">view_list</span>(request, list_id):
     [...]
@@ -1161,6 +1209,8 @@ docs</a>.  Quick check that the unit tests still pass:</p>
             <span class="keyword">return</span> redirect(list_)
         <span class="keyword">except</span> ValidationError:
             error = <span class="string"><span class="delimiter">"</span><span class="content">You can't have an empty list item</span><span class="delimiter">"</span></span></code></pre>
+</div>
+</div>
 </div>
 </div>
 <div class="paragraph">
@@ -1205,32 +1255,31 @@ OK</pre>
 </div>
 <div class="paragraph">
 <p>And we&#8217;re done with that bit!    We have working model-layer validation,
-and we&#8217;ve taken the opportunity to do a few refactors along the way.
-</p>
+and we&#8217;ve taken the opportunity to do a few refactors along the way.</p>
 </div>
 <div class="paragraph">
 <p>That final scratchpad item will be the subject of the next chapter&#8230;&#8203;</p>
 </div>
 <div class="sidebarblock">
 <div class="content">
-<div class="title">On Database-Layer validation</div>
+<div class="title">On Database-Layer Validation</div>
 <div class="paragraph">
-<p>I always like to push my validation logic down as low as possible.  The</p>
+<p>I always like to push my validation logic down as low as possible.</p>
 </div>
 <div class="dlist">
 <dl>
-<dt class="hdlist1">Validation at the Database layer is the ultimate guarantee of data integrity</dt>
+<dt class="hdlist1">Validation at the database layer is the ultimate guarantee of data integrity</dt>
 <dd>
 <p>It can ensure that, no matter how complex your code at the layers
 above gets, you have guarantees at the lowest level that your data is
-valid and consistent</p>
+valid and consistent.</p>
 </dd>
 <dt class="hdlist1">But it comes at the expense of flexibility</dt>
 <dd>
 <p>This benefit doesn&#8217;t come for free! It&#8217;s now impossible, even temporarily,
 to have inconsistent data.  Sometimes you might have a good reason for temporarily
 storing data that breaks the rules rather than storing nothing at all.  Perhaps
-you&#8217;re importing data from an external source in several stages for
+you&#8217;re importing data from an external source in several stages, for
 example.</p>
 </dd>
 <dt class="hdlist1">And it&#8217;s not designed for user-friendliness</dt>
@@ -1259,7 +1308,7 @@ send them.</p>
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2017-03-30 07:47:47 BST
+Last updated 2017-07-04 11:25:45 BST
 </div>
 </div>
 <div class="comments" style="padding: 20px">
