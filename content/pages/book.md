@@ -132,6 +132,7 @@ Table of contents follows:
 * [Appendix G: Django-Rest-Framework](/book/appendix_DjangoRestFramework.html)
 * [Appendix H: Cheat Sheet](/book/appendix_IX_cheat_sheet.html)
 * [Appendix I: What to Do Next](/book/appendix_X_what_to_do_next.html)
+* [Appendix J: Source code examples](/book/appendix_github_links.html)
 * [Bibliography](/book/bibliography.html)
 
 
