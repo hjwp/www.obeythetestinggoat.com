@@ -99,15 +99,46 @@ Traceback (most recent call last):
 File "tests.py", line 3, in &lt;module&gt;
 browser = webdriver.Firefox()
 [...]
-selenium.common.exceptions.WebDriverException: Message: 'The browser appears to
-have exited before we could connect. The output was: Error: no display
-specified\n'</pre>
+selenium.common.exceptions.WebDriverException: Message: 'geckodriver' executable
+needs to be in PATH.</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>The fix is to use <em>Xvfb</em>, which stands for X Virtual Framebuffer. It will start
-up a "virtual" display, which Firefox can use even though the server doesn&#8217;t
-have a real one.</p>
+<p>Because PythonAnywhere is pinned to an older version of Firefox, we don&#8217;t
+actually need Geckodriver.  But we do need to switch back to Selenium 2
+instead of Selenium 3:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>(superlists) $ <strong>pip install "selenium&lt;3"</strong>
+Collecting selenium&lt;3
+Installing collected packages: selenium
+  Found existing installation: selenium 3.4.3
+    Uninstalling selenium-3.4.3:
+      Successfully uninstalled selenium-3.4.3
+Successfully installed selenium-2.53.6</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Now we run into a second problem:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>(superlists)$ <strong>python functional_tests.py</strong>
+Traceback (most recent call last):
+File "tests.py", line 3, in &lt;module&gt;
+browser = webdriver.Firefox()
+[...]
+selenium.common.exceptions.WebDriverException: Message: The browser appears to
+have exited before we could connect. If you specified a log_file in the
+FirefoxBinary constructor, check it for details.</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Firefox can&#8217;t start because there&#8217;s no display for it to run on, because
+PythonAnywhere is a server environment. The workaround is to use <em>Xvfb</em>, which
+stands for X Virtual Framebuffer. It will start up a "virtual" display, which
+Firefox can use even though the server doesn&#8217;t have a real one.</p>
 </div>
 <div class="paragraph">
 <p>The command <code>xvfb-run</code> will run the next command in Xvfb. Using that will give
@@ -115,7 +146,7 @@ us our expected failure:</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>(superlists)$ <strong>xvfb-run python functional_tests.py</strong>
+<pre>(superlists)$ <strong>xvfb-run -a python functional_tests.py</strong>
 Traceback (most recent call last):
 File "tests.py", line 11, in &lt;module&gt;
 assert 'Django' in browser.title
@@ -123,7 +154,7 @@ AssertionError</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>So the lesson is to use <code>xvfb-run</code> whenever you need to run the functional
+<p>So the lesson is to use <code>xvfb-run -a</code> whenever you need to run the functional
 tests.</p>
 </div>
 </div>
@@ -172,7 +203,7 @@ You&#8217;ll need to remember to hit Reload whenever you make changes to the
 <p>That should work better.<sup class="footnote">[<a id="_footnoteref_1" class="footnote" href="#_footnote_1" title="View footnote.">1</a>]</sup> You&#8217;ll need to keep using this pattern of pointing the FTs at
 the PythonAnywhere version of the site, and hitting Reload before each FT run,
 until <a href="/book/chapter_working_incrementally.html">[chapter_working_incrementally]</a>, when we switch to using <code>LiveServerTestCase</code> and
-<code>self.live_server_url</code>.</p>
+<code>self.live_&#8203;server_url</code>.</p>
 </div>
 </div>
 <div class="sect2">
@@ -270,7 +301,7 @@ to hear how you get on!  Do send me an email at <a href="mailto:obeythetestinggo
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2017-07-04 10:59:52 BST
+Last updated 2017-07-25 00:15:33 CEST
 </div>
 </div>
 <div class="comments" style="padding: 20px">
