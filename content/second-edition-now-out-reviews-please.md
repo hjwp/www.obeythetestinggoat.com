@@ -7,11 +7,11 @@ Summary: The second edition is now out in print and ebook, and just needs review
 
 <figure>
   <img src="/static/images/book_selfie1.jpg" alt="a picture of me attempting a selfie with the book" />
-  <caption>I'm still not great at selfies...</caption>
+  <caption>I'm still not great at selfies... Here you get two for the price of one tho.</caption>
 </figure>
 
 
-The second edition is officially out!
+### The second edition is officially out!
 
 <ul>
   <li>
@@ -30,7 +30,7 @@ The second edition is officially out!
     </a>
   </li>
   <li>
-    <a class="button" href="https://www.safaribooksonline.com/library/view/test-driven-development-with/9781491958698/" target="_top">
+    <a href="https://www.safaribooksonline.com/library/view/test-driven-development-with/9781491958698/" target="_top">
       on Safari
     </a>
   </li>
