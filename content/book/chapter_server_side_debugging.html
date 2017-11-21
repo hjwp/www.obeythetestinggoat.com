@@ -43,6 +43,23 @@ httpRequest.send();
 <div class="sect1">
 <h2 id="chapter_server_side_debugging">Server-Side Debugging</h2>
 <div class="sectionbody">
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+<em>Update on 2017-11-21</em>&#8201;&#8212;&#8201;I have just pushed up a bit of a simplification
+    to the folder structure in the book, so if you started it before this date,
+    assumptions have changed slightly.  In brief, <em>db.sqlite3</em> and the <em>static</em>
+    folder are now in the same folder as <em>manage.py</em>.  Adjust your <em>settings.py</em>
+    accordingly.  Check the reference repo on
+    <a href="https://github.com/hjwp/book-example/branches/active">github</a> if you need pointers.
+</td>
+</tr>
+</table>
+</div>
 <div class="paragraph">
 <p>Popping a few layers off the stack of things we&#8217;re working on: we have nice
 wait-for helpers; what were we using them for?  Oh yes, waiting to be logged
@@ -52,7 +69,8 @@ a user.</p>
 <div class="sect2">
 <h3 id="_the_proof_is_in_the_pudding_using_staging_to_catch_final_bugs">The Proof Is in the Pudding: Using Staging to Catch Final Bugs</h3>
 <div class="paragraph">
-<p>They&#8217;re all very well for running the FTs locally, but how would they work
+<p>They&#8217;re
+all very well for running the FTs locally, but how would they work
 against the staging server?  Let&#8217;s try to deploy our site.  Along the way
 we&#8217;ll catch an unexpected bug (that&#8217;s what staging is for!), and then we&#8217;ll
 have to figure out a way of managing the database on the test server:</p>
@@ -124,7 +142,8 @@ system is crashing the server.</p>
 <div class="sect3">
 <h4 id="_setting_up_logging">Setting Up Logging</h4>
 <div class="paragraph">
-<p>In order to track this problem down, we have to set up Gunicorn to do some
+<p>In
+order to track this problem down, we have to set up Gunicorn to do some
 logging.  Adjust the Gunicorn config on the server, using <code>vi</code> or <code>nano</code>:</p>
 </div>
 <div class="exampleblock sourcecode small-code skipme">
@@ -135,8 +154,8 @@ logging.  Adjust the Gunicorn config on the server, using <code>vi</code> or <co
 <pre class="CodeRay highlight"><code data-lang="ini">ExecStart=/home/elspeth/sites/superlists-staging.ottg.eu/virtualenv/bin/gunicorn \
     --bind unix:/tmp/superlists-staging.ottg.eu.socket \
     --capture-output \
-    --access-logfile ../access.log \
-    --error-logfile ../error.log \
+    --access-logfile access.log \
+    --error-logfile error.log \
     superlists.wsgi:application</code></pre>
 </div>
 </div>
@@ -217,7 +236,8 @@ yes, we haven&#8217;t told the server what our password is!</p>
 <div class="sect2">
 <h3 id="_setting_secret_environment_variables_on_the_server">Setting Secret Environment Variables on the Server</h3>
 <div class="paragraph">
-<p>In <a href="/book/chapter_automate_deployment_with_fabric.html">[chapter_automate_deployment_with_fabric]</a>, we&#8217;ve seen one way of setting secret
+<p>In
+<a href="/book/chapter_automate_deployment_with_fabric.html">[chapter_automate_deployment_with_fabric]</a>, we&#8217;ve seen one way of setting secret
 values on the server, which we use to populate the Django
 <code>SECRET_KEY</code> setting&#8212;&#8203;creating one-off Python files on the server
 filesystem, and importing them.</p>
@@ -266,7 +286,7 @@ dance, we can rerun our FTs, and&#8230;&#8203;</p>
 
 [...]
 Traceback (most recent call last):
-  File "/.../superlists/functional_tests/test_login.py", line 25, in
+  File "...python-tdd-book/functional_tests/test_login.py", line 25, in
   test_can_get_email_link_to_log_in
     email = mail.outbox[0]
 IndexError: list index out of range
@@ -496,7 +516,8 @@ I&#8217;ve just hacked this email-checking code together, and it&#8217;s current
 <div class="sect2">
 <h3 id="_managing_the_test_database_on_staging">Managing the Test Database on Staging</h3>
 <div class="paragraph">
-<p>Now we can rerun our FTs and get to the next failure: our attempt to create
+<p>Now
+we can rerun our FTs and get to the next failure: our attempt to create
 pre-authenticated sessions doesn&#8217;t work, so the "My Lists" test fails:</p>
 </div>
 <div class="listingblock skipme small-code">
@@ -525,7 +546,8 @@ database on the server.</p>
 <div class="sect3">
 <h4 id="_a_django_management_command_to_create_sessions">A Django Management Command to Create Sessions</h4>
 <div class="paragraph">
-<p>To do things on the server, we&#8217;ll need to build a self-contained script that
+<p>To
+do things on the server, we&#8217;ll need to build a self-contained script that
 can be run from the command line on the server, most probably via Fabric.</p>
 </div>
 <div class="paragraph">
@@ -717,7 +739,8 @@ explain how this works.</td>
 <div class="sect3">
 <h4 id="_using_fabric_directly_from_python">Using Fabric Directly from Python</h4>
 <div class="paragraph">
-<p>Rather than using the <code>fab</code> command, Fabric provides an API that lets
+<p>Rather
+than using the <code>fab</code> command, Fabric provides an API that lets
 you run Fabric server commands directly inline in your Python code.  You
 just need to let it know the "host string" you&#8217;re connecting to:</p>
 </div>
@@ -768,7 +791,8 @@ Fabric commands as if we&#8217;re in a fabfile.</td>
 <div class="sect3">
 <h4 id="_recap_creating_sessions_locally_versus_staging">Recap: Creating Sessions Locally Versus Staging</h4>
 <div class="paragraph">
-<p>Does that all make sense?  Perhaps a little ascii-art diagram will help:</p>
+<p>Does
+that all make sense?  Perhaps a little ascii-art diagram will help:</p>
 </div>
 <div class="sect4">
 <h5 id="_locally">Locally:</h5>
@@ -879,7 +903,8 @@ I&#8217;ve shown one way of managing the test database, but you could
 <div class="content">
 <div class="title">Warning: Be Careful Not to Run Test Code Against the Live Server</div>
 <div class="paragraph">
-<p>We&#8217;re into dangerous territory, now that we have code that can directly
+<p>We&#8217;re
+into dangerous territory, now that we have code that can directly
 affect a database on the server.  You want to be very, very careful that you
 don&#8217;t accidentally blow away your production database by running FTs against
 the wrong host.</p>
@@ -903,7 +928,8 @@ LFMF.</p>
 <div class="sect2">
 <h3 id="_baking_in_our_logging_code">Baking In Our Logging Code</h3>
 <div class="paragraph">
-<p>Before we finish, let&#8217;s "bake in" our logging setup. It would be useful to
+<p>Before
+we finish, let&#8217;s "bake in" our logging setup. It would be useful to
 keep our new logging code in there, under source control, so that we can
 debug any future login problems.  They may indicate someone is up to no
 good, after all&#8230;&#8203;</p>
@@ -921,8 +947,8 @@ good, after all&#8230;&#8203;</p>
 Environment=EMAIL_PASSWORD=SEKRIT
 ExecStart=/home/elspeth/sites/SITENAME/virtualenv/bin/gunicorn \
     --bind unix:/tmp/SITENAME.socket \
-    --access-logfile ../access.log \
-    --error-logfile ../error.log \
+    --access-logfile access.log \
+    --error-logfile error.log \
     superlists.wsgi:application
 [...]</code></pre>
 </div>
@@ -975,24 +1001,27 @@ the ability to save their lists on a "My Lists" page.</p>
 <dl>
 <dt class="hdlist1">Fixtures also have to work remotely</dt>
 <dd>
-<p><code>LiveServerTestCase</code> makes it easy to interact with the test database
-using the Django ORM for tests running locally.  Interacting with the
-database on the staging server is not so straightforward. One solution
-is Fabric and Django management commands, as I&#8217;ve shown, but you should
-explore what works for you&#8212;&#8203;SSH tunnels, for example.</p>
+<p>    <code>LiveServerTestCase</code> makes
+it easy to interact with the test database
+    using the Django ORM for tests running locally.  Interacting with the
+    database on the staging server is not so straightforward. One solution
+    is Fabric and Django management commands, as I&#8217;ve shown, but you should
+    explore what works for you&#8212;&#8203;SSH tunnels, for example.</p>
 </dd>
 <dt class="hdlist1">Be very careful when resetting data on your servers</dt>
 <dd>
-<p>A command that can remotely wipe the entire database on one of your
-servers is a dangerous weapon, and you want to be really, really sure
-it&#8217;s never accidentally going to hit your production data.</p>
+<p>    A
+command that can remotely wipe the entire database on one of your
+    servers is a dangerous weapon, and you want to be really, really sure
+    it&#8217;s never accidentally going to hit your production data.</p>
 </dd>
 <dt class="hdlist1">Logging is critical to debugging issues on the server</dt>
 <dd>
-<p>At the very least, you&#8217;ll want to be able to see any error messages
-that are being generated by the server.  For thornier bugs, you&#8217;ll also
-want to be able to do the occasional "debug print", and see it end up
-in a file somewhere.</p>
+<p>    At
+the very least, you&#8217;ll want to be able to see any error messages
+    that are being generated by the server.  For thornier bugs, you&#8217;ll also
+    want to be able to do the occasional "debug print", and see it end up
+    in a file somewhere.</p>
 </dd>
 </dl>
 </div>
@@ -1004,7 +1033,7 @@ in a file somewhere.</p>
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2017-07-05 15:52:32 BST
+Last updated 2017-11-21 06:25:12 GMT
 </div>
 </div>
 <div class="comments" style="padding: 20px">
