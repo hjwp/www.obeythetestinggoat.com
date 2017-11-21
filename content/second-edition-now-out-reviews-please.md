@@ -45,7 +45,7 @@ financially (I get about a dollar off every sale) but it does add up,
 and O'Reilly also deserve your support, they've been great.
 
 
-> Reviews, please
+### Reviews, please!
 
 More importantly, I really need some reviews for the book, on Amazon and
 elsewhere.  They make a real difference to sales, and they really help
@@ -55,6 +55,6 @@ online.  That would be very, very much appreciated.
 
 
 
-Thanks once again, dear readers, for your support throughout the process.
-I couldn't do it without you.
+Thanks once again, dear readers, for your kind words and encouragement
+throughout the process. I couldn't do it without you.
 
