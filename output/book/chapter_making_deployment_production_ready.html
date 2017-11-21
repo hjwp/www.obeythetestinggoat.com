@@ -43,8 +43,26 @@ httpRequest.send();
 <div class="sect1">
 <h2 id="chapter_making_deployment_production_ready">Getting to a Production-Ready Deployment</h2>
 <div class="sectionbody">
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+<em>Update on 2017-11-21</em>&#8201;&#8212;&#8201;I have just pushed up a bit of a simplification
+    to the folder structure in the book, so if you started it before this date,
+    assumptions have changed slightly.  In brief, <em>db.sqlite3</em> and the <em>static</em>
+    folder are now in the same folder as <em>manage.py</em>.  Adjust your <em>settings.py</em>
+    accordingly.  Check the reference repo on
+    <a href="https://github.com/hjwp/book-example/branches/active">github</a> if you need pointers.
+</td>
+</tr>
+</table>
+</div>
 <div class="paragraph">
-<p>In this chapter we&#8217;ll make some changes to our site to move to a configuration
+<p>In
+this chapter we&#8217;ll make some changes to our site to move to a configuration
 that&#8217;s more production-ready.  As we make each change, we&#8217;ll use the tests to
 tell us whether things are still working.</p>
 </div>
@@ -55,7 +73,8 @@ use something called Gunicorn instead to run our Django code, and we&#8217;ll
 get Nginx to serve our static files.</p>
 </div>
 <div class="paragraph">
-<p>Our <em>settings.py</em> currently has <code>DEBUG=True</code>, and that&#8217;s strongly recommended
+<p>Our
+<em>settings.py</em> currently has <code>DEBUG=True</code>, and that&#8217;s strongly recommended
 against for production (you don&#8217;t want users staring at debug tracebacks of
 your code when your site errors, for example).  We&#8217;ll also need to set
 <code>ALLOWED_HOSTS</code> for security.</p>
@@ -72,7 +91,8 @@ Django.</p>
 <div class="sect2">
 <h3 id="_switching_to_gunicorn">Switching to Gunicorn</h3>
 <div class="paragraph">
-<p>Do you know why the Django mascot is a pony?  The story is that Django
+<p>Do
+you know why the Django mascot is a pony?  The story is that Django
 comes with so many things you want: an ORM, all sorts of middleware,
 the admin site&#8230;&#8203; "What else do you want, a pony?" Well, Gunicorn stands
 for "Green Unicorn", which I guess is what you&#8217;d want next if you already
@@ -80,7 +100,7 @@ had a pony&#8230;&#8203;</p>
 </div>
 <div class="listingblock server-commands">
 <div class="content">
-<pre>elspeth@server:$ <strong>../virtualenv/bin/pip install gunicorn</strong></pre>
+<pre>elspeth@server:$ <strong>./virtualenv/bin/pip install gunicorn</strong></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -89,8 +109,8 @@ a function called <code>application</code>.  Django provides one in <em>superlis
 </div>
 <div class="listingblock server-commands">
 <div class="content">
-<pre>elspeth@server:$ <strong>../virtualenv/bin/gunicorn superlists.wsgi:application</strong>
-2013-05-27 16:22:01 [10592] [INFO] Starting gunicorn 0.19.6
+<pre>elspeth@server:$ <strong>./virtualenv/bin/gunicorn superlists.wsgi:application</strong>
+2013-05-27 16:22:01 [10592] [INFO] Starting gunicorn 0.19.7.1
 2013-05-27 16:22:01 [10592] [INFO] Listening at: http://127.0.0.1:8000 (10592)
 [...]</pre>
 </div>
@@ -131,13 +151,14 @@ help.  Moving on!</p>
 <div class="sect2">
 <h3 id="_getting_nginx_to_serve_static_files">Getting Nginx to Serve Static Files</h3>
 <div class="paragraph">
-<p>First we run <code>collectstatic</code> to copy all the static files to a folder where
+<p>First
+we run <code>collectstatic</code> to copy all the static files to a folder where
 Nginx can find them:</p>
 </div>
 <div class="listingblock server-commands">
 <div class="content">
-<pre>elspeth@server:$ <strong>../virtualenv/bin/python manage.py collectstatic --noinput</strong>
-elspeth@server:$ <strong>ls ../static/</strong>
+<pre>elspeth@server:$ <strong>./virtualenv/bin/python manage.py collectstatic --noinput</strong>
+elspeth@server:$ <strong>ls static/</strong>
 base.css  bootstrap</pre>
 </div>
 </div>
@@ -167,7 +188,7 @@ base.css  bootstrap</pre>
 <div class="listingblock server-commands">
 <div class="content">
 <pre>elspeth@server:$ <strong>sudo systemctl reload nginx</strong>
-elspeth@server:$ <strong>../virtualenv/bin/gunicorn superlists.wsgi:application</strong></pre>
+elspeth@server:$ <strong>./virtualenv/bin/gunicorn superlists.wsgi:application</strong></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -193,7 +214,8 @@ OK</pre>
 <div class="sect2">
 <h3 id="_switching_to_using_unix_sockets">Switching to Using Unix Sockets</h3>
 <div class="paragraph">
-<p>When we want to serve both staging and live, we can&#8217;t have both servers trying
+<p>When
+we want to serve both staging and live, we can&#8217;t have both servers trying
 to use port 8000.  We could decide to allocate different ports, but that&#8217;s a
 bit arbitrary, and it would be dangerously easy to get it wrong and start
 the staging server on the live port, or vice versa.</p>
@@ -230,7 +252,7 @@ of on the default port:</p>
 <div class="listingblock server-commands">
 <div class="content">
 <pre>elspeth@server:$ <strong>sudo systemctl reload nginx</strong>
-elspeth@server:$ <strong>../virtualenv/bin/gunicorn --bind \
+elspeth@server:$ <strong>./virtualenv/bin/gunicorn --bind \
     unix:/tmp/superlists-staging.ottg.eu.socket superlists.wsgi:application</strong></pre>
 </div>
 </div>
@@ -251,7 +273,8 @@ OK</pre>
 <div class="sect2">
 <h3 id="_switching_debug_to_false_and_setting_allowed_hosts">Switching DEBUG to False and Setting ALLOWED_HOSTS</h3>
 <div class="paragraph">
-<p>Django&#8217;s <code>DEBUG</code> mode is all very well for hacking about on your own server, but
+<p>Django&#8217;s
+<code>DEBUG</code> mode is all very well for hacking about on your own server, but
 leaving those pages full of tracebacks available
 <a href="http://bit.ly/SuvluV">isn&#8217;t secure</a>.</p>
 </div>
@@ -317,7 +340,8 @@ OK</pre>
 <div class="sect2">
 <h3 id="_using_systemd_to_make_sure_gunicorn_starts_on_boot">Using Systemd to Make Sure Gunicorn Starts on Boot</h3>
 <div class="paragraph">
-<p>Our final step is to make sure that the server starts up Gunicorn automatically
+<p>Our
+final step is to make sure that the server starts up Gunicorn automatically
 on boot, and reloads it automatically if it crashes.  On Ubuntu, the way to do
 this is using Systemd:</p>
 </div>
@@ -332,7 +356,7 @@ Description=Gunicorn server for superlists-staging.ottg.eu
 [Service]
 Restart=on-failure  <i class="conum" data-value="1"></i><b>(1)</b>
 User=elspeth  <i class="conum" data-value="2"></i><b>(2)</b>
-WorkingDirectory=/home/elspeth/sites/superlists-staging.ottg.eu/source  <i class="conum" data-value="3"></i><b>(3)</b>
+WorkingDirectory=/home/elspeth/sites/superlists-staging.ottg.eu  <i class="conum" data-value="3"></i><b>(3)</b>
 ExecStart=/home/elspeth/sites/superlists-staging.ottg.eu/virtualenv/bin/gunicorn \
     --bind unix:/tmp/superlists-staging.ottg.eu.socket \
     superlists.wsgi:application  <i class="conum" data-value="4"></i><b>(4)</b>
@@ -406,8 +430,9 @@ that the site comes back up if you reboot the server!</p>
 <div class="ulist">
 <ul>
 <li>
-<p>Check the Systemd logs for using
-<code>sudo journalctl -u gunicorn-superlists-staging.ottg.eu</code>.</p>
+<p>Check
+the Systemd logs for using
+  <code>sudo journalctl -u gunicorn-superlists-staging.ottg.eu</code>.</p>
 </li>
 <li>
 <p>You can ask Systemd to check the validity of your service configuration:
@@ -428,7 +453,8 @@ of your changes.</p>
 <div class="sect3">
 <h4 id="_saving_our_changes_adding_gunicorn_to_our_requirements_txt">Saving Our Changes: Adding Gunicorn to Our requirements.txt</h4>
 <div class="paragraph">
-<p>Back in the <em>local</em> copy of your repo, we should add Gunicorn to the list
+<p>Back
+in the <em>local</em> copy of your repo, we should add Gunicorn to the list
 of packages we need in our virtualenvs:</p>
 </div>
 <div class="listingblock">
@@ -446,7 +472,8 @@ $ <strong>git push</strong></pre>
 <i class="fa icon-note" title="Note"></i>
 </td>
 <td class="content">
-On Windows, at the time of writing, Gunicorn would <code>pip install</code> quite
+On
+Windows, at the time of writing, Gunicorn would <code>pip install</code> quite
     happily, but it wouldn&#8217;t actually work if you tried to use it.  Thankfully
     we only ever run it on the server, so that&#8217;s not a problem. And, Windows
     support is
@@ -460,7 +487,8 @@ On Windows, at the time of writing, Gunicorn would <code>pip install</code> quit
 <div class="sect2">
 <h3 id="_thinking_about_automating">Thinking About Automating</h3>
 <div class="paragraph">
-<p>Let&#8217;s recap our provisioning and deployment procedures:</p>
+<p>Let&#8217;s
+recap our provisioning and deployment procedures:</p>
 </div>
 <div class="dlist">
 <dl>
@@ -472,7 +500,7 @@ On Windows, at the time of writing, Gunicorn would <code>pip install</code> quit
 <p>Assume we have a user account and home folder</p>
 </li>
 <li>
-<p><code>add-apt-repository ppa:fkrull/deadsnakes</code></p>
+<p><code>add-apt-repository ppa:fkrull/deadsnakes &amp;&amp; apt-get update</code></p>
 </li>
 <li>
 <p><code>apt-get install nginx git python3.6 python3.6-venv</code></p>
@@ -494,10 +522,10 @@ On Windows, at the time of writing, Gunicorn would <code>pip install</code> quit
 <p>Create directory structure in <em>~/sites</em></p>
 </li>
 <li>
-<p>Pull down source code into folder named <em>source</em></p>
+<p>Pull down source code.</p>
 </li>
 <li>
-<p>Start virtualenv in <em>../virtualenv</em></p>
+<p>Start virtualenv in <em>virtualenv</em></p>
 </li>
 <li>
 <p><code>pip install -r requirements.txt</code></p>
@@ -615,6 +643,7 @@ them in a file in the repo too?</p>
 eg, on Ubuntu:
 
     sudo add-apt-repository ppa:fkrull/deadsnakes
+    sudo apt-get update
     sudo apt-get install nginx git python36 python3.6-venv
 
 ## Nginx Virtual Host config
@@ -652,7 +681,8 @@ $ <strong>git commit -m "Notes and template config files for provisioning"</stro
 </div>
 </div>
 <div class="paragraph pagebreak-before">
-<p>Our source tree will now look something like this:</p>
+<p>Our
+source tree will now look something like this:</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -679,7 +709,11 @@ $ <strong>git commit -m "Notes and template config files for provisioning"</stro
 &#9474;&#160;&#160; &#9492;&#9472;&#9472; views.py
 &#9500;&#9472;&#9472; manage.py
 &#9500;&#9472;&#9472; requirements.txt
-&#9492;&#9472;&#9472; superlists
+&#9500;&#9472;&#9472; static
+&#9474;   &#9500;&#9472;&#9472; [...]
+&#9500;&#9472;&#9472; superlists
+&#9474;   &#9500;&#9472;&#9472; [...]
+&#9492;&#9472;&#9472; virtualenv
     &#9500;&#9472;&#9472; [...]</pre>
 </div>
 </div>
@@ -701,20 +735,23 @@ process repeatable.</p>
 <div class="content">
 <div class="title">Production-Readiness for Server Deployments</div>
 <div class="paragraph">
-<p>A few things to think about when trying to build a production-ready server <span class="keep-together">environment</span>:</p>
+<p>A
+few things to think about when trying to build a production-ready server <span class="keep-together">environment</span>:</p>
 </div>
 <div class="dlist">
 <dl>
 <dt class="hdlist1">Don&#8217;t use the Django dev server in production</dt>
 <dd>
-<p>Something like Gunicorn or uWSGI is a better tool for running Django; they
-will let you run multiple workers, for example.</p>
+<p>    Something
+like Gunicorn or uWSGI is a better tool for running Django; they
+    will let you run multiple workers, for example.</p>
 </dd>
 <dt class="hdlist1">Don&#8217;t use Django to serve your static files</dt>
 <dd>
-<p>There&#8217;s no point in using a Python process to do the simple job of serving
-static files. Nginx can do it, but so can other web servers like Apache or
-uWSGI.</p>
+<p>    There&#8217;s
+no point in using a Python process to do the simple job of serving
+    static files. Nginx can do it, but so can other web servers like Apache or
+    uWSGI.</p>
 </dd>
 <dt class="hdlist1">Check your settings.py for dev-only settings</dt>
 <dd>
@@ -724,16 +761,17 @@ server).</p>
 </dd>
 <dt class="hdlist1">Security</dt>
 <dd>
-<p>A serious discussion of server security is beyond the scope of this book,
-and I&#8217;d warn against running your own servers without learning a good bit
-more about it. (One reason people choose to use a PaaS to host their
-code is that it means a slightly fewer security issues to worry about.)
-If you&#8217;d like a place to start, here&#8217;s as good a place as any:
-<a href="https://plusbryan.com/my-first-5-minutes-on-a-server-or-essential-security-for-linux-servers">My first 5 minutes on a server</a>.
-I can definitely recommend the eye-opening experience of installing
-fail2ban and watching its logfiles to see just how quickly it picks up on
-random drive-by attempts to brute force your SSH login.  The internet is a
-dangerous place!</p>
+<p>    A
+serious discussion of server security is beyond the scope of this book,
+    and I&#8217;d warn against running your own servers without learning a good bit
+    more about it. (One reason people choose to use a PaaS to host their
+    code is that it means a slightly fewer security issues to worry about.)
+    If you&#8217;d like a place to start, here&#8217;s as good a place as any:
+    <a href="https://plusbryan.com/my-first-5-minutes-on-a-server-or-essential-security-for-linux-servers">My first 5 minutes on a server</a>.
+    I can definitely recommend the eye-opening experience of installing
+    fail2ban and watching its logfiles to see just how quickly it picks up on
+    random drive-by attempts to brute force your SSH login.  The internet is a
+    dangerous place!</p>
 </dd>
 </dl>
 </div>
@@ -745,7 +783,7 @@ dangerous place!</p>
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2017-07-25 00:15:33 CEST
+Last updated 2017-11-21 06:25:12 GMT
 </div>
 </div>
 <div class="comments" style="padding: 20px">
