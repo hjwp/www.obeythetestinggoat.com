@@ -1,5 +1,147 @@
 <?xml version="1.0" encoding="utf-8"?>
-<feed xmlns="http://www.w3.org/2005/Atom"><title>Obey the Testing Goat!</title><link href="http://www.obeythetestinggoat.com/" rel="alternate"></link><link href="http://www.obeythetestinggoat.com/feeds/all.atom.xml" rel="self"></link><id>http://www.obeythetestinggoat.com/</id><updated>2017-09-12T13:52:00+01:00</updated><entry><title>Second edition is out! Reviews please!</title><link href="http://www.obeythetestinggoat.com/second-edition-is-out-reviews-please.html" rel="alternate"></link><published>2017-09-12T13:52:00+01:00</published><updated>2017-09-12T13:52:00+01:00</updated><author><name>Harry</name></author><id>tag:www.obeythetestinggoat.com,2017-09-12:second-edition-is-out-reviews-please.html</id><summary type="html">&lt;figure&gt;
+<feed xmlns="http://www.w3.org/2005/Atom"><title>Obey the Testing Goat!</title><link href="http://www.obeythetestinggoat.com/" rel="alternate"></link><link href="http://www.obeythetestinggoat.com/feeds/all.atom.xml" rel="self"></link><id>http://www.obeythetestinggoat.com/</id><updated>2017-11-23T18:32:00+00:00</updated><entry><title>Speeding up Django unit tests with SQLite, keebdb and /dev/shm</title><link href="http://www.obeythetestinggoat.com/speeding-up-django-unit-tests-with-sqlite-keebdb-and-devshm.html" rel="alternate"></link><published>2017-11-23T18:32:00+00:00</published><updated>2017-11-23T18:32:00+00:00</updated><author><name>Harry</name></author><id>tag:www.obeythetestinggoat.com,2017-11-23:speeding-up-django-unit-tests-with-sqlite-keebdb-and-devshm.html</id><summary type="html">&lt;p&gt;Here's the tldr version:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="n"&gt;DATABASES&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+    &lt;span class="s1"&gt;&amp;#39;default&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+        &lt;span class="s1"&gt;&amp;#39;ENGINE&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="s1"&gt;&amp;#39;your db settings as normal&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+        &lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="o"&gt;...&lt;/span&gt;&lt;span class="p"&gt;]&lt;/span&gt;
+        &lt;span class="s1"&gt;&amp;#39;TEST&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+          &lt;span class="c1"&gt;# this gets you in-memory sqlite for tests, which is fast&lt;/span&gt;
+          &lt;span class="s1"&gt;&amp;#39;ENGINE&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="s1"&gt;&amp;#39;django.db.backends.sqlite3&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+        &lt;span class="p"&gt;}&lt;/span&gt;
+    &lt;span class="p"&gt;}&lt;/span&gt;
+&lt;span class="p"&gt;}&lt;/span&gt;
+
+&lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="s1"&gt;&amp;#39;test&amp;#39;&lt;/span&gt; &lt;span class="ow"&gt;in&lt;/span&gt; &lt;span class="n"&gt;sys&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;argv&lt;/span&gt; &lt;span class="ow"&gt;and&lt;/span&gt; &lt;span class="s1"&gt;&amp;#39;keepdb&amp;#39;&lt;/span&gt; &lt;span class="ow"&gt;in&lt;/span&gt; &lt;span class="n"&gt;sys&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;argv&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;
+    &lt;span class="c1"&gt;# and this allows you to use --keepdb to skip re-creating the db,&lt;/span&gt;
+    &lt;span class="c1"&gt;# even faster!&lt;/span&gt;
+    &lt;span class="n"&gt;DATABASES&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="s1"&gt;&amp;#39;default&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;][&lt;/span&gt;&lt;span class="s1"&gt;&amp;#39;TEST&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;][&lt;/span&gt;&lt;span class="s1"&gt;&amp;#39;NAME&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;]&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="s1"&gt;&amp;#39;/dev/shm/myproject.test.db.sqlite3&amp;#39;&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;h2&gt;More context&lt;/h2&gt;
+&lt;p&gt;For day-to-day development, running your tests needs to be as fast as possible to
+keep you in a good workflow.  Although you're unlikely to be using SQLite as your
+production database, using it for tests in dev is often a nice shortcut, particularly
+since Django will use an in-memory sqlite database for tests, which is even
+faster than one on disk.&lt;/p&gt;
+&lt;p&gt;But, especially if you have a large and complicated database, re-creating it with each
+test run can take quite a bit of time. That's where the &lt;code&gt;--keepdb&lt;/code&gt; step comes in.  Of
+course, normally if you're using an in-memory database, &lt;code&gt;keepdb&lt;/code&gt; doesn't make
+any sense because memory disappears between runs.  That's where the sneaky
+trick of using &lt;em&gt;/dev/shm&lt;/em&gt; comes in.  In linux, &lt;em&gt;/dev/shm&lt;/em&gt; is actually a
+filesystem against your machine's RAM, and it will persist between processes,
+until you reboot your machine.&lt;/p&gt;
+&lt;p&gt;So you get all the speed of an in-memory SQLite database, with the extra boost of not
+having to re-create the database.&lt;/p&gt;
+&lt;h2&gt;What if the database changes,&lt;/h2&gt;
+&lt;p&gt;... I hear you ask?  Django is smart enough to apply any new migrations to the
+&lt;code&gt;keepdb&lt;/code&gt; database if it notices them.
+&lt;a href="https://docs.djangoproject.com/en/1.11/ref/django-admin/#cmdoption-test-keepdb"&gt;Docs here&lt;/a&gt;.
+This works pretty well in my experience, although I have had to blow away the test
+db in &lt;em&gt;/dev/shm&lt;/em&gt; manually once or twice...&lt;/p&gt;
+&lt;h2&gt;Don't do this in CI&lt;/h2&gt;
+&lt;p&gt;But I'm only advocating this for use in development!  Ultimately, Postgres or whichever
+database you're using will behave differently from SQLite.  Django does a good job of
+abstracting away 90% of those differences, but that still leaves plenty of strange edge
+case behaviours to do with default values, ordering and transactions that can easily trip
+you up.&lt;/p&gt;
+&lt;p&gt;Make sure you always run your test suite in CI against the real database.&lt;/p&gt;
+&lt;p&gt;You could use an environment variable for example, to make sure:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="n"&gt;os&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;environ&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;get&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s1"&gt;&amp;#39;CI&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
+    &lt;span class="k"&gt;del&lt;/span&gt; &lt;span class="n"&gt;DATABASES&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="s1"&gt;&amp;#39;default&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;][&lt;/span&gt;&lt;span class="s1"&gt;&amp;#39;TEST&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;]&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;h2&gt;Some numbers:&lt;/h2&gt;
+&lt;p&gt;Here's a subset of the PythonAnywhere tests running, first without keepdb:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;»»»» time ./manage.py test console
+Creating test database for alias &amp;#39;default&amp;#39;...
+................................................................................
+................................................................................
+...........................................................
+----------------------------------------------------------------------
+Ran 219 tests in 5.261s
+
+OK
+Destroying test database for alias &amp;#39;default&amp;#39;...
+10.86user 0.25system 0:11.12elapsed 99%CPU 
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;And now with keepdb:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;»»»» time ./manage.py test console --keepdb
+Using existing test database for alias &amp;#39;default&amp;#39;...
+................................................................................
+................................................................................
+...........................................................
+----------------------------------------------------------------------
+Ran 219 tests in 5.557s
+
+OK
+Preserving test database for alias &amp;#39;default&amp;#39;...
+6.28user 0.36system 0:06.66elapsed 99%CPU 
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;Notice the time that Django reports is the almost the same in both cases, but the
+actual elapsed time is quite different -- that's because Django isn't counting time
+spent re-creating the database at the beginning of the test run.&lt;/p&gt;
+&lt;p&gt;(also, be aware if you're running your own tests here that you will only see an
+improvement the &lt;em&gt;second&lt;/em&gt; time you run with &lt;code&gt;keepdb&lt;/code&gt;.  On the first run it's still
+creating the database)&lt;/p&gt;
+&lt;h2&gt;Your mileage may vary&lt;/h2&gt;
+&lt;p&gt;On a different project with simpler models I see very different results:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;»»»» time ./manage.py test opera.tests.test_pages
+[...]
+Ran 65 tests in 7.620s
+15.44user 0.08system 0:15.53elapsed 99%CPU
+
+»»»» time ./manage.py test opera.tests.test_pages --keepdb
+[...]
+Ran 65 tests in 7.535s
+14.91user 0.10system 0:15.02elapsed 99%CPU
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;Really not that much in it!  Although that's on my laptop with a nice fast
+processor and SSD. Differences are more pronounced (on both projects) on a
+system with a slower CPU and filesystem:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;$ &lt;span class="nb"&gt;time&lt;/span&gt; ./manage.py &lt;span class="nb"&gt;test&lt;/span&gt; opera.tests.test_pages
+Creating &lt;span class="nb"&gt;test&lt;/span&gt; database &lt;span class="k"&gt;for&lt;/span&gt; &lt;span class="nb"&gt;alias&lt;/span&gt; &lt;span class="s1"&gt;&amp;#39;default&amp;#39;&lt;/span&gt;...
+&lt;span class="o"&gt;[&lt;/span&gt;...&lt;span class="o"&gt;]&lt;/span&gt;
+Ran &lt;span class="m"&gt;65&lt;/span&gt; tests in 13.620s
+real    0m25.720s
+
+$ &lt;span class="nb"&gt;time&lt;/span&gt; ./manage.py &lt;span class="nb"&gt;test&lt;/span&gt; opera.tests.test_pages --keepdb
+Using existing &lt;span class="nb"&gt;test&lt;/span&gt; database &lt;span class="k"&gt;for&lt;/span&gt; &lt;span class="nb"&gt;alias&lt;/span&gt; &lt;span class="s1"&gt;&amp;#39;default&amp;#39;&lt;/span&gt;...
+&lt;span class="o"&gt;[&lt;/span&gt;...&lt;span class="o"&gt;]&lt;/span&gt;
+Ran &lt;span class="m"&gt;65&lt;/span&gt; tests in 10.648s
+real    0m20.632s
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;h2&gt;Linux only!&lt;/h2&gt;
+&lt;p&gt;&lt;em&gt;/dev/shm&lt;/em&gt; only exists on Unixey operating systems. A bit of googling might help you
+find alternatives on Windows and MacOS though -- I can't vouch for these, but here are
+the first two links I found while duckduckgoing:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;https://stackoverflow.com/questions/2033362/does-os-x-have-an-equivalent-to-dev-shm#2033417 &lt;/li&gt;
+&lt;li&gt;https://stackoverflow.com/questions/3011464/what-is-the-dev-shm-equivalence-in-windows-system &lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;More tips&lt;/h2&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;Changing the password hashing algorithm (for tests only) can speed up user creation.
+  &lt;a href="http://www.daveoncode.com/2013/09/23/effective-tdd-tricks-to-speed-up-django-tests-up-to-10x-faster/"&gt;This, and more tips, here&lt;/a&gt;.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;If you really want to use Postgres on your dev machine, you can also 
+  &lt;a href="https://stackoverflow.com/questions/9407442/optimise-postgresql-for-fast-testing"&gt;hack your postgres config to speed things up&lt;/a&gt;,
+  although, again, you'd want to make sure your config in CI was more
+  (exactly?) like production.&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Let me know if these help you!&lt;/p&gt;</summary><category term="Django"></category><category term="Tests"></category><category term="Sqlite"></category></entry><entry><title>Second edition is out! Reviews please!</title><link href="http://www.obeythetestinggoat.com/second-edition-is-out-reviews-please.html" rel="alternate"></link><published>2017-09-12T13:52:00+01:00</published><updated>2017-09-12T13:52:00+01:00</updated><author><name>Harry</name></author><id>tag:www.obeythetestinggoat.com,2017-09-12:second-edition-is-out-reviews-please.html</id><summary type="html">&lt;figure&gt;
   &lt;img src="/static/images/book_selfie1.jpg" alt="a picture of me attempting a selfie with the book" /&gt;
   &lt;caption&gt;I'm still not great at selfies... Here you get two for the price of one tho.&lt;/caption&gt;
 &lt;/figure&gt;

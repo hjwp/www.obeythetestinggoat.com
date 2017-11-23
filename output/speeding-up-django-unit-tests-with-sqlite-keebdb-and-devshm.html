@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<!--[if IE 8]>    <html class="no-js lt-ie9" lang="en"> <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en"> <!--<![endif]-->
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+        <!-- Set the viewport width to device width for mobile -->
+        <meta name="viewport" content="width=device-width" />
+        <title>Obey the Testing Goat!</title>
+        <meta charset="utf-8" />
+        <link rel="stylesheet" href="/static/css/normalize.css">
+        <link rel="stylesheet" href="/static/css/pygments.css">
+        <link rel="stylesheet" href="/static/css/extra.css">
+        <link rel="stylesheet" href="/static/css/foundation.css">
+        <link href='https://fonts.googleapis.com/css?family=Life+Savers:400,700|Sanchez:400,400italic|Ovo' rel='stylesheet' type='text/css'>
+
+
+        <link rel="stylesheet" href="/static/css/social_foundicons.css">
+        <!--[if lt IE 8]>
+            <link rel="stylesheet" href="stylesheets/social_foundicons_ie7.css">
+        <![endif]-->
+
+
+        <link href="http://www.obeythetestinggoat.com/feeds/all.atom.xml" type="application/atom+xml" rel="alternate" title="Obey the Testing Goat! Full Atom Feed" />
+        <link href="http://www.obeythetestinggoat.com/feeds/misc.atom.xml" type="application/atom+xml" rel="alternate" title="Obey the Testing Goat! Categories Atom Feed" />
+</head>
+
+<body>
+    <header class="row">
+        <div class="large-12 columns">
+            <div class="row">
+                <span class="right"><a href="http://www.obeythetestinggoat.com/feeds/all.atom.xml" type="application/rss+xml"><i class="social foundicon-rss"></i> RSS</a></span>
+                <div class="large-2 columns">
+                    <a href="http://www.obeythetestinggoat.com"><img src="/static/images/kid_goat.png" alt="The Testing Goat" title="The Testing Goat" /></a>
+                </div>
+                <div class="large-10 columns">
+                    <h1>Obey the Testing Goat!</h1>
+                    <h2><small><em>TDD for the Web, with Python, Selenium, Django, JavaScript and pals...</em></small></h2>
+                </div>
+            </div>
+        </div>
+    </header> <!-- end top banner -->
+
+<div class="row">
+    <div class="large-9 small-12 columns"> <!-- blog post div -->
+        <header>
+            <h2><a href="speeding-up-django-unit-tests-with-sqlite-keebdb-and-devshm.html" rel="bookmark" title="Permalink to Speeding up Django unit tests with SQLite, keebdb and /dev/shm">Speeding up Django unit tests with SQLite, keebdb and /dev/shm</a></h2>
+
+             
+
+        </header>
+        <footer class="post-info">
+            <abbr class="published" title="2017-11-23T18:32:00+00:00">
+              Thu 23 November 2017
+            </abbr>
+                <address class="vcard author">
+                  By <a class="url fn" href="http://www.obeythetestinggoat.com/author/harry.html">Harry</a>
+                </address>
+        </footer><!-- /.post-info -->
+
+        <div>
+            <p>Here's the tldr version:</p>
+<div class="highlight"><pre><span></span><span class="n">DATABASES</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s1">&#39;default&#39;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s1">&#39;ENGINE&#39;</span><span class="p">:</span> <span class="s1">&#39;your db settings as normal&#39;</span><span class="p">,</span>
+        <span class="p">[</span><span class="o">...</span><span class="p">]</span>
+        <span class="s1">&#39;TEST&#39;</span><span class="p">:</span> <span class="p">{</span>
+          <span class="c1"># this gets you in-memory sqlite for tests, which is fast</span>
+          <span class="s1">&#39;ENGINE&#39;</span><span class="p">:</span> <span class="s1">&#39;django.db.backends.sqlite3&#39;</span><span class="p">,</span>
+        <span class="p">}</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+
+<span class="k">if</span> <span class="s1">&#39;test&#39;</span> <span class="ow">in</span> <span class="n">sys</span><span class="o">.</span><span class="n">argv</span> <span class="ow">and</span> <span class="s1">&#39;keepdb&#39;</span> <span class="ow">in</span> <span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">:</span>
+    <span class="c1"># and this allows you to use --keepdb to skip re-creating the db,</span>
+    <span class="c1"># even faster!</span>
+    <span class="n">DATABASES</span><span class="p">[</span><span class="s1">&#39;default&#39;</span><span class="p">][</span><span class="s1">&#39;TEST&#39;</span><span class="p">][</span><span class="s1">&#39;NAME&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;/dev/shm/myproject.test.db.sqlite3&#39;</span>
+</pre></div>
+
+
+<h2>More context</h2>
+<p>For day-to-day development, running your tests needs to be as fast as possible to
+keep you in a good workflow.  Although you're unlikely to be using SQLite as your
+production database, using it for tests in dev is often a nice shortcut, particularly
+since Django will use an in-memory sqlite database for tests, which is even
+faster than one on disk.</p>
+<p>But, especially if you have a large and complicated database, re-creating it with each
+test run can take quite a bit of time. That's where the <code>--keepdb</code> step comes in.  Of
+course, normally if you're using an in-memory database, <code>keepdb</code> doesn't make
+any sense because memory disappears between runs.  That's where the sneaky
+trick of using <em>/dev/shm</em> comes in.  In linux, <em>/dev/shm</em> is actually a
+filesystem against your machine's RAM, and it will persist between processes,
+until you reboot your machine.</p>
+<p>So you get all the speed of an in-memory SQLite database, with the extra boost of not
+having to re-create the database.</p>
+<h2>What if the database changes,</h2>
+<p>... I hear you ask?  Django is smart enough to apply any new migrations to the
+<code>keepdb</code> database if it notices them.
+<a href="https://docs.djangoproject.com/en/1.11/ref/django-admin/#cmdoption-test-keepdb">Docs here</a>.
+This works pretty well in my experience, although I have had to blow away the test
+db in <em>/dev/shm</em> manually once or twice...</p>
+<h2>Don't do this in CI</h2>
+<p>But I'm only advocating this for use in development!  Ultimately, Postgres or whichever
+database you're using will behave differently from SQLite.  Django does a good job of
+abstracting away 90% of those differences, but that still leaves plenty of strange edge
+case behaviours to do with default values, ordering and transactions that can easily trip
+you up.</p>
+<p>Make sure you always run your test suite in CI against the real database.</p>
+<p>You could use an environment variable for example, to make sure:</p>
+<div class="highlight"><pre><span></span><span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;CI&#39;</span><span class="p">):</span>
+    <span class="k">del</span> <span class="n">DATABASES</span><span class="p">[</span><span class="s1">&#39;default&#39;</span><span class="p">][</span><span class="s1">&#39;TEST&#39;</span><span class="p">]</span>
+</pre></div>
+
+
+<h2>Some numbers:</h2>
+<p>Here's a subset of the PythonAnywhere tests running, first without keepdb:</p>
+<div class="highlight"><pre><span></span>»»»» time ./manage.py test console
+Creating test database for alias &#39;default&#39;...
+................................................................................
+................................................................................
+...........................................................
+----------------------------------------------------------------------
+Ran 219 tests in 5.261s
+
+OK
+Destroying test database for alias &#39;default&#39;...
+10.86user 0.25system 0:11.12elapsed 99%CPU 
+</pre></div>
+
+
+<p>And now with keepdb:</p>
+<div class="highlight"><pre><span></span>»»»» time ./manage.py test console --keepdb
+Using existing test database for alias &#39;default&#39;...
+................................................................................
+................................................................................
+...........................................................
+----------------------------------------------------------------------
+Ran 219 tests in 5.557s
+
+OK
+Preserving test database for alias &#39;default&#39;...
+6.28user 0.36system 0:06.66elapsed 99%CPU 
+</pre></div>
+
+
+<p>Notice the time that Django reports is the almost the same in both cases, but the
+actual elapsed time is quite different -- that's because Django isn't counting time
+spent re-creating the database at the beginning of the test run.</p>
+<p>(also, be aware if you're running your own tests here that you will only see an
+improvement the <em>second</em> time you run with <code>keepdb</code>.  On the first run it's still
+creating the database)</p>
+<h2>Your mileage may vary</h2>
+<p>On a different project with simpler models I see very different results:</p>
+<div class="highlight"><pre><span></span>»»»» time ./manage.py test opera.tests.test_pages
+[...]
+Ran 65 tests in 7.620s
+15.44user 0.08system 0:15.53elapsed 99%CPU
+
+»»»» time ./manage.py test opera.tests.test_pages --keepdb
+[...]
+Ran 65 tests in 7.535s
+14.91user 0.10system 0:15.02elapsed 99%CPU
+</pre></div>
+
+
+<p>Really not that much in it!  Although that's on my laptop with a nice fast
+processor and SSD. Differences are more pronounced (on both projects) on a
+system with a slower CPU and filesystem:</p>
+<div class="highlight"><pre><span></span>$ <span class="nb">time</span> ./manage.py <span class="nb">test</span> opera.tests.test_pages
+Creating <span class="nb">test</span> database <span class="k">for</span> <span class="nb">alias</span> <span class="s1">&#39;default&#39;</span>...
+<span class="o">[</span>...<span class="o">]</span>
+Ran <span class="m">65</span> tests in 13.620s
+real    0m25.720s
+
+$ <span class="nb">time</span> ./manage.py <span class="nb">test</span> opera.tests.test_pages --keepdb
+Using existing <span class="nb">test</span> database <span class="k">for</span> <span class="nb">alias</span> <span class="s1">&#39;default&#39;</span>...
+<span class="o">[</span>...<span class="o">]</span>
+Ran <span class="m">65</span> tests in 10.648s
+real    0m20.632s
+</pre></div>
+
+
+<h2>Linux only!</h2>
+<p><em>/dev/shm</em> only exists on Unixey operating systems. A bit of googling might help you
+find alternatives on Windows and MacOS though -- I can't vouch for these, but here are
+the first two links I found while duckduckgoing:</p>
+<ul>
+<li>https://stackoverflow.com/questions/2033362/does-os-x-have-an-equivalent-to-dev-shm#2033417 </li>
+<li>https://stackoverflow.com/questions/3011464/what-is-the-dev-shm-equivalence-in-windows-system </li>
+</ul>
+<h2>More tips</h2>
+<ul>
+<li>
+<p>Changing the password hashing algorithm (for tests only) can speed up user creation.
+  <a href="http://www.daveoncode.com/2013/09/23/effective-tdd-tricks-to-speed-up-django-tests-up-to-10x-faster/">This, and more tips, here</a>.</p>
+</li>
+<li>
+<p>If you really want to use Postgres on your dev machine, you can also 
+  <a href="https://stackoverflow.com/questions/9407442/optimise-postgresql-for-fast-testing">hack your postgres config to speed things up</a>,
+  although, again, you'd want to make sure your config in CI was more
+  (exactly?) like production.</p>
+</li>
+</ul>
+<p>Let me know if these help you!</p>
+        </div><!-- /.entry-content -->
+
+    <div class="comments">
+        <h3>Comments</h3>
+        <div id="disqus_thread"></div>
+        <script type="text/javascript">
+                var disqus_shortname = 'obeythetestinggoat';
+
+            /* * * DON'T EDIT BELOW THIS LINE * * */
+            (function() {
+                var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+                dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+                (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+            })();
+        </script>
+        <noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+        <a href="http://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+    </div>
+
+
+
+    </div>
+<div class="large-3 small-6 columns">
+    <h6><a href="/pages/book.html">Read the book</a></h6>
+    <p>
+        The book is available both for free and for money.  
+        It's all about TDD and Web programming.
+        <a href="/pages/book.html">Read it here!</a>
+    </p>
+</div>
+
+<div class="large-3 small-6 columns">
+    <h6><a href="/pages/reviews-and-testimonials.html">Reviews & Testimonials</a></h6>
+   
+    <p>
+        <i>"Hands down the best teaching book I've ever read"</i> &mdash;
+        <i>"Even the first 4 chapters were worth the money"</i> &mdash;
+        <i>"Oh my gosh! This book is outstanding"</i> &mdash;
+        <i>"The testing goat is my new friend"</i> &mdash;
+        <a href="/pages/reviews-and-testimonials.html">Read more...</a>
+    </p>
+
+</div>
+
+
+<div class="large-3 small-6 columns">
+    <h6><a href="/pages/tdd-resources.html">Resources</a></h6>
+    <p>A selection of links and videos about TDD, not necessarily all mine, eg <a href="http://pyvideo.org/video/1657/fully-test-driven-web-development-with-django-and">this tutorial
+        at PyCon 2013</a>, how to <a href="http://arstechnica.com/information-technology/2013/03/how-can-i-motivate-coworkers-to-write-unit-tests/">motivate coworkers to write unit tests</a>, thoughts on <a href="http://pyvideo.org/video/699/testing-and-django">Django's test tools</a>, <a href="https://www.youtube.com/watch?v=tdNnN5yTIeM">London-style TDD</a> and <a href="/pages/tdd-resources.html">more</a>.
+</div>
+
+
+<div class="large-3 small-6 columns">
+    <h6><a href="http://www.tdd-django-tutorial.com">Old TDD / Django Tutorial</a></h6>
+    <p>
+    This is my <a href="http://www.tdd-django-tutorial.com">old TDD tutorial</a>,
+    which follows along with the official Django tutorial, but with full TDD.  It
+    badly needs updating. Read the book instead!
+    </p>
+</div>
+
+<div class="large-3 small-6 columns">
+    <h6><a href="/pages/save-the-testing-goat-campaign.html">Save the Testing Goat Campaign</a></h6>
+    <p>
+    The campaign page, preserved for history, which led to the glorious presence
+    of the Testing Goat on the front of the book.
+    </p>
+</div></div>
+
+  <footer class="row">
+    <div class="large-12 columns">
+      <hr>
+      <div class="row">
+        <div class="large-8 columns">
+            <p>
+                <a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/3.0/"><img alt="Creative Commons License" style="border-width:0" src="https://i.creativecommons.org/l/by-nc-sa/3.0/88x31.png" /></a>
+                &nbsp
+                <span xmlns:dct="http://purl.org/dc/terms/" href="http://purl.org/dc/dcmitype/Text" property="dct:title" rel="dct:type">Obey the Testing Goat website</span> 
+                by <a xmlns:cc="http://creativecommons.org/ns#" href="http://www.obeythetestinggoat.com" property="cc:attributionName" rel="cc:attributionURL">Harry J.W. Percival</a> 
+                is licensed under a 
+                <a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/3.0/">Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License</a>.
+                Site powered by <a href="http://getpelican.com/">Pelican</a>, and
+                hosted on <a href="https://www.pythonanywhere.com">PythonAnywhere</a>.
+                If you came here via one of the awesome "Year of the Testing Goat" stickers,
+                you should know credit for the sweet cartoon goat goes to 
+                <a href="http://www.squirrelmuffins.com/">Kat i on</a>
+            </p>
+       </div>
+
+        <div class="large-4 columns">
+          <ul class="inline-list right">
+            <li><a href="/pages/book.html">Book</a></li>
+            <li><a href="/pages/tdd-resources.html">Resources</a></li>
+            <li>
+                <a href="http://www.obeythetestinggoat.com/feeds/all.atom.xml" type="application/rss+xml"><i class="social foundicon-rss"></i> RSS</a></span>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <script src="/static/js/vendor/custom.modernizr.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+
+  <script>
+  document.write('<script src=js/vendor/' +
+  ('__proto__' in {} ? 'zepto' : 'jquery') +
+  '.js><\/script>')
+  </script>
+  <script src="js/foundation.min.js"></script>
+  <script>
+    $(document).foundation();
+  </script>
+  <script type="text/javascript">
+    $(window).load(function() {
+      $('#featured').orbit({ fluid: '2x1' });
+    });
+  </script>
+
+
+  <script>   (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){   (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),   m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)   })(window,document,'script','//www.google-analytics.com/analytics.js','ga');    ga('create', 'UA-40928035-1', 'obeythetestinggoat.com');   ga('send', 'pageview');  </script> 
+  <!-- End Footer -->
+
+</body>
+</html>
