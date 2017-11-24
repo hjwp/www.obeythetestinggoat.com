@@ -1,4 +1,4 @@
-Title: Speeding up Django unit tests with SQLite, keebdb and /dev/shm
+Title: Speeding up Django unit tests with SQLite, keepdb and /dev/shm
 Date: 2017-11-23 18:32
 Tags: Django, Tests, Sqlite
 Author: Harry
