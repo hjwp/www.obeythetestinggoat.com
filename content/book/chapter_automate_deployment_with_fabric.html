@@ -60,12 +60,11 @@ httpRequest.send();
 <i class="fa icon-note" title="Note"></i>
 </td>
 <td class="content">
-<em>Update on 2017-11-21</em>&#8201;&#8212;&#8201;I have just pushed up a bit of a simplification
-    to the folder structure in the book, so if you started it before this date,
-    assumptions have changed slightly.  In brief, <em>db.sqlite3</em> and the <em>static</em>
-    and <em>virtualenv</em> folders are now in the same folder as <em>manage.py</em>.  Adjust
-    your <em>settings.py</em> accordingly.  Check the reference repo on
-    <a href="https://github.com/hjwp/book-example/branches/active">github</a> if you need pointers.
+<em>Update on 2018-01-07</em>&#8201;&#8212;&#8201;Have made some changes to the three
+    deployment chapters, mostly changing the order things happen in
+    but also using more environment variables.  Probably best to go back and
+    start again from the manual deployment chapter if you were half-way
+    through&#8230;&#8203;
 </td>
 </tr>
 </table>
@@ -74,7 +73,9 @@ httpRequest.send();
 <p>Automating
 deployment is critical for our staging tests to mean anything.
 By making sure the deployment procedure is repeatable, we give ourselves
-assurances that everything will go well when we deploy to production.</p>
+assurances that everything will go well when we deploy to production. (These
+days people sometimes use the words "infrastructure as code" to describe
+automation of deployments, and provisioning).</p>
 </div>
 <div class="paragraph">
 <p>Fabric
@@ -131,9 +132,8 @@ together one by one, explaining as we go.</p>
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> <span class="include">fabric.contrib.files</span> <span class="keyword">import</span> <span class="include">append</span>, <span class="include">exists</span>, <span class="include">sed</span>
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> <span class="include">fabric.contrib.files</span> <span class="keyword">import</span> <span class="include">exists</span>
 <span class="keyword">from</span> <span class="include">fabric.api</span> <span class="keyword">import</span> <span class="include">cd</span>, <span class="include">env</span>, <span class="include">local</span>, <span class="include">run</span>
-<span class="keyword">import</span> <span class="include">random</span>
 
 REPO_URL = <span class="string"><span class="delimiter">'</span><span class="content">https://github.com/hjwp/book-example.git</span><span class="delimiter">'</span></span>  <i class="conum" data-value="1"></i><b>(1)</b>
 
@@ -142,7 +142,6 @@ REPO_URL = <span class="string"><span class="delimiter">'</span><span class="con
     run(f<span class="string"><span class="delimiter">'</span><span class="content">mkdir -p {site_folder}</span><span class="delimiter">'</span></span>) <i class="conum" data-value="3"></i><b>(3)</b> <i class="conum" data-value="4"></i><b>(4)</b>
     <span class="keyword">with</span> cd(site_folder):  <i class="conum" data-value="5"></i><b>(5)</b>
         _get_latest_source()
-        _update_settings(env.host)  <i class="conum" data-value="3"></i><b>(3)</b>
         _update_virtualenv()
         _update_static_files()
         _update_database()</code></pre>
@@ -255,103 +254,6 @@ the code is already there; the equivalent of the <code>git pull</code> we used w
 did it manually, but with the <code>reset --hard</code> to force overwriting any local
 changes.</p>
 </div>
-<div class="admonitionblock note">
-<table>
-<tr>
-<td class="icon">
-<i class="fa icon-note" title="Note"></i>
-</td>
-<td class="content">
-For this script to work, you need to have done a <code>git push</code> of your
-    current local commit, so that the server can pull it down and <code>reset</code> to
-    it. If you see an error saying <code>Could not parse object</code>, try doing a <code>git
-    push</code>.
-</td>
-</tr>
-</table>
-</div>
-</div>
-<div class="sect3">
-<h4 id="_updating_settings_py">Updating settings.py</h4>
-<div class="paragraph">
-<p>Next
-we update our settings file, to set the <code>ALLOWED_HOSTS</code> and <code>DEBUG</code>
-variables, and to create a new <code>SECRET_KEY</code>:</p>
-</div>
-<div class="exampleblock sourcecode">
-<div class="title">deploy_tools/fabfile.py (ch09l004)</div>
-<div class="content">
-<div class="listingblock">
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">def</span> <span class="function">_update_settings</span>(site_name):
-    settings_path = <span class="string"><span class="delimiter">'</span><span class="content">superlists/settings.py</span><span class="delimiter">'</span></span>
-    sed(settings_path, <span class="string"><span class="delimiter">"</span><span class="content">DEBUG = True</span><span class="delimiter">"</span></span>, <span class="string"><span class="delimiter">"</span><span class="content">DEBUG = False</span><span class="delimiter">"</span></span>)  <i class="conum" data-value="1"></i><b>(1)</b>
-    sed(settings_path,
-        <span class="string"><span class="delimiter">'</span><span class="content">ALLOWED_HOSTS =.+$</span><span class="delimiter">'</span></span>,
-        f<span class="string"><span class="delimiter">'</span><span class="content">ALLOWED_HOSTS = ["{site_name}"]</span><span class="delimiter">'</span></span>  <i class="conum" data-value="2"></i><b>(2)</b>
-    )
-    secret_key_file = <span class="string"><span class="delimiter">'</span><span class="content">superlists/secret_key.py</span><span class="delimiter">'</span></span>
-    <span class="keyword">if</span> <span class="keyword">not</span> exists(secret_key_file):  <i class="conum" data-value="3"></i><b>(3)</b>
-        chars = <span class="string"><span class="delimiter">'</span><span class="content">abcdefghijklmnopqrstuvwxyz0123456789!@#$%^&amp;*(-_=+)</span><span class="delimiter">'</span></span>
-        key = <span class="string"><span class="delimiter">'</span><span class="delimiter">'</span></span>.join(random.SystemRandom().choices(chars, k=<span class="integer">50</span>))
-        append(secret_key_file, f<span class="string"><span class="delimiter">'</span><span class="content">SECRET_KEY = "{key}"</span><span class="delimiter">'</span></span>)
-    append(settings_path, <span class="string"><span class="delimiter">'</span><span class="char">\n</span><span class="content">from .secret_key import SECRET_KEY</span><span class="delimiter">'</span></span>)  <i class="conum" data-value="4"></i><b>(4)</b> <i class="conum" data-value="5"></i><b>(5)</b></code></pre>
-</div>
-</div>
-</div>
-</div>
-<div class="colist arabic">
-<table>
-<tr>
-<td><i class="conum" data-value="1"></i><b>1</b></td>
-<td>The Fabric <code>sed</code> command does a string substitution in a file; here it&#8217;s
-changing <code>DEBUG</code> from <code>True</code> to <code>False</code>.</td>
-</tr>
-<tr>
-<td><i class="conum" data-value="2"></i><b>2</b></td>
-<td>And here it is adjusting <code>ALLOWED_HOSTS</code>, using a regex to match the
-right line.</td>
-</tr>
-<tr>
-<td><i class="conum" data-value="3"></i><b>3</b></td>
-<td>Django uses <code>SECRET_KEY</code> for some of its crypto&#8212;&#8203;things like cookies and
-CSRF protection. It&#8217;s good practice to make sure the secret key on the
-server is different from the one in your source code repo, because that
-code might be visible to strangers. This section will generate a new key to
-import into settings, if there isn&#8217;t one there already (once you have a
-secret key, it should stay the same between deploys).  Find out more in the
-<a href="https://docs.djangoproject.com/en/1.11/topics/signing/">Django docs</a>.</td>
-</tr>
-<tr>
-<td><i class="conum" data-value="4"></i><b>4</b></td>
-<td><code>append</code> just adds a line to the end of a file. (It&#8217;s clever enough not to
-bother if the line is already there, but not clever enough to automatically
-add a newline if the file doesn&#8217;t end in one. Hence the back-n.)</td>
-</tr>
-<tr>
-<td><i class="conum" data-value="5"></i><b>5</b></td>
-<td>I&#8217;m using a <em>relative import</em> (<code>from .secret_key</code> instead of <code>from
-secret_key</code>) to be absolutely sure we&#8217;re importing the local module,
-rather than one from somewhere else on <code>sys.path</code>. I&#8217;ll talk a bit
-more about relative imports in the next chapter.</td>
-</tr>
-</table>
-</div>
-<div class="admonitionblock note">
-<table>
-<tr>
-<td class="icon">
-<i class="fa icon-note" title="Note"></i>
-</td>
-<td class="content">
-Hacking the settings file like this is one way of changing configuration
-    on the server.  Another common pattern is to use environment variables.
-    We&#8217;ll see that in <a href="/book/chapter_server_side_debugging.html">[chapter_server_side_debugging]</a>.  See which one you
-    like best.
-</td>
-</tr>
-</table>
-</div>
 </div>
 <div class="sect3 pagebreak-before">
 <h4 id="_updating_the_virtualenv">Updating the Virtualenv</h4>
@@ -447,55 +349,90 @@ run it once or multiple times.</p>
 <div class="sect2">
 <h3 id="_trying_it_out">Trying It Out</h3>
 <div class="paragraph">
-<p>Let&#8217;s
-try it out on our existing staging site, and see it working to update
-a deployment that already exists:</p>
+<p>Before we try, we need to make sure our latest commits are up on GitHub,
+or we won&#8217;t be able to sync the server with our local commits.</p>
 </div>
-<div class="listingblock skipme small-code">
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>git push</strong></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Now let&#8217;s try
+our Fabric script out on our existing staging site, and see it working to
+update a deployment that already exists:</p>
+</div>
+<div class="listingblock small-code">
 <div class="content">
 <pre>$ <strong>cd deploy_tools</strong>
 $ <strong>fab deploy:host=elspeth@superlists-staging.ottg.eu</strong>
-[<a href="mailto:elspeth@superlists-staging.ottg.eu">elspeth@superlists-staging.ottg.eu</a>] Executing task 'deploy'
-[<a href="mailto:elspeth@superlists-staging.ottg.eu">elspeth@superlists-staging.ottg.eu</a>] run: mkdir -p /home/elspeth/sites/superlists-staging.ottg
-[<a href="mailto:elspeth@superlists-staging.ottg.eu">elspeth@superlists-staging.ottg.eu</a>] run: git fetch
+[elspeth@superlists-staging.ottg.eu] Executing task 'deploy'
+[elspeth@superlists-staging.ottg.eu] run: mkdir -p
+/home/elspeth/sites/superlists-staging.ottg.eu
+[elspeth@superlists-staging.ottg.eu] run: git fetch
+[elspeth@superlists-staging.ottg.eu] out: remote: Counting objects: [...]
+[elspeth@superlists-staging.ottg.eu] out: remote: Compressing objects: [...]
+[elspeth@superlists-staging.ottg.eu] out: Unpacking objects: 100% [...]
+done.
 [localhost] local: git log -n 1 --format=%H
-[<a href="mailto:elspeth@superlists-staging.ottg.eu">elspeth@superlists-staging.ottg.eu</a>] run: git reset --hard 67b489db51937b9b8afb4bf87ed849491c
-[<a href="mailto:elspeth@superlists-staging.ottg.eu">elspeth@superlists-staging.ottg.eu</a>] out: HEAD is now at 67b489d migrate database. --ch09l007
-[<a href="mailto:elspeth@superlists-staging.ottg.eu">elspeth@superlists-staging.ottg.eu</a>] out:
-
-[<a href="mailto:elspeth@superlists-staging.ottg.eu">elspeth@superlists-staging.ottg.eu</a>] run: sed -i.bak -r -e 's/DEBUG = True/DEBUG = False/g' "
-[<a href="mailto:elspeth@superlists-staging.ottg.eu">elspeth@superlists-staging.ottg.eu</a>] run: sed -i.bak -r -e 's/ALLOWED_HOSTS =.+$/ALLOWED_HOST
-[<a href="mailto:elspeth@superlists-staging.ottg.eu">elspeth@superlists-staging.ottg.eu</a>] run: echo '
-from .secret_key import SECRET_KEY' &gt;&gt; "$(echo superlists/settings.py)"
-[<a href="mailto:elspeth@superlists-staging.ottg.eu">elspeth@superlists-staging.ottg.eu</a>] run: ./virtualenv/bin/pip install -r requirements.txt
-[<a href="mailto:elspeth@superlists-staging.ottg.eu">elspeth@superlists-staging.ottg.eu</a>] out: Requirement already satisfied: django==1.11 in ./vi
-[<a href="mailto:elspeth@superlists-staging.ottg.eu">elspeth@superlists-staging.ottg.eu</a>] out: Requirement already satisfied: gunicorn==19.7.1 in
-[<a href="mailto:elspeth@superlists-staging.ottg.eu">elspeth@superlists-staging.ottg.eu</a>] out: Requirement already satisfied: pytz in ./virtualenv
-[<a href="mailto:elspeth@superlists-staging.ottg.eu">elspeth@superlists-staging.ottg.eu</a>] out:
-
-[<a href="mailto:elspeth@superlists-staging.ottg.eu">elspeth@superlists-staging.ottg.eu</a>] run: ./virtualenv/bin/python manage.py collectstatic --n
-[<a href="mailto:elspeth@superlists-staging.ottg.eu">elspeth@superlists-staging.ottg.eu</a>] out:
-[<a href="mailto:elspeth@superlists-staging.ottg.eu">elspeth@superlists-staging.ottg.eu</a>] out: 0 static files copied to '/home/elspeth/sites/superl
-[<a href="mailto:elspeth@superlists-staging.ottg.eu">elspeth@superlists-staging.ottg.eu</a>] out:
-
-[<a href="mailto:elspeth@superlists-staging.ottg.eu">elspeth@superlists-staging.ottg.eu</a>] run: ./virtualenv/bin/python manage.py migrate --noinput
-[<a href="mailto:elspeth@superlists-staging.ottg.eu">elspeth@superlists-staging.ottg.eu</a>] out: Operations to perform:
-[<a href="mailto:elspeth@superlists-staging.ottg.eu">elspeth@superlists-staging.ottg.eu</a>] out:   Apply all migrations: auth, contenttypes, lists,
-[<a href="mailto:elspeth@superlists-staging.ottg.eu">elspeth@superlists-staging.ottg.eu</a>] out: Running migrations:
-[<a href="mailto:elspeth@superlists-staging.ottg.eu">elspeth@superlists-staging.ottg.eu</a>] out:   No migrations to apply.
-[<a href="mailto:elspeth@superlists-staging.ottg.eu">elspeth@superlists-staging.ottg.eu</a>] out:</pre>
+[elspeth@superlists-staging.ottg.eu] run: git reset --hard
+[...]
+[elspeth@superlists-staging.ottg.eu] out: HEAD is now at [...]
+[elspeth@superlists-staging.ottg.eu] out:
+[elspeth@superlists-staging.ottg.eu] run: ./virtualenv/bin/pip install -r
+requirements.txt
+[elspeth@superlists-staging.ottg.eu] out: Requirement already satisfied:
+django==1.11 in ./virtualenv/lib/python3.6/site-packages (from -r
+requirements.txt (line 1))
+[elspeth@superlists-staging.ottg.eu] out: Requirement already satisfied:
+gunicorn==19.7.1 in ./virtualenv/lib/python3.6/site-packages (from -r
+requirements.txt (line 2))
+[elspeth@superlists-staging.ottg.eu] out: Requirement already satisfied: pytz
+in ./virtualenv/lib/python3.6/site-packages (from django==1.11-&gt;-r
+requirements.txt (line 1))
+[elspeth@superlists-staging.ottg.eu] out:
+[elspeth@superlists-staging.ottg.eu] run: ./virtualenv/bin/python manage.py
+collectstatic --noinput
+[elspeth@superlists-staging.ottg.eu] out:
+[elspeth@superlists-staging.ottg.eu] out: 0 static files copied to
+'/home/elspeth/sites/superlists-staging.ottg.eu/static', 15 unmodified.
+[elspeth@superlists-staging.ottg.eu] out:
+[elspeth@superlists-staging.ottg.eu] run: ./virtualenv/bin/python manage.py
+migrate --noinput
+[elspeth@superlists-staging.ottg.eu] out: Operations to perform:
+[elspeth@superlists-staging.ottg.eu] out:   Apply all migrations: auth,
+contenttypes, lists, sessions
+[elspeth@superlists-staging.ottg.eu] out: Running migrations:
+[elspeth@superlists-staging.ottg.eu] out:   No migrations to apply.
+[elspeth@superlists-staging.ottg.eu] out:</pre>
 </div>
 </div>
 <div class="paragraph">
 <p>Awesome.  I love making computers spew out pages and pages of output like that
-(in fact I find it hard to stop myself from making little '70s computer <em>&lt;brrp, brrrp, brrrp&gt;</em> noises like Mother in <em>Alien</em>).  If we look through it
-we can see it is doing our bidding: the <code>mkdir -p</code> command goes through
+(in fact I find it hard to stop myself from making little \'70s computer
+<em>&lt;brrp, brrrp, brrrp&gt;</em> noises like Mother in <em>Alien</em>).  If we look through
+it we can see it is doing our bidding: the <code>mkdir -p</code> command goes through
 happily, even though the directory already exist.  Next <code>git pull</code> pulls down
-the couple of commits we just made.  The <code>sed</code> and <code>echo &gt;&gt;</code> modify our
-'settings.py'. Then <code>pip install -r requirements.txt</code> completes happily,
-noting that the existing virtualenv already has all the packages we need.
-<code>collectstatic</code> also notices that the static files are all already there, and
-finally the <code>migrate</code> completes without a hitch.</p>
+the couple of commits we just made.  Then <code>pip install -r requirements.txt</code>
+completes happily, noting that the existing virtualenv already has all the
+packages we need. <code>collectstatic</code> also notices that the static files are all
+already there, and finally the <code>migrate</code> completes without needing to apply
+anything.</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+For this script to work, you need to have done a <code>git push</code> of your
+    current local commit, so that the server can pull it down and <code>reset</code> to
+    it. If you see an error saying <code>Could not parse object</code>, try doing a <code>git
+    push</code>.
+</td>
+</tr>
+</table>
 </div>
 <div class="sidebarblock">
 <div class="content">
@@ -527,68 +464,69 @@ see the <a href="http://docs.fabfile.org">Fabric documentation</a> for more info
 <div class="paragraph">
 <p>So, let&#8217;s try using it for our live site!</p>
 </div>
-<div class="listingblock skipme small-code">
+<div class="listingblock small-code">
 <div class="content">
 <pre>$ <strong>fab deploy:host=elspeth@superlists.ottg.eu</strong>
-[<a href="mailto:elspeth@superlists.ottg.eu">elspeth@superlists.ottg.eu</a>] Executing task 'deploy'
-[<a href="mailto:elspeth@superlists.ottg.eu">elspeth@superlists.ottg.eu</a>] run: mkdir -p /home/elspeth/sites/superlists.ottg.eu
-[<a href="mailto:elspeth@superlists.ottg.eu">elspeth@superlists.ottg.eu</a>] run: git clone <a href="https://github.com/hjwp/book-example.git" class="bare">https://github.com/hjwp/book-example.git</a> .
-[<a href="mailto:elspeth@superlists.ottg.eu">elspeth@superlists.ottg.eu</a>] out: Cloning into '.'...
+[elspeth@superlists.ottg.eu] Executing task 'deploy'
+[elspeth@superlists.ottg.eu] run: mkdir -p
+/home/elspeth/sites/superlists.ottg.eu
+[elspeth@superlists.ottg.eu] run: git clone
+https://github.com/hjwp/book-example.git .
+[elspeth@superlists.ottg.eu] out: Cloning into '.'...
 [...]
-[<a href="mailto:elspeth@superlists.ottg.eu">elspeth@superlists.ottg.eu</a>] out: Receiving objects: 100% (17216/17216), 2.83 MiB | 2.00 MiB/s
-[<a href="mailto:elspeth@superlists.ottg.eu">elspeth@superlists.ottg.eu</a>] out: Resolving deltas:   0% (0/10487)
+[elspeth@superlists.ottg.eu] out: Receiving objects: 100% [...]
 [...]
-[<a href="mailto:elspeth@superlists.ottg.eu">elspeth@superlists.ottg.eu</a>] out: Resolving deltas: 100% (10487/10487), done.
-[<a href="mailto:elspeth@superlists.ottg.eu">elspeth@superlists.ottg.eu</a>] out: Checking connectivity... done.
-[<a href="mailto:elspeth@superlists.ottg.eu">elspeth@superlists.ottg.eu</a>] out:
-
+[elspeth@superlists.ottg.eu] out: Resolving deltas: 100% [...]
+[elspeth@superlists.ottg.eu] out: Checking connectivity... done.
+[elspeth@superlists.ottg.eu] out:
 [localhost] local: git log -n 1 --format=%H
-[<a href="mailto:elspeth@superlists.ottg.eu">elspeth@superlists.ottg.eu</a>] run: git reset --hard 67b489db51937b9b8afb4bf87ed849491c071e67
-[<a href="mailto:elspeth@superlists.ottg.eu">elspeth@superlists.ottg.eu</a>] out: HEAD is now at 67b489d migrate database. --ch09l007--
-[<a href="mailto:elspeth@superlists.ottg.eu">elspeth@superlists.ottg.eu</a>] out:
+[elspeth@superlists.ottg.eu] run: git reset --hard [...]
+[elspeth@superlists.ottg.eu] out: HEAD is now at [...]
+[elspeth@superlists.ottg.eu] out:
 
-[<a href="mailto:elspeth@superlists.ottg.eu">elspeth@superlists.ottg.eu</a>] run: sed -i.bak -r -e 's/DEBUG = True/DEBUG = False/g' "$(echo su
-[<a href="mailto:elspeth@superlists.ottg.eu">elspeth@superlists.ottg.eu</a>] run: sed -i.bak -r -e 's/ALLOWED_HOSTS =.+$/ALLOWED_HOSTS = ["sup
-[<a href="mailto:elspeth@superlists.ottg.eu">elspeth@superlists.ottg.eu</a>] run: echo 'SECRET_KEY = "@lizgs$hmc-nowxtfx1#c99jk+*=hp=cl4*33oof
-[<a href="mailto:elspeth@superlists.ottg.eu">elspeth@superlists.ottg.eu</a>] run: echo '
-from .secret_key import SECRET_KEY' &gt;&gt; "$(echo superlists/settings.py)"
-[<a href="mailto:elspeth@superlists.ottg.eu">elspeth@superlists.ottg.eu</a>] run: python3.6 -m venv virtualenv
-[<a href="mailto:elspeth@superlists.ottg.eu">elspeth@superlists.ottg.eu</a>] run: ./virtualenv/bin/pip install -r requirements.txt
-[<a href="mailto:elspeth@superlists.ottg.eu">elspeth@superlists.ottg.eu</a>] out: Collecting django==1.11 (from -r requirements.txt (line 1))
-[<a href="mailto:elspeth@superlists.ottg.eu">elspeth@superlists.ottg.eu</a>] out:   Using cached Django-1.11-py2.py3-none-any.whl
-[<a href="mailto:elspeth@superlists.ottg.eu">elspeth@superlists.ottg.eu</a>] out: Collecting gunicorn==19.7.1 (from -r requirements.txt (line
-[<a href="mailto:elspeth@superlists.ottg.eu">elspeth@superlists.ottg.eu</a>] out:   Using cached gunicorn-19.7.1-py2.py3-none-any.whl
-[<a href="mailto:elspeth@superlists.ottg.eu">elspeth@superlists.ottg.eu</a>] out: Collecting pytz (from django==1.11-&gt;-r requirements.txt (lin
-[<a href="mailto:elspeth@superlists.ottg.eu">elspeth@superlists.ottg.eu</a>] out:   Using cached pytz-2017.3-py2.py3-none-any.whl
-[<a href="mailto:elspeth@superlists.ottg.eu">elspeth@superlists.ottg.eu</a>] out: Installing collected packages: pytz, django, gunicorn
-[<a href="mailto:elspeth@superlists.ottg.eu">elspeth@superlists.ottg.eu</a>] out: Successfully installed django-1.11 gunicorn-19.7.1 pytz-2017
-[<a href="mailto:elspeth@superlists.ottg.eu">elspeth@superlists.ottg.eu</a>] out:
-
-[<a href="mailto:elspeth@superlists.ottg.eu">elspeth@superlists.ottg.eu</a>] run: ./virtualenv/bin/python manage.py collectstatic --noinput
-[<a href="mailto:elspeth@superlists.ottg.eu">elspeth@superlists.ottg.eu</a>] out: Copying '/home/elspeth/sites/superlists.ottg.eu/lists/static/
-[...\
-[<a href="mailto:elspeth@superlists.ottg.eu">elspeth@superlists.ottg.eu</a>] out: Copying '/home/elspeth/sites/superlists.ottg.eu/lists/static/
-[<a href="mailto:elspeth@superlists.ottg.eu">elspeth@superlists.ottg.eu</a>] out: Copying '/home/elspeth/sites/superlists.ottg.eu/lists/static/
-[<a href="mailto:elspeth@superlists.ottg.eu">elspeth@superlists.ottg.eu</a>] out:
-[<a href="mailto:elspeth@superlists.ottg.eu">elspeth@superlists.ottg.eu</a>] out: 15 static files copied to '/home/elspeth/sites/superlists.ott
-[<a href="mailto:elspeth@superlists.ottg.eu">elspeth@superlists.ottg.eu</a>] out:
-
-[<a href="mailto:elspeth@superlists.ottg.eu">elspeth@superlists.ottg.eu</a>] run: ./virtualenv/bin/python manage.py migrate --noinput
-[<a href="mailto:elspeth@superlists.ottg.eu">elspeth@superlists.ottg.eu</a>] out: Operations to perform:
-[<a href="mailto:elspeth@superlists.ottg.eu">elspeth@superlists.ottg.eu</a>] out:   Apply all migrations: auth, contenttypes, lists, sessions
-[<a href="mailto:elspeth@superlists.ottg.eu">elspeth@superlists.ottg.eu</a>] out: Running migrations:
-[<a href="mailto:elspeth@superlists.ottg.eu">elspeth@superlists.ottg.eu</a>] out:   Applying contenttypes.0001_initial... OK
-[<a href="mailto:elspeth@superlists.ottg.eu">elspeth@superlists.ottg.eu</a>] out:   Applying contenttypes.0002_remove_content_type_name... OK
-[<a href="mailto:elspeth@superlists.ottg.eu">elspeth@superlists.ottg.eu</a>] out:   Applying auth.0001_initial... OK
-[<a href="mailto:elspeth@superlists.ottg.eu">elspeth@superlists.ottg.eu</a>] out:   Applying auth.0002_alter_permission_name_max_length... OK
+[elspeth@superlists.ottg.eu] run: python3.6 -m venv virtualenv
+[elspeth@superlists.ottg.eu] run: ./virtualenv/bin/pip install -r
+requirements.txt
+[elspeth@superlists.ottg.eu] out: Collecting django==1.11 [...]
+[elspeth@superlists.ottg.eu] out:   Using cached [...]
+[elspeth@superlists.ottg.eu] out: Collecting gunicorn==19.7.1 [...]
+[elspeth@superlists.ottg.eu] out:   Using cached [...]
+[elspeth@superlists.ottg.eu] out: Collecting pytz [...]
+[elspeth@superlists.ottg.eu] out:   Using cached [...]
+[elspeth@superlists.ottg.eu] out: Installing collected packages: pytz, django,
+gunicorn
+[elspeth@superlists.ottg.eu] out: Successfully installed django-1.11
+gunicorn-19.7.1 pytz-2017.3
+[elspeth@superlists.ottg.eu] out:
+[elspeth@superlists.ottg.eu] run: ./virtualenv/bin/python manage.py
+collectstatic --noinput
+[elspeth@superlists.ottg.eu] out: Copying
+'/home/elspeth/sites/superlists.ottg.eu/lists/static/base.css'
 [...]
-[<a href="mailto:elspeth@superlists.ottg.eu">elspeth@superlists.ottg.eu</a>] out:   Applying lists.0004_item_list... OK
-[<a href="mailto:elspeth@superlists.ottg.eu">elspeth@superlists.ottg.eu</a>] out:   Applying sessions.0001_initial... OK
-[<a href="mailto:elspeth@superlists.ottg.eu">elspeth@superlists.ottg.eu</a>] out:
+[elspeth@superlists.ottg.eu] out: 15 static files copied to
+'/home/elspeth/sites/superlists.ottg.eu/static'.
+[elspeth@superlists.ottg.eu] out:
+
+[elspeth@superlists.ottg.eu] run: ./virtualenv/bin/python manage.py migrate
+[...]
+[elspeth@superlists.ottg.eu] out: Operations to perform:
+[elspeth@superlists.ottg.eu] out:   Apply all migrations: auth, contenttypes,
+lists, sessions
+[elspeth@superlists.ottg.eu] out: Running migrations:
+[elspeth@superlists.ottg.eu] out:   Applying contenttypes.0001_initial... OK
+[elspeth@superlists.ottg.eu] out:   Applying
+contenttypes.0002_remove_content_type_name... OK
+[elspeth@superlists.ottg.eu] out:   Applying auth.0001_initial... OK
+[elspeth@superlists.ottg.eu] out:   Applying
+auth.0002_alter_permission_name_max_length... OK
+[...]
+[elspeth@superlists.ottg.eu] out:   Applying lists.0004_item_list... OK
+[elspeth@superlists.ottg.eu] out:   Applying sessions.0001_initial... OK
+[elspeth@superlists.ottg.eu] out:
 
 
 Done.
-Disconnecting from <a href="mailto:elspeth@superlists.ottg.eu">elspeth@superlists.ottg.eu</a>... done.</pre>
+Disconnecting from elspeth@superlists.ottg.eu... done.</pre>
 </div>
 </div>
 <div class="paragraph">
@@ -600,7 +538,7 @@ time, and the <code>migrate</code> seems to have worked too.</p>
 </div>
 </div>
 <div class="sect3">
-<h4 id="_nginx_and_gunicorn_config_using_sed">Nginx and Gunicorn Config Using sed</h4>
+<h4 id="_provisioning_nginx_and_gunicorn_config_using_sed">Provisioning: Nginx and Gunicorn Config Using sed</h4>
 <div class="paragraph">
 <p>What
 else do we need to do to get our live site into production? We refer to
@@ -610,7 +548,7 @@ command-line magic?</p>
 </div>
 <div class="listingblock server-commands">
 <div class="content">
-<pre>elspeth@server:$ <strong>sed "s/SITENAME/superlists.ottg.eu/g" \
+<pre>elspeth@server:$ <strong>sed "s/DOMAIN/superlists.ottg.eu/g" \
     ./deploy_tools/nginx.template.conf \
     | sudo tee /etc/nginx/sites-available/superlists.ottg.eu</strong></pre>
 </div>
@@ -618,7 +556,7 @@ command-line magic?</p>
 <div class="paragraph">
 <p><code>sed</code> ("stream editor") takes a stream of text and performs edits on it. It&#8217;s
 no accident that the Fabric string substitution command has the same name.  In
-this case we ask it to substitute the string <em>SITENAME</em> for the address of our
+this case we ask it to substitute the string <em>DOMAIN</em> for the address of our
 site, with the <code>s/replaceme/withthis/g</code>
 syntax.<sup class="footnote">[<a id="_footnoteref_3" class="footnote" href="#_footnote_3" title="View footnote.">3</a>]</sup>
 We pipe (<code>|</code>) the output of that to a root-user process (<code>sudo</code>), which uses
@@ -639,7 +577,7 @@ sites-available virtualhost config file.</p>
 </div>
 <div class="listingblock server-commands">
 <div class="content">
-<pre>elspeth@server: <strong>sed "s/SITENAME/superlists.ottg.eu/g" \
+<pre>elspeth@server: <strong>sed "s/DOMAIN/superlists.ottg.eu/g" \
     ./deploy_tools/gunicorn-systemd.template.service \
     | sudo tee /etc/systemd/system/gunicorn-superlists.ottg.eu.service</strong></pre>
 </div>
@@ -737,6 +675,8 @@ Greenfeld and Audrey Roy</p>
 </li>
 </ul>
 </div>
+<div class="sect3">
+<h4 id="_automating_provisioning_with_ansible">Automating provisioning with Ansible</h4>
 <div class="paragraph">
 <p>For some ideas on how you might go about automating the provisioning step,
 and an alternative to Fabric called Ansible, go check out <a href="/book/appendix_III_provisioning_with_ansible.html">[appendix3]</a>.</p>
@@ -787,6 +727,7 @@ is very flexible, but its logic is still based on scripting. More
 </div>
 </div>
 </div>
+</div>
 <div id="footnotes">
 <hr>
 <div class="footnote" id="_footnote_1">
@@ -801,7 +742,7 @@ is very flexible, but its logic is still based on scripting. More
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2017-12-30 20:21:03 GMT
+Last updated 2018-01-07 23:38:54 GMT
 </div>
 </div>
 <div class="comments" style="padding: 20px">
