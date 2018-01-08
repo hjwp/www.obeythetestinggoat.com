@@ -189,7 +189,7 @@ testing fits in.</p>
 keep your bearings:</p>
 </div>
 <div class="paragraph">
-<p><strong>This chapter: getting a manual deployment up and running</strong></p>
+<p><strong>This chapter: getting a basic manual deployment up and running</strong></p>
 </div>
 <div class="ulist">
 <ul>
@@ -223,10 +223,16 @@ not.</p>
 <div class="ulist">
 <ul>
 <li>
-<p>Move from our quick-and-dirty version to a production-ready configuration;
-stop using the Django dev server, use Nginx and Gunicorn as web serves,
+<p>Move from our quick-and-dirty version to a production-ready configuration;</p>
+</li>
+<li>
+<p>Stop using the Django dev server, use Nginx and Gunicorn as web servers,
 configure efficient static file serving, set our app to start automatically
-on boot, set <code>DEBUG</code> to <code>False</code>, and so on.</p>
+on boot with Systemd</p>
+</li>
+<li>
+<p>Security: Use environment variables to <code>DEBUG</code> to <code>False</code>, change the
+<code>SECRET_KEY</code>, and so on</p>
 </li>
 </ul>
 </div>
@@ -254,8 +260,8 @@ on its real domain.</p>
 <div class="paragraph">
 <p>Let&#8217;s
 adapt our functional tests slightly so that it can be run against
-a staging site. We&#8217;ll do it by checking for an environment variable called
-<code>STAGING_SERVER</code>:</p>
+a staging site, instead of the local dev server. We&#8217;ll do it by checking for an
+environment variable called <code>STAGING_SERVER</code>:</p>
 </div>
 <div class="exampleblock sourcecode">
 <div class="title">functional_tests/tests.py (ch08l001)</div>
@@ -322,8 +328,8 @@ host my staging server at <em>superlists-staging.ottg.eu</em>:</p>
 </td>
 <td class="content">
 A clarification: in this chapter, we run tests <em>against</em> our staging
-    server, not <em>on</em> our staging server.  So we run the tests from our own
-    laptop, but they target the site that&#8217;s running on the server.
+    server, not <em>on</em> our staging server.  So we still run the tests from our
+    own laptop, but they target the site that&#8217;s running on the server.
 </td>
 </tr>
 </table>
@@ -392,7 +398,7 @@ If, on Windows, you see an error saying something like
 </div>
 <div class="paragraph">
 <p>You can see that all the tests are failing, as expected, since I haven&#8217;t
-actually set up my domain yet&#8201;&#8212;&#8201;Selenium reports that Firefox is seeing an
+actually set up my domain yet. Selenium reports that Firefox is seeing an
 error and "cannot establish connection to the server" (depending on your
 registrar, you might see content from its default landing page instead).</p>
 </div>
@@ -481,8 +487,8 @@ fall into two camps:</p>
 <p>Running your own (possibly virtual) server</p>
 </li>
 <li>
-<p>Using a Platform-As-A-Service (PaaS) offering like Heroku, OpenShift, or
-<span class="keep-together">PythonAnywhere</span></p>
+<p>Using a Platform-As-A-Service (PaaS)
+offering like Heroku, OpenShift, or <span class="keep-together">PythonAnywhere</span></p>
 </li>
 </ul>
 </div>
@@ -495,8 +501,7 @@ that I think PythonAnywhere is the best, but then again I would say that
 because I work there.  Secondly, all the PaaS offerings are quite different,
 and the procedures to deploy to each vary a lot&#8212;&#8203;learning about one doesn&#8217;t
 necessarily tell you about the others. Any one of them might change their
-process radically, or simply go out of business by the time you get to read
-this book.</p>
+process or business model radically by the time you get to read this book.</p>
 </div>
 <div class="paragraph">
 <p>Instead, we&#8217;ll learn just a tiny bit of good old-fashioned server admin,
@@ -505,7 +510,7 @@ knowing a bit about them will get you some respect from all the grizzled
 dinosaurs out there.</p>
 </div>
 <div class="paragraph">
-<p>What I have done is to try to set up a server in such a way that it&#8217;s a lot
+<p>What I have done is to try to set up a server in such a way that&#8217;s a bit
 like the environment you get from a PaaS, so you should be able to apply the
 lessons we learn in the deployment section, no matter what provisioning
 solution you choose.</p>
@@ -514,10 +519,10 @@ solution you choose.</p>
 <div class="sect3">
 <h4 id="_spinning_up_a_server">Spinning Up a Server</h4>
 <div class="paragraph">
-<p>I&#8217;m not going to
-dictate how you do this&#8212;&#8203;whether you choose Amazon AWS, Rackspace, Digital
-Ocean, your own server in your own data centre or a Raspberry Pi in a cupboard
-under the stairs, any solution should be fine, as long as:</p>
+<p>I&#8217;m not going to dictate how you do this&#8212;&#8203;whether you choose Amazon AWS,
+Rackspace, Digital Ocean, your own server in your own data centre or a
+Raspberry Pi in a cupboard under the stairs, any solution should be fine, as
+long as:</p>
 </div>
 <div class="ulist">
 <ul>
@@ -555,12 +560,11 @@ where to start, I wrote a
 </td>
 <td class="content">
 Some
-people get to this chapter, and are tempted to skip the domain bit,
+    people get to this chapter, and are tempted to skip the domain bit,
     and the "getting a real server" bit, and just use a VM on their own PC.
     Don&#8217;t do this. It&#8217;s <em>not</em> the same, and you&#8217;ll have more difficulty
     following the instructions, which are complicated enough as it is.  If
-    you&#8217;re worried about cost, dig around and you&#8217;ll find free options for
-    both. Email me if you need further pointers; I&#8217;m always happy to help.
+    you&#8217;re worried about cost, have a look at the link above for free options.
 </td>
 </tr>
 </table>
@@ -704,14 +708,15 @@ database, static files and virtualenv (managed separately).</p>
 <div class="paragraph">
 <p>To get our code onto the server, we&#8217;ll use Git and go via one of the
 code-sharing sites.  If you haven&#8217;t already, push your code up to GitHub,
-BitBucket, or similar.  They all have excellent instructions for beginners on
-how to do that.</p>
+BitBucket, GitLab, or similar.  They all have excellent instructions for
+beginners on how to do that.</p>
 </div>
 <div class="paragraph">
 <p>Here
 are some bash commands that will set this all up. If you&#8217;re not familiar
 with it, note the <code>export</code> command which lets me set up a "local variable"
-in bash:</p>
+in Bash; a bit like the inline environment variable we used earlier, but
+it&#8217;s available to all subsequent commands in that same shell.</p>
 </div>
 <div class="listingblock server-commands small-code">
 <div class="content">
@@ -738,8 +743,8 @@ A bash variable defined using <code>export</code> only lasts as long as that con
 </table>
 </div>
 <div class="paragraph">
-<p>Now we&#8217;ve got the site installed, let&#8217;s just try running the dev server&#8212;&#8203;this
-is a smoke test, to see if all the moving parts are connected:</p>
+<p>Now we&#8217;ve got the site installed, let&#8217;s just try running the dev server, and
+see how far we get:</p>
 </div>
 <div class="listingblock server-commands">
 <div class="content">
@@ -787,7 +792,8 @@ $ <strong>git commit -m "Add requirements.txt for virtualenv"</strong></pre>
 <td class="content">
 You may be wondering why we didn&#8217;t add our other dependency,
     Selenium, to our requirements.  The reason is that Selenium is
-    only a dependency for the tests, not the application code.  Some
+    only a dependency for the tests, not the application code (we&#8217;re
+    never going to run the tests on the server itself).  Some
     people like to also create a file called <em>test-requirements.txt</em>.
 </td>
 </tr>
@@ -863,8 +869,8 @@ certainly looks a lot happier.</p>
 </div>
 <div class="paragraph">
 <p>Progress!  We&#8217;ve got a system for getting code to and from the server
-(<code>git push</code> and <code>git pull</code>), and we&#8217;ve got a virtualenv set up to match our
-local one, and a single file, <em>requirements.txt</em>, to keep them in sync.</p>
+(<code>git push</code> and <code>git pull</code>), we&#8217;ve got a virtualenv set up to match our local
+one, and a single file, <em>requirements.txt</em>, to keep them in sync.</p>
 </div>
 </div>
 <div class="sect3">
@@ -927,7 +933,7 @@ that things aren&#8217;t working. Nope.</p>
 <div class="paragraph">
 <p>Let me let you in on a little secret.  I&#8217;m actually bad at debugging.  We all
 have our psychological strengths and weakness, and one of my weaknesses is that
-when I run into a problem I can&#8217;t see an obvious solution to, I tend to throw
+when I run into a problem I can&#8217;t see an obvious solution to, I want to throw
 up my hands way too soon and say "well, this is hopeless, it can&#8217;t be fixed",
 and give up.</p>
 </div>
@@ -973,7 +979,8 @@ existing <code>runserver</code> process):</p>
 server itself, just not from the outside.  What could be going on?</p>
 </div>
 <div class="paragraph">
-<p>Actually there&#8217;s clue in the output that Django prints out:</p>
+<p>Actually there&#8217;s clue in the output that Django printed out earlier when
+we ran <code>runserver</code>:</p>
 </div>
 <div class="listingblock skipme small-code">
 <div class="content">
@@ -1066,7 +1073,7 @@ that <code>curl</code> output&#8230;&#8203;</p>
 </div>
 </div>
 <div class="sect2">
-<h3 id="_setting_allowed_hosts_using_an_environment_variable">Setting ALLOWED_HOSTS using an environment variable</h3>
+<h3 id="_setting_allowed_hosts_using_an_environment_variable">Setting ALLOWED_HOSTS Using an Environment Variable</h3>
 <div class="paragraph">
 <p>Don&#8217;t
 be disheartened!  We may have just fixed one problem only to run straight
@@ -1189,17 +1196,19 @@ through, or if you tried it manually.</p>
 </td>
 <td class="content">
 The tests saved us from potential embarrassment there.  The site <em>looked</em>
-    fine when we loaded its front page.  If we&#8217;d been a little hasty, we might
-    have thought we were done, and it would have been the first users that
-    discovered that nasty Django DEBUG page.  Okay, slight exaggeration for
-    effect, maybe we <em>would</em> have checked, but what happens as the site gets
-    bigger and more complex? You can&#8217;t check everything. The tests can.
+    fine when we loaded its front page.  If we&#8217;d been a little hasty and only
+    testing manually, we might have thought we were done, and it would have
+    been the first users that discovered that nasty Django DEBUG page.  Okay,
+    slight exaggeration for effect, maybe we <em>would</em> have checked, but what
+    happens as the site gets bigger and more complex? You can&#8217;t check
+    everything. The tests can.
 </td>
 </tr>
 </table>
 </div>
-<div class="sect3">
-<h4 id="_creating_the_database_with_migrate">Creating the Database with migrate</h4>
+</div>
+<div class="sect2">
+<h3 id="_creating_the_database_with_migrate">Creating the Database with migrate</h3>
 <div class="paragraph">
 <p>We
 run <code>migrate</code> using the <code>--noinput</code> argument to suppress the two little "are
@@ -1241,17 +1250,19 @@ OK</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>Hooray! Time for a well-earned tea break I think, and perhaps a
-<a href="https://en.wikipedia.org/wiki/Digestive_biscuit">Chocolate biscuit</a>.</p>
+<p>Hooray, that&#8217;s a working deploy!</p>
 </div>
+<div class="paragraph">
+<p>Time for a well-earned tea break I think, and perhaps a
+<a href="https://en.wikipedia.org/wiki/Digestive_biscuit">Chocolate biscuit</a>.</p>
 </div>
 </div>
 <div class="sect2 pagebreak-before less_space">
 <h3 id="_success_our_hack_deployment_works">Success!  Our Hack Deployment Works</h3>
 <div class="paragraph">
-<p>Phew.  Assuming you managed to get that up and running, we are at least
-reassured that the basic piping works. Notice that the FT was able to guide
-us incrementally towards a working site.</p>
+<p>Phew.  Well, it took a bit of hacking about, but now we can be reassured that
+the basic piping works. Notice that the FT was able to guide us incrementally
+towards a working site.</p>
 </div>
 <div class="paragraph">
 <p>But we really can&#8217;t be using the Django dev server in production, or running on
@@ -1279,7 +1290,7 @@ dependencies, and custom settings that differ between development and
 production.  You&#8217;ll need to think through each of these for your own
 deployments.</p>
 </dd>
-<dt class="hdlist1">Tests allow us to experiment</dt>
+<dt class="hdlist1">Tests allow us to experiment and work incrementally</dt>
 <dd>
 <p>Whenever we make a change to our server configuration, we can rerun the
 test suite, and be confident that everything works as well as it did
@@ -1305,7 +1316,7 @@ we&#8217;ll see in the next chapter).</p>
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2018-01-07 20:09:39 GMT
+Last updated 2018-01-08 08:41:57 GMT
 </div>
 </div>
 <div class="comments" style="padding: 20px">
