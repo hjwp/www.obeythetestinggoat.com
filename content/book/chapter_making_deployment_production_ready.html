@@ -60,27 +60,42 @@ httpRequest.send();
 </table>
 </div>
 <div class="paragraph">
-<p>In
-this chapter we&#8217;ll make some changes to our site to move to a configuration
-that&#8217;s more production-ready.  As we make each change, we&#8217;ll use the tests to
-tell us whether things are still working.</p>
+<p>Our
+deployment is working fine but it&#8217;s not production-ready.  Let&#8217;s try
+and get it there, using the tests to guide us.</p>
 </div>
 <div class="paragraph">
-<p>What&#8217;s wrong with our hacky deployment?  A few things: we need to host
-our app on the "normal" port 80 and we shouldn&#8217;t use the Django dev server for
-production; it&#8217;s not designed for "real-life" loads.    Instead, we&#8217;ll use the
+<p>In a way we&#8217;re applying the Red-Green-Refactor cycle to our server deployment.
+Our hacky deployment got us to Green, and now we&#8217;re going to Refactor, working
+incrementally (just as we would while coding), trying to move from working
+state to working state, and using the FTs to detect any regressions.</p>
+</div>
+<div class="sect2">
+<h3 id="_what_we_need_to_do">What we need to do</h3>
+<div class="paragraph">
+<p>What&#8217;s wrong with our hacky deployment?  A few things: first, we need to host
+our app on the "normal" port 80 so that people can access it using a regular
+URL.</p>
+</div>
+<div class="paragraph">
+<p>Perhaps more importantly, we shouldn&#8217;t use the Django dev server for
+production; it&#8217;s not designed for real-life workloads.  Instead, we&#8217;ll use the
 popular combination of the Nginx web server and the Gunicorn Python/WSGI
 server.</p>
 </div>
 <div class="paragraph">
-<p>Our
-<em>settings.py</em> currently has also <code>DEBUG=True</code>, and that&#8217;s strongly recommended
-against for production (you don&#8217;t want users staring at debug tracebacks of
-your code when your site errors, for example).</p>
+<p>Several settings in <em>settings.py</em> are currently
+unacceptable too. <code>DEBUG=True</code>, is strongly recommended against for production,
+and we&#8217;ll want to fix <code>ALLOWED_HOSTS</code>, and set a unique <code>SECRET_KEY</code> too.</p>
 </div>
 <div class="paragraph">
-<p>We want our site to start up automatically whenever the server reboots.
-For that we&#8217;ll write a Systemd config file.</p>
+<p>Finally, we don&#8217;t want to have to SSH in to our server to actually start the site.
+Instead,  we&#8217;ll write a Systemd config file so that it starts up automatically
+whenever the server (re)boots.</p>
+</div>
+<div class="paragraph">
+<p>Let&#8217;s go through and see if we can fix each of these things one by one.</p>
+</div>
 </div>
 <div class="sect2">
 <h3 id="_switching_to_nginx">Switching to Nginx</h3>
@@ -88,7 +103,7 @@ For that we&#8217;ll write a Systemd config file.</p>
 <h4 id="_installation">Installation</h4>
 <div class="paragraph">
 <p>We&#8217;ll
-need a web server, and all the cool kids are using Nginx these days,
+need a real web server, and all the cool kids are using Nginx these days,
 so we will too.  Having fought with Apache for many years, I can tell
 you it&#8217;s a blessed relief in terms of the readability of its config files,
 if nothing else!</p>
@@ -132,7 +147,7 @@ If you don&#8217;t see it, it may be because your firewall does not open port 80
 <h4 id="_using_the_ft_to_confirm_the_domain_works_and_nginx_is_running">Using the FT to Confirm the Domain Works and Nginx Is Running</h4>
 <div class="paragraph">
 <p>We can also confirm that if
-we run the FT without specifying port 8000, we see them fail again&#8212;&#8203;one of them
+we run the FT <em>without</em> specifying port 8000, we see them fail again&#8212;&#8203;one of them
 in particular should now mention Nginx:</p>
 </div>
 <div class="listingblock small-code against-server">
@@ -207,10 +222,11 @@ Not sure how to edit a file on the server?  There&#8217;s always vi, which I&#82
 <pre># reset our env var (if necessary)
 elspeth@server:$ <strong>export SITENAME=superlists-staging.ottg.eu</strong>
 
-elspeth@server:$ <strong>sudo ln -s ../sites-available/$SITENAME /etc/nginx/sites-enabled/$SITENAME</strong>
+elspeth@server:$ <strong>cd /etc/nginx/sites-enabled/</strong>
+elspeth@server:$ <strong>sudo ln -s /etc/nginx/sites-available/$SITENAME $SITENAME</strong>
 
 # check our symlink has worked:
-elspeth@server:$ <strong>readlink -f /etc/nginx/sites-enabled/$SITENAME</strong>
+elspeth@server:$ <strong>readlink -f $SITENAME</strong>
 /etc/nginx/sites-available/superlists-staging.ottg.eu</pre>
 </div>
 </div>
@@ -234,8 +250,7 @@ that it makes it easier to switch sites on or off.</p>
 <div class="listingblock server-commands">
 <div class="content">
 <pre>elspeth@server:$ <strong>sudo systemctl reload nginx</strong>
-elspeth@server:$ <strong>pwd</strong>
-/home/elspeth/sites/superlists-staging.ottg.eu
+elspeth@server:$ <strong>cd ~/sites/$SITENAME</strong>
 elspeth@server:$ <strong>./virtualenv/bin/python manage.py runserver 8000</strong></pre>
 </div>
 </div>
@@ -258,7 +273,7 @@ cause of the problem.</p>
 <div class="paragraph">
 <p>The solution turns out to be that, by default, Nginx strips out the Host
 headers from requests it forwards, and it makes it "look like" they came
-from localhost after all.  We can tell it to forward on the original host
+from <em>localhost</em> after all.  We can tell it to forward on the original host
 header by adding the <code>proxy_set_header</code> directive:</p>
 </div>
 <div class="exampleblock sourcecode">
@@ -280,7 +295,7 @@ header by adding the <code>proxy_set_header</code> directive:</p>
 </div>
 </div>
 <div class="paragraph">
-<p>Reload nginx once more:</p>
+<p>Reload Nginx once more:</p>
 </div>
 <div class="listingblock server-commands">
 <div class="content">
@@ -334,6 +349,45 @@ I also had to edit <em>/etc/nginx/nginx.conf</em> and uncomment a line saying
 </td>
 </tr>
 </table>
+</div>
+<div class="sidebarblock">
+<div class="content">
+<div class="title">Tips on Debugging Nginx</div>
+<div class="paragraph">
+<p>Deployments
+are tricky!  If ever things don&#8217;t go exactly as expected, here are
+a few tips and things to look out for, particularly around Nginx.</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>I&#8217;m sure you already have, but double-check that each file is exactly where
+it should be and has the right contents&#8212;&#8203;a single stray character can make
+all the difference.</p>
+</li>
+<li>
+<p>Nginx error logs go into <em>/var/log/nginx/error.log</em>.</p>
+</li>
+<li>
+<p>You can ask Nginx to "check" its config using the <code>-t</code> flag: <code>nginx -t</code></p>
+</li>
+<li>
+<p>Make sure your browser isn&#8217;t caching an out-of-date response.  Use
+Ctrl-Refresh, or start a new private browser window.</p>
+</li>
+<li>
+<p>This may be clutching at straws, but I&#8217;ve sometimes seen inexplicable
+behaviour on the server that&#8217;s only been resolved when I fully restarted it
+with a <code>sudo reboot</code>.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>If you ever get completely stuck, there&#8217;s always the option of blowing away
+your server and starting again from scratch!  It should go faster the second
+time&#8230;&#8203;</p>
+</div>
+</div>
 </div>
 </div>
 </div>
@@ -403,8 +457,8 @@ nice and early. Moving on!</p>
 <i class="fa icon-tip" title="Tip"></i>
 </td>
 <td class="content">
-If you see a "502 - Bad Gateway", it&#8217;s probably because you forgot to
-    restart Gunicorn.
+At this point if you see a "502 - Bad Gateway", it&#8217;s probably because you
+    forgot to restart Gunicorn.
 </td>
 </tr>
 </table>
@@ -543,21 +597,42 @@ OK</pre>
 </div>
 </div>
 <div class="sect2">
-<h3 id="_security_switching_debug_to_false_and_setting_a_unique_secret_key">Security: Switching DEBUG to False and Setting a Unique SECRET_KEY</h3>
+<h3 id="_using_environment_variables_to_adjust_settings_for_production">Using Environment Variables to Adjust Settings for Production</h3>
 <div class="paragraph">
-<p>Django&#8217;s
-<code>DEBUG</code> mode is all very well for hacking about on your own server, but
-leaving those pages full of tracebacks available
+<p>We know there are several things in
+<em>settings.py</em> that we want to change for production:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>ALLOWED_HOSTS</code> is currently set to "*" which isn&#8217;t secure.  We want it
+to be set to only match the site we&#8217;re supposed to be serving
+(<em>superlists-staging.ottg.eu</em>)</p>
+</li>
+<li>
+<p><code>DEBUG</code> mode is all very well for hacking about on your own server, but
+leaving those pages full of tracebacks available to the world
 <a href="https://docs.djangoproject.com/en/1.11/ref/settings/#debug">isn&#8217;t secure</a>.</p>
+</li>
+<li>
+<p><code>SECRET_KEY</code> is used by Django uses for some of its crypto&#8212;&#8203;things like cookies
+and CSRF protection. It&#8217;s good practice to make sure the secret key on the
+server is different from the one in your source code repo, because that code
+might be visible to strangers.  We&#8217;ll want to generate a new, random one but
+then keep it the same for the foreseeable future (find out more in the
+<a href="https://docs.djangoproject.com/en/1.11/topics/signing/">Django docs</a>).</p>
+</li>
+</ul>
 </div>
 <div class="paragraph">
-<p>Django uses <code>SECRET_KEY</code> for some of its crypto&#8212;&#8203;things like cookies and CSRF
-protection. It&#8217;s good practice to make sure the secret key on the server is
-different from the one in your source code repo, because that code might be
-visible to strangers.  We&#8217;ll generate one and keep it, once again, in an
-environment variable (once you have a secret key, it should stay the same
-between deploys).  Find out more in the
-<a href="https://docs.djangoproject.com/en/1.11/topics/signing/">Django docs</a>.</p>
+<p>Development, staging and live sites always have some differences
+in their configuration. Environment variables are a good place to
+store those different settings.  See
+<a href="http://www.clearlytech.com/2014/01/04/12-factor-apps-plain-english/">"the
+12-factor app"</a>.<sup class="footnote">[<a id="_footnoteref_1" class="footnote" href="#_footnote_1" title="View footnote.">1</a>]</sup></p>
+</div>
+<div class="paragraph">
+<p>Here&#8217;s one way to make it work:</p>
 </div>
 <div class="exampleblock sourcecode">
 <div class="title">superlists/settings.py (ch08l004)</div>
@@ -588,7 +663,8 @@ to switch debug mode off, and in effect require production settings
 <td><i class="conum" data-value="2"></i><b>2</b></td>
 <td>And now we say that, if debug mode is off, we <em>require</em> the
 <code>SECRET_KEY</code> and <code>ALLOWED_HOSTS</code> to be set by two more environment
-variables.</td>
+variables (one of which can be the <code>$SITENAME</code> variable we&#8217;ve been
+using at the command-line so far).</td>
 </tr>
 <tr>
 <td><i class="conum" data-value="3"></i><b>3</b></td>
@@ -602,15 +678,27 @@ are useful for Dev.</td>
 optional, but I think this gives us a little bit of protection against
 accidentally forgetting to set one.  The end result is that you don&#8217;t
 need to set any of them for dev, but production needs all three, and it
-will error if any are missing.  Better to fail hard than allow a typo in
-an environment variable name to leave you runnning with insecure settings.</p>
+will error if any are missing.</p>
+</div>
+<div class="admonitionblock tip">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-tip" title="Tip"></i>
+</td>
+<td class="content">
+Better to fail hard than allow a typo in an environment variable name to
+    leave you running with insecure settings.
+</td>
+</tr>
+</table>
 </div>
 <div class="paragraph">
 <p>Let&#8217;s do our usual dance of committing locally, and pushing to GitHub:</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>$ <strong>git commit -am "use more env vars for DEBUG and SECRET_KEY"</strong>
+<pre>$ <strong>git commit -am "use env vars for prod settings DEBUG, ALLOWED_HOSTS, SECRET_KEY"</strong>
 $ <strong>git push</strong></pre>
 </div>
 </div>
@@ -762,13 +850,16 @@ OK</pre>
 </div>
 <div class="sidebarblock">
 <div class="content">
-<div class="title">More Debugging Tips</div>
+<div class="title">More Debugging Tips and Commands:</div>
+<div class="paragraph">
+<p>A few more places to look and things to try, now that we&#8217;ve introduced
+Gunicorn and Systemd into the mix, should things not go according to plan:</p>
+</div>
 <div class="ulist">
 <ul>
 <li>
-<p>Check
-the Systemd logs for using
-  <code>sudo journalctl -u gunicorn-superlists-staging.ottg.eu</code>.</p>
+<p>You can check the Systemd logs using
+<code>sudo journalctl -u gunicorn-superlists-staging.ottg.eu</code>.</p>
 </li>
 <li>
 <p>You can ask Systemd to check the validity of your service configuration:
@@ -817,48 +908,6 @@ On
 </td>
 </tr>
 </table>
-</div>
-<div class="paragraph">
-<p>There are a few more debugging tips in the sidebar that follows.</p>
-</div>
-<div class="sidebarblock">
-<div class="content">
-<div class="title">Server Debugging Tips</div>
-<div class="paragraph">
-<p>Deployments
-are tricky!  If ever things don&#8217;t go exactly as expected, here are
-a few tips and things to look out for:</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p>I&#8217;m sure you already have, but double-check that each file is exactly where
-it should be and has the right contents&#8212;&#8203;a single stray character can make
-all the difference.</p>
-</li>
-<li>
-<p>Nginx error logs go into <em>/var/log/nginx/error.log</em>.</p>
-</li>
-<li>
-<p>You can ask Nginx to "check" its config using the <code>-t</code> flag: <code>nginx -t</code></p>
-</li>
-<li>
-<p>Make sure your browser isn&#8217;t caching an out-of-date response.  Use
-Ctrl-Refresh, or start a new private browser window.</p>
-</li>
-<li>
-<p>This may be clutching at straws, but I&#8217;ve sometimes seen inexplicable
-behaviour on the server that&#8217;s only been resolved when I fully restarted it
-with a <code>sudo reboot</code>.</p>
-</li>
-</ul>
-</div>
-<div class="paragraph">
-<p>If you ever get completely stuck, there&#8217;s always the option of blowing away
-your server and starting again from scratch!  It should go faster the second
-time&#8230;&#8203;</p>
-</div>
-</div>
 </div>
 </div>
 </div>
@@ -1168,13 +1217,37 @@ wild place!</p>
 </div>
 </div>
 </div>
+<div class="sidebarblock">
+<div class="content">
+<div class="title">General Server Debugging tips</div>
+<div class="paragraph">
+<p>The most important lesson to remember from this chapter is to work
+incrementally, make one change at a time and run your tests frequently.</p>
+</div>
+<div class="paragraph">
+<p>When things (inevitably) go wrong, resist the temptation to flail about and
+make other, unrelated changes in the hope that things will start working again;
+instead stop, go backwards if necessary to get to a working state, and figure
+out what went wrong before moving forwards again.</p>
+</div>
+<div class="paragraph">
+<p>It&#8217;s just as easy to fall into the Refactoring-Cat trap on the server!</p>
 </div>
 </div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div id="footnotes">
+<hr>
+<div class="footnote" id="_footnote_1">
+<a href="#_footnoteref_1">1</a>. Another common way of handling this is to have different versions of <em>settings.py</em> for dev and prod.  That can work fine too, but it can get confusing to manage.  Environment variables also have the advantage of working for non-django stuff too&#8230;&#8203;
 </div>
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2018-01-08 08:39:23 GMT
+Last updated 2018-01-08 15:46:38 GMT
 </div>
 </div>
 <div class="comments" style="padding: 20px">
