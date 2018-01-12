@@ -144,7 +144,7 @@ If you don&#8217;t see it, it may be because your firewall does not open port 80
 </div>
 </div>
 <div class="sect3">
-<h4 id="_using_the_ft_to_confirm_the_domain_works_and_nginx_is_running">Using the FT to Confirm the Domain Works and Nginx Is Running</h4>
+<h4 id="_the_ft_now_fails_but_show_nginx_is_running">The FT now fails, but show Nginx is Running</h4>
 <div class="paragraph">
 <p>We can also confirm that if
 we run the FT <em>without</em> specifying port 8000, we see them fail again&#8212;&#8203;one of them
@@ -254,54 +254,6 @@ elspeth@server:$ <strong>cd ~/sites/$SITENAME</strong>
 elspeth@server:$ <strong>./virtualenv/bin/python manage.py runserver 8000</strong></pre>
 </div>
 </div>
-<div class="paragraph">
-<p>And then we try our FTs, again, without the port 8000:</p>
-</div>
-<div class="listingblock small-code">
-<div class="content">
-<pre>$ <strong>STAGING_SERVER=superlists-staging.ottg.eu ./manage.py test functional_tests --failfast</strong>
-[...]
-AssertionError: 'To-Do' not found in 'DisallowedHost at /'</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Oops, something&#8217;s gone wrong.  But once again, by running our FTs frequently,
-we&#8217;re able to identify the problem early, before we&#8217;ve changed too many things.
-In this case all we&#8217;ve done is added Nginx into the loop, so we know it&#8217;s the
-cause of the problem.</p>
-</div>
-<div class="paragraph">
-<p>The solution turns out to be that, by default, Nginx strips out the Host
-headers from requests it forwards, and it makes it "look like" they came
-from <em>localhost</em> after all.  We can tell it to forward on the original host
-header by adding the <code>proxy_set_header</code> directive:</p>
-</div>
-<div class="exampleblock sourcecode">
-<div class="title">server: /etc/nginx/sites-available/superlists-staging.ottg.eu</div>
-<div class="content">
-<div class="listingblock">
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="nginx">server {
-    listen 80;
-    server_name superlists-staging.ottg.eu;
-
-    location / {
-        proxy_pass http://localhost:8000;
-        proxy_set_header Host $host;
-    }
-}</code></pre>
-</div>
-</div>
-</div>
-</div>
-<div class="paragraph">
-<p>Reload Nginx once more:</p>
-</div>
-<div class="listingblock server-commands">
-<div class="content">
-<pre>elspeth@server:$ <strong>sudo systemctl reload nginx</strong></pre>
-</div>
-</div>
 <div class="admonitionblock tip">
 <table>
 <tr>
@@ -318,7 +270,7 @@ If
 </table>
 </div>
 <div class="paragraph">
-<p>And then we try our FTs, again, without the port 8000:</p>
+<p>And now we can try our FTs without the port 8000:</p>
 </div>
 <div class="listingblock small-code">
 <div class="content">
@@ -333,7 +285,7 @@ OK</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>Hooray!</p>
+<p>Hooray!  Back to a working state.</p>
 </div>
 <div class="admonitionblock note">
 <table>
@@ -447,8 +399,8 @@ tell Nginx to do it instead.</p>
 <div class="title">Figure 2. Broken CSS</div>
 </div>
 <div class="paragraph">
-<p>One step forward, one step backward, but once again we&#8217;ve identified the problem
-nice and early. Moving on!</p>
+<p>One step forward, one step backward, but once again we&#8217;ve identified the
+problem nice and early. Moving on!</p>
 </div>
 <div class="admonitionblock tip">
 <table>
@@ -499,7 +451,6 @@ adding a second <code>location</code> directive to the config:</p>
 
     location / {
         proxy_pass http://localhost:8000;
-        proxy_set_header Host $host;
     }
 }</code></pre>
 </div>
@@ -563,7 +514,6 @@ sockets in <em>/tmp</em>.  Let&#8217;s change the proxy settings in Nginx:</p>
     }
 
     location / {
-        proxy_set_header Host $host;
         proxy_pass http://unix:/tmp/superlists-staging.ottg.eu.socket;
     }
 }</code></pre>
@@ -593,7 +543,7 @@ OK</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>A couple more steps!</p>
+<p>Hooray, a change that went without a hitch for once!  Moving on.</p>
 </div>
 </div>
 <div class="sect2">
@@ -716,7 +666,99 @@ elspeth@server:$ <strong>./virtualenv/bin/gunicorn --bind \
 </div>
 </div>
 <div class="paragraph">
-<p>And use a test run to reassure ourselves that things still work:</p>
+<p>And use a test run to reassure ourselves that things still work&#8230;&#8203;</p>
+</div>
+<div class="listingblock small-code">
+<div class="content">
+<pre>$ <strong>STAGING_SERVER=superlists-staging.ottg.eu ./manage.py test functional_tests --failfast</strong>
+[...]
+AssertionError: 'To-Do' not found in ''</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Oops.  Let&#8217;s take a look manually: <a href="#django-400-error">An ugly 400 error</a>.</p>
+</div>
+<div id="django-400-error" class="imageblock">
+<div class="content">
+<img src="images/django_400_bad_request.png" alt="An unfriendly page showing 400 Bad Request">
+</div>
+<div class="title">Figure 3. An ugly 400 error</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_essential_googling_the_error_message">Essential Googling the Error Message</h3>
+<div class="paragraph">
+<p>Something&#8217;s gone wrong.  But once again, by running our FTs frequently,
+we&#8217;re able to identify the problem early, before we&#8217;ve changed too many things.
+In this case the only thing we&#8217;ve changed is <em>settings.py</em>. We&#8217;ve changed three
+settings, which one might be at fault?</p>
+</div>
+<div class="paragraph">
+<p>Let&#8217;s use the tried and tested "googling the error message" technique
+(<a href="#googling-the-error">An indispensable publication (source: </a><a href="https://news.ycombinator.com/item?id=11459601" class="bare">https://news.ycombinator.com/item?id=11459601</a>)).</p>
+</div>
+<div id="googling-the-error" class="imageblock">
+<div class="content">
+<img src="images/oreilly_googling_the_error_message.jpg" alt="Cover of a fake O'Reilly book called Googling the Error Message" width="400">
+</div>
+<div class="title">Figure 4. An indispensable publication (source: <a href="https://news.ycombinator.com/item?id=11459601" class="bare">https://news.ycombinator.com/item?id=11459601</a>)</div>
+</div>
+<div class="paragraph">
+<p>The very first link in the search results for
+<a href="https://www.google.co.uk/?q=django+400+bad+request">Django 400 Bad Request</a> for
+me suggests that a 400 error is usually to do with <code>ALLOWED_HOSTS</code>.  Now in the
+last Chapter we had a nice Django Debug page saying "DisallowedHost error"
+(<a href="/book/chapter_manual_deployment.html#django-disallowedhosts-error">[django-disallowedhosts-error]</a>), but now because we have <code>DEBUG=False</code>, we
+just get the minimal, unfriendly 400 page.</p>
+</div>
+<div class="paragraph">
+<p>But what&#8217;s wrong with <code>ALLOWED_HOSTS</code>? After double-checking it for typos, we
+might do a little more googling with some relevant keywords:
+<a href="https://www.google.co.uk/search?q=django+allowed+hosts+nginx">Django
+ALLOWED_HOSTS Nginx</a>. Once again, the
+<a href="https://www.digitalocean.com/community/questions/bad-request-400-django-nginx-gunicorn-on-debian-7">first result</a>
+gives us the clue we need.</p>
+</div>
+<div class="sect3">
+<h4 id="_fixing_allowed_hosts_with_nginx_passing_on_the_host_header">Fixing ALLOWED_HOSTS with Nginx: passing on the Host header</h4>
+<div class="paragraph">
+<p>The problem turns out to be that, by default, Nginx strips out the Host
+headers from requests it forwards, and it makes it "look like" they came
+from <em>localhost</em> after all.  We can tell it to forward on the original host
+header by adding the <code>proxy_set_header</code> directive:</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">server: /etc/nginx/sites-available/superlists-staging.ottg.eu</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="nginx">server {
+    listen 80;
+    server_name superlists-staging.ottg.eu;
+
+    location /static {
+        alias /home/elspeth/sites/superlists-staging.ottg.eu/static;
+    }
+
+    location / {
+        proxy_pass http://unix:/tmp/superlists-staging.ottg.eu.socket;
+        proxy_set_header Host $host;
+    }
+}</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>Reload Nginx once more:</p>
+</div>
+<div class="listingblock server-commands">
+<div class="content">
+<pre>elspeth@server:$ <strong>sudo systemctl reload nginx</strong></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>And then we try our FTs again:</p>
 </div>
 <div class="listingblock small-code">
 <div class="content">
@@ -726,7 +768,8 @@ OK</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>Excellent!  A change that went smoothly, for once.</p>
+<p>Phew.</p>
+</div>
 </div>
 </div>
 <div class="sect2">
@@ -743,11 +786,10 @@ one-liner to run on your own computer:</p>
 </div>
 <div class="listingblock skipme">
 <div class="content">
-<pre>#
-$ <strong>python -c"import random; print(''.join(random.SystemRandom().
-choices('abcdefghijklmnopqrstuvwxyz0123456789%^*(-_=+)', k=50)))"</strong>
+<pre>$ <strong>python -c"import random; print(''.join(random.SystemRandom().
+choices('abcdefghijklmnopqrstuvwxyz0123456789', k=50)))"</strong>
 
-1*b84qe7z%4v)(_ji01k^_xx2tkhs062zpsza9gpzl3rxdfhfv</pre>
+hibogdctu8y55mr8xut3d1x86qmq3p7nwv3iyleqn6caodd5lm</pre>
 </div>
 </div>
 <div class="paragraph">
@@ -767,7 +809,7 @@ User=elspeth  <i class="conum" data-value="2"></i><b>(2)</b>
 WorkingDirectory=/home/elspeth/sites/superlists-staging.ottg.eu  <i class="conum" data-value="3"></i><b>(3)</b>
 
 Environment=DJANGO_DEBUG_FALSE=y  <i class="conum" data-value="4"></i><b>(4)</b>
-Environment=DJANGO_SECRET_KEY="1*b84qe7z%4v)(_ji01k^_xx2tkhs062zpsza9gpzl3rxdfhfv"  <i class="conum" data-value="4"></i><b>(4)</b>
+Environment=DJANGO_SECRET_KEY=hibogdctu8y55mr8xut3d1x86qmq3p7nwv3iyleqn6caodd5lm  <i class="conum" data-value="4"></i><b>(4)</b>
 Environment=SITENAME=superlists-staging.ottg.eu  <i class="conum" data-value="4"></i><b>(4)</b>
 
 ExecStart=/home/elspeth/sites/superlists-staging.ottg.eu/virtualenv/bin/gunicorn \
@@ -946,7 +988,7 @@ recap our provisioning and deployment procedures:</p>
 <div class="olist arabic">
 <ol class="arabic">
 <li>
-<p>Create directory structure in <em>~/sites</em></p>
+<p>Create directory in <em>~/sites</em></p>
 </li>
 <li>
 <p>Pull down source code.</p>
@@ -1034,7 +1076,7 @@ User=elspeth
 WorkingDirectory=/home/elspeth/sites/DOMAIN
 
 Environment=DJANGO_DEBUG_FALSE=y
-Environment=DJANGO_SECRET_KEY="1*b84qe7z%4v)(_ji01k^_xx2tkhs062zpsza9gpzl3rxdfhfv"
+Environment=DJANGO_SECRET_KEY=SEKRIT
 Environment=SITENAME=DOMAIN
 
 ExecStart=/home/elspeth/sites/DOMAIN/virtualenv/bin/gunicorn \
@@ -1085,10 +1127,10 @@ eg, on Ubuntu:
 
 * see gunicorn-systemd.template.service
 * replace DOMAIN with, e.g., staging.my-domain.com
-* Use this snippet to generate a unique secret key:
+* replace SEKRIT with a unique secret key using snippet below:
 
 python -c"import random; print(''.join(random.SystemRandom().
-choices('abcdefghijklmnopqrstuvwxyz0123456789%^*(-_=+)', k=50)))"
+choices('abcdefghijklmnopqrstuvwxyz0123456789', k=50)))"
 
 
 ## Folder structure:
@@ -1247,7 +1289,7 @@ out what went wrong before moving forwards again.</p>
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2018-01-08 15:46:38 GMT
+Last updated 2018-01-12 12:21:21 GMT
 </div>
 </div>
 <div class="comments" style="padding: 20px">
