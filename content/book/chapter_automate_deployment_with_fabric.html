@@ -362,7 +362,7 @@ or we won&#8217;t be able to sync the server with our local commits.</p>
 our Fabric script out on our existing staging site, and see it working to
 update a deployment that already exists:</p>
 </div>
-<div class="listingblock small-code">
+<div class="listingblock small-code against-server">
 <div class="content">
 <pre>$ <strong>cd deploy_tools</strong>
 $ <strong>fab deploy:host=elspeth@superlists-staging.ottg.eu</strong>
@@ -464,7 +464,7 @@ see the <a href="http://docs.fabfile.org">Fabric documentation</a> for more info
 <div class="paragraph">
 <p>So, let&#8217;s try using it for our live site!</p>
 </div>
-<div class="listingblock small-code">
+<div class="listingblock small-code against-server">
 <div class="content">
 <pre>$ <strong>fab deploy:host=elspeth@superlists.ottg.eu</strong>
 [elspeth@superlists.ottg.eu] Executing task 'deploy'
@@ -544,42 +544,69 @@ time, and the <code>migrate</code> seems to have worked too.</p>
 <p>What
 else do we need to do to get our live site into production? We refer to
 our provisioning notes, which tell us to use the template files to create our
-Nginx virtual host and the Systemd service.  How about a little Unix
-command-line magic?</p>
+Nginx virtual host and the Systemd service.</p>
+</div>
+<div class="paragraph">
+<p>First we generate a new secret key:</p>
+</div>
+<div class="listingblock skipme">
+<div class="content">
+<pre>$ <strong>python -c"import random; print(''.join(random.SystemRandom().
+choices('abcdefghijklmnopqrstuvwxyz0123456789', k=50)))"</strong>
+ommffan3x1qn28xmusukyg66t0ajzm7x9ufh2teaqjhuap8vib</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Now let&#8217;s use a little Unix command-line magic?</p>
 </div>
 <div class="listingblock server-commands">
 <div class="content">
-<pre>elspeth@server:$ <strong>sed "s/DOMAIN/superlists.ottg.eu/g" \
-    ./deploy_tools/nginx.template.conf \
+<pre>elspeth@server:$ <strong>cat ./deploy_tools/nginx.template.conf \
+    | sed "s/DOMAIN/superlists.ottg.eu/g" \
+    | sed s/SEKRIT/ommffan3x1qn28xmusukyg66t0ajzm7x9ufh2teaqjhuap8vib/ \
     | sudo tee /etc/nginx/sites-available/superlists.ottg.eu</strong></pre>
 </div>
 </div>
 <div class="paragraph">
-<p><code>sed</code> ("stream editor") takes a stream of text and performs edits on it. It&#8217;s
-no accident that the Fabric string substitution command has the same name.  In
-this case we ask it to substitute the string <em>DOMAIN</em> for the address of our
+<p><code>sed</code> ("stream editor") takes a stream of text and performs edits on it.
+In this case we ask it to substitute the string <em>DOMAIN</em> for the address of our
 site, with the <code>s/replaceme/withthis/g</code>
 syntax.<sup class="footnote">[<a id="_footnoteref_3" class="footnote" href="#_footnote_3" title="View footnote.">3</a>]</sup>
-We pipe (<code>|</code>) the output of that to a root-user process (<code>sudo</code>), which uses
-<code>tee</code> to write what&#8217;s piped to it to a file, in this case the Nginx
-sites-available virtualhost config file.</p>
+We pipe (<code>|</code>) that to another <code>sed</code> process to set our unique SECRET_KEY, and
+then we pipe the output once more output to a root-user process (<code>sudo</code>), which
+uses <code>tee</code> to write its input a file, in this case the Nginx sites-available
+virtualhost config file.</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+For bonus points, why not build an even bigger Bash "one-liner" that
+    includes the python <code>random.choices</code> command to generate the secret key?
+    Answers on a postcard!
+</td>
+</tr>
+</table>
 </div>
 <div class="paragraph">
 <p>Next we activate that file with a symlink:</p>
 </div>
 <div class="listingblock server-commands">
 <div class="content">
-<pre>elspeth@server:$ <strong>sudo ln -s ../sites-available/superlists.ottg.eu \
+<pre>elspeth@server:$ <strong>sudo ln -s /etc/nginx/sites-available/superlists.ottg.eu \
     /etc/nginx/sites-enabled/superlists.ottg.eu</strong></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>And we write the Systemd service, with another <code>sed</code>:</p>
+<p>And we write the Systemd service, with another, slightly simpler <code>sed</code>:</p>
 </div>
 <div class="listingblock server-commands">
 <div class="content">
-<pre>elspeth@server: <strong>sed "s/DOMAIN/superlists.ottg.eu/g" \
-    ./deploy_tools/gunicorn-systemd.template.service \
+<pre>elspeth@server: <strong>cat ./deploy_tools/gunicorn-systemd.template.service \
+    | sed "s/DOMAIN/superlists.ottg.eu/g" \
     | sudo tee /etc/systemd/system/gunicorn-superlists.ottg.eu.service</strong></pre>
 </div>
 </div>
@@ -742,7 +769,7 @@ is very flexible, but its logic is still based on scripting. More
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2018-01-08 08:41:35 GMT
+Last updated 2018-01-12 11:16:03 GMT
 </div>
 </div>
 <div class="comments" style="padding: 20px">
