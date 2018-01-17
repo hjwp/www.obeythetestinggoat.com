@@ -69,6 +69,21 @@ httpRequest.send();
 </tr>
 </table>
 </div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+<em>Update on 2018-01-17</em>&#8201;&#8212;&#8201;A few more changes to this and the
+    previous chapter, mostly revolving around the use of a <em>.env</em> file,
+    best to go back and re-do the last one, or at least read through it
+    again, if you went through it before this change.
+</td>
+</tr>
+</table>
+</div>
 <div class="paragraph">
 <p>Automating
 deployment is critical for our staging tests to mean anything.
@@ -132,7 +147,8 @@ together one by one, explaining as we go.</p>
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> <span class="include">fabric.contrib.files</span> <span class="keyword">import</span> <span class="include">exists</span>
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">import</span> <span class="include">random</span>
+<span class="keyword">from</span> <span class="include">fabric.contrib.files</span> <span class="keyword">import</span> <span class="include">append</span>, <span class="include">exists</span>
 <span class="keyword">from</span> <span class="include">fabric.api</span> <span class="keyword">import</span> <span class="include">cd</span>, <span class="include">env</span>, <span class="include">local</span>, <span class="include">run</span>
 
 REPO_URL = <span class="string"><span class="delimiter">'</span><span class="content">https://github.com/hjwp/book-example.git</span><span class="delimiter">'</span></span>  <i class="conum" data-value="1"></i><b>(1)</b>
@@ -143,6 +159,7 @@ REPO_URL = <span class="string"><span class="delimiter">'</span><span class="con
     <span class="keyword">with</span> cd(site_folder):  <i class="conum" data-value="5"></i><b>(5)</b>
         _get_latest_source()
         _update_virtualenv()
+        _create_or_update_dotenv()
         _update_static_files()
         _update_database()</code></pre>
 </div>
@@ -261,7 +278,7 @@ changes.</p>
 <p>Next we create or update the virtualenv:</p>
 </div>
 <div class="exampleblock sourcecode small-code">
-<div class="title">deploy_tools/fabfile.py (ch09l005)</div>
+<div class="title">deploy_tools/fabfile.py (ch09l004)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
@@ -286,6 +303,53 @@ checking whether it already exists.</td>
 </tr>
 </table>
 </div>
+</div>
+<div class="sect3">
+<h4 id="_creating_a_new_env_file_if_necessary">Creating a new .env file if necessary</h4>
+<div class="paragraph">
+<p>Our deploy script can also save us some of the manual work creating a .env script</p>
+</div>
+<div class="exampleblock sourcecode small-code">
+<div class="title">deploy_tools/fabfile.py (ch09l005)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">def</span> <span class="function">_create_or_update_dotenv</span>():
+    append(<span class="string"><span class="delimiter">'</span><span class="content">.env</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">DJANGO_DEBUG_FALSE=y</span><span class="delimiter">'</span></span>)  <i class="conum" data-value="1"></i><b>(1)</b>
+    append(<span class="string"><span class="delimiter">'</span><span class="content">.env</span><span class="delimiter">'</span></span>, f<span class="string"><span class="delimiter">'</span><span class="content">SITENAME={env.host}</span><span class="delimiter">'</span></span>)
+    current_contents = run(<span class="string"><span class="delimiter">'</span><span class="content">cat .env</span><span class="delimiter">'</span></span>)  <i class="conum" data-value="2"></i><b>(2)</b>
+    <span class="keyword">if</span> <span class="string"><span class="delimiter">'</span><span class="content">DJANGO_SECRET_KEY</span><span class="delimiter">'</span></span> <span class="keyword">not</span> <span class="keyword">in</span> current_contents:  <i class="conum" data-value="2"></i><b>(2)</b>
+        new_secret = <span class="string"><span class="delimiter">'</span><span class="delimiter">'</span></span>.join(random.SystemRandom().choices(  <i class="conum" data-value="3"></i><b>(3)</b>
+            <span class="string"><span class="delimiter">'</span><span class="content">abcdefghijklmnopqrstuvwxyz0123456789</span><span class="delimiter">'</span></span>, k=<span class="integer">50</span>
+        ))
+        append(<span class="string"><span class="delimiter">'</span><span class="content">.env</span><span class="delimiter">'</span></span>, f<span class="string"><span class="delimiter">'</span><span class="content">DJANGO_SECRET_KEY={new_secret}</span><span class="delimiter">'</span></span>)</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>The <code>append</code> command conditionally adds a line to a file,
+if that line isn&#8217;t already there.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>For the secret key we first manually check whether there&#8217;s already an entry
+in the file&#8230;&#8203;</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="3"></i><b>3</b></td>
+<td>And if not, we use our little one-liner from earlier to generate
+a new one (we can&#8217;t rely on the <code>append</code>'s conditional logic here
+because our new key and any potential existing one won&#8217;t be the same).</td>
+</tr>
+</table>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_updating_static_files">Updating static files</h4>
 <div class="paragraph">
 <p>Updating static files is a single command:</p>
 </div>
@@ -372,8 +436,6 @@ $ <strong>fab deploy:host=elspeth@superlists-staging.ottg.eu</strong>
 [elspeth@superlists-staging.ottg.eu] run: git fetch
 [elspeth@superlists-staging.ottg.eu] out: remote: Counting objects: [...]
 [elspeth@superlists-staging.ottg.eu] out: remote: Compressing objects: [...]
-[elspeth@superlists-staging.ottg.eu] out: Unpacking objects: 100% [...]
-done.
 [localhost] local: git log -n 1 --format=%H
 [elspeth@superlists-staging.ottg.eu] run: git reset --hard
 [...]
@@ -497,7 +559,12 @@ requirements.txt
 gunicorn
 [elspeth@superlists.ottg.eu] out: Successfully installed django-1.11
 gunicorn-19.7.1 pytz-2017.3
-[elspeth@superlists.ottg.eu] out:
+
+[elspeth@superlists.ottg.eu] run: echo 'DJANGO_DEBUG_FALSE=y' &gt;&gt; "$(echo .env)"
+[elspeth@superlists.ottg.eu] run: echo 'SITENAME=superlists.ottg.eu' &gt;&gt; "$(echo
+.env)"
+[elspeth@superlists.ottg.eu] run: echo
+'DJANGO_SECRET_KEY=[...]
 [elspeth@superlists.ottg.eu] run: ./virtualenv/bin/python manage.py
 collectstatic --noinput
 [elspeth@superlists.ottg.eu] out: Copying
@@ -544,17 +611,7 @@ time, and the <code>migrate</code> seems to have worked too.</p>
 <p>What
 else do we need to do to get our live site into production? We refer to
 our provisioning notes, which tell us to use the template files to create our
-Nginx virtual host and the Systemd service.</p>
-</div>
-<div class="paragraph">
-<p>First we generate a new secret key:</p>
-</div>
-<div class="listingblock skipme">
-<div class="content">
-<pre>$ <strong>python -c"import random; print(''.join(random.SystemRandom().
-choices('abcdefghijklmnopqrstuvwxyz0123456789', k=50)))"</strong>
-ommffan3x1qn28xmusukyg66t0ajzm7x9ufh2teaqjhuap8vib</pre>
-</div>
+Nginx virtual host and the Systemd service</p>
 </div>
 <div class="paragraph">
 <p>Now let&#8217;s use a little Unix command-line magic?</p>
@@ -563,7 +620,6 @@ ommffan3x1qn28xmusukyg66t0ajzm7x9ufh2teaqjhuap8vib</pre>
 <div class="content">
 <pre>elspeth@server:$ <strong>cat ./deploy_tools/nginx.template.conf \
     | sed "s/DOMAIN/superlists.ottg.eu/g" \
-    | sed s/SEKRIT/ommffan3x1qn28xmusukyg66t0ajzm7x9ufh2teaqjhuap8vib/ \
     | sudo tee /etc/nginx/sites-available/superlists.ottg.eu</strong></pre>
 </div>
 </div>
@@ -769,7 +825,7 @@ is very flexible, but its logic is still based on scripting. More
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2018-01-12 11:16:03 GMT
+Last updated 2018-01-17 20:06:42 GMT
 </div>
 </div>
 <div class="comments" style="padding: 20px">

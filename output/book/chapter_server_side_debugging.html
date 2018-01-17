@@ -60,6 +60,21 @@ httpRequest.send();
 </tr>
 </table>
 </div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+<em>Update on 2018-01-17</em>&#8201;&#8212;&#8201;Changes to the deployment chapters have
+    filtered down to this one, mostly revolving around the use of a <em>.env</em>
+    file. Go back and have a quick look at <a href="/book/chapter_making_deployment_production_ready.html">[chapter_making_deployment_production_ready]</a> and <a href="/book/chapter_automate_deployment_with_fabric.html">[chapter_automate_deployment_with_fabric]</a> if you went through them before
+    this date.
+</td>
+</tr>
+</table>
+</div>
 <div class="paragraph">
 <p>Popping a few layers off the stack of things we&#8217;re working on: we have nice
 wait-for helpers; what were we using them for?  Oh yes, waiting to be logged
@@ -193,7 +208,7 @@ Traceback (most recent call last):
   File "/home/elspeth/sites/superlists-staging.ottg.eu/virtualenv/lib/python3.6/[...]
     response = wrapped_callback(request, *callback_args, **callback_kwargs)
   File
-"/home/elspeth/sites/superlists-staging.ottg.eu/source/accounts/views.py", line
+"/home/elspeth/sites/superlists-staging.ottg.eu/accounts/views.py", line
 20, in send_login_email
     [email]
 [...]
@@ -215,31 +230,13 @@ yes, we haven&#8217;t told the server what our password is!</p>
 <div class="paragraph">
 <p>Just
 as in <a href="/book/chapter_making_deployment_production_ready.html">[chapter_making_deployment_production_ready]</a>, the place we
-set environment variables on the server is in the Systemd config
-file:</p>
+set environment variables on the server is in the <em>.env</em> file:</p>
 </div>
-<div class="exampleblock sourcecode small-code">
-<div class="title">server: /etc/systemd/system/gunicorn-superlists-staging.ottg.eu.service</div>
+<div class="listingblock server-commands small-code">
 <div class="content">
-<div class="listingblock">
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="ini">[...]
-Environment=DJANGO_DEBUG_FALSE=y
-Environment=DJANGO_SECRET_KEY=[...]
-Environment=SITENAME=superlists-staging.ottg.eu
-Environment=EMAIL_PASSWORD=yoursekritpasswordhere
-[...]</code></pre>
-</div>
-</div>
-</div>
-</div>
-<div class="paragraph">
-<p>Saving that file, and doing the usual <code>daemon-reload</code> and <code>restart gunicorn</code>
-dance</p>
-</div>
-<div class="listingblock server-commands">
-<div class="content">
-<pre>elspeth@server:$ <strong>sudo systemctl daemon-reload</strong>
+<pre>elspeth@server:$ <strong>cd ~/sites/superlists-staging.ottg.eu/</strong>
+elspeth@server:$ <strong>echo EMAIL_PASSWORD=yoursekritpasswordhere &gt;&gt; .env</strong>
+elspeth@server:$ <strong>sudo systemctl daemon-reload</strong>
 elspeth@server:$ <strong>sudo systemctl restart gunicorn-superlists-staging.ottg.eu</strong>
 elspeth@server:$ <strong>sudo journalctl -f -u gunicorn-superlists-staging.ottg.eu</strong></pre>
 </div>
@@ -348,20 +345,16 @@ client:</p>
 </div>
 </div>
 </div>
-<div class="admonitionblock note">
-<table>
-<tr>
-<td class="icon">
-<i class="fa icon-note" title="Note"></i>
-</td>
-<td class="content">
-I&#8217;m using a Yahoo account for testing, but you can use any
-    email service you like, as long as it offers POP3 access.
-    You will need to set the <code>YAHOO_PASSWORD</code> environment variable
-    in the console that&#8217;s running the FT.
-</td>
-</tr>
-</table>
+<div class="paragraph">
+<p>I&#8217;m using a Yahoo account for testing, but you can use any email service you
+like, as long as it offers POP3 access. You will need to set the
+<code>YAHOO_PASSWORD</code> environment variable in the console that&#8217;s running the FT.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>echo YAHOO_PASSWORD=otheremailpasswordhere &gt;&gt; .env</strong>
+$ <strong>source .env</strong></pre>
+</div>
 </div>
 <div class="paragraph">
 <p>And then we feed through the rest of the changes to the FT that are required
@@ -766,22 +759,16 @@ cryptographically valid for the server:</p>
 <div class="listingblock">
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">def</span> <span class="function">_get_server_env_vars</span>(host):
-    pid = run(f<span class="string"><span class="delimiter">'</span><span class="content">pgrep -n -f {host}/virtualenv/bin/gunicorn</span><span class="delimiter">'</span></span>).strip()  <i class="conum" data-value="1"></i><b>(1)</b>
-    env_lines = run(f<span class="string"><span class="delimiter">'</span><span class="content">cat /proc/{pid}/environ</span><span class="delimiter">'</span></span>).split(<span class="string"><span class="delimiter">'</span><span class="char">\x00</span><span class="delimiter">'</span></span>)  <i class="conum" data-value="2"></i><b>(2)</b>
-    current_env = <span class="predefined">dict</span>(l.split(<span class="string"><span class="delimiter">'</span><span class="content">=</span><span class="delimiter">'</span></span>) <span class="keyword">for</span> l <span class="keyword">in</span> env_lines <span class="keyword">if</span> l)  <i class="conum" data-value="2"></i><b>(2)</b>
-    <span class="keyword">return</span> {  <i class="conum" data-value="3"></i><b>(3)</b>
-        <span class="string"><span class="delimiter">'</span><span class="content">DJANGO_DEBUG_FALSE</span><span class="delimiter">'</span></span>: current_env[<span class="string"><span class="delimiter">'</span><span class="content">DJANGO_DEBUG_FALSE</span><span class="delimiter">'</span></span>],
-        <span class="string"><span class="delimiter">'</span><span class="content">DJANGO_SECRET_KEY</span><span class="delimiter">'</span></span>: current_env[<span class="string"><span class="delimiter">'</span><span class="content">DJANGO_SECRET_KEY</span><span class="delimiter">'</span></span>],
-        <span class="string"><span class="delimiter">'</span><span class="content">SITENAME</span><span class="delimiter">'</span></span>: current_env[<span class="string"><span class="delimiter">'</span><span class="content">SITENAME</span><span class="delimiter">'</span></span>],
-    }
+    env_lines = run(f<span class="string"><span class="delimiter">'</span><span class="content">cat ~/sites/{host}/.env</span><span class="delimiter">'</span></span>).splitlines()  <i class="conum" data-value="1"></i><b>(1)</b>
+    <span class="keyword">return</span> <span class="predefined">dict</span>(l.split(<span class="string"><span class="delimiter">'</span><span class="content">=</span><span class="delimiter">'</span></span>) <span class="keyword">for</span> l <span class="keyword">in</span> env_lines <span class="keyword">if</span> l)
 
 
 <span class="keyword">def</span> <span class="function">create_session_on_server</span>(host, email):
     manage_dot_py = _get_manage_dot_py(host)
     <span class="keyword">with</span> settings(host_string=f<span class="string"><span class="delimiter">'</span><span class="content">elspeth@{host}</span><span class="delimiter">'</span></span>):
-        env_vars = _get_server_env_vars(host)  <i class="conum" data-value="4"></i><b>(4)</b>
-        <span class="keyword">with</span> shell_env(**env_vars):  <i class="conum" data-value="4"></i><b>(4)</b>
-            session_key = run(f<span class="string"><span class="delimiter">'</span><span class="content">{manage_dot_py} create_session {email}</span><span class="delimiter">'</span></span>)
+        env_vars = _get_server_env_vars(host)
+        <span class="keyword">with</span> shell_env(**env_vars):  <i class="conum" data-value="2"></i><b>(2)</b>
+            session_key = run(f<span class="string"><span class="delimiter">'</span><span class="content">{manage_dot_py} create_session {email}</span><span class="delimiter">'</span></span>)  <i class="conum" data-value="3"></i><b>(3)</b>
             <span class="keyword">return</span> session_key.strip()</code></pre>
 </div>
 </div>
@@ -791,22 +778,18 @@ cryptographically valid for the server:</p>
 <table>
 <tr>
 <td><i class="conum" data-value="1"></i><b>1</b></td>
-<td>We determine the pid of the current running Django server using <code>pgrep</code></td>
+<td>We extract and parse the server&#8217;s current environment variables from the
+<em>.env</em> file&#8230;&#8203;</td>
 </tr>
 <tr>
 <td><i class="conum" data-value="2"></i><b>2</b></td>
-<td>We then we extract its current environment variables from <em>/proc</em>.  We
-need to do a bit of wrangling to convert the <em>/proc</em> format&#8217;s null-bytes
-separators format into a usable dict</td>
+<td>In order to use them in another fabric context manager, <code>shell_env</code>,
+which sets the environment for the next command&#8230;&#8203;</td>
 </tr>
 <tr>
 <td><i class="conum" data-value="3"></i><b>3</b></td>
-<td>And then we return the specific variables we&#8217;re interested in&#8230;&#8203;</td>
-</tr>
-<tr>
-<td><i class="conum" data-value="4"></i><b>4</b></td>
-<td>In order to use them in another fabric context manager, <code>shell_env</code>,
-so that they&#8217;re set when we run <code>manage.py create_session</code>.</td>
+<td>Which is to run our <code>create_session</code> management command, which calls the
+same <code>create_pre_authenticated_session</code> function, but on the server.</td>
 </tr>
 </table>
 </div>
@@ -842,14 +825,14 @@ that all make sense?  Perhaps a little ascii-art diagram will help:</p>
             v                                                   |
 +----------------------------+     +--------+      +------------------------------+
 | server_tools               | --&gt; | fabric | --&gt;  | ./manage.py create_session   |
-| .create_session_on_server  |     |  "run" |      |       (on server)            |
+| .create_session_on_server  |     |  "run" |      |   (on server, using .env)    |
 |        (locally)           |     +--------+      +------------------------------+
 +----------------------------+</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>In any case, let&#8217;s see if it works.  First, locally, to check that we didn&#8217;t break
-anything:</p>
+<p>In any case, let&#8217;s see if it works.  First, locally, to check that we didn&#8217;t
+break anything:</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -865,25 +848,28 @@ OK</pre>
 <div class="content">
 <pre>$ <strong>git push</strong>  # you'll need to commit changes first.
 $ <strong>cd deploy_tools</strong>
-$ <strong>fab deploy --host=superlists-staging.ottg.eu</strong></pre>
+$ <strong>fab deploy --host=elspeth@superlists-staging.ottg.eu</strong></pre>
 </div>
 </div>
 <div class="paragraph">
 <p>And now we run the test:</p>
 </div>
-<div class="listingblock skipme">
+<div class="listingblock against-server small-code">
 <div class="content">
 <pre>$ <strong>STAGING_SERVER=superlists-staging.ottg.eu python manage.py test \
  functional_tests.test_my_lists</strong>
 [...]
-[superlists-staging.ottg.eu] Executing task 'reset_database'
-~/sites/superlists-staging.ottg.eu/source/manage.py flush --noinput
-[superlists-staging.ottg.eu] out: Syncing...
-[superlists-staging.ottg.eu] out: Creating tables ...
+[elspeth@superlists-staging.ottg.eu] run:
+~/sites/superlists-staging.ottg.eu/virtualenv/bin/python
+~/sites/superlists-staging.ottg.eu/manage.py flush --noinput
+[...]
+[elspeth@superlists-staging.ottg.eu] run:
+~/sites/superlists-staging.ottg.eu/virtualenv/bin/python
+~/sites/superlists-staging.ottg.eu/manage.py create_session edith@example.com
 [...]
 .
  ---------------------------------------------------------------------
-Ran 1 test in 25.701s
+Ran 1 test in 5.701s
 
 OK</pre>
 </div>
@@ -891,12 +877,12 @@ OK</pre>
 <div class="paragraph">
 <p>Looking good!  We can rerun all the tests to make sure&#8230;&#8203;</p>
 </div>
-<div class="listingblock skipme">
+<div class="listingblock against-server small-code">
 <div class="content">
-<pre>$ <strong>STAGING_SERVER=superlists-staging.ottg.eu python manage.py test \
- functional_tests</strong>
+<pre>$ <strong>STAGING_SERVER=superlists-staging.ottg.eu python manage.py test functional_tests</strong>
 [...]
-[superlists-staging.ottg.eu] Executing task 'reset_database'
+[elspeth@superlists-staging.ottg.eu] run:
+~/sites/superlists-staging.ottg.eu/virtualenv/bin/python
 [...]
 Ran 8 tests in 89.494s
 
@@ -950,43 +936,45 @@ LFMF.</p>
 </div>
 </div>
 <div class="sect2">
-<h3 id="_upating_our_provisioning_notes">Upating our Provisioning Notes</h3>
+<h3 id="_upating_our_deploy_script">Upating our Deploy script</h3>
 <div class="paragraph">
 <p>Before
-we finish, let&#8217;s make a note about the update to our provisioning
-steps:</p>
+we finish, let&#8217;s update our deployment fabfile so that it can
+automatically add the <code>EMAIL_PASSWORD</code> to the <em>.env</em> file on the server:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">deploy_tools/provisioning_notes.md (ch18l021)</div>
+<div class="title">deploy_tools/fabfile.py (ch18l021)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="rst">## Systemd service
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">import</span> <span class="include">os</span>
+[...]
 
-* see gunicorn-systemd.template.service
-* replace DOMAIN with, e.g., staging.my-domain.com
-* replace EMAILPWD with email password
-* replace SEKRIT with a unique secret key using snippet below:
-[...]</code></pre>
+
+<span class="keyword">def</span> <span class="function">_create_or_update_dotenv</span>():
+    append(<span class="string"><span class="delimiter">'</span><span class="content">.env</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">DJANGO_DEBUG_FALSE=y</span><span class="delimiter">'</span></span>)
+    append(<span class="string"><span class="delimiter">'</span><span class="content">.env</span><span class="delimiter">'</span></span>, f<span class="string"><span class="delimiter">'</span><span class="content">SITENAME={env.host}</span><span class="delimiter">'</span></span>)
+    current_contents = run(<span class="string"><span class="delimiter">'</span><span class="content">cat .env</span><span class="delimiter">'</span></span>)
+    <span class="keyword">if</span> <span class="string"><span class="delimiter">'</span><span class="content">DJANGO_SECRET_KEY</span><span class="delimiter">'</span></span> <span class="keyword">not</span> <span class="keyword">in</span> current_contents:
+        new_secret = <span class="string"><span class="delimiter">'</span><span class="delimiter">'</span></span>.join(random.SystemRandom().choices(
+            <span class="string"><span class="delimiter">'</span><span class="content">abcdefghijklmnopqrstuvwxyz0123456789</span><span class="delimiter">'</span></span>, k=<span class="integer">50</span>
+        ))
+        append(<span class="string"><span class="delimiter">'</span><span class="content">.env</span><span class="delimiter">'</span></span>, f<span class="string"><span class="delimiter">'</span><span class="content">DJANGO_SECRET_KEY={new_secret}</span><span class="delimiter">'</span></span>)
+    email_password = os.environ[<span class="string"><span class="delimiter">'</span><span class="content">EMAIL_PASSWORD</span><span class="delimiter">'</span></span>]  <i class="conum" data-value="1"></i><b>(1)</b>
+    append(<span class="string"><span class="delimiter">'</span><span class="content">.env</span><span class="delimiter">'</span></span>, f<span class="string"><span class="delimiter">'</span><span class="content">EMAIL_PASSWORD={email_password}</span><span class="delimiter">'</span></span>)  <i class="conum" data-value="1"></i><b>(1)</b></code></pre>
 </div>
 </div>
 </div>
 </div>
-<div class="paragraph">
-<p>And our Systemd gunicorn template file needs the extra EMAIL_PASSWORD line:</p>
-</div>
-<div class="exampleblock sourcecode">
-<div class="title">deploy_tools/gunicorn-systemd.template.service (ch18l020)</div>
-<div class="content">
-<div class="listingblock">
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="ini">[...]
-Environment=SITENAME=DOMAIN
-Environment=EMAIL_PASSWORD=EMAILPWD
-[...]</code></pre>
-</div>
-</div>
-</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>We just add two lines at the end of the script which will essentially
+copy the local <code>EMAIL_PASSWORD</code> environment variable up to the server&#8217;s
+<em>.env</em> file.</td>
+</tr>
+</table>
 </div>
 </div>
 <div class="sect2">
@@ -1048,7 +1036,7 @@ in a file somewhere.</p>
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2018-01-12 11:22:33 GMT
+Last updated 2018-01-17 20:09:11 GMT
 </div>
 </div>
 <div class="comments" style="padding: 20px">

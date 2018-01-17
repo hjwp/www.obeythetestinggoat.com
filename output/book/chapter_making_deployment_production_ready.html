@@ -59,6 +59,19 @@ httpRequest.send();
 </tr>
 </table>
 </div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+<em>Update on 2018-01-17</em>&#8201;&#8212;&#8201;A few more changes to this and the
+    next chapter, mostly revolving around the use of a .env file.
+</td>
+</tr>
+</table>
+</div>
 <div class="paragraph">
 <p>Our
 deployment is working fine but it&#8217;s not production-ready.  Let&#8217;s try
@@ -646,7 +659,7 @@ Better to fail hard than allow a typo in an environment variable name to
 <div class="paragraph">
 <p>Let&#8217;s do our usual dance of committing locally, and pushing to GitHub:</p>
 </div>
-<div class="listingblock">
+<div class="listingblock small-code">
 <div class="content">
 <pre>$ <strong>git commit -am "use env vars for prod settings DEBUG, ALLOWED_HOSTS, SECRET_KEY"</strong>
 $ <strong>git push</strong></pre>
@@ -768,7 +781,117 @@ OK</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>Phew.</p>
+<p>Phew.  Back to working again.</p>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_using_a_env_file_to_store_our_environment_variables">Using a .env File to Store Our Environment Variables</h3>
+<div class="paragraph">
+<p>Another little refactor.  Setting environment variables manually in various
+shells is a pain, and it&#8217;d be nice to have them all available in a single
+place.  The Python world (and other people out there too) seems to be
+standardising around using the convention of a file called <strong>.env</strong> in the
+project root.</p>
+</div>
+<div class="paragraph">
+<p>First we add it <strong>.env</strong> to our <strong>.gitignore</strong>&#8201;&#8212;&#8201;this file is going to be used
+for secrets, and we don&#8217;t ever want them ending up on Github:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>echo .env &gt;&gt; .gitignore</strong>
+$ <strong>git commit -am"gitignore .env file"</strong>
+$ <strong>git push</strong></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Next let&#8217;s save our environment on the server:</p>
+</div>
+<div class="listingblock server-commands">
+<div class="content">
+<pre>elspeth@server:$ <strong>pwd</strong>
+/home/elspeth/sites/superlists-staging.ottg.eu
+elspeth@server:$ <strong>echo DJANGO_DEBUG_FALSE=y &gt;&gt; .env</strong>
+elspeth@server:$ <strong>echo SITENAME=$SITENAME &gt;&gt;.env</strong></pre>
+</div>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+The way I&#8217;ve used the environment files in <em>settings.py</em> means
+    that the <em>.env</em> file is not required on your own machine, only
+    in staging/production.
+</td>
+</tr>
+</table>
+</div>
+<div class="sect3">
+<h4 id="_generating_a_secure_secret_key">Generating a secure SECRET_KEY</h4>
+<div class="paragraph">
+<p>While we&#8217;re at it we&#8217;ll also generate a more secure secret key using a little
+Python one-liner.</p>
+</div>
+<div class="listingblock server-commands">
+<div class="content">
+<pre>elspeth@server:$ <strong>echo DJANGO_SECRET_KEY=$(
+python3.6 -c"import random; print(''.join(random.SystemRandom().
+choices('abcdefghijklmnopqrstuvwxyz0123456789', k=50)))"
+) &gt;&gt; .env</strong>
+elspeth@server:$ <strong>cat .env</strong>
+DJANGO_DEBUG_FALSE=y
+SITENAME=superlists-staging.ottg.eu
+DJANGO_SECRET_KEY=[...]</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Now let&#8217;s check our env file works, and restart gunicorn:</p>
+</div>
+<div class="listingblock server-commands">
+<div class="content">
+<pre>elspeth@server:$ <strong>unset DJANGO_SECRET_KEY DJANGO_DEBUG_FALSE SITENAME</strong>
+elspeth@server:$ <strong>echo $DJANGO_DEBUG_FALSE-none</strong>
+-none
+elspeth@server:$ <strong>source .env</strong>
+elspeth@server:$ <strong>echo $DJANGO_DEBUG_FALSE-none</strong>
+y-none
+elspeth@server:$ <strong>./virtualenv/bin/gunicorn --bind \
+    unix:/tmp/$SITENAME.socket superlists.wsgi:application</strong></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>And we rerun our FTs to check that they agree, everything still works:</p>
+</div>
+<div class="listingblock small-code">
+<div class="content">
+<pre>$ <strong>STAGING_SERVER=superlists-staging.ottg.eu python manage.py test functional_tests</strong>
+[...]
+OK</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Excellent!  That went without a hitch :)</p>
+</div>
+<div class="admonitionblock tip">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-tip" title="Tip"></i>
+</td>
+<td class="content">
+I&#8217;ve shown the use of a <em>.env</em> file and manually extracting environment
+    variables in <em>settings.py</em>, but there are some plugins that do this stuff
+    for you that are definitely worth investigating.  Look into
+    <a href="https://django-environ.readthedocs.io/en/latest/">django-environ</a>,
+    <a href="https://github.com/jpadilla/django-dotenv">django-dotenv</a>, and
+    <a href="https://docs.pipenv.org/">Pipenv</a>.
+</td>
+</tr>
+</table>
 </div>
 </div>
 </div>
@@ -781,19 +904,7 @@ on boot, and reloads it automatically if it crashes. On Ubuntu, the way to do
 this is using Systemd.</p>
 </div>
 <div class="paragraph">
-<p>We&#8217;ll also generate a more secure, random secret key. Here&#8217;s a little Python
-one-liner to run on your own computer:</p>
-</div>
-<div class="listingblock skipme">
-<div class="content">
-<pre>$ <strong>python -c"import random; print(''.join(random.SystemRandom().
-choices('abcdefghijklmnopqrstuvwxyz0123456789', k=50)))"</strong>
-
-hibogdctu8y55mr8xut3d1x86qmq3p7nwv3iyleqn6caodd5lm</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>And here&#8217;s what a Gunicorn config file looks like</p>
+<p>Here&#8217;s what a Systemd config file looks like</p>
 </div>
 <div class="exampleblock sourcecode small-code">
 <div class="title">server: /etc/systemd/system/gunicorn-superlists-staging.ottg.eu.service</div>
@@ -807,10 +918,7 @@ Description=Gunicorn server for superlists-staging.ottg.eu
 Restart=on-failure  <i class="conum" data-value="1"></i><b>(1)</b>
 User=elspeth  <i class="conum" data-value="2"></i><b>(2)</b>
 WorkingDirectory=/home/elspeth/sites/superlists-staging.ottg.eu  <i class="conum" data-value="3"></i><b>(3)</b>
-
-Environment=DJANGO_DEBUG_FALSE=y  <i class="conum" data-value="4"></i><b>(4)</b>
-Environment=DJANGO_SECRET_KEY=hibogdctu8y55mr8xut3d1x86qmq3p7nwv3iyleqn6caodd5lm  <i class="conum" data-value="4"></i><b>(4)</b>
-Environment=SITENAME=superlists-staging.ottg.eu  <i class="conum" data-value="4"></i><b>(4)</b>
+EnvironmentFile=/home/elspeth/sites/superlists-staging.ottg.eu/.env  <i class="conum" data-value="4"></i><b>(4)</b>
 
 ExecStart=/home/elspeth/sites/superlists-staging.ottg.eu/virtualenv/bin/gunicorn \
     --bind unix:/tmp/superlists-staging.ottg.eu.socket \
@@ -843,7 +951,8 @@ self-explanatory.</p>
 </tr>
 <tr>
 <td><i class="conum" data-value="4"></i><b>4</b></td>
-<td><code>Environment</code> sets each of our environment variables.</td>
+<td><code>EnvironmentFile</code> points Systemd towards our <em>.env</em> file and tells it
+to load environment variables from there.</td>
 </tr>
 <tr>
 <td><i class="conum" data-value="5"></i><b>5</b></td>
@@ -1074,10 +1183,7 @@ Description=Gunicorn server for DOMAIN
 Restart=on-failure
 User=elspeth
 WorkingDirectory=/home/elspeth/sites/DOMAIN
-
-Environment=DJANGO_DEBUG_FALSE=y
-Environment=DJANGO_SECRET_KEY=SEKRIT
-Environment=SITENAME=DOMAIN
+EnvironmentFile=/home/elspeth/sites/DOMAIN/.env
 
 ExecStart=/home/elspeth/sites/DOMAIN/virtualenv/bin/gunicorn \
     --bind unix:/tmp/DOMAIN.socket \
@@ -1127,11 +1233,6 @@ eg, on Ubuntu:
 
 * see gunicorn-systemd.template.service
 * replace DOMAIN with, e.g., staging.my-domain.com
-* replace SEKRIT with a unique secret key using snippet below:
-
-python -c"import random; print(''.join(random.SystemRandom().
-choices('abcdefghijklmnopqrstuvwxyz0123456789', k=50)))"
-
 
 ## Folder structure:
 
@@ -1140,13 +1241,15 @@ Assume we have a user account at /home/username
 /home/username
 &#9492;&#9472;&#9472; sites
  &#160;&#160; &#9500;&#9472;&#9472; DOMAIN1
+ &#160;&#160; &#9474;    &#9500;&#9472;&#9472; .env
  &#160;&#160; &#9474;    &#9500;&#9472;&#9472; db.sqlite3
  &#160;&#160; &#9474;    &#9500;&#9472;&#9472; manage.py etc
  &#160;&#160; &#9474;    &#9500;&#9472;&#9472; static
  &#160;&#160; &#9474;    &#9492;&#9472;&#9472; virtualenv
  &#160;&#160; &#9492;&#9472;&#9472; DOMAIN2
+ &#160;&#160;      &#9500;&#9472;&#9472; .env
  &#160;&#160;      &#9500;&#9472;&#9472; db.sqlite3
- &#160;&#160;      &#9500;&#9472;&#9472; manage.py etc</code></pre>
+ &#160;&#160;      &#9500;&#9472;&#9472; etc</code></pre>
 </div>
 </div>
 </div>
@@ -1289,7 +1392,7 @@ out what went wrong before moving forwards again.</p>
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2018-01-12 12:21:21 GMT
+Last updated 2018-01-17 20:05:36 GMT
 </div>
 </div>
 <div class="comments" style="padding: 20px">
