@@ -1988,6 +1988,54 @@ AssertionError: True != False</pre>
 <div class="paragraph">
 <p>So are we there yet?</p>
 </div>
+<div class="sidebarblock">
+<div class="content">
+<div class="title">Avoid Mock&#8217;s magic assert_called&#8230;&#8203; methods?</div>
+<div class="paragraph">
+<p>If you&#8217;ve used <code>unnittest.mock</code> before, you may have come across its special
+<code>assert_called...</code>
+<a href="https://docs.python.org/3/library/unittest.mock.html#unittest.mock.Mock.assert_called">methods</a>, and you may be wondering why I didn&#8217;t use them.</p>
+</div>
+<div class="paragraph">
+<p>For example, instead of doing</p>
+</div>
+<div class="listingblock sourcecode skipme">
+<div class="content">
+<pre>self.assertEqual(a_mock.call_args, call(foo, bar))</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>You can just do:</p>
+</div>
+<div class="listingblock sourcecode skipme">
+<div class="content">
+<pre>a_mock.assert_called_with(foo, bar)</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>And the mock library will raise an <code>AssertionError</code> for you if there is a
+mismatch.</p>
+</div>
+<div class="paragraph">
+<p>Why not use that?  For me, the problem with these magic methods is it&#8217;s too
+easy to make a silly typo and end up with a test that always passes:</p>
+</div>
+<div class="listingblock sourcecode skipme">
+<div class="content">
+<pre>a_mock.asssert_called_with(foo, bar)  # will always pass</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Unless you get the magic method name exactly right, then you will
+just get a "normal" mock method, which just silently return another
+mock, and you may not realise that you&#8217;ve written a test that tests
+nothing at all.</p>
+</div>
+<div class="paragraph">
+<p>That&#8217;s why I prefer to always have an explicit <code>unittest</code> method in there.</p>
+</div>
+</div>
+</div>
 </div>
 </div>
 <div class="sect2">
@@ -2048,7 +2096,8 @@ element: Log out</pre>
 </div>
 <div class="paragraph">
 <p>Oh no!  Something&#8217;s not right.  But assuming you&#8217;ve kept the <code>LOGGING</code>
-config in <em>settings.py</em>, you should see the explanatory traceback, as just shown. It&#8217;s saying something about a <code>last_login</code> field.</p>
+config in <em>settings.py</em>, you should see the explanatory traceback, as just
+shown. It&#8217;s saying something about a <code>last_login</code> field.</p>
 </div>
 <div class="paragraph">
 <p><a href="https://code.djangoproject.com/ticket/26823">In my opinion</a> this is a
@@ -2198,24 +2247,56 @@ EMAIL_USE_TLS = <span class="predefined-constant">True</span></code></pre>
 </li>
 </ul>
 </div>
-<div class="paragraph">
-<p>Now is a good time to save it somewhere so we don&#8217;t forget it.</p>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>export EMAIL_PASSWORD="yoursekritpasswordhere"</strong></pre>
 </div>
+</div>
+<div class="sidebarblock">
+<div class="content">
+<div class="title">Using a local .env file for development</div>
 <div class="paragraph">
 <p>Until now we&#8217;ve only used the <em>.env</em> file on the server, because all the
 other settings have sensible defaults for dev, but there&#8217;s just no way
 to get a working login system without this one.</p>
 </div>
-<div class="listingblock">
-<div class="content">
-<pre>$ <strong>echo EMAIL_PASSWORD="yoursekritpasswordhere" &gt;&gt; .env</strong>
-$ <strong>source .env</strong></pre>
+<div class="paragraph">
+<p>Just as we do on the server, you can also use a <em>.env</em> file to save
+project-specific environment variables:</p>
+</div>
+<div class="paragraph">
+<p>$ <strong>echo EMAIL_PASSWORD="yoursekritpasswordhere" &gt;&gt; .env</strong>
+$ <strong>set -a; source .env; set +a;</strong></p>
+</div>
+<div class="paragraph">
+<p>It does mean you have to remember to do that weird <code>set -a; source...</code> dance,
+every time you start working on the project, as well as remembering to activate
+your virtualenv.</p>
+</div>
+<div class="paragraph">
+<p>If you search or ask around, you&#8217;ll find there are some tools and shell plugins
+that load virtualenvs and <em>.env</em> files automatically, and/or django plugins
+that do this stuff too.</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Django-specific:
+<a href="https://django-environ.readthedocs.io/en/latest/">django-environ</a> or
+<a href="https://github.com/jpadilla/django-dotenv">django-dotenv</a>.</p>
+</li>
+<li>
+<p>More general Python project management <a href="https://docs.pipenv.org/">Pipenv</a></p>
+</li>
+<li>
+<p>Or even <a href="https://stackoverflow.com/questions/19331497/set-environment-variables-from-file/34093548#34093548">roll your own</a>.</p>
+</li>
+</ul>
+</div>
 </div>
 </div>
 <div class="paragraph">
-<p>From now on, you&#8217;ll have to remember to run that <code>source .env</code> command
-each time you start working on the project, a bit like activating your
-virtualenv.<sup class="footnote">[<a id="_footnoteref_5" class="footnote" href="#_footnote_5" title="View footnote.">5</a>]</sup></p>
+<p>And now&#8230;&#8203;</p>
 </div>
 <div class="listingblock skipme">
 <div class="content">
@@ -2223,7 +2304,7 @@ virtualenv.<sup class="footnote">[<a id="_footnoteref_5" class="footnote" href="
 </div>
 </div>
 <div class="paragraph">
-<p>Then you should see something like <a href="#despiked-success-message">Check your email&#8230;&#8203;.</a>.</p>
+<p>&#8230;&#8203;you should see something like <a href="#despiked-success-message">Check your email&#8230;&#8203;.</a>.</p>
 </div>
 <div id="despiked-success-message" class="imageblock">
 <div class="content">
@@ -2446,13 +2527,10 @@ function.  Using a mock in this case reduces duplication.</p>
 <div class="footnote" id="_footnote_4">
 <a href="#_footnoteref_4">4</a>. I&#8217;ve split the form tag across three lines so it fits nicely in the book. If you&#8217;ve not seen it before, it may look a little weird to you, but it is valid HTML.  You don&#8217;t have to use it if you don&#8217;t like it though. :)
 </div>
-<div class="footnote" id="_footnote_5">
-<a href="#_footnoteref_5">5</a>. If you search or ask around, you&#8217;ll find there are some tools and shell plugins that load virtualenvs and <em>.env</em> files automatically, but maybe doing it manually is good practice, for now.
-</div>
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2018-01-16 11:11:58 GMT
+Last updated 2018-01-19 13:16:17 GMT
 </div>
 </div>
 <div class="comments" style="padding: 20px">
