@@ -145,7 +145,7 @@ things we can do to debug it:</p>
 <p>Manually visit the site yourself.</p>
 </li>
 <li>
-<p>Use <code>time.sleep</code> to pause the test during execution<sup class="footnote">[<a id="_footnoteref_1" class="footnote" href="#_footnote_1" title="View footnote.">1</a>]</sup>.</p>
+<p>Use <code>time.sleep</code> to pause the test during execution.<sup class="footnote">[<a id="_footnoteref_1" class="footnote" href="#_footnote_1" title="View footnote.">1</a>]</sup></p>
 </li>
 </ul>
 </div>
@@ -371,15 +371,28 @@ string:</p>
     <span class="tag">&lt;/form&gt;</span>
 
     <span class="tag">&lt;table</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">"</span><span class="content">id_list_table</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>
-        <span class="tag">&lt;tr&gt;</span><span class="tag">&lt;td&gt;</span>{{ new_item_text }}<span class="tag">&lt;/td&gt;</span><span class="tag">&lt;/tr&gt;</span>
+        <span class="tag">&lt;tr&gt;</span><span class="tag">&lt;td&gt;</span>{{ new_item_text }}<span class="tag">&lt;/td&gt;</span><span class="tag">&lt;/tr&gt;</span>  <i class="conum" data-value="1"></i><b>(1)</b>
     <span class="tag">&lt;/table&gt;</span>
 <span class="tag">&lt;/body&gt;</span></code></pre>
 </div>
 </div>
 </div>
 </div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>Here&#8217;s our template variable.  <code>new_item_text</code> will be the variable name
+for the user input we display in the template, to help distinguish it from
+<code>item_text</code>, which is the name of the form field which we use in the POST
+request.  That just reminds us that transforming the one into the other
+doesn&#8217;t happen automatically; it&#8217;s something we do ourselves in the view&#8230;&#8203;</td>
+</tr>
+</table>
+</div>
 <div class="paragraph">
-<p>Let&#8217;s adjust our unit test so that it checks whether we are still using the template:</p>
+<p>Let&#8217;s adjust our unit test so that it checks whether we are still using the
+template:</p>
 </div>
 <div class="exampleblock sourcecode">
 <div class="title">lists/tests.py</div>
@@ -406,7 +419,9 @@ string:</p>
 <p>Good, our deliberately silly return value is now no longer fooling our tests,
 so we are allowed to rewrite our view, and tell it to pass the POST
 parameter to the template.  The <code>render</code> function takes, as its third argument,
-a dictionary which maps template variable names to their values:</p>
+a dictionary which maps template variable names to their values, so we can
+use it for the POST case as well as the normal case.  Let&#8217;s simplify our view
+right down to:</p>
 </div>
 <div class="exampleblock sourcecode">
 <div class="title">lists/views.py (ch05l009)</div>
@@ -421,7 +436,7 @@ a dictionary which maps template variable names to their values:</p>
 </div>
 </div>
 </div>
-<div class="paragraph pagebreak-before">
+<div class="paragraph">
 <p>Running the unit tests again:</p>
 </div>
 <div class="listingblock">
@@ -434,9 +449,11 @@ a dictionary which maps template variable names to their values:</p>
 django.utils.datastructures.MultiValueDictKeyError: "'item_text'"</pre>
 </div>
 </div>
+<div class="sect3">
+<h4 id="_an_unexpected_failure">An Unexpected Failure</h4>
 <div class="paragraph">
-<p>An
-<em>unexpected failure</em>.</p>
+<p>Oops,
+an <em>unexpected failure</em>.</p>
 </div>
 <div class="paragraph">
 <p>If you remember the rules for reading tracebacks, you&#8217;ll spot that it&#8217;s
@@ -467,9 +484,9 @@ site manually, and we can get on with fixing it straight away.  Here&#8217;s how
 </div>
 </div>
 <div class="paragraph">
-<p>Look up
-<a href="http://docs.python.org/3/library/stdtypes.html#dict.get"><code>dict.get</code></a> if you&#8217;re
-not sure what&#8217;s going on there.</p>
+<p>We use <a href="http://docs.python.org/3/library/stdtypes.html#dict.get"><code>dict.get</code></a> to
+supply a default value, for the case where we are doing a normal GET request,
+so the POST dictionary is empty.</p>
 </div>
 <div class="paragraph">
 <p>The unit tests should now pass.  Let&#8217;s see what the functional tests say:</p>
@@ -496,10 +513,10 @@ If your functional tests show you a different error at this point,
 </table>
 </div>
 <div class="paragraph">
-<p>Hmm, not a wonderfully helpful error.  Let&#8217;s use another of our FT debugging
-techniques: improving the error message.  This is probably the most
-constructive technique, because those improved error messages stay around to
-help debug any future errors:</p>
+<p>Hmm, not a wonderfully helpful
+error.  Let&#8217;s use another of our FT debugging techniques: improving the error
+message.  This is probably the most constructive technique, because those
+improved error messages stay around to help debug any future errors:</p>
 </div>
 <div class="exampleblock sourcecode">
 <div class="title">functional_tests.py (ch05l011)</div>
@@ -520,10 +537,10 @@ help debug any future errors:</p>
 <td><i class="conum" data-value="1"></i><b>1</b></td>
 <td>If
 you&#8217;ve not seen this syntax before, it&#8217;s the new Python "f-string"
-    syntax (probably the most exciting new feature from Python 3.6). You just
-    prepend a string with an f, and then you can use the curly-bracket syntax
-    to insert local variables.  There&#8217;s more info in the
-    <a href="https://docs.python.org/3/whatsnew/3.6.html#pep-498-formatted-string-literals">Python 3.6 release notes</a>.</td>
+syntax (probably the most exciting new feature from Python 3.6). You just
+prepend a string with an f, and then you can use the curly-bracket syntax
+to insert local variables.  There&#8217;s more info in the
+<a href="https://docs.python.org/3/whatsnew/3.6.html#pep-498-formatted-string-literals">Python 3.6 release notes</a>.</td>
 </tr>
 </table>
 </div>
@@ -577,8 +594,8 @@ AssertionError: '1: Buy peacock feathers' not found in ['Buy peacock feathers']<
 <td class="content">
 If, instead, your FT seems to be saying the table is empty ("not found in
     []"), check your <code>&lt;input&gt;</code> tag&#8212;&#8203;does it have the correct
-    <code>name="item_text"</code> attribute?  Without it, the user&#8217;s input won&#8217;t be
-    associated with the right key in <code>request.POST</code>.
+    <code>name="item_text"</code> attribute?  And does it have <code>method="POST"</code>?  Without
+    them, the user&#8217;s input won&#8217;t be in the right place in <code>request.POST</code>.
 </td>
 </tr>
 </table>
@@ -589,7 +606,7 @@ point is that the FT wants us to enumerate list items with a "1:" at the
 beginning of the first list item. The fastest way to get that to pass is with a
 quick "cheating" change to the template:</p>
 </div>
-<div class="exampleblock sourcecode pagebreak-after">
+<div class="exampleblock sourcecode">
 <div class="title">lists/templates/home.html</div>
 <div class="content">
 <div class="listingblock">
@@ -686,6 +703,7 @@ enough, the functional tests return an error:</p>
 <div class="content">
 <pre>AssertionError: '1: Buy peacock feathers' not found in ['1: Use peacock
 feathers to make a fly']</pre>
+</div>
 </div>
 </div>
 </div>
@@ -1938,7 +1956,7 @@ place to write down things that occur to us as we&#8217;re coding, so that
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2017-12-30 08:53:48 GMT
+Last updated 2018-03-31 17:02:14 CEST
 </div>
 </div>
 <div class="comments" style="padding: 20px">
