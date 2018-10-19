@@ -94,7 +94,7 @@ def make_supplier(db):
     )
 
     def _make_supplier(country):
-        s.country = "US",
+        s.country = country
         db.add(s)
         return s
 
