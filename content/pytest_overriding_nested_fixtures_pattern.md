@@ -79,7 +79,7 @@ def eu_supplier(db):
     db.remove(s)
 ```
 
-That's just one way you could do it, maybe you can figure out ways to reduce the duplication of the `db.add()` stuff as well, but you are going to have to have a different, named fixture for each customisation of `Supplier`, and eventually you may decide that doesn't scale.  Too many fixtures.  I'd like just one, customisable fixture please!
+That's just one way you could do it, maybe you can figure out ways to reduce the duplication of the `db.add()` stuff as well, but you are going to have to have a different, named fixture for each customisation of `Supplier`, and eventually you may decide that doesn't scale.  `us_supplier`, `eu_supplier`, `asia_supplier`, `ch_supplier`, etc etc, too many fixtures!  I'd like just one, customisable fixture please.
 
 ## Option 2: factory fixtures
 
