@@ -204,7 +204,7 @@ def supplier(db, country):
 ```
 
 
-And then in the tests that need to change it, we can use `parametrize`, _even though the country fixture isn't explicitly named in that test_:
+And then in the tests that need to change it, we can use `parametrize` to override the default value of `country`, _even though the country fixture isn't explicitly named in that test_:
 
 ```python
 @pytest.mark.parametrize('country', ["US"])
