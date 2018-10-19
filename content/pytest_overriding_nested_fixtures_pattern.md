@@ -228,5 +228,8 @@ Reactions and alternative suggestions on a postcard please :)
 This blog post inspired by a pattern I first explored at [PythonAnywhere](https://www.pythonanywhere.com/), which came up again recently; I found myself writing two successive answers to
 [this SO post](https://stackoverflow.com/questions/42228895/how-to-parametrize-a-pytest-fixture)
 
+Cross-posted at the [made.com dev blog](https://io.made.com/a-pytest-pattern-using-parametrize-to-customise-fixtures/)
+
 Code samples [can be found here](https://github.com/hjwp/www.obeythetestinggoat.com/tree/master/example-code/pytest_overriding_nested_fixtures_pattern)
+
 </i></small>
