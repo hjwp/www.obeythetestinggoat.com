@@ -151,8 +151,7 @@ def test_doubling(n):
 A slightly less well-known feature is that you can parametrize fixtures as well.  You need to use the special `request` fixture to access your parameters:
 
 ```python
-@pytest.mark.parametrize(['US', 'FR'])
-@pytest.fixture
+@pytest.fixture(params=['US', 'FR'])
 def supplier(db, request):
     s = Supplier(
         ref=random_ref(),
