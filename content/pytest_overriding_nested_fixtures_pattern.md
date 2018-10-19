@@ -224,6 +224,9 @@ Reactions and alternative suggestions on a postcard please :)
 
 ----
 
-<small><i>This blog post inspired by my experience over the years, and also my two recent successive answers to
+<small><i>
+This blog post inspired by a pattern I first explored at [PythonAnywhere](https://www.pythonanywhere.com/), which came up again recently; I found myself writing two successive answers to
 [this SO post](https://stackoverflow.com/questions/42228895/how-to-parametrize-a-pytest-fixture)
+
+Code samples [can be found here](https://github.com/hjwp/www.obeythetestinggoat.com/tree/master/example-code/pytest_overriding_nested_fixtures_pattern)
 </i></small>
