@@ -180,7 +180,8 @@ def test_US_supplier_has_no_VAT_but_EU_supplier_has_total_price_including_VAT(pr
 So that's ugly, and on top of that, now _every single_ test that depends (indirectly) on supplier gets run twice, and some of those extra test runs may be totally irrelevant to what the country is.
 
 
-## Presenting: using test parmetrization to override nested default-value fixtures
+## Presenting: using pytest parametrization to override nested default-value fixtures
+
 
 
 We introduce an extra fixture that holds a default value for the `country` field:
