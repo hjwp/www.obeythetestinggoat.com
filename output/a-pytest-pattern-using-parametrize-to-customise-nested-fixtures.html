@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<!--[if IE 8]>    <html class="no-js lt-ie9" lang="en"> <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en"> <!--<![endif]-->
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+        <!-- Set the viewport width to device width for mobile -->
+        <meta name="viewport" content="width=device-width" />
+        <title>Obey the Testing Goat!</title>
+        <meta charset="utf-8" />
+        <link rel="stylesheet" href="/static/css/normalize.css">
+        <link rel="stylesheet" href="/static/css/pygments.css">
+        <link rel="stylesheet" href="/static/css/extra.css">
+        <link rel="stylesheet" href="/static/css/foundation.css">
+        <link href='https://fonts.googleapis.com/css?family=Life+Savers:400,700|Sanchez:400,400italic|Ovo' rel='stylesheet' type='text/css'>
+
+
+        <link rel="stylesheet" href="/static/css/social_foundicons.css">
+        <!--[if lt IE 8]>
+            <link rel="stylesheet" href="stylesheets/social_foundicons_ie7.css">
+        <![endif]-->
+
+
+        <link href="http://www.obeythetestinggoat.com/feeds/all.atom.xml" type="application/atom+xml" rel="alternate" title="Obey the Testing Goat! Full Atom Feed" />
+        <link href="http://www.obeythetestinggoat.com/feeds/misc.atom.xml" type="application/atom+xml" rel="alternate" title="Obey the Testing Goat! Categories Atom Feed" />
+</head>
+
+<body>
+    <header class="row">
+        <div class="large-12 columns">
+            <div class="row">
+                <span class="right"><a href="http://www.obeythetestinggoat.com/feeds/all.atom.xml" type="application/rss+xml"><i class="social foundicon-rss"></i> RSS</a></span>
+                <div class="large-2 columns">
+                    <a href="http://www.obeythetestinggoat.com"><img src="/static/images/kid_goat.png" alt="The Testing Goat" title="The Testing Goat" /></a>
+                </div>
+                <div class="large-10 columns">
+                    <h1>Obey the Testing Goat!</h1>
+                    <h2><small><em>TDD for the Web, with Python, Selenium, Django, JavaScript and pals...</em></small></h2>
+                </div>
+            </div>
+        </div>
+    </header> <!-- end top banner -->
+
+<div class="row">
+    <div class="large-9 small-12 columns"> <!-- blog post div -->
+        <header>
+            <h2><a href="a-pytest-pattern-using-parametrize-to-customise-nested-fixtures.html" rel="bookmark" title="Permalink to A Pytest pattern: using "parametrize" to customise nested fixtures.">A Pytest pattern: using "parametrize" to customise nested fixtures.</a></h2>
+
+             
+
+        </header>
+        <footer class="post-info">
+            <abbr class="published" title="2018-10-19T14:50:00+01:00">
+              Fri 19 October 2018
+            </abbr>
+                <address class="vcard author">
+                  By <a class="url fn" href="http://www.obeythetestinggoat.com/author/harry.html">Harry</a>
+                </address>
+        </footer><!-- /.post-info -->
+
+        <div>
+            <h2>The problem: customisable fixtures in pytest</h2>
+<p>Let's say you're running along merrily with some fixtures that create database objects for you:</p>
+<div class="highlight"><pre><span></span><span class="nd">@pytest.fixture</span>
+<span class="k">def</span> <span class="nf">supplier</span><span class="p">(</span><span class="n">db</span><span class="p">):</span>
+    <span class="n">s</span> <span class="o">=</span> <span class="n">Supplier</span><span class="p">(</span>
+        <span class="n">ref</span><span class="o">=</span><span class="n">random_ref</span><span class="p">(),</span>
+        <span class="n">name</span><span class="o">=</span><span class="n">random_name</span><span class="p">(),</span>
+        <span class="n">country</span><span class="o">=</span><span class="s2">&quot;US&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">db</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+    <span class="k">yield</span> <span class="n">s</span>
+    <span class="n">db</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+
+
+
+<span class="nd">@pytest.fixture</span><span class="p">()</span>
+<span class="k">def</span> <span class="nf">product</span><span class="p">(</span><span class="n">db</span><span class="p">,</span> <span class="n">supplier</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">Product</span><span class="p">(</span>
+        <span class="n">ref</span><span class="o">=</span><span class="n">random_ref</span><span class="p">(),</span>
+        <span class="n">name</span><span class="o">=</span><span class="n">random_name</span><span class="p">(),</span>
+        <span class="n">supplier</span><span class="o">=</span><span class="n">supplier</span><span class="p">,</span>
+        <span class="n">net_price</span><span class="o">=</span><span class="mf">9.99</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">db</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+    <span class="k">yield</span> <span class="n">p</span>
+    <span class="n">db</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+</pre></div>
+
+
+<p>And now you're writing a new test and you suddenly realise you need to customise your default "supplier" fixture:</p>
+<div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">test_US_supplier_has_total_price_equal_net_price</span><span class="p">(</span><span class="n">product</span><span class="p">):</span>
+    <span class="k">assert</span> <span class="n">product</span><span class="o">.</span><span class="n">total_price</span> <span class="o">==</span> <span class="n">product</span><span class="o">.</span><span class="n">net_price</span>
+
+<span class="k">def</span> <span class="nf">test_EU_supplier_has_total_price_including_VAT</span><span class="p">(</span><span class="n">supplier</span><span class="p">,</span> <span class="n">product</span><span class="p">):</span>
+    <span class="n">supplier</span><span class="o">.</span><span class="n">country</span> <span class="o">=</span> <span class="s2">&quot;FR&quot;</span> <span class="c1"># oh, this doesn&#39;t work</span>
+    <span class="k">assert</span> <span class="n">product</span><span class="o">.</span><span class="n">total_price</span> <span class="o">==</span> <span class="n">product</span><span class="o">.</span><span class="n">net_price</span> <span class="o">*</span> <span class="mf">1.2</span>
+</pre></div>
+
+
+<p>For whatever reason, maybe because you need to set the <code>supplier.country</code> before you add things to the DB, or before you instantiate product objects, you need to be able to adjust the <code>country</code> field on your supplier feature.</p>
+<h2>Option 1: more fixtures</h2>
+<p>We can just create more fixtures, and try do do a bit of DRY by extracting out common logic:</p>
+<div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">_default_supplier</span><span class="p">():</span>
+    <span class="k">return</span> <span class="n">Supplier</span><span class="p">(</span>
+        <span class="n">ref</span><span class="o">=</span><span class="n">random_ref</span><span class="p">(),</span>
+        <span class="n">name</span><span class="o">=</span><span class="n">random_name</span><span class="p">(),</span>
+    <span class="p">)</span>
+
+<span class="nd">@pytest.fixture</span>
+<span class="k">def</span> <span class="nf">us_supplier</span><span class="p">(</span><span class="n">db</span><span class="p">):</span>
+    <span class="n">s</span> <span class="o">=</span> <span class="n">_default_supplier</span><span class="p">()</span>
+    <span class="n">s</span><span class="o">.</span><span class="n">country</span> <span class="o">=</span> <span class="s2">&quot;US&quot;</span>
+    <span class="n">db</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+    <span class="k">yield</span> <span class="n">s</span>
+    <span class="n">db</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+
+<span class="nd">@pytest.fixture</span>
+<span class="k">def</span> <span class="nf">eu_supplier</span><span class="p">(</span><span class="n">db</span><span class="p">):</span>
+    <span class="n">s</span> <span class="o">=</span> <span class="n">_default_supplier</span><span class="p">()</span>
+    <span class="n">s</span><span class="o">.</span><span class="n">country</span> <span class="o">=</span> <span class="s2">&quot;FR&quot;</span>
+    <span class="n">db</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+    <span class="k">yield</span> <span class="n">s</span>
+    <span class="n">db</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+</pre></div>
+
+
+<p>That's just one way you could do it, maybe you can figure out ways to reduce the duplication of the <code>db.add()</code> stuff as well, but you are going to have to have a different, named fixture for each customisation of <code>Supplier</code>, and eventually you may decide that doesn't scale.  <code>us_supplier</code>, <code>eu_supplier</code>, <code>asia_supplier</code>, <code>ch_supplier</code>, etc etc, too many fixtures!  I'd like just one, customisable fixture please.</p>
+<h2>Option 2: factory fixtures</h2>
+<p>Instead of a fixture returning an object directly, it can return a function that creates an object, and that function can take arguments:</p>
+<div class="highlight"><pre><span></span><span class="nd">@pytest.fixture</span>
+<span class="k">def</span> <span class="nf">make_supplier</span><span class="p">(</span><span class="n">db</span><span class="p">):</span>
+    <span class="n">s</span> <span class="o">=</span> <span class="n">Supplier</span><span class="p">(</span>
+        <span class="n">ref</span><span class="o">=</span><span class="n">random_ref</span><span class="p">(),</span>
+        <span class="n">name</span><span class="o">=</span><span class="n">random_name</span><span class="p">(),</span>
+    <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_make_supplier</span><span class="p">(</span><span class="n">country</span><span class="p">):</span>
+        <span class="n">s</span><span class="o">.</span><span class="n">country</span> <span class="o">=</span> <span class="n">country</span>
+        <span class="n">db</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">s</span>
+
+    <span class="k">yield</span> <span class="n">_make_supplier</span>
+    <span class="n">db</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+</pre></div>
+
+
+<p>The problem with this is that, once you start, you tend to have to go all the way, and make <em>all</em> of your fixture hierarchy into factory functions: </p>
+<div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">test_EU_supplier_has_total_price_including_VAT</span><span class="p">(</span><span class="n">make_supplier</span><span class="p">,</span> <span class="n">product</span><span class="p">):</span>
+    <span class="n">supplier</span> <span class="o">=</span> <span class="n">make_supplier</span><span class="p">(</span><span class="n">country</span><span class="o">=</span><span class="s2">&quot;FR&quot;</span><span class="p">)</span>
+    <span class="n">product</span><span class="o">.</span><span class="n">supplier</span> <span class="o">=</span> <span class="n">supplier</span> <span class="c1"># OH, now this doesn&#39;t work, because it&#39;s too late again</span>
+    <span class="k">assert</span> <span class="n">product</span><span class="o">.</span><span class="n">total_price</span> <span class="o">==</span> <span class="n">product</span><span class="o">.</span><span class="n">net_price</span> <span class="o">*</span> <span class="mf">1.2</span>
+</pre></div>
+
+
+<p>And so...</p>
+<div class="highlight"><pre><span></span><span class="nd">@pytest.fixture</span>
+<span class="k">def</span> <span class="nf">make_product</span><span class="p">(</span><span class="n">db</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">Product</span><span class="p">(</span>
+        <span class="n">ref</span><span class="o">=</span><span class="n">random_ref</span><span class="p">(),</span>
+        <span class="n">name</span><span class="o">=</span><span class="n">random_name</span><span class="p">(),</span>
+    <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_make_product</span><span class="p">(</span><span class="n">supplier</span><span class="p">):</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">supplier</span> <span class="o">=</span> <span class="n">supplier</span>
+        <span class="n">db</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">p</span>
+
+    <span class="k">yield</span> <span class="n">_make_product</span>
+    <span class="n">db</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">test_EU_supplier_has_total_price_including_VAT</span><span class="p">(</span><span class="n">make_supplier</span><span class="p">,</span> <span class="n">make_product</span><span class="p">):</span>
+    <span class="n">supplier</span> <span class="o">=</span> <span class="n">make_supplier</span><span class="p">(</span><span class="n">country</span><span class="o">=</span><span class="s2">&quot;FR&quot;</span><span class="p">)</span>
+    <span class="n">product</span> <span class="o">=</span> <span class="n">make_product</span><span class="p">(</span><span class="n">supplier</span><span class="o">=</span><span class="n">supplier</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="n">product</span><span class="o">.</span><span class="n">total_price</span> <span class="o">==</span> <span class="n">product</span><span class="o">.</span><span class="n">net_price</span> <span class="o">*</span> <span class="mf">1.2</span>
+</pre></div>
+
+
+<p>That works, but firstly now everything is a factory-fixture, which makes them more convoluted, and secondly, your tests are filling up with extra calls to <code>make_things</code>, and you're having to embed some of the domain knowledge of what-depends-on-what into your tests as well as your fixtures.</p>
+<h2>Option 3: "normal" fixture parametrization</h2>
+<p>This is a pretty cool feature of Pytest.  You probably already know that you can parametrize tests, injecting different values for arguments to your test and then running the same test multiple times, once for each value:</p>
+<div class="highlight"><pre><span></span><span class="nd">@pytest.mark.parametrize</span><span class="p">(</span><span class="s1">&#39;n&#39;</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">])</span>
+<span class="k">def</span> <span class="nf">test_doubling</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>
+    <span class="k">assert</span> <span class="n">n</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">&lt;</span> <span class="mi">6</span> <span class="c1"># will pass twice and fail once</span>
+</pre></div>
+
+
+<p>A slightly less well-known feature is that you can parametrize fixtures as well.  You need to use the special <code>request</code> fixture to access your parameters:</p>
+<div class="highlight"><pre><span></span><span class="nd">@pytest.fixture</span><span class="p">(</span><span class="n">params</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;US&#39;</span><span class="p">,</span> <span class="s1">&#39;FR&#39;</span><span class="p">])</span>
+<span class="k">def</span> <span class="nf">supplier</span><span class="p">(</span><span class="n">db</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
+    <span class="n">s</span> <span class="o">=</span> <span class="n">Supplier</span><span class="p">(</span>
+        <span class="n">ref</span><span class="o">=</span><span class="n">random_ref</span><span class="p">(),</span>
+        <span class="n">name</span><span class="o">=</span><span class="n">random_name</span><span class="p">(),</span>
+        <span class="n">country</span><span class="o">=</span><span class="n">request</span><span class="o">.</span><span class="n">param</span>
+    <span class="p">)</span>
+    <span class="n">db</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+    <span class="k">yield</span> <span class="n">s</span>
+    <span class="n">db</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+</pre></div>
+
+
+<p>Now any test that depends on <code>supplier</code>, directly or indirectly, will be run twice, once with <code>supplier.country = US</code> and once with <code>FR</code>.</p>
+<p>That's really cool for checking that a given piece of logic works in a variety of different cases, but it's not really ideal in our case.  We have to build a bunch of <code>if</code> logic into our tests:</p>
+<div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">test_US_supplier_has_no_VAT_but_EU_supplier_has_total_price_including_VAT</span><span class="p">(</span><span class="n">product</span><span class="p">):</span>
+    <span class="c1"># this test is magically run twice, but:</span>
+    <span class="k">if</span> <span class="n">product</span><span class="o">.</span><span class="n">supplier</span><span class="o">.</span><span class="n">country</span> <span class="o">==</span> <span class="s1">&#39;US&#39;</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="n">product</span><span class="o">.</span><span class="n">total_price</span> <span class="o">==</span> <span class="n">product</span><span class="o">.</span><span class="n">net_price</span>
+    <span class="k">if</span> <span class="n">product</span><span class="o">.</span><span class="n">supplier</span><span class="o">.</span><span class="n">country</span> <span class="o">==</span> <span class="s1">&#39;FR&#39;</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="n">product</span><span class="o">.</span><span class="n">total_price</span> <span class="o">==</span> <span class="n">product</span><span class="o">.</span><span class="n">net_price</span> <span class="o">*</span> <span class="mf">1.2</span>
+</pre></div>
+
+
+<p>So that's ugly, and on top of that, now <em>every single</em> test that depends (indirectly) on supplier gets run twice, and some of those extra test runs may be totally irrelevant to what the country is.</p>
+<h2>Presenting: using test parmetrization to override nested default-value fixtures</h2>
+<p>We introduce an extra fixture that holds a default value for the <code>country</code> field:</p>
+<div class="highlight"><pre><span></span><span class="nd">@pytest.fixture</span><span class="p">()</span>
+<span class="k">def</span> <span class="nf">country</span><span class="p">():</span>
+    <span class="k">return</span> <span class="s2">&quot;US&quot;</span>
+
+
+<span class="nd">@pytest.fixture</span>
+<span class="k">def</span> <span class="nf">supplier</span><span class="p">(</span><span class="n">db</span><span class="p">,</span> <span class="n">country</span><span class="p">):</span>
+    <span class="n">s</span> <span class="o">=</span> <span class="n">Supplier</span><span class="p">(</span>
+        <span class="n">ref</span><span class="o">=</span><span class="n">random_ref</span><span class="p">(),</span>
+        <span class="n">name</span><span class="o">=</span><span class="n">random_name</span><span class="p">(),</span>
+        <span class="n">country</span><span class="o">=</span><span class="n">country</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">db</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+    <span class="k">yield</span> <span class="n">s</span>
+    <span class="n">db</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+</pre></div>
+
+
+<p>And then in the tests that need to change it, we can use <code>parametrize</code> to override the default value of <code>country</code>, <em>even though the country fixture isn't explicitly named in that test</em>:</p>
+<div class="highlight"><pre><span></span><span class="nd">@pytest.mark.parametrize</span><span class="p">(</span><span class="s1">&#39;country&#39;</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;US&quot;</span><span class="p">])</span>
+<span class="k">def</span> <span class="nf">test_US_supplier_has_total_price_equal_net_price</span><span class="p">(</span><span class="n">product</span><span class="p">):</span>
+    <span class="k">assert</span> <span class="n">product</span><span class="o">.</span><span class="n">total_price</span> <span class="o">==</span> <span class="n">product</span><span class="o">.</span><span class="n">net_price</span>
+
+<span class="nd">@pytest.mark.parametrize</span><span class="p">(</span><span class="s1">&#39;country&#39;</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;EU&quot;</span><span class="p">])</span>
+<span class="k">def</span> <span class="nf">test_EU_supplier_has_total_price_including_VAT</span><span class="p">(</span><span class="n">product</span><span class="p">):</span>
+    <span class="k">assert</span> <span class="n">product</span><span class="o">.</span><span class="n">total_price</span> <span class="o">==</span> <span class="n">product</span><span class="o">.</span><span class="n">net_price</span> <span class="o">*</span> <span class="mf">1.2</span>
+</pre></div>
+
+
+<p>Amazing huh?  The only problem is that you're now likely to build a teetering tower of implicit dependencies where the only way to find out what's actually happening is to spend ages spelunking in <code>conftest.py</code>, but, hey, if you didn't like crazy nested fixture magic, why are you using pytest in the first place, right?</p>
+<p>Reactions and alternative suggestions on a postcard please :)</p>
+<hr />
+<p><small><i>
+This blog post inspired by a pattern I first explored at <a href="https://www.pythonanywhere.com/">PythonAnywhere</a>, which came up again recently; I found myself writing two successive answers to
+<a href="https://stackoverflow.com/questions/42228895/how-to-parametrize-a-pytest-fixture">this SO post</a></p>
+<p>Cross-posted at the <a href="https://io.made.com/a-pytest-pattern-using-parametrize-to-customise-fixtures/">made.com dev blog</a></p>
+<p>Code samples <a href="https://github.com/hjwp/www.obeythetestinggoat.com/tree/master/example-code/pytest_overriding_nested_fixtures_pattern">can be found here</a></p>
+<p></i></small></p>
+        </div><!-- /.entry-content -->
+
+    <div class="comments">
+        <h3>Comments</h3>
+        <div id="disqus_thread"></div>
+        <script type="text/javascript">
+                var disqus_shortname = 'obeythetestinggoat';
+
+            /* * * DON'T EDIT BELOW THIS LINE * * */
+            (function() {
+                var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+                dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+                (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+            })();
+        </script>
+        <noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+        <a href="http://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+    </div>
+
+
+
+    </div>
+<div class="large-3 small-6 columns">
+    <h6><a href="/pages/book.html">Read the book</a></h6>
+    <p>
+        The book is available both for free and for money.  
+        It's all about TDD and Web programming.
+        <a href="/pages/book.html">Read it here!</a>
+    </p>
+</div>
+
+<div class="large-3 small-6 columns">
+    <h6><a href="/pages/reviews-and-testimonials.html">Reviews & Testimonials</a></h6>
+   
+    <p>
+        <i>"Hands down the best teaching book I've ever read"</i> &mdash;
+        <i>"Even the first 4 chapters were worth the money"</i> &mdash;
+        <i>"Oh my gosh! This book is outstanding"</i> &mdash;
+        <i>"The testing goat is my new friend"</i> &mdash;
+        <a href="/pages/reviews-and-testimonials.html">Read more...</a>
+    </p>
+
+</div>
+
+
+<div class="large-3 small-6 columns">
+    <h6><a href="/pages/tdd-resources.html">Resources</a></h6>
+    <p>A selection of links and videos about TDD, not necessarily all mine, eg <a href="http://pyvideo.org/video/1657/fully-test-driven-web-development-with-django-and">this tutorial
+        at PyCon 2013</a>, how to <a href="http://arstechnica.com/information-technology/2013/03/how-can-i-motivate-coworkers-to-write-unit-tests/">motivate coworkers to write unit tests</a>, thoughts on <a href="http://pyvideo.org/video/699/testing-and-django">Django's test tools</a>, <a href="https://www.youtube.com/watch?v=tdNnN5yTIeM">London-style TDD</a> and <a href="/pages/tdd-resources.html">more</a>.
+</div>
+
+
+<div class="large-3 small-6 columns">
+    <h6><a href="http://www.tdd-django-tutorial.com">Old TDD / Django Tutorial</a></h6>
+    <p>
+    This is my <a href="http://www.tdd-django-tutorial.com">old TDD tutorial</a>,
+    which follows along with the official Django tutorial, but with full TDD.  It
+    badly needs updating. Read the book instead!
+    </p>
+</div>
+
+<div class="large-3 small-6 columns">
+    <h6><a href="/pages/save-the-testing-goat-campaign.html">Save the Testing Goat Campaign</a></h6>
+    <p>
+    The campaign page, preserved for history, which led to the glorious presence
+    of the Testing Goat on the front of the book.
+    </p>
+</div></div>
+
+  <footer class="row">
+    <div class="large-12 columns">
+      <hr>
+      <div class="row">
+        <div class="large-8 columns">
+            <p>
+                <a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/3.0/"><img alt="Creative Commons License" style="border-width:0" src="https://i.creativecommons.org/l/by-nc-sa/3.0/88x31.png" /></a>
+                &nbsp
+                <span xmlns:dct="http://purl.org/dc/terms/" href="http://purl.org/dc/dcmitype/Text" property="dct:title" rel="dct:type">Obey the Testing Goat website</span> 
+                by <a xmlns:cc="http://creativecommons.org/ns#" href="http://www.obeythetestinggoat.com" property="cc:attributionName" rel="cc:attributionURL">Harry J.W. Percival</a> 
+                is licensed under a 
+                <a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/3.0/">Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License</a>.
+                Site powered by <a href="http://getpelican.com/">Pelican</a>, and
+                hosted on <a href="https://www.pythonanywhere.com">PythonAnywhere</a>.
+                If you came here via one of the awesome "Year of the Testing Goat" stickers,
+                you should know credit for the sweet cartoon goat goes to 
+                <a href="http://www.squirrelmuffins.com/">Kat i on</a>
+            </p>
+       </div>
+
+        <div class="large-4 columns">
+          <ul class="inline-list right">
+            <li><a href="/pages/book.html">Book</a></li>
+            <li><a href="/pages/tdd-resources.html">Resources</a></li>
+            <li>
+                <a href="http://www.obeythetestinggoat.com/feeds/all.atom.xml" type="application/rss+xml"><i class="social foundicon-rss"></i> RSS</a></span>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <script src="/static/js/vendor/custom.modernizr.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+
+  <script>
+  document.write('<script src=js/vendor/' +
+  ('__proto__' in {} ? 'zepto' : 'jquery') +
+  '.js><\/script>')
+  </script>
+  <script src="js/foundation.min.js"></script>
+  <script>
+    $(document).foundation();
+  </script>
+  <script type="text/javascript">
+    $(window).load(function() {
+      $('#featured').orbit({ fluid: '2x1' });
+    });
+  </script>
+
+
+  <script>   (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){   (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),   m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)   })(window,document,'script','//www.google-analytics.com/analytics.js','ga');    ga('create', 'UA-40928035-1', 'obeythetestinggoat.com');   ga('send', 'pageview');  </script> 
+  <!-- End Footer -->
+
+</body>
+</html>
