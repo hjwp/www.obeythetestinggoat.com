@@ -1,5 +1,5 @@
 Title: A Pytest pattern: using "parametrize" to customise nested fixtures.
-Date: 2018-10-17 11:20
+Date: 2018-10-19 14:50
 Tags: pytest, fixtures,
 Author: Harry
 Summary: From time to time we come across a fixture that we want to customise in some way.  Factory functions and factory fixtures are classic options, but you can also (mis-) use the pytest parametrize decorator to achieve this goal. Find out how here!
