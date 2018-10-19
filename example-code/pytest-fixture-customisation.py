@@ -1,12 +1,46 @@
 import pytest
 import uuid
-from domain.model import Supplier, Product
+from dataclasses import dataclass
+
+@dataclass
+class Supplier:
+    ref: str
+    name: str
+    country: str
+
+
+@dataclass
+class Product:
+    ref: str
+    name: str
+    supplier: Supplier
+    net_price: float
+
+    @property
+    def total_price(self):
+        return self.net_price if self.supplier.country == "US" else self.net_price * 1.2
+
 
 def random_ref():
     return random_name()
 
 def random_name():
     return str(uuid.uuid4())
+
+
+class FakeDB:
+    def add(self, thing):
+        pass
+
+    def remove(self, thing):
+        pass
+
+
+@pytest.fixture
+def db():
+    return FakeDB()
+
+
 
 
 @pytest.fixture
