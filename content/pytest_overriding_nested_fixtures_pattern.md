@@ -1,4 +1,4 @@
-Title: A Pytest pattern: using parametrize to customise fixtures.
+Title: A Pytest pattern: using "parametrize" to customise nested fixtures.
 Date: 2018-10-17 11:20
 Tags: pytest, fixtures,
 Author: Harry
@@ -221,3 +221,9 @@ Amazing huh?  The only problem is that you're now likely to build a teetering to
 
 Reactions and alternative suggestions on a postcard please :)
 
+
+----
+
+<small><i>This blog post inspired by my experience over the years, and also my two recent successive answers to
+[this SO post](https://stackoverflow.com/questions/42228895/how-to-parametrize-a-pytest-fixture)
+</i></small>
