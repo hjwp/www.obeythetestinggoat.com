@@ -99,7 +99,7 @@ Also a timely release, check out
 
 And I know I said it already, but you should read some of the classics in the field:
 
-* Patterns of Enterprise Architecture by Martin Fowler [amazon.com](https://amzn.to/2U6HTZN) / ([.co.uk](https://amzn.to/2R0WkN3)
+* Patterns of Enterprise Architecture by Martin Fowler [amazon.com](https://amzn.to/2U6HTZN) / [.co.uk](https://amzn.to/2R0WkN3)
 
 * Domain-Driven Design by Eric Evans [amazon.com](https://amzn.to/2W9nANe) / [.co.uk](https://amzn.to/2B7vmOP)
 
