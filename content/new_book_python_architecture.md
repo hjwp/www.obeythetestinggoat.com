@@ -40,7 +40,7 @@ in software, over time.
 
 Despite the full power of Dunning-Kruger and the Expert Beginner syndrome, I
 couldn't write this book on my own.  Thankfully, Bob, the architect at 
-https://www.made.com/[made.com] is my coauthor.  I mean, it's pretty much
+[made.com](https://www.made.com/) is my coauthor.  I mean, it's pretty much
 going to be his book, and I'm just a glorified editor / project manager
 really, and my job is to nag Bob enough, suck all the knowledge out of
 his head, and get it committed to the page.
