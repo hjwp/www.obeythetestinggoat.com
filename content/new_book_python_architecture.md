@@ -77,7 +77,9 @@ worth it for your use case, but at least in Python, they don't have to be too ug
 * Chapter 10: Event-driven architecture part 4: reactive microservices
 
 The idea is to pick an example application and build out each of these
-patterns one by one, as new requirements come in.
+patterns one by one, as new requirements come in.  There's a
+[more detailed outline here](https://github.com/hjwp/python-architecture-book/blob/master/outline.md)
+if you're _really_ curious.
 
 
 ## Can't wait?  Here's some resources you can get into already
