@@ -2,7 +2,7 @@ Title: Announcing the next book: Lightweight Architecture Patterns with Python
 Date: 2019-01-22 10:33
 Tags: book, architecture, design
 Author: Harry
-Summary: I'm working on a new book that picks up where the last one left off -- how to structure your code to be able to get the most out of your tests, and manage complexity over time.
+Summary: I'm working on a new book that picks up where the last one left off -- how to structure your code to be able to get the most out of your tests, but more importantly, manage complexity over time.
 
 
 ## How should we structure an application to get the most out of our tests?
@@ -72,9 +72,9 @@ worth it for your use case, but at least in Python, they don't have to be too ug
 * Chapter 5: Data integrity concerns 2: choosing the right consistency boundary (Aggregate pattern)
 * Chapter 6: CQRS
 * Chapter 7: Event-driven architecture part 1: events and the message bus
-* Chapter 8: event-driven architecture part 2: domain events
-* Chapter 9: event-driven architecture part 3: command handler pattern
-* Chapter 10: event-driven architecture part 4: reactive microservices
+* Chapter 8: Event-driven architecture part 2: domain events
+* Chapter 9: Event-driven architecture part 3: command handler pattern
+* Chapter 10: Event-driven architecture part 4: reactive microservices
 
 The idea is to pick an example application and build out each of these
 patterns one by one, as new requirements come in.
