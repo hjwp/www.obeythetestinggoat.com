@@ -24,12 +24,12 @@ Since then I've managed to fall in with a [tech team](https://io.made.com/)
 that are actively implementing these sorts of patterns, in Python.  And the
 thing is, these architectural patterns are nothing new, people have been
 exploring them for years in the world of Java and C#.  They were just new to
-me... and I may be over-reaching from my own experience here, but they are
-perhaps new to the Python community in general... What do you think?
+me... and I may be over-reaching from my own experience here (I'm interested
+in your reaction), but they are perhaps new to the Python community in general?
 
-It does feel like, as we mature, as what were once small projects and plucky
-startups turn into complex business and (whisper it) enterprise software, so
-I'm thinking that this stuff is only going to get more interesting with time.
+It does feel like, as we mature, more and more of what were once small projects
+and plucky startups turn into complex business and (whisper it) enterprise
+software, so this stuff is likely to get more and more salient.
 
 I came to it initially from the angle of testing, and the right kind of
 architecture really can help you to get the most out of your tests, by
@@ -69,7 +69,7 @@ There's more on io.made.com but those are the main four.  We'd love to
 get some feedback on them, what's covered well, what could do with more
 explanation, and so on...
 
-And a very timely release from last Christmas, check out 
+And: a very timely release from last Christmas, check out
 [Clean Architectures in Python](https://leanpub.com/clean-architectures-in-python)
 by Leonardo Giordani.  It's really two  books in one, part one being an intro
 to TDD, but part 2 has four chapters introducing very similar patterns to the
@@ -79,8 +79,9 @@ I also enjoyed a talk from about a year ago by David Seddon
 [The Rocky River, how to architect your Django monolith](http://seddonym.me/talks/2017-12-12-rocky-river/),
 showing someone else starting to think about how we go beyond the basic Django models/views/templates architecture.
 
-There's also lots more at this [listing of DDD resources](https://github.com/valignatev/ddd-dynamic) 
+There's lots more at this [listing of DDD resources](https://github.com/valignatev/ddd-dynamic)
 by Valentin Ignatev, which I came across recently on twitter.  It feels like something is in the air.
+
 
 ## Call to action:  is this stuff interesting?
 
