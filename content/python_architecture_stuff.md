@@ -35,7 +35,7 @@ I came to it initially from the angle of testing, and the right kind of
 architecture really can help you to get the most out of your tests, by
 separating out a core of business logic (the "domain model") and freeing it
 from all infrastructure dependencies, allowing it to be tested entirely through
-fast, flexible unit tests.  At made it finally felt like the 
+fast, flexible unit tests.  At Made it finally felt like the 
 [test pyramid](https://martinfowler.com/articles/practical-test-pyramid.html) was
 an achievable goal rather than an impossible aspiration.
 
