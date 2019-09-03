@@ -1,0 +1,722 @@
+= New Book Excerpt: On Coupling and Abstractions
+
+:date: 2019-09-03
+:modified: 2019-09-03 14:40
+:tags: new book, abstractions, oo, design
+:slug: new-book-excerpt-abstractions
+:status: draft
+:summary: Being a discussion of abstractions, and how we can use them to reduce unnecessary coupling, make unit testing easier (or possible), and separate core logic from implementation details.  Plus some discussion of functional-core-imperative-shell vs dependency injection.
+
+*At MADE.com i've been working on a new book with the chief architect, Bob
+Gregory, in which we talk about application architecture and design.  What
+follows is an excerpt, a standalone chapter in which we talk about abstractions,
+testability, and coupling.*
+
+*You can follow the progress on the new book at https://github.com/python-leap/book/,
+and you can read the Early Release edition on https://learning.oreilly.com/library/view/enterprise-architecture-patterns/9781492052197/[Oreilly Safari] (sign up for a free account if you
+need one)*
+
+Allow us a brief digression on the subject of abstractions, dear reader.
+We've talked about _abstractions_ quite a lot.  The Repository is an
+abstraction over permanent storage for example.  But what makes a good
+abstraction?  What do we want from them?  And how do they relate to testing?
+
+=== Encapsulation and Abstraction
+
+Take a look at the following two snippets of Python code, <<urllib_example>>
+and <<requests_example>>:
+
+
+[[urllib_example]]
+.Do a search with urllib
+====
+[source,python]
+----
+import json
+from urllib.request import urlopen
+from urllib.parse import urlencode
+
+params = dict(q='Sausages', format='json')
+handle = urlopen('http://api.duckduckgo.com' + '?' + urlencode(params))
+raw_text = handle.read().decode('utf8')
+parsed = json.loads(raw_text)
+
+results = parsed['RelatedTopics']
+for r in results:
+    if 'Text' in r:
+        print(r['FirstURL'] + ' - ' + r['Text'])
+----
+====
+
+[[requests_example]]
+.Do a search with requests
+====
+[source,python]
+----
+import requests
+
+params = dict(q='Sausages', format='json')
+parsed = requests.get('http://api.duckduckgo.com/', params=params).json()
+
+results = parsed['RelatedTopics']
+for r in results:
+    if 'Text' in r:
+        print(r['FirstURL'] + ' - ' + r['Text'])
+----
+====
+
+Both of these code listings do the same thing: they submit form-encoded values
+to a URL in order to use a search engine API. But the second is simpler to read
+and understand because it operates at a higher level of abstraction.
+
+We can take this one step further still by identifying and naming the task we
+want the code to perform for us, and use an even higher-level abstraction to make
+it explicit:
+
+[[ddg_example]]
+.Do a search with the duckduckgo module
+====
+[source,python]
+----
+import duckduckgo
+for r in duckduckgo.query('Sausages').results:
+    print(r.url + ' - ' + r.text)
+----
+====
+
+Encapsulating behavior using abstractions is a powerful tool for making
+our code more expressive, more testable, and easier to maintain.
+
+
+NOTE: This approach is inspired by the OO practice of
+    http://www.wirfs-brock.com/Design.html[responsibility-driven design].
+    which would use the words _roles_ and _responsibilities_ rather than tasks.
+    The main point is to think about code in terms of behavior, rather than
+    in terms of data or algorithms.  If you've come across CRC cards, they're
+    driving at the same thing.
+
+In a traditional OO language you might use an abstract base class or an
+interface to define an abstraction.  In Python you can (and we sometimes do)
+use ABCs, but you can also rely on duck typing.  The abstraction can just mean,
+"the public API of the thing you're using"; a function name plus some
+arguments, for example.
+
+
+=== Abstractions as a Way of Reducing Excessive Coupling
+
+A key theme in this book, hidden among the fancy patterns, is that we can use
+simple abstractions to hide messy details. When we're writing code for fun, or
+in a kata,footnote:[A code kata is a small contained programming challenge often
+used to practice TDD.  See http://www.peterprovost.org/blog/2012/05/02/kata-the-only-way-to-learn-tdd/]
+we get to play with ideas freely, hammering things out and refactoring
+aggressively. In a large-scale system, though, we become constrained by the
+decisions made elsewhere in the system.
+
+When we're unable to change component A for fear of breaking component B, we say
+that the components have become coupled. Locally, coupling is a good thing: it's
+a sign that our code is working together, each component supporting the others,
+fitting in place like the gears of a watch.  In jargon, we say this works when
+there is high _cohesion_ between the coupled elements.
+
+Globally, coupling is a nuisance: it increases the risk and the cost of changing
+our code, sometimes to the point where we feel unable to make some changes at
+all. This is the problem with the ball of mud pattern: as the application grows,
+if we're unable to prevent coupling between elements that have no cohesion, that
+coupling increases superlinearly until we are no longer able to effectively
+change our systems.  
+
+We can reduce the degree of coupling within a system
+(<<coupling_illustration1>>) by abstracting away the details
+(<<coupling_illustration2>>):
+
+
+[[coupling_illustration1]]
+.Lots of coupling
+image::images/coupling_illustration1.png[]
+[role="image-source"]
+----
+[ditaa,coupling_illustration1]
++--------+      +--------+
+| System | ---> | System |
+|   A    | ---> |   B    |
+|        | ---> |        |
+|        | ---> |        |
+|        | ---> |        |
++--------+      +--------+
+----
+
+
+[[coupling_illustration2]]
+.Less coupling
+image::images/coupling_illustration2.png[]
+[role="image-source"]
+----
+[ditaa,coupling_illustration2]
++--------+                           +--------+
+| System |      /-------------\      | System |
+|   A    |      |             | ---> |   B    |
+|        | ---> | Abstraction | ---> |        |
+|        |      |             | ---> |        |
+|        |      \-------------/      |        |
++--------+                           +--------+
+----
+
+
+
+In both diagrams, we have a pair of subsystems, with the one dependent on
+the other. In the first diagram, there is a high degree of coupling between the
+two because of reasons. If we need to change system B, there's a good
+chance that the change will ripple through to system A.
+
+In the second, though, we have reduced the degree of coupling by inserting a
+new, simpler, abstraction. This abstraction serves to protect us from change by
+hiding away the complex details of whatever system B does.
+
+
+=== Abstracting State Aids Testability
+
+Let's see an example. Imagine we want to write some code for synchronising two
+file directories which we'll call the source and the destination.
+
+* If a file exists in the source, but not the destination, copy the file over.
+* If a file exists in the source, but has a different name than in the destination,
+  rename the destination file to match.
+* If a file exists in the destination but not the source, remove it.
+
+Our first and third requirements are simple enough, we can just compare two
+lists of paths. Our second is trickier, though. In order to detect renames,
+we'll have to inspect the content of files. For this we can use a hashing
+function like md5 or SHA. The code to generate a SHA hash from a file is simple
+enough.
+
+[[hash_file]]
+.Hashing a file (sync.py)
+====
+[source,python]
+----
+BLOCKSIZE = 65536
+
+def hash_file(path):
+    hasher = hashlib.sha1()  #<2>
+    with path.open("rb") as file:
+        buf = file.read(BLOCKSIZE)
+        while buf:
+            hasher.update(buf)
+            buf = file.read(BLOCKSIZE)
+    return hasher.hexdigest()
+----
+====
+
+Now we need to write the interesting business logic. When we have to tackle a
+problem from first principles, we usually try to write a simple implementation,
+and then refactor towards better design. We'll use this approach throughout the
+book, because it's how we write code in the real world: start with a solution
+to the smallest part of the problem, and then iteratively make the solution
+richer and better designed.
+
+Our first hackish approach looks something like this:
+
+[[sync_first_cut]]
+.Basic sync algorithm (sync.py)
+====
+[source,python]
+[role="non-head"]
+----
+import hashlib
+import os
+import shutil
+from pathlib import Path
+
+def sync(source, dest):
+    # Walk the source folder and build a dict of filenames and their hashes
+    source_hashes = {}
+    for folder, _, files in os.walk(source):
+        for fn in files:
+            source_hashes[hash_file(Path(folder) / fn)] = fn  #<1>
+
+    seen = set()  # Keep track of the files we've found in the target
+
+    # Walk the target folder and get the filenames and hashes
+    for folder, _, files in os.walk(dest):
+        for fn in files:
+            dest_path = Path(folder) / fn
+            dest_hash = hash_file(dest_path)
+            seen.add(dest_hash)
+
+            # if there's a file in target that's not in source, delete it
+            if dest_hash not in source_hashes:
+                dest_path.remove()
+
+            # if there's a file in target that has a different path in source,
+            # move it to the correct path
+            elif dest_hash in source_hashes and fn != source_hashes[dest_hash]:
+                shutil.move(dest_path, Path(folder) / source_hashes[dest_hash])
+
+    # for every file that appears in source but not target, copy the file to
+    # the target
+    for src_hash, fn in source_hashes.items():
+        if src_hash not in seen:
+            shutil.copy(Path(source) / fn, Path(dest) / fn)
+----
+====
+
+Fantastic! We have some code and it _looks_ okay, but before we run it on our
+hard drive, maybe we should test it?  How do we go about testing this sort of thing?
+
+
+[[ugly_sync_tests]]
+.Some end-to-end tests (test_sync.py)
+====
+[source,python]
+[role="non-head"]
+----
+def test_when_a_file_exists_in_the_source_but_not_the_destination():
+    try:
+        source = tempfile.mkdtemp()
+        dest = tempfile.mkdtemp()
+
+        content = "I am a very useful file"
+        (Path(source) / 'my-file').write_text(content)
+
+        sync(source, dest)
+
+        expected_path = Path(dest) /  'my-file'
+        assert expected_path.exists()
+        assert expected_path.read_text() == content
+
+    finally:
+        shutil.rmtree(source)
+        shutil.rmtree(dest)
+
+
+def test_when_a_file_has_been_renamed_in_the_source():
+    try:
+        source = tempfile.mkdtemp()
+        dest = tempfile.mkdtemp()
+
+        content = "I am a file that was renamed"
+        source_path = Path(source) / 'source-filename'
+        old_dest_path = Path(dest) / 'dest-filename'
+        expected_dest_path = Path(dest) / 'source-filename'
+        source_path.write_text(content)
+        old_dest_path.write_text(content)
+
+        sync(source, dest)
+
+        assert old_dest_path.exists() is False
+        assert expected_dest_path.read_text() == content
+
+
+    finally:
+        shutil.rmtree(source)
+        shutil.rmtree(dest)
+----
+====
+
+Wowsers, that's a lot of setup for two very simple cases! The problem is that
+our domain logic, "figure out the difference between two directories," is tightly
+coupled to the IO code. We can't run our difference algorithm without calling
+the pathlib, shutil, and hashlib modules.
+
+// TODO: Dry run
+// (ej)
+//     As a motivating "what-if", at this point you could ask the following thought experiments:
+//       1) What if you wanted to re-use the same code so this also works synchronizing remote servers?
+//       2) What if you wanted to add a "dry-run" feature?
+//       What extra complexity would these scenarios create?
+
+Our high-level code is coupled to low-level details, and it's making life hard.
+As the scenarios we consider get more complex, our tests will get more unwieldy.
+We can definitely refactor these tests (some of the cleanup could go into pytest
+fixtures for example) but as long as we're doing filesystem operations, they're
+going to stay slow and hard to read and write.
+
+=== Choosing the right abstraction(s)
+
+What could we do to rewrite our code to make it more testable?
+
+Firstly we need to think about what our code needs from the filesystem.
+Reading through the code, there are really three distinct things happening.
+We can think of these as three distinct _responsibilities_ that the code has.
+
+1. We interrogate the filesystem using `os.walk` and determine hashes for a
+   series of paths. This is actually very similar in both the source and the
+   destination cases.
+
+2. We decide a file is new, renamed, or redundant.
+
+3. We copy, move, or delete, files to match the source.
+
+Remember that we want to find _simplifying abstractions_ for each of these
+responsibilities. That will let us hide the messy details so that we can
+focus on the interesting logic.
+
+NOTE: In this chapter we're refactoring some gnarly code into a more testable
+    structure by identifying the separate tasks that need to be done and giving
+    each task to a clearly defined actor, along similar lines to the `duckduckgo`
+    example from the introduction.
+
+For (1) and (2), we've already intuitively started using an abstraction, a
+dictionary of hashes to paths, and you may already have been thinking, "why not
+use build up a dictionary for the destination folder as well as the source,
+then we just compare two dicts?"  That seems like a very nice way to abstract
+the current state of the filesystem.
+
+    source_files = {'hash1': 'path1', 'hash2': 'path2'}
+    dest_files = {'hash1': 'path1', 'hash2': 'pathX'}
+
+What about moving from step (2) to step (3)?  How can we abstract out the
+actual move/copy/delete filesystem interaction? 
+
+We're going to apply a trick here that we'll employ on a grand scale later in
+the book. We're going to separate _what_ we want to do from _how_ to do it.
+We're going to make our program output a list of commands that look like this:
+
+    ("COPY", "sourcepath", "destpath"),
+    ("MOVE", "old", "new"),
+
+Now we could write tests that just use 2 filesystem dicts as inputs, and
+expect lists of tuples of strings representing actions as outputs.
+
+Instead of saying "given this actual filesystem, when I run my function,
+check what actions have happened?" we say, "given this _abstraction_ of a filesystem,
+what _abstraction_ of filesystem actions will happen?"
+
+
+[[better_tests]]
+.Simplified inputs and outputs in our tests (test_sync.py)
+====
+[source,python]
+[role="skip"]
+----
+    def test_when_a_file_exists_in_the_source_but_not_the_destination():
+        src_hashes = {'hash1': 'fn1'}
+        dst_hashes = {}
+        expected_actions = [('COPY', '/src/fn1', '/dst/fn1')]
+        ...
+
+    def test_when_a_file_has_been_renamed_in_the_source():
+        src_hashes = {'hash1': 'fn1'}
+        dst_hashes = {'hash1': 'fn2'}
+        expected_actions == [('MOVE', '/dst/fn2', '/dst/fn1')]
+        ...
+----
+====
+
+
+=== Implementing our chosen abstractions
+
+That's all very well, but how do we _actually_ write those new
+tests, and how do we change our implementation to make it all work?
+
+Our goal is to isolate the clever part of our system, and to be able to test it
+thoroughly without needing to set up a real filesystem. We'll create a "core"
+of code that has no dependencies on external state, and then see how it responds
+when we give it input from the outside world.
+
+Let's start off by splitting the code up to separate the stateful parts from
+the logic.
+
+
+[[three_parts]]
+.Split our code into three  (sync.py)
+====
+[source,python]
+----
+def sync(source, dest):  #<3>
+    # imperative shell step 1, gather inputs
+    source_hashes = read_paths_and_hashes(source)
+    dest_hashes = read_paths_and_hashes(dest)
+
+    # step 2: call functional core
+    actions = determine_actions(source_hashes, dest_hashes, source, dest)
+
+    # imperative shell step 3, apply outputs
+    for action, *paths in actions:
+        if action == 'copy':
+            shutil.copyfile(*paths)
+        if action == 'move':
+            shutil.move(*paths)
+        if action == 'delete':
+            os.remove(paths[0])
+
+...
+
+def read_paths_and_hashes(root):  #<1>
+    hashes = {}
+    for folder, _, files in os.walk(root):
+        for fn in files:
+            hashes[hash_file(Path(folder) / fn)] = fn
+    return hashes
+
+
+def determine_actions(src_hashes, dst_hashes, src_folder, dst_folder):  #<2>
+    for sha, filename in src_hashes.items():
+        if sha not in dst_hashes:
+            sourcepath = Path(src_folder) / filename
+            destpath = Path(dst_folder) / filename
+            yield 'copy', sourcepath, destpath
+
+        elif dst_hashes[sha] != filename:
+            olddestpath = Path(dst_folder) / dst_hashes[sha]
+            newdestpath = Path(dst_folder) / filename
+            yield 'move', olddestpath, newdestpath
+
+    for sha, filename in dst_hashes.items():
+        if sha not in src_hashes:
+            yield 'delete', dst_folder / filename
+----
+====
+
+<1> The code to build up the dictionary of paths and hashes is now trivially
+    easy to write.
+
+<2> The core of our "business logic," which says, "given these two sets of
+    hashes and filenames, what should we copy/move/delete?"  takes simple
+    data structures and returns simple data structures.
+
+<3> And our top-level module now contains almost no logic whatseover, it's
+    just an imperative series of steps: gather inputs, call our logic,
+    apply outputs.
+
+
+Our tests now act directly on the `determine_actions()` function:
+
+
+[[harry_tests]]
+.Nicer looking tests (test_sync.py)
+====
+[source,python]
+----
+    @staticmethod
+    def test_when_a_file_exists_in_the_source_but_not_the_destination():
+        src_hashes = {'hash1': 'fn1'}
+        dst_hashes = {}
+        actions = list(determine_actions(src_hashes, dst_hashes, Path('/src'), Path('/dst')))
+        assert actions == [('copy', Path('/src/fn1'), Path('/dst/fn1'))]
+
+    @staticmethod
+    def test_when_a_file_has_been_renamed_in_the_source():
+        src_hashes = {'hash1': 'fn1'}
+        dst_hashes = {'hash1': 'fn2'}
+        actions = list(determine_actions(src_hashes, dst_hashes, Path('/src'), Path('/dst')))
+        assert actions == [('move', Path('/dst/fn2'), Path('/dst/fn1'))]
+----
+====
+
+
+Because we've disentangled the logic of our program - the code for identifying
+changes - from the low-level details of IO, we can easily test the core of our code.
+
+
+==== Testing Edge-to-Edge with Fakes
+
+When we start writing a new system, we often focus on the core logic first,
+driving it with direct unit tests. At some point, though, we want to test bigger
+chunks of the system together.
+
+We _could_ return to our end-to-end tests, but those are still as tricky to
+write and maintain as before. Instead, we often write tests that invoke a whole
+system together, but fake the IO, sort of _edge-to-edge_.
+
+
+[[di_version]]
+.Explicit dependencies (sync.py)
+====
+[source,python]
+[role="skip"]
+----
+def synchronise_dirs(reader, filesystem, source_root, dest_root): #<1>
+
+    source_hashes = reader(source_root) #<2>
+    dest_hashes = reader(dest_root)
+
+    for sha, filename in src_hashes.items():
+        if sha not in dst_hashes:
+            sourcepath = source_root / filename
+            destpath = dest_root / filename
+            filesystem.copy(destpath, sourcepath) #<3>
+
+        elif dst_hashes[sha] != filename:
+            olddestpath = dest_root / dst_hashes[sha]
+            newdestpath = dest_root / filename
+            filesystem.move(oldestpath, newdestpath)
+
+    for sha, filename in dst_hashes.items():
+        if sha not in src_hashes:
+            filesystem.del(dest_root/filename)
+----
+====
+
+<1> Our top-level function now exposes two new dependencies, a `reader` and a
+    `filesystem`
+
+<2> We invoke the `reader` to produce our files dict.
+
+<3> And we invoke the `filesystem` to apply the changes we detect.
+
+TIP: Notice that, although we're using dependency injection, there was no need
+    to define an abstract base class or any kind of explicit interface.  In the
+    book we often show ABCs because we hope they help to understand what the
+    abstraction is, but they're not necessary.  Python's dynamic nature means
+    we can always rely on duck typing.
+
+
+[[bob_tests]]
+.Tests using DI
+====
+[source,python]
+[role="skip"]
+----
+class FakeFileSystem(list): #<1>
+
+    def copy(self, src, dest): #<2>
+        self.append(('COPY', src, dest))
+
+    def move(self, src, dest):
+        self.append(('MOVE', src, dest))
+
+    def delete(self, dest):
+        self.append(('DELETE', src, dest))
+
+
+def test_when_a_file_exists_in_the_source_but_not_the_destination():
+    source = {"sha1": "my-file" }
+    dest = {}
+    filesystem = FakeFileSystem()
+
+    reader = {"/source": source, "/dest": dest}
+    synchronise_dirs(reader.pop, filesystem, "/source", "/dest")
+
+    assert filesystem == [("COPY", "/source/my-file", "/dest/my-file")]
+
+
+def test_when_a_file_has_been_renamed_in_the_source():
+    source = {"sha1": "renamed-file" }
+    dest = {"sha1": "original-file" }
+    filesystem = FakeFileSystem()
+
+    reader = {"/source": source, "/dest": dest}
+    synchronise_dirs(reader.pop, filesystem, "/source", "/dest")
+
+    assert filesystem == [("MOVE", "/dest/original-file", "/dest/renamed-file")]
+----
+====
+
+<1> Bob _loves_ using lists to build simple test doubles, even though his
+    co-workers get mad. It means we can write tests like 
+    ++assert 'foo' not in database++
+
+<2> Each method in our `FakeFileSystem` just appends something to the list so we
+    can inspect it later. This is an example of a Spy Object.
+
+
+The advantage of this approach is that your tests act on the exact same function
+that's used by your production code.  The disadvantage is that we have to make
+our stateful components explicit and we have to pass them around. DHH famously
+described this as "test damage".
+
+In either case, we can now work on fixing all the bugs in our implementation;
+enumerating tests for all the edge cases is now much easier.
+
+
+==== Why Not Just Patch It Out?
+
+At this point some of our readers will be scratching their heads and thinking
+"Why don't you just use `mock.patch` and save yourself the effort?
+
+We avoid using mocks in this book, and in our production code, too. We're not
+going to enter into a Holy War, but our instinct is that mocking frameworks are
+a code smell.
+
+Instead, we like to clearly identify the responsibilities in our codebase, and to
+separate those responsibilities out into small, focused objects that are easy to
+replace with a test double.
+
+There's a few, closely related reasons for that:
+
+1.  Patching out the dependency you're using makes it possible to unit test the
+code, but it does nothing to improve the design. Using mock.patch won't let your
+code work with a `--dry-run` flag, nor will it help you run against an ftp
+server. For that, you'll need to introduce abstractions.
++
+Designing for testability really means designing for extensibility. We trade off
+a little more complexity for a cleaner design that admits novel use-cases.
+
+2.  Tests that use mocks _tend_ to be more coupled to the implementation details
+of the codebase. That's because mock tests verify the interactions between
+things: did I call `shutil.copy` with the right arguments? This coupling between
+code and test _tends_ to make tests more brittle in our experience.
++
+Martin Fowler wrote about this in his 2007 blog post 
+https://www.martinfowler.com/articles/mocksArentStubs.html[Mocks Aren't Stubs]
+
+3.  Over-use of mocks leads to complicated test suites that fail to explain the
+code.
+
+We view TDD as a design practice first, and a testing practice second. The tests
+act as a record of our design choices, and serve to explain the system to us
+when we return to the code after a long absence.
+
+Tests that use too many mocks get overwhelmed with setup code that hides the
+story we care about.
+
+Steve Freeman has a great example of over-mocked tests in his talk
+https://www.youtube.com/watch?v=B48Exq57Zg8[Test Driven Development: That's Not What We Meant]
+
+
+
+
+.So Which Do We Use in this Book? FCIS or DI?
+******************************************************************************
+Both. Our domain model is entirely free of dependencies and side-effects,
+so that's our functional core.  The service layer that we build around it
+(in <<chapter_04_service_layer>>) allows us to drive the system edge-to-edge
+and we use dependency injection to provide those services with stateful
+components, so we can still unit test them.
+
+See <<chapter_12_dependency_injection>> for more exploration of making our
+dependency injection more explicit and centralised.
+******************************************************************************
+
+=== Wrap-up: "Depend on Abstractions."
+
+We'll see this idea come up again and again in the book: we can make our
+systems easier to test and maintain by simplifying the interface between our
+business logic and messy IO. Finding the right abstraction is tricky, but here's
+a few heuristics and questions to ask yourself:
+
+
+* Can I choose a familiar Python datastructure to represent the state of the
+  messy system, and try to imagine a single function that can return that
+  state? 
+
+// TODO (DS): These are great heuristics... Maybe they deserve more attention?
+
+* Where can I draw a line between my systems, where can I carve out a seam, to
+  stick that abstraction in?
+
+// TODO (DS): Drawing lines and the dependencies between them is really
+// relevant to what you've done in this chapter, but i don't think you've
+// explicitly addressed them except in this bullet point.
+// BOB: This is another ry for clarity on responsibilities. Mayne foreshadow
+// in the introduction by explaining that our duckduckgo jobby is a responsibility
+
+// TODO (DS): I think the seam metaphor might need more explanation.
+// (I assume this is taken from Michael Feathers? I've always been confused
+// about whether it's a sewing seam, or a mining seam!)
+
+// TODO (DS): And maybe, which implicit concepts can i make explicit?
+
+* What are the dependencies and what is the core "business" logic?
+
+
+
+Practice makes less-imperfect!
+
+// TODO (DS): I think this is potentially a great chapter, perhaps belonging
+// really on in the book. But it is also a bit of a brain dump of lots of deep,
+// amazing concepts. I don't think you've quite found the best structure here
+// yet. Perhaps it could be structured around these heuristics?
+
+And now back to our regular programming...
