@@ -4,7 +4,6 @@
 :modified: 2019-09-03 14:40
 :tags: new book, abstractions, oo, design
 :slug: new-book-excerpt-abstractions
-:status: draft
 :summary: Being a discussion of abstractions, and how we can use them to reduce unnecessary coupling, make unit testing easier (or possible), and separate core logic from implementation details.  Plus some discussion of functional-core-imperative-shell vs dependency injection.
 
 _At MADE.com i've been working on a new book with the chief architect, Bob
@@ -32,7 +31,7 @@ We've talked about _abstractions_ quite a lot.  The Repository is an
 abstraction over permanent storage for example.  But what makes a good
 abstraction?  What do we want from them?  And how do they relate to testing?
 
-=== Encapsulation and Abstraction
+=== Encapsulation and Abstraction, in General
 
 Take a look at the following two snippets of Python code, <<urllib_example>>
 and <<requests_example>>:
@@ -96,7 +95,7 @@ for r in duckduckgo.query('Sausages').results:
 ====
 
 Encapsulating behavior using abstractions is a powerful tool for making
-our code more expressive, more testable, and easier to maintain.
+our code more expressive and easier to maintain. 
 
 
 NOTE: This approach is inspired by the OO practice of
@@ -106,18 +105,20 @@ NOTE: This approach is inspired by the OO practice of
     in terms of data or algorithms.  If you've come across CRC cards, they're
     driving at the same thing.
 
-In a traditional OO language you might use an abstract base class or an
+(In a traditional OO language you might use an abstract base class or an
 interface to define an abstraction.  In Python you can (and we sometimes do)
 use ABCs, but you can also rely on duck typing.  The abstraction can just mean,
 "the public API of the thing you're using"; a function name plus some
-arguments, for example.
+arguments, for example.)
+
+So far, so not-very-earth-shaking, you're probably thinking.  Abstraction
+and encapsulation are nice, we all knew that.  So what?
 
 
 === Abstractions as a Way of Reducing Excessive Coupling
 
-A key theme in this book, hidden among the fancy patterns, is that we can use
-simple abstractions to hide messy details. When we're writing code for fun, or
-in a http://www.peterprovost.org/blog/2012/05/02/kata-the-only-way-to-learn-tdd/[kata],
+When we're writing code for fun, or in a
+http://www.peterprovost.org/blog/2012/05/02/kata-the-only-way-to-learn-tdd/[kata],
 we get to play with ideas freely, hammering things out and refactoring
 aggressively. In a large-scale system, though, we become constrained by the
 decisions made elsewhere in the system.
@@ -178,11 +179,15 @@ In the second, though, we have reduced the degree of coupling by inserting a
 new, simpler, abstraction. This abstraction serves to protect us from change by
 hiding away the complex details of whatever system B does.
 
+But how do we pick the right abstraction?  And what does this all have to
+do with testing?
+
 
 === Abstracting State Aids Testability
 
-Let's see an example. Imagine we want to write some code for synchronising two
-file directories which we'll call the source and the destination.
+Time to get into the nitty-gritty. Let's see an example. Imagine we want to
+write some code for synchronising two file directories which we'll call the
+source and the destination.
 
 * If a file exists in the source, but not the destination, copy the file over.
 * If a file exists in the source, but has a different name than in the destination,
@@ -203,7 +208,7 @@ enough.
 BLOCKSIZE = 65536
 
 def hash_file(path):
-    hasher = hashlib.sha1()  #<2>
+    hasher = hashlib.sha1()
     with path.open("rb") as file:
         buf = file.read(BLOCKSIZE)
         while buf:
@@ -213,12 +218,12 @@ def hash_file(path):
 ----
 ====
 
-Now we need to write the interesting business logic. When we have to tackle a
-problem from first principles, we usually try to write a simple implementation,
-and then refactor towards better design. We'll use this approach throughout the
-book, because it's how we write code in the real world: start with a solution
-to the smallest part of the problem, and then iteratively make the solution
-richer and better designed.
+Now we need to write the bit that makes decisions about what to do. When we
+have to tackle a problem from first principles, we usually try to write a
+simple implementation, and then refactor towards better design. We'll use this
+approach throughout the book, because it's how we write code in the real world:
+start with a solution to the smallest part of the problem, and then iteratively
+make the solution richer and better designed.
 
 Our first hackish approach looks something like this:
 
@@ -238,7 +243,7 @@ def sync(source, dest):
     source_hashes = {}
     for folder, _, files in os.walk(source):
         for fn in files:
-            source_hashes[hash_file(Path(folder) / fn)] = fn  #<1>
+            source_hashes[hash_file(Path(folder) / fn)] = fn
 
     seen = set()  # Keep track of the files we've found in the target
 
@@ -356,11 +361,6 @@ We can think of these as three distinct _responsibilities_ that the code has.
 Remember that we want to find _simplifying abstractions_ for each of these
 responsibilities. That will let us hide the messy details so that we can
 focus on the interesting logic.
-
-NOTE: In this chapter we're refactoring some gnarly code into a more testable
-    structure by identifying the separate tasks that need to be done and giving
-    each task to a clearly defined actor, along similar lines to the `duckduckgo`
-    example from the introduction.
 
 For (1) and (2), we've already intuitively started using an abstraction, a
 dictionary of hashes to paths, and you may already have been thinking, "why not
