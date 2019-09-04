@@ -44,7 +44,7 @@
 <div class="row">
     <div class="large-9 small-12 columns"> <!-- blog post div -->
         <header>
-            <h2><a href="drafts/new-book-excerpt-abstractions.html" rel="bookmark" title="Permalink to New Book Excerpt: On Coupling and Abstractions">New Book Excerpt: On Coupling and Abstractions</a></h2>
+            <h2><a href="new-book-excerpt-abstractions.html" rel="bookmark" title="Permalink to New Book Excerpt: On Coupling and Abstractions">New Book Excerpt: On Coupling and Abstractions</a></h2>
 
              
 
@@ -84,7 +84,7 @@ abstraction?  What do we want from them?  And how do they relate to testing?</p>
 </div>
 </div>
 <div class="sect2">
-<h3 id="_encapsulation_and_abstraction">Encapsulation and Abstraction</h3>
+<h3 id="_encapsulation_and_abstraction_in_general">Encapsulation and Abstraction, in General</h3>
 <div class="paragraph"><p>Take a look at the following two snippets of Python code, <a href="#urllib_example">[urllib_example]</a>
 and <a href="#requests_example">[requests_example]</a>:</p></div>
 <div class="exampleblock" id="urllib_example">
@@ -137,7 +137,7 @@ it explicit:</p></div>
 </pre></div></div></div>
 </div></div>
 <div class="paragraph"><p>Encapsulating behavior using abstractions is a powerful tool for making
-our code more expressive, more testable, and easier to maintain.</p></div>
+our code more expressive and easier to maintain.</p></div>
 <div class="admonitionblock">
 <table><tr>
 <td class="icon">
@@ -151,17 +151,18 @@ our code more expressive, more testable, and easier to maintain.</p></div>
     driving at the same thing.</td>
 </tr></table>
 </div>
-<div class="paragraph"><p>In a traditional OO language you might use an abstract base class or an
+<div class="paragraph"><p>(In a traditional OO language you might use an abstract base class or an
 interface to define an abstraction.  In Python you can (and we sometimes do)
 use ABCs, but you can also rely on duck typing.  The abstraction can just mean,
 "the public API of the thing you&#8217;re using"; a function name plus some
-arguments, for example.</p></div>
+arguments, for example.)</p></div>
+<div class="paragraph"><p>So far, so not-very-earth-shaking, you&#8217;re probably thinking.  Abstraction
+and encapsulation are nice, we all knew that.  So what?</p></div>
 </div>
 <div class="sect2">
 <h3 id="_abstractions_as_a_way_of_reducing_excessive_coupling">Abstractions as a Way of Reducing Excessive Coupling</h3>
-<div class="paragraph"><p>A key theme in this book, hidden among the fancy patterns, is that we can use
-simple abstractions to hide messy details. When we&#8217;re writing code for fun, or
-in a <a href="http://www.peterprovost.org/blog/2012/05/02/kata-the-only-way-to-learn-tdd/">kata</a>,
+<div class="paragraph"><p>When we&#8217;re writing code for fun, or in a
+<a href="http://www.peterprovost.org/blog/2012/05/02/kata-the-only-way-to-learn-tdd/">kata</a>,
 we get to play with ideas freely, hammering things out and refactoring
 aggressively. In a large-scale system, though, we become constrained by the
 decisions made elsewhere in the system.</p></div>
@@ -208,11 +209,14 @@ chance that the change will ripple through to system A.</p></div>
 <div class="paragraph"><p>In the second, though, we have reduced the degree of coupling by inserting a
 new, simpler, abstraction. This abstraction serves to protect us from change by
 hiding away the complex details of whatever system B does.</p></div>
+<div class="paragraph"><p>But how do we pick the right abstraction?  And what does this all have to
+do with testing?</p></div>
 </div>
 <div class="sect2">
 <h3 id="_abstracting_state_aids_testability">Abstracting State Aids Testability</h3>
-<div class="paragraph"><p>Let&#8217;s see an example. Imagine we want to write some code for synchronising two
-file directories which we&#8217;ll call the source and the destination.</p></div>
+<div class="paragraph"><p>Time to get into the nitty-gritty. Let&#8217;s see an example. Imagine we want to
+write some code for synchronising two file directories which we&#8217;ll call the
+source and the destination.</p></div>
 <div class="ulist"><ul>
 <li>
 <p>
@@ -243,7 +247,7 @@ enough.</p></div>
 <div class="content"><div class="highlight"><pre><span></span><span class="n">BLOCKSIZE</span> <span class="o">=</span> <span class="mi">65536</span>
 
 <span class="k">def</span> <span class="nf">hash_file</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
-    <span class="n">hasher</span> <span class="o">=</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">sha1</span><span class="p">()</span>  <span class="c1">#<b>&lt;2&gt;</b></span>
+    <span class="n">hasher</span> <span class="o">=</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">sha1</span><span class="p">()</span>
     <span class="k">with</span> <span class="n">path</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="s2">&quot;rb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="nb">file</span><span class="p">:</span>
         <span class="n">buf</span> <span class="o">=</span> <span class="nb">file</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">BLOCKSIZE</span><span class="p">)</span>
         <span class="k">while</span> <span class="n">buf</span><span class="p">:</span>
@@ -252,12 +256,12 @@ enough.</p></div>
     <span class="k">return</span> <span class="n">hasher</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()</span>
 </pre></div></div></div>
 </div></div>
-<div class="paragraph"><p>Now we need to write the interesting business logic. When we have to tackle a
-problem from first principles, we usually try to write a simple implementation,
-and then refactor towards better design. We&#8217;ll use this approach throughout the
-book, because it&#8217;s how we write code in the real world: start with a solution
-to the smallest part of the problem, and then iteratively make the solution
-richer and better designed.</p></div>
+<div class="paragraph"><p>Now we need to write the bit that makes decisions about what to do. When we
+have to tackle a problem from first principles, we usually try to write a
+simple implementation, and then refactor towards better design. We&#8217;ll use this
+approach throughout the book, because it&#8217;s how we write code in the real world:
+start with a solution to the smallest part of the problem, and then iteratively
+make the solution richer and better designed.</p></div>
 <div class="paragraph"><p>Our first hackish approach looks something like this:</p></div>
 <div class="exampleblock" id="sync_first_cut">
 <div class="title">Example 5. Basic sync algorithm (sync.py)</div>
@@ -273,7 +277,7 @@ richer and better designed.</p></div>
     <span class="n">source_hashes</span> <span class="o">=</span> <span class="p">{}</span>
     <span class="k">for</span> <span class="n">folder</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">files</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">walk</span><span class="p">(</span><span class="n">source</span><span class="p">):</span>
         <span class="k">for</span> <span class="n">fn</span> <span class="ow">in</span> <span class="n">files</span><span class="p">:</span>
-            <span class="n">source_hashes</span><span class="p">[</span><span class="n">hash_file</span><span class="p">(</span><span class="n">Path</span><span class="p">(</span><span class="n">folder</span><span class="p">)</span> <span class="o">/</span> <span class="n">fn</span><span class="p">)]</span> <span class="o">=</span> <span class="n">fn</span>  <span class="c1">#<b>&lt;1&gt;</b></span>
+            <span class="n">source_hashes</span><span class="p">[</span><span class="n">hash_file</span><span class="p">(</span><span class="n">Path</span><span class="p">(</span><span class="n">folder</span><span class="p">)</span> <span class="o">/</span> <span class="n">fn</span><span class="p">)]</span> <span class="o">=</span> <span class="n">fn</span>
 
     <span class="n">seen</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>  <span class="c1"># Keep track of the files we&#39;ve found in the target</span>
 
@@ -386,17 +390,6 @@ We copy, move, or delete, files to match the source.
 <div class="paragraph"><p>Remember that we want to find <em>simplifying abstractions</em> for each of these
 responsibilities. That will let us hide the messy details so that we can
 focus on the interesting logic.</p></div>
-<div class="admonitionblock">
-<table><tr>
-<td class="icon">
-<div class="title">Note</div>
-</td>
-<td class="content">In this chapter we&#8217;re refactoring some gnarly code into a more testable
-    structure by identifying the separate tasks that need to be done and giving
-    each task to a clearly defined actor, along similar lines to the <code>duckduckgo</code>
-    example from the introduction.</td>
-</tr></table>
-</div>
 <div class="paragraph"><p>For (1) and (2), we&#8217;ve already intuitively started using an abstraction, a
 dictionary of hashes to paths, and you may already have been thinking, "why not
 use build up a dictionary for the destination folder as well as the source,
@@ -710,7 +703,9 @@ when we return to the code after a long absence.</p></div>
 <div class="paragraph"><p>Tests that use too many mocks get overwhelmed with setup code that hides the
 story we care about.</p></div>
 <div class="paragraph"><p>Steve Freeman has a great example of over-mocked tests in his talk
-<a href="https://www.youtube.com/watch?v=B48Exq57Zg8">Test Driven Development: That&#8217;s Not What We Meant</a></p></div>
+<a href="https://www.youtube.com/watch?v=B48Exq57Zg8">Test Driven Development: That&#8217;s Not What We Meant</a>.</p></div>
+<div class="paragraph"><p>You should also check out this <a href="https://www.youtube.com/watch?v=Ldlz4V-UCFw">Pycon talk on Mocking Pitfalls</a>
+by our esteemed tech reviewer, Ed Jung, which addresses these issues directly.</p></div>
 <div class="sidebarblock">
 <div class="content">
 <div class="title">So Which Do We Use in this Book? FCIS or DI?</div>
