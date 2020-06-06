@@ -1,4 +1,4 @@
-Title: Cosmic Pyhton
+Title: Cosmic Python
 Date: 2020-06-03
 Tags: architecture, design, ddd
 Author: Harry
