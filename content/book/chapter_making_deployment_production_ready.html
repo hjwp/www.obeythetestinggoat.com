@@ -3,10 +3,11 @@
 <meta charset="UTF-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="generator" content="Asciidoctor 2.0.10">
+<meta name="generator" content="Asciidoctor 2.0.16">
 <title>Getting to a Production-Ready Deployment</title>
 <link rel="stylesheet" href="./asciidoctor.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+<link rel="stylesheet" href="./coderay-asciidoctor.css">
 <script>var httpRequest = new XMLHttpRequest();
 httpRequest.onreadystatechange = function() {
   if (httpRequest.readyState === XMLHttpRequest.DONE) {
@@ -234,7 +235,7 @@ that it makes it easier to switch sites on or off.</p>
 <div class="content">
 <pre>elspeth@server:$ <strong>sudo systemctl reload nginx</strong>
 elspeth@server:$ <strong>cd ~/sites/$SITENAME</strong>
-elspeth@server:$ <strong>./virtualenv/bin/python manage.py runserver 8000</strong></pre>
+elspeth@server:$ <strong>./.venv/bin/python manage.py runserver 8000</strong></pre>
 </div>
 </div>
 <div class="admonitionblock tip">
@@ -338,7 +339,7 @@ had a pony&#8230;&#8203;</p>
 </div>
 <div class="listingblock server-commands">
 <div class="content">
-<pre>elspeth@server:$ <strong>./virtualenv/bin/pip install gunicorn</strong></pre>
+<pre>elspeth@server:$ <strong>./.venv/bin/pip install gunicorn</strong></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -347,7 +348,7 @@ a function called <code>application</code>.  Django provides one in <em>superlis
 </div>
 <div class="listingblock server-commands">
 <div class="content">
-<pre>elspeth@server:$ <strong>./virtualenv/bin/gunicorn superlists.wsgi:application</strong>
+<pre>elspeth@server:$ <strong>./.venv/bin/gunicorn superlists.wsgi:application</strong>
 2013-05-27 16:22:01 [10592] [INFO] Starting gunicorn 0.19.7.1
 2013-05-27 16:22:01 [10592] [INFO] Listening at: http://127.0.0.1:8000 (10592)
 [...]</pre>
@@ -408,7 +409,7 @@ Nginx can find them:</p>
 </div>
 <div class="listingblock server-commands">
 <div class="content">
-<pre>elspeth@server:$ <strong>./virtualenv/bin/python manage.py collectstatic --noinput</strong>
+<pre>elspeth@server:$ <strong>./.venv/bin/python manage.py collectstatic --noinput</strong>
 [...]
 15 static files copied to '/home/elspeth/sites/superlists-staging.ottg.eu/static'
 elspeth@server:$ <strong>ls static/</strong>
@@ -446,7 +447,7 @@ adding a second <code>location</code> directive to the config:</p>
 <div class="listingblock server-commands">
 <div class="content">
 <pre>elspeth@server:$ <strong>sudo systemctl reload nginx</strong>
-elspeth@server:$ <strong>./virtualenv/bin/gunicorn superlists.wsgi:application</strong></pre>
+elspeth@server:$ <strong>./.venv/bin/gunicorn superlists.wsgi:application</strong></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -511,7 +512,7 @@ of on the default port:</p>
 <div class="listingblock server-commands">
 <div class="content">
 <pre>elspeth@server:$ <strong>sudo systemctl reload nginx</strong>
-elspeth@server:$ <strong>./virtualenv/bin/gunicorn --bind \
+elspeth@server:$ <strong>./.venv/bin/gunicorn --bind \
     unix:/tmp/superlists-staging.ottg.eu.socket superlists.wsgi:application</strong></pre>
 </div>
 </div>
@@ -549,7 +550,7 @@ leaving those pages full of tracebacks available to the world
 <a href="https://docs.djangoproject.com/en/1.11/ref/settings/#debug">isn&#8217;t secure</a>.</p>
 </li>
 <li>
-<p><code>SECRET_KEY</code> is used by Django uses for some of its crypto&#8212;&#8203;things like cookies
+<p><code>SECRET_KEY</code> is used by Django for some of its crypto&#8212;&#8203;things like cookies
 and CSRF protection. It&#8217;s good practice to make sure the secret key on the
 server is different from the one in your source code repo, because that code
 might be visible to strangers.  We&#8217;ll want to generate a new, random one but
@@ -645,7 +646,7 @@ and restart Gunicorn:</p>
 <pre>elspeth@server:$ <strong>git pull</strong>
 elspeth@server:$ <strong>export DJANGO_DEBUG_FALSE=y DJANGO_SECRET_KEY=abc123</strong>
 # we'll set the secret to something more secure later!
-elspeth@server:$ <strong>./virtualenv/bin/gunicorn --bind \
+elspeth@server:$ <strong>./.venv/bin/gunicorn --bind \
     unix:/tmp/superlists-staging.ottg.eu.socket superlists.wsgi:application</strong></pre>
 </div>
 </div>
@@ -679,7 +680,7 @@ settings&#8212;which one might be at fault?</p>
 </div>
 <div class="paragraph">
 <p>Let&#8217;s use the tried and tested "Googling the error message" technique
-(<a href="#googling-the-error">An indispensable publication (source: </a><a href="https://news.ycombinator.com/item?id=11459601" class="bare">https://news.ycombinator.com/item?id=11459601</a>)).</p>
+(<a href="#googling-the-error">An indispensable publication (source: https://news.ycombinator.com/item?id=11459601)</a>).</p>
 </div>
 <div id="googling-the-error" class="imageblock">
 <div class="content">
@@ -829,7 +830,7 @@ elspeth@server:$ <strong>echo $DJANGO_DEBUG_FALSE-none</strong>
 elspeth@server:$ <strong>set -a; source .env; set +a</strong>
 elspeth@server:$ <strong>echo $DJANGO_DEBUG_FALSE-none</strong>
 y-none
-elspeth@server:$ <strong>./virtualenv/bin/gunicorn --bind \
+elspeth@server:$ <strong>./.venv/bin/gunicorn --bind \
     unix:/tmp/$SITENAME.socket superlists.wsgi:application</strong></pre>
 </div>
 </div>
@@ -890,7 +891,7 @@ User=elspeth  <i class="conum" data-value="2"></i><b>(2)</b>
 WorkingDirectory=/home/elspeth/sites/superlists-staging.ottg.eu  <i class="conum" data-value="3"></i><b>(3)</b>
 EnvironmentFile=/home/elspeth/sites/superlists-staging.ottg.eu/.env  <i class="conum" data-value="4"></i><b>(4)</b>
 
-ExecStart=/home/elspeth/sites/superlists-staging.ottg.eu/virtualenv/bin/gunicorn \
+ExecStart=/home/elspeth/sites/superlists-staging.ottg.eu/.venv/bin/gunicorn \
     --bind unix:/tmp/superlists-staging.ottg.eu.socket \
     superlists.wsgi:application  <i class="conum" data-value="5"></i><b>(5)</b>
 
@@ -1155,7 +1156,7 @@ User=elspeth
 WorkingDirectory=/home/elspeth/sites/DOMAIN
 EnvironmentFile=/home/elspeth/sites/DOMAIN/.env
 
-ExecStart=/home/elspeth/sites/DOMAIN/virtualenv/bin/gunicorn \
+ExecStart=/home/elspeth/sites/DOMAIN/.venv/bin/gunicorn \
     --bind unix:/tmp/DOMAIN.socket \
     superlists.wsgi:application
 
@@ -1365,10 +1366,9 @@ out what went wrong before moving forward again.</p>
 </div>
 <div id="footer">
 <div id="footer-text">
-License: Creative Commons <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode">CC-BY-NC-ND</a>. Last updated: 2019-11-14 15:34:00 UTC
+License: Creative Commons <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode">CC-BY-NC-ND</a>. Last updated: 2023-06-07 12:58:59 +0100
 </div>
 </div>
-<link rel="stylesheet" href="./coderay-asciidoctor.css">
 <div class="comments" style="padding: 20px">
   <h3>Comments</h3>
   <div id="disqus_thread"></div>

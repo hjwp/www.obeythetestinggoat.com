@@ -3,10 +3,11 @@
 <meta charset="UTF-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="generator" content="Asciidoctor 2.0.10">
+<meta name="generator" content="Asciidoctor 2.0.16">
 <title>Automating Deployment with Fabric</title>
 <link rel="stylesheet" href="./asciidoctor.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+<link rel="stylesheet" href="./coderay-asciidoctor.css">
 <script>var httpRequest = new XMLHttpRequest();
 httpRequest.onreadystatechange = function() {
   if (httpRequest.readyState === XMLHttpRequest.DONE) {
@@ -251,9 +252,9 @@ changes.</p>
 <div class="listingblock">
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">def</span> <span class="function">_update_virtualenv</span>():
-    <span class="keyword">if</span> <span class="keyword">not</span> exists(<span class="string"><span class="delimiter">'</span><span class="content">virtualenv/bin/pip</span><span class="delimiter">'</span></span>):  <i class="conum" data-value="1"></i><b>(1)</b>
-        run(f<span class="string"><span class="delimiter">'</span><span class="content">python3.7 -m venv virtualenv</span><span class="delimiter">'</span></span>)
-    run(<span class="string"><span class="delimiter">'</span><span class="content">./virtualenv/bin/pip install -r requirements.txt</span><span class="delimiter">'</span></span>)  <i class="conum" data-value="2"></i><b>(2)</b></code></pre>
+    <span class="keyword">if</span> <span class="keyword">not</span> exists(<span class="string"><span class="delimiter">'</span><span class="content">.venv/bin/pip</span><span class="delimiter">'</span></span>):  <i class="conum" data-value="1"></i><b>(1)</b>
+        run(f<span class="string"><span class="delimiter">'</span><span class="content">python3.11 -m venv .venv</span><span class="delimiter">'</span></span>)
+    run(<span class="string"><span class="delimiter">'</span><span class="content">./.venv/bin/pip install -r requirements.txt</span><span class="delimiter">'</span></span>)  <i class="conum" data-value="2"></i><b>(2)</b></code></pre>
 </div>
 </div>
 </div>
@@ -327,7 +328,7 @@ because our new key and any potential existing one won&#8217;t be the same).</td
 <div class="listingblock">
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">def</span> <span class="function">_update_static_files</span>():
-    run(<span class="string"><span class="delimiter">'</span><span class="content">./virtualenv/bin/python manage.py collectstatic --noinput</span><span class="delimiter">'</span></span>)  <i class="conum" data-value="1"></i><b>(1)</b></code></pre>
+    run(<span class="string"><span class="delimiter">'</span><span class="content">./.venv/bin/python manage.py collectstatic --noinput</span><span class="delimiter">'</span></span>)  <i class="conum" data-value="1"></i><b>(1)</b></code></pre>
 </div>
 </div>
 </div>
@@ -354,7 +355,7 @@ not the system one.</td>
 <div class="listingblock">
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">def</span> <span class="function">_update_database</span>():
-    run(<span class="string"><span class="delimiter">'</span><span class="content">./virtualenv/bin/python manage.py migrate --noinput</span><span class="delimiter">'</span></span>)  <i class="conum" data-value="1"></i><b>(1)</b></code></pre>
+    run(<span class="string"><span class="delimiter">'</span><span class="content">./.venv/bin/python manage.py migrate --noinput</span><span class="delimiter">'</span></span>)  <i class="conum" data-value="1"></i><b>(1)</b></code></pre>
 </div>
 </div>
 </div>
@@ -409,25 +410,25 @@ $ <strong>fab deploy:host=elspeth@superlists-staging.ottg.eu</strong>
 [...]
 [elspeth@superlists-staging.ottg.eu] out: HEAD is now at [...]
 [elspeth@superlists-staging.ottg.eu] out:
-[elspeth@superlists-staging.ottg.eu] run: ./virtualenv/bin/pip install -r
+[elspeth@superlists-staging.ottg.eu] run: ./.venv/bin/pip install -r
 requirements.txt
 [elspeth@superlists-staging.ottg.eu] out: Requirement already satisfied:
-django==1.11.13 in ./virtualenv/lib/python3.7/site-packages (from -r
+django==1.11.13 in ./.venv/lib/python3.11/site-packages (from -r
 requirements.txt (line 1))
 [elspeth@superlists-staging.ottg.eu] out: Requirement already satisfied:
-gunicorn==19.8.1 in ./virtualenv/lib/python3.7/site-packages (from -r
+gunicorn==19.8.1 in ./.venv/lib/python3.11/site-packages (from -r
 requirements.txt (line 2))
 [elspeth@superlists-staging.ottg.eu] out: Requirement already satisfied: pytz
-in ./virtualenv/lib/python3.7/site-packages (from django==1.11.13-&gt;-r
+in ./.venv/lib/python3.11/site-packages (from django==1.11.13-&gt;-r
 requirements.txt (line 1))
 [elspeth@superlists-staging.ottg.eu] out:
-[elspeth@superlists-staging.ottg.eu] run: ./virtualenv/bin/python manage.py
+[elspeth@superlists-staging.ottg.eu] run: ./.venv/bin/python manage.py
 collectstatic --noinput
 [elspeth@superlists-staging.ottg.eu] out:
 [elspeth@superlists-staging.ottg.eu] out: 0 static files copied to
 '/home/elspeth/sites/superlists-staging.ottg.eu/static', 15 unmodified.
 [elspeth@superlists-staging.ottg.eu] out:
-[elspeth@superlists-staging.ottg.eu] run: ./virtualenv/bin/python manage.py
+[elspeth@superlists-staging.ottg.eu] run: ./.venv/bin/python manage.py
 migrate --noinput
 [elspeth@superlists-staging.ottg.eu] out: Operations to perform:
 [elspeth@superlists-staging.ottg.eu] out:   Apply all migrations: auth,
@@ -516,8 +517,8 @@ https://github.com/hjwp/book-example.git .
 </div>
 <div class="listingblock small-code against-server skipme">
 <div class="content">
-<pre>[elspeth@superlists.ottg.eu] run: python3.7 -m venv virtualenv
-[elspeth@superlists.ottg.eu] run: ./virtualenv/bin/pip install -r
+<pre>[elspeth@superlists.ottg.eu] run: python3.11 -m venv .venv
+[elspeth@superlists.ottg.eu] run: ./.venv/bin/pip install -r
 requirements.txt
 [elspeth@superlists.ottg.eu] out: Collecting django==1.11.13 [...]
 [elspeth@superlists.ottg.eu] out:   Using cached [...]
@@ -535,7 +536,7 @@ gunicorn-19.7.1 pytz-2017.3
 .env)"
 [elspeth@superlists.ottg.eu] run: echo
 'DJANGO_SECRET_KEY=[...]
-[elspeth@superlists.ottg.eu] run: ./virtualenv/bin/python manage.py
+[elspeth@superlists.ottg.eu] run: ./.venv/bin/python manage.py
 collectstatic --noinput
 [elspeth@superlists.ottg.eu] out: Copying
 '/home/elspeth/sites/superlists.ottg.eu/lists/static/base.css'
@@ -544,7 +545,7 @@ collectstatic --noinput
 '/home/elspeth/sites/superlists.ottg.eu/static'.
 [elspeth@superlists.ottg.eu] out:
 
-[elspeth@superlists.ottg.eu] run: ./virtualenv/bin/python manage.py migrate
+[elspeth@superlists.ottg.eu] run: ./.venv/bin/python manage.py migrate
 [...]
 [elspeth@superlists.ottg.eu] out: Operations to perform:
 [elspeth@superlists.ottg.eu] out:   Apply all migrations: auth, contenttypes,
@@ -782,10 +783,9 @@ is very flexible, but its logic is still based on scripting. More
 </div>
 <div id="footer">
 <div id="footer-text">
-License: Creative Commons <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode">CC-BY-NC-ND</a>. Last updated: 2019-11-14 15:34:00 UTC
+License: Creative Commons <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode">CC-BY-NC-ND</a>. Last updated: 2023-06-07 12:58:59 +0100
 </div>
 </div>
-<link rel="stylesheet" href="./coderay-asciidoctor.css">
 <div class="comments" style="padding: 20px">
   <h3>Comments</h3>
   <div id="disqus_thread"></div>
