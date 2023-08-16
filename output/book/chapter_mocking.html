@@ -1,9 +1,9 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<!--[if IE]><meta http-equiv="X-UA-Compatible" content="IE=edge"><![endif]-->
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="generator" content="Asciidoctor 1.5.7.1">
+<meta name="generator" content="Asciidoctor 2.0.16">
 <title>Using Mocks to Test External Dependencies or Reduce Duplication</title>
 <link rel="stylesheet" href="./asciidoctor.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
@@ -44,14 +44,22 @@ httpRequest.send();
 <h2 id="chapter_mocking">Using Mocks to Test External Dependencies or Reduce Duplication</h2>
 <div class="sectionbody">
 <div class="paragraph">
-<p>In
-this chapter we&#8217;ll start testing the parts of our code that send emails.
-In the FT, you saw that Django gives us a way of retrieving any emails it
-sends by using the <code>mail.outbox</code> attribute.  But
-in this chapter, I want
-to demonstrate a very important testing technique called <em>mocking</em>, so for
-the purpose of these unit tests, we&#8217;ll pretend that this nice Django shortcut
-doesn&#8217;t exist.</p>
+<p>
+In this chapter we&#8217;ll start testing the parts of our code that send emails.
+In the FT, you saw that Django gives us a way of retrieving
+any emails it sends by using the <code>mail.outbox</code> attribute.
+
+But in this chapter, I want to demonstrate a very important testing technique called <em>mocking</em>,
+so for the purpose of these unit tests, we&#8217;ll pretend that this nice Django shortcut doesn&#8217;t exist.</p>
+</div>
+<div class="paragraph">
+<p>Am I telling you not to use Django&#8217;s <code>mail.outbox</code>?
+No; use it, it&#8217;s a neat shortcut.
+But I want to teach mocks because they&#8217;re a useful general-purpose tool
+for unit testing external dependencies.
+You may not always be using Django!
+And even if you are, you may not be sending
+email&#8212;&#8203;any interaction with a third-party API is a good candidate for testing with mocks. </p>
 </div>
 <div class="admonitionblock note">
 <table>
@@ -60,13 +68,9 @@ doesn&#8217;t exist.</p>
 <i class="fa icon-note" title="Note"></i>
 </td>
 <td class="content">
-Am I telling you not to use Django&#8217;s <code>mail.outbox</code>?  No; use it, it&#8217;s a
-    neat shortcut.  But
-I want to teach mocks because they&#8217;re a useful
-    general-purpose tool for unit testing external dependencies.  You
-    may not always be using Django! And even if you are, you may not
-    be sending email&#8212;&#8203;any interaction with a third-party API is a good
-    candidate for testing with mocks.
+I once gave a talk called <a href="https://www.youtube.com/watch?v=rk-f3B-eMkI">"Stop Using Mocks!"</a>.
+    Have a look for that, and my <a href="https://www.cosmicpython.com">book on architecture patterns</a>
+    for a deeper look at the trade-offs of mocking, and some alternatives.
 </td>
 </tr>
 </table>
@@ -996,7 +1000,7 @@ of our email:</p>
 <div class="content">
 <pre>[...]
 AssertionError:
-'http://testserver/accounts/login?token=[...]
+'<a href="http://testserver/accounts/login?token=">...</a>
 not found in 'Use this link to log in'
 
 FAILED (failures=1)</pre>
@@ -1173,7 +1177,7 @@ ERROR: test_returns_new_user_with_correct_email_if_token_exists
 (accounts.tests.test_authentication.AuthenticateTest)
  ---------------------------------------------------------------------
 Traceback (most recent call last):
-  File "...python-tdd-book/accounts/tests/test_authentication.py", line 21, in
+  File "...goat-book/accounts/tests/test_authentication.py", line 21, in
 test_returns_new_user_with_correct_email_if_token_exists
     new_user = User.objects.get(email=email)
 [...]
@@ -1184,7 +1188,7 @@ FAIL: test_returns_existing_user_with_correct_email_if_token_exists
 (accounts.tests.test_authentication.AuthenticateTest)
  ---------------------------------------------------------------------
 Traceback (most recent call last):
-  File "...python-tdd-book/accounts/tests/test_authentication.py", line 30, in
+  File "...goat-book/accounts/tests/test_authentication.py", line 30, in
 test_returns_existing_user_with_correct_email_if_token_exists
     self.assertEqual(user, existing_user)
 AssertionError: None != &lt;User: User object&gt;
@@ -1667,7 +1671,7 @@ call(<span class="integer">42</span>, <span class="integer">43</span>, <span cla
 <pre>$ <strong>python manage.py test accounts</strong>
 [...]
 AttributeError: &lt;module 'accounts.views' from
-'...python-tdd-book/accounts/views.py'&gt; does not have the attribute 'auth'</pre>
+'...goat-book/accounts/views.py'&gt; does not have the attribute 'auth'</pre>
 </div>
 </div>
 <div class="admonitionblock tip">
@@ -2081,7 +2085,7 @@ and non&#8211;logged-in users (which our FT relies on):</p>
 <pre>$ <strong>python manage.py test functional_tests.test_login</strong>
 Internal Server Error: /accounts/login
 [...]
-  File "...python-tdd-book/accounts/views.py", line 31, in login
+  File "...goat-book/accounts/views.py", line 31, in login
     auth.login(request, user)
 [...]
 ValueError: The following fields do not exist in this model or are m2m fields:
@@ -2205,7 +2209,7 @@ Can you believe it?  I scarcely can!  Time for a manual look around with
 [...]
 Internal Server Error: /accounts/send_login_email
 Traceback (most recent call last):
-  File "...python-tdd-book/accounts/views.py", line 20, in send_login_email
+  File "...goat-book/accounts/views.py", line 20, in send_login_email
 
 ConnectionRefusedError: [Errno 111] Connection refused</pre>
 </div>
@@ -2529,7 +2533,7 @@ function.  Using a mock in this case reduces duplication.</p>
 </div>
 <div id="footer">
 <div id="footer-text">
-License: Creative Commons <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode">CC-BY-NC-ND</a>. Last updated: 2018-07-16 12:12:52 BST
+License: Creative Commons <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode">CC-BY-NC-ND</a>. Last updated: 2023-06-07 12:58:59 +0100
 </div>
 </div>
 <div class="comments" style="padding: 20px">
