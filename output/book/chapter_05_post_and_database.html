@@ -1,0 +1,2243 @@
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="generator" content="Asciidoctor 2.0.16">
+<title>Saving User Input: Testing the Database</title>
+<link rel="stylesheet" href="./asciidoctor.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+<link rel="stylesheet" href="./coderay-asciidoctor.css">
+<script>var httpRequest = new XMLHttpRequest();
+httpRequest.onreadystatechange = function() {
+  if (httpRequest.readyState === XMLHttpRequest.DONE) {
+    if (httpRequest.status === 200) {
+      document.getElementById('header').innerHTML += httpRequest.responseText;
+      var subheaders = document.getElementsByClassName('sectlevel2');
+      var section;
+      for (var i=0; i<subheaders.length; i++) {
+        section = subheaders[i];
+        if (section.innerHTML.indexOf(window.location.pathname) === -1) {
+          section.style.display = 'none';
+        } else {
+          section.scrollIntoView && section.scrollIntoView();
+        }
+      }
+
+    }
+  }
+};
+httpRequest.open('GET', 'toc.html');
+httpRequest.send();
+
+</script></head>
+<body class="article toc2 toc-left">
+<div id="buy_the_book" style="position: absolute; top: 0; right: 0; z-index:100">
+  <a href="/pages/book.html">
+    <img src="images/buy_the_book.svg" alt="buy the book ribbon">
+  </a>
+</div>
+<div id="header">
+</div>
+<div id="content">
+<div class="sect1">
+<h2 id="chapter_05_post_and_database">Saving User Input: Testing the Database</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>
+So far we&#8217;ve managed to return a static HTML page with an input box in it.
+Next we want to take the text that the user types into that input box and send it to the server,
+so that we can save it somehow and display it back to her later.</p>
+</div>
+<div class="paragraph">
+<p>The first time I started writing code for this chapter,
+I immediately wanted to skip to what I thought was the right design:
+multiple database tables for lists and list items,
+a bunch of different URLs for adding new lists and items,
+three new view functions,
+and about half a dozen new unit tests for all of the above.
+But I stopped myself.
+Although I was pretty sure I was smart enough
+to handle coding all those problems at once,
+the point of TDD is to allow you to do one thing at a time,
+when you need to.
+So I decided to be deliberately short-sighted,
+and at any given moment <em>only</em> do what was necessary
+to get the functional tests a little further.</p>
+</div>
+<div class="paragraph">
+<p>
+This will be a demonstration of how TDD can support an incremental,
+iterative style of development&#8212;&#8203;it
+may not be the quickest route, but you do get there in the end<sup class="footnote">[<a id="_footnoteref_1" class="footnote" href="#_footnotedef_1" title="View footnote.">1</a>]</sup>.
+There&#8217;s a neat side benefit,
+which is that it allows me to introduce new concepts like models,
+dealing with POST requests, Django template tags, and so on,
+<em>one at a time</em> rather than having to dump them on you all at once.</p>
+</div>
+<div class="paragraph">
+<p>None of this says that you <em>shouldn&#8217;t</em> try to think ahead, and be clever.
+In the next chapter we&#8217;ll use a bit more design and up-front thinking,
+and show how that fits in with TDD.
+But for now let&#8217;s plough on mindlessly and just do what the tests tell us to.</p>
+</div>
+<div class="sect2">
+<h3 id="_wiring_up_our_form_to_send_a_post_request">Wiring Up Our Form to Send a POST Request</h3>
+<div class="paragraph">
+<p>
+
+
+At the end of the last chapter,
+the tests were telling us we weren&#8217;t able to save the user&#8217;s input:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>  File "...goat-book/functional_tests.py", line 40, in
+test_can_start_a_todo_list
+[...]
+AssertionError: False is not true : New to-do item did not appear in table</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>To get it to the server, for now we&#8217;ll use a standard HTML POST request.
+A little boring, but also nice and easy to deliver&#8212;&#8203;we
+can use all sorts of sexy HTML5 and JavaScript later in the book.</p>
+</div>
+<div class="paragraph">
+<p>To get our browser to send a POST request, we need to do two things:</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>Give the <code>&lt;input&gt;</code> element a <code>name=</code> attribute.</p>
+</li>
+<li>
+<p>Wrap it in a <code>&lt;form&gt;</code> tag<sup class="footnote">[<a id="_footnoteref_2" class="footnote" href="#_footnotedef_2" title="View footnote.">2</a>]</sup>
+with <code>method="POST"</code>.</p>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p>Let&#8217;s adjust our template at <em>lists/templates/home.html</em>:</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">lists/templates/home.html (ch05l001)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="html">    <span class="tag">&lt;h1&gt;</span>Your To-Do list<span class="tag">&lt;/h1&gt;</span>
+    <span class="tag">&lt;form</span> <span class="attribute-name">method</span>=<span class="string"><span class="delimiter">"</span><span class="content">POST</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>
+      <span class="tag">&lt;input</span> <span class="attribute-name">name</span>=<span class="string"><span class="delimiter">"</span><span class="content">item_text</span><span class="delimiter">"</span></span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">"</span><span class="content">id_new_item</span><span class="delimiter">"</span></span> <span class="attribute-name">placeholder</span>=<span class="string"><span class="delimiter">"</span><span class="content">Enter a to-do item</span><span class="delimiter">"</span></span> <span class="tag">/&gt;</span>
+    <span class="tag">&lt;/form&gt;</span>
+    <span class="tag">&lt;table</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">"</span><span class="content">id_list_table</span><span class="delimiter">"</span></span><span class="tag">&gt;</span></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>Now, running our FTs gives us a slightly cryptic, unexpected error:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>python functional_tests.py</strong>
+[...]
+Traceback (most recent call last):
+  File "...goat-book/functional_tests.py", line 38, in
+test_can_start_a_todo_list
+    table = self.browser.find_element(By.ID, "id_list_table")
+[...]
+selenium.common.exceptions.NoSuchElementException: Message: Unable to locate
+element: [id="id_list_table"]</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Oh dear, we&#8217;re now failing two lines <em>earlier</em>,
+after we submit the form, but before we are able to do the assert.
+Selenium seems to be unable to find our list table.
+Why on Earth would that happen?
+Let&#8217;s take another look at our code:</p>
+</div>
+<div class="exampleblock sourcecode currentcontents">
+<div class="title">functional_tests.py</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python">        <span class="comment"># When she hits enter, the page updates, and now the page lists</span>
+        <span class="comment"># "1: Buy peacock feathers" as an item in a to-do list table</span>
+        inputbox.send_keys(Keys.ENTER)
+        time.sleep(<span class="integer">1</span>)
+
+        table = <span class="predefined-constant">self</span>.browser.find_element(By.ID, <span class="string"><span class="delimiter">"</span><span class="content">id_list_table</span><span class="delimiter">"</span></span>)  <i class="conum" data-value="1"></i><b>(1)</b>
+        rows = table.find_elements(By.TAG_NAME, <span class="string"><span class="delimiter">"</span><span class="content">tr</span><span class="delimiter">"</span></span>)
+        <span class="predefined-constant">self</span>.assertTrue(
+            <span class="predefined">any</span>(row.text == <span class="string"><span class="delimiter">"</span><span class="content">1: Buy peacock feathers</span><span class="delimiter">"</span></span> <span class="keyword">for</span> row <span class="keyword">in</span> rows),
+            <span class="string"><span class="delimiter">"</span><span class="content">New to-do item did not appear in table</span><span class="delimiter">"</span></span>,
+        )</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>Our test unexpectedly fails on this line.
+How do we figure out what&#8217;s going on?</td>
+</tr>
+</table>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_debugging_functional_tests">Debugging functional tests</h3>
+<div class="paragraph">
+<p>
+
+
+
+
+When a functional test fails with an unexpected failure, there are several
+things we can do to debug it:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Add <code>print</code> statements, to show, for example, what the current page text is.</p>
+</li>
+<li>
+<p>Improve the <em>error message</em> to show more info about the current state.</p>
+</li>
+<li>
+<p>Manually visit the site yourself.</p>
+</li>
+<li>
+<p>Use <code>time.sleep</code> to pause the test during execution so you can inspect what was happening.<sup class="footnote">[<a id="_footnoteref_3" class="footnote" href="#_footnotedef_3" title="View footnote.">3</a>]</sup></p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>We&#8217;ll look at all of these over the course of this book,
+but the <code>time.sleep</code> option is the one that leaps to mind with this kind of error in an FT.
+Let&#8217;s try it now.</p>
+</div>
+<div class="paragraph">
+<p>Conveniently, we&#8217;ve already got a sleep just before the error occurs;
+let&#8217;s just extend it a little:</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">functional_tests.py (ch05l003)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python">    <span class="comment"># When she hits enter, the page updates, and now the page lists</span>
+    <span class="comment"># "1: Buy peacock feathers" as an item in a to-do list table</span>
+    inputbox.send_keys(Keys.ENTER)
+    time.sleep(<span class="integer">10</span>)
+
+    table = <span class="predefined-constant">self</span>.browser.find_element(By.ID, <span class="string"><span class="delimiter">"</span><span class="content">id_list_table</span><span class="delimiter">"</span></span>)</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>
+Depending on how fast Selenium runs on your PC,
+you may have caught a glimpse of this already,
+but when we run the functional tests again,
+we&#8217;ve got time to see what&#8217;s going on:
+you should see a page that looks like
+<a href="#csrf_error_screenshot">Django DEBUG page showing CSRF error</a>, with lots of Django debug information.</p>
+</div>
+<div id="csrf_error_screenshot" class="imageblock">
+<div class="content">
+<img src="images/twp2_0501.png" alt="Django DEBUG page showing CSRF error">
+</div>
+<div class="title">Figure 1. Django DEBUG page showing CSRF error</div>
+</div>
+<div class="sidebarblock">
+<div class="content">
+<div class="title">Security: Surprisingly Fun!</div>
+<div class="paragraph">
+<p>
+
+If you&#8217;ve never heard of a <em>Cross-Site Request Forgery</em> exploit, why not look it up now?
+Like all security exploits, it&#8217;s entertaining to read about,
+being an ingenious use of a system in unexpected ways.</p>
+</div>
+<div class="paragraph">
+<p>When I went to university to get my Computer Science degree,
+I signed up for the Security module out of a sense of duty:
+<em>Oh well, it&#8217;ll probably be very dry and boring,
+but I suppose I&#8217;d better take it.
+Eat your vegetables, and so forth</em>.
+It turned out to be one of the most fascinating modules of the whole course!
+Absolutely full of the joy of hacking, of the particular mindset it takes
+to think about how systems can be used in unintended ways.</p>
+</div>
+<div class="paragraph">
+<p>I want to recommend the textbook from that course,
+Ross Anderson&#8217;s <a href="https://www.cl.cam.ac.uk/~rja14/book.html"> Security Engineering_</a>.
+It&#8217;s quite light on pure crypto,
+but it&#8217;s absolutely full of interesting discussions of unexpected topics like lock picking,
+forging bank notes, inkjet printer cartridge <span class="keep-together">economics</span>,
+and spoofing South African Air Force jets with replay attacks.
+It&#8217;s a huge tome, about three inches thick,
+and I promise you it&#8217;s an absolute page-turner.</p>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>
+
+Django&#8217;s CSRF protection involves placing a little auto-generated unique token into each generated form,
+to be able to verify that POST requests have definitely come from the form generated by the server.
+So far our template has been pure HTML,
+and in this step we make the first use of Django&#8217;s template magic.
+To add the CSRF token we use a <em>template tag</em>,
+which has the curly-bracket/percent syntax,
+<code>{% ... %}</code>&#8212;famous for being the world&#8217;s most annoying two-key touch-typing
+combination:</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">lists/templates/home.html (ch05l004)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="html">  <span class="tag">&lt;form</span> <span class="attribute-name">method</span>=<span class="string"><span class="delimiter">"</span><span class="content">POST</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>
+    <span class="tag">&lt;input</span> <span class="attribute-name">name</span>=<span class="string"><span class="delimiter">"</span><span class="content">item_text</span><span class="delimiter">"</span></span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">"</span><span class="content">id_new_item</span><span class="delimiter">"</span></span> <span class="attribute-name">placeholder</span>=<span class="string"><span class="delimiter">"</span><span class="content">Enter a to-do item</span><span class="delimiter">"</span></span> <span class="tag">/&gt;</span>
+    {% csrf_token %}
+  <span class="tag">&lt;/form&gt;</span></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>Django will substitute the template tag during rendering with an <code>&lt;input type="hidden"&gt;</code>
+containing the CSRF token.
+Rerunning the functional test will now bring us back to our previous (expected) failure:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>  File "...goat-book/functional_tests.py", line 40, in
+test_can_start_a_todo_list
+[...]
+AssertionError: False is not true : New to-do item did not appear in table</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Since our long <code>time.sleep</code> is still there, the test will pause on the final
+screen, showing us that the new item text disappears after the form is
+submitted, and the page refreshes to show an empty form again.  That&#8217;s because
+we haven&#8217;t wired up our server to deal with the POST request yet&#8212;&#8203;it just
+ignores it and displays the normal home page.</p>
+</div>
+<div class="paragraph">
+<p>We
+can put our normal short <code>time.sleep</code> back now though:</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">functional_tests.py (ch05l005)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python">    <span class="comment"># "1: Buy peacock feathers" as an item in a to-do list table</span>
+    inputbox.send_keys(Keys.ENTER)
+    time.sleep(<span class="integer">1</span>)
+
+    table = <span class="predefined-constant">self</span>.browser.find_element(By.ID, <span class="string"><span class="delimiter">"</span><span class="content">id_list_table</span><span class="delimiter">"</span></span>)</code></pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_processing_a_post_request_on_the_server">Processing a POST Request on the Server</h3>
+<div class="paragraph">
+<p>
+
+
+Because we haven&#8217;t specified an <code>action=</code> attribute in the form,
+it is submitting back to the same URL it was rendered from by default (i.e., <code>/</code>),
+which is dealt with by our <code>home_page</code> function.
+That&#8217;s fine for now, let&#8217;s adapt the view to be able to deal with a POST request.</p>
+</div>
+<div class="paragraph">
+<p>That means a new unit test for the <code>home_page</code> view.
+Open up <em>lists/tests.py</em>, and add a new method to <code>HomePageTest</code>:</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">lists/tests.py (ch05l006)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">class</span> <span class="class">HomePageTest</span>(TestCase):
+    <span class="keyword">def</span> <span class="function">test_uses_home_template</span>(<span class="predefined-constant">self</span>):
+        response = <span class="predefined-constant">self</span>.client.get(<span class="string"><span class="delimiter">"</span><span class="content">/</span><span class="delimiter">"</span></span>)
+        <span class="predefined-constant">self</span>.assertTemplateUsed(response, <span class="string"><span class="delimiter">"</span><span class="content">home.html</span><span class="delimiter">"</span></span>)
+
+    <span class="keyword">def</span> <span class="function">test_can_save_a_POST_request</span>(<span class="predefined-constant">self</span>):
+        response = <span class="predefined-constant">self</span>.client.post(<span class="string"><span class="delimiter">"</span><span class="content">/</span><span class="delimiter">"</span></span>, data={<span class="string"><span class="delimiter">"</span><span class="content">item_text</span><span class="delimiter">"</span></span>: <span class="string"><span class="delimiter">"</span><span class="content">A new list item</span><span class="delimiter">"</span></span>})
+        <span class="predefined-constant">self</span>.assertContains(response, <span class="string"><span class="delimiter">"</span><span class="content">A new list item</span><span class="delimiter">"</span></span>)</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>To do a POST, we call <code>self.client.post</code>, and as you can see it takes
+a <code>data</code> argument which contains the form data we want to send.
+Then we check that the text from our POST request ends up in the rendered HTML.
+That gives us our expected fail:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>python manage.py test</strong>
+[...]
+AssertionError: False is not true : Couldn't find 'A new list item' in response</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>In (slightly exaggerated) TDD style,
+we can single-mindedly do "the simplest thing that could possibly work"
+to address this test failure, which is to add an <code>if</code> and a new code path for POST requests,
+with a deliberately silly return value:</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">lists/views.py (ch05l007)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> <span class="include">django.http</span> <span class="keyword">import</span> <span class="include">HttpResponse</span>
+<span class="keyword">from</span> <span class="include">django.shortcuts</span> <span class="keyword">import</span> <span class="include">render</span>
+
+
+<span class="keyword">def</span> <span class="function">home_page</span>(request):
+    <span class="keyword">if</span> request.method == <span class="string"><span class="delimiter">"</span><span class="content">POST</span><span class="delimiter">"</span></span>:
+        <span class="keyword">return</span> HttpResponse(<span class="string"><span class="delimiter">"</span><span class="content">You submitted: </span><span class="delimiter">"</span></span> + request.POST[<span class="string"><span class="delimiter">"</span><span class="content">item_text</span><span class="delimiter">"</span></span>])
+    <span class="keyword">return</span> render(request, <span class="string"><span class="delimiter">"</span><span class="content">home.html</span><span class="delimiter">"</span></span>)</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>OK that gets our unit tests passing, but it&#8217;s not really what we want.<sup class="footnote">[<a id="_footnoteref_4" class="footnote" href="#_footnotedef_4" title="View footnote.">4</a>]</sup></p>
+</div>
+<div class="paragraph">
+<p>What we really want to do is add the POST submission
+to the todo items table in the home page template.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_passing_python_variables_to_be_rendered_in_the_template">Passing Python Variables to Be Rendered in the Template</h3>
+<div class="paragraph">
+<p>
+
+</p>
+</div>
+<div class="paragraph">
+<p>We&#8217;ve already had a hint of it,
+and now it&#8217;s time to start to get to know the real power of the Django template syntax,
+which is to pass variables from our Python view code into HTML templates.</p>
+</div>
+<div class="paragraph">
+<p>Let&#8217;s start by seeing how the template syntax lets us include a Python object in our template.
+The notation is <code>{{ ... }}</code>, which displays the object as a string:</p>
+</div>
+<div class="exampleblock sourcecode small-code">
+<div class="title">lists/templates/home.html (ch05l008)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="html"><span class="tag">&lt;body&gt;</span>
+  <span class="tag">&lt;h1&gt;</span>Your To-Do list<span class="tag">&lt;/h1&gt;</span>
+  <span class="tag">&lt;form</span> <span class="attribute-name">method</span>=<span class="string"><span class="delimiter">"</span><span class="content">POST</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>
+    <span class="tag">&lt;input</span> <span class="attribute-name">name</span>=<span class="string"><span class="delimiter">"</span><span class="content">item_text</span><span class="delimiter">"</span></span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">"</span><span class="content">id_new_item</span><span class="delimiter">"</span></span> <span class="attribute-name">placeholder</span>=<span class="string"><span class="delimiter">"</span><span class="content">Enter a to-do item</span><span class="delimiter">"</span></span> <span class="tag">/&gt;</span>
+    {% csrf_token %}
+  <span class="tag">&lt;/form&gt;</span>
+  <span class="tag">&lt;table</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">"</span><span class="content">id_list_table</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>
+    <span class="tag">&lt;tr&gt;</span><span class="tag">&lt;td&gt;</span>{{ new_item_text }}<span class="tag">&lt;/td&gt;</span><span class="tag">&lt;/tr&gt;</span>  <i class="conum" data-value="1"></i><b>(1)</b>
+  <span class="tag">&lt;/table&gt;</span>
+<span class="tag">&lt;/body&gt;</span></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>Here&#8217;s our template variable.
+<code>new_item_text</code> will be the variable name for the user input we display in the template.</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>Let&#8217;s adjust our unit test so that it checks whether we are still using the template:</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">lists/tests.py (ch05l009)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python">    <span class="keyword">def</span> <span class="function">test_can_save_a_POST_request</span>(<span class="predefined-constant">self</span>):
+        response = <span class="predefined-constant">self</span>.client.post(<span class="string"><span class="delimiter">"</span><span class="content">/</span><span class="delimiter">"</span></span>, data={<span class="string"><span class="delimiter">"</span><span class="content">item_text</span><span class="delimiter">"</span></span>: <span class="string"><span class="delimiter">"</span><span class="content">A new list item</span><span class="delimiter">"</span></span>})
+        <span class="predefined-constant">self</span>.assertContains(response, <span class="string"><span class="delimiter">"</span><span class="content">A new list item</span><span class="delimiter">"</span></span>)
+        <span class="predefined-constant">self</span>.assertTemplateUsed(response, <span class="string"><span class="delimiter">"</span><span class="content">home.html</span><span class="delimiter">"</span></span>)</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>And that will fail as expected:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>AssertionError: No templates used to render the response</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Good, our deliberately silly return value is now no longer fooling our tests,
+so we are allowed to rewrite our view, and tell it to pass the POST parameter to the template.
+The <code>render</code> function takes, as its third argument, a dictionary
+which maps template variable names to their values.</p>
+</div>
+<div class="paragraph">
+<p>In theory we can use it for the POST case as well as the default GET case,
+so let&#8217;s remove the <code>if request.method == "POST"</code> and simplify our view right down to:</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">lists/views.py (ch05l010)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">def</span> <span class="function">home_page</span>(request):
+    <span class="keyword">return</span> render(
+        request,
+        <span class="string"><span class="delimiter">"</span><span class="content">home.html</span><span class="delimiter">"</span></span>,
+        {<span class="string"><span class="delimiter">"</span><span class="content">new_item_text</span><span class="delimiter">"</span></span>: request.POST[<span class="string"><span class="delimiter">"</span><span class="content">item_text</span><span class="delimiter">"</span></span>]},
+    )</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>What do the tests think?</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>ERROR: test_uses_home_template
+(lists.tests.HomePageTest.test_uses_home_template)
+
+[...]
+    {"new_item_text": request.POST["item_text"]},
+                      ~~~~~~~~~~~~^^^^^^^^^^^^^
+[...]
+django.utils.datastructures.MultiValueDictKeyError: 'item_text'</pre>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_an_unexpected_failure">An Unexpected Failure</h4>
+<div class="paragraph">
+<p>
+
+Oops, an <em>unexpected failure</em>.</p>
+</div>
+<div class="paragraph">
+<p>If you remember the rules for reading tracebacks,
+you&#8217;ll spot that it&#8217;s actually a failure in a <em>different</em> test.
+We got the actual test we were working on to pass,
+but the unit tests have picked up an unexpected consequence, a regression:
+we broke the code path where there is no POST request.</p>
+</div>
+<div class="paragraph">
+<p>This is the whole point of having tests.
+Yes, perhaps we could have predicted this would happen,
+but imagine if we&#8217;d been having a bad day or weren&#8217;t paying attention:
+our tests have just saved us from accidentally breaking our application,
+and, because we&#8217;re using TDD, we found out immediately.
+We didn&#8217;t have to wait for a QA team,
+or switch to a web browser and click through our site manually,
+and we can get on with fixing it straight away.
+Here&#8217;s how:</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">lists/views.py (ch05l011)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">def</span> <span class="function">home_page</span>(request):
+    <span class="keyword">return</span> render(
+        request,
+        <span class="string"><span class="delimiter">"</span><span class="content">home.html</span><span class="delimiter">"</span></span>,
+        {<span class="string"><span class="delimiter">"</span><span class="content">new_item_text</span><span class="delimiter">"</span></span>: request.POST.get(<span class="string"><span class="delimiter">"</span><span class="content">item_text</span><span class="delimiter">"</span></span>, <span class="string"><span class="delimiter">"</span><span class="delimiter">"</span></span>)},
+    )</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>We use <a href="http://docs.python.org/3/library/stdtypes.html#dict.get"><code>dict.get</code></a> to
+supply a default value, for the case where we are doing a normal GET request,
+when the POST dictionary is empty.</p>
+</div>
+<div class="paragraph">
+<p>The unit tests should now pass.  Let&#8217;s see what the functional tests say:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>AssertionError: False is not true : New to-do item did not appear in table</pre>
+</div>
+</div>
+<div class="admonitionblock tip">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-tip" title="Tip"></i>
+</td>
+<td class="content">
+If your functional tests show you a different error at this point,
+    or at any point in this chapter, complaining about a
+    <code>StaleElementReferenceException</code>, you may need to increase the
+    <code>time.sleep</code> explicit wait&#8212;&#8203;try 2 or 3 seconds instead of 1;
+    then read on to the next chapter for a more robust solution.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>
+Hmm, not a wonderfully helpful error.
+Let&#8217;s use another of our FT debugging techniques: improving the error message.
+This is probably the most constructive technique,
+because those improved error messages stay around to help debug any future errors:</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">functional_tests.py (ch05l012)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python"><span class="predefined-constant">self</span>.assertTrue(
+    <span class="predefined">any</span>(row.text == <span class="string"><span class="delimiter">"</span><span class="content">1: Buy peacock feathers</span><span class="delimiter">"</span></span> <span class="keyword">for</span> row <span class="keyword">in</span> rows),
+    f<span class="string"><span class="delimiter">"</span><span class="content">New to-do item did not appear in table. Contents were:</span><span class="char">\n</span><span class="content">{table.text}</span><span class="delimiter">"</span></span>,
+)</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>That gives us a more helpful error message:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>AssertionError: False is not true : New to-do item did not appear in table.
+Contents were:
+Buy peacock feathers</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Actually, you know what would be even better?
+Making that assertion a bit less clever!
+As you may remember from <a href="/book/chapter_04_philosophy_and_refactoring.html">[chapter_04_philosophy_and_refactoring]</a>,
+I was very pleased with myself for using the <code>any()</code> function,
+but one of my Early Release readers (thanks, Jason!) suggested a much simpler implementation.
+We can replace all four lines of the <code>assertTrue</code> with a single <code>assertIn</code>:</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">functional_tests.py (ch05l013)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python">    <span class="predefined-constant">self</span>.assertIn(<span class="string"><span class="delimiter">"</span><span class="content">1: Buy peacock feathers</span><span class="delimiter">"</span></span>, [row.text <span class="keyword">for</span> row <span class="keyword">in</span> rows])</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>Much better.
+You should always be very worried whenever you think you&#8217;re being clever,
+because what you&#8217;re probably being is <em>overcomplicated</em>.</p>
+</div>
+<div class="paragraph">
+<p>Now we get the error message for free:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>    self.assertIn("1: Buy peacock feathers", [row.text for row in rows])
+AssertionError: '1: Buy peacock feathers' not found in ['Buy peacock feathers']</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Consider me suitably chastened.</p>
+</div>
+<div class="admonitionblock tip">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-tip" title="Tip"></i>
+</td>
+<td class="content">
+If, instead, your FT seems to be saying the table is empty ("not found in
+    ['']"), check your <code>&lt;input&gt;</code> tag&#8212;&#8203;does it have the correct
+    <code>name="item_text"</code> attribute?  And does it have <code>method="POST"</code>?  Without
+    them, the user&#8217;s input won&#8217;t be in the right place in <code>request.POST</code>.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>The point is that the FT wants us to enumerate list items with a "1:" at the
+beginning of the first list item.</p>
+</div>
+<div class="paragraph">
+<p>The fastest way to get that to pass is with another quick "cheating" change to the template:</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">lists/templates/home.html (ch05l014)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="html">    <span class="tag">&lt;tr&gt;</span><span class="tag">&lt;td&gt;</span>1: {{ new_item_text }}<span class="tag">&lt;/td&gt;</span><span class="tag">&lt;/tr&gt;</span></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="sidebarblock">
+<div class="content">
+<div class="title">When Should You Stop Cheating? Don&#8217;t Repeat Yourself (DRY) vs Triangulation</div>
+<div class="paragraph">
+<p>
+
+
+
+</p>
+</div>
+<div class="paragraph">
+<p>People often ask about when it&#8217;s OK to "stop cheating",
+and change from an implementation we know to be wrong,
+to one we&#8217;re happy with.</p>
+</div>
+<div class="paragraph">
+<p>One justification is <em>eliminate duplication</em> aka <em>Don&#8217;t Repeat Yourself</em> (DRY),
+which (with some caveats) is a good guideline for any kind of code.</p>
+</div>
+<div class="paragraph">
+<p>If your test uses a magic constant (like the "1:" in front of our list item),
+and your application code also uses it,
+some people say <em>that</em> counts as duplication, so it justifies refactoring.
+Removing the magic constant from the application code usually means you have to stop cheating.</p>
+</div>
+<div class="paragraph">
+<p>It&#8217;s a judgment call,
+but I feel that this is stretching the definition of "repetition" a little,
+so I often like to use a second technique, which is called <em>triangulation</em>:
+if your tests let you get away with writing "cheating" code that you&#8217;re not happy with
+(like returning a magic constant),
+then <em>write another test</em> that forces you to write some better code.
+That&#8217;s what we&#8217;re doing when we extend the FT
+to check that we get a "2:" when inputting a <em>second</em> list item.</p>
+</div>
+<div class="paragraph">
+<p>See also <a href="#three_strikes_and_refactor">Three Strikes and Refactor</a> for a further note of caution
+on applying DRY too quickly.</p>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>Now we get to the <code>self.fail('Finish the test!')</code>.
+If get rid of that and finish writing our FT,
+to add the check for adding a second item to the table
+(copy and paste is our friend),
+we begin to see that our first cut solution really isn&#8217;t going to, um, cut it:</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">functional_tests.py (ch05l015)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python">    <span class="comment"># There is still a text box inviting her to add another item.</span>
+    <span class="comment"># She enters "Use peacock feathers to make a fly"</span>
+    <span class="comment"># (Edith is very methodical)</span>
+    inputbox = <span class="predefined-constant">self</span>.browser.find_element(By.ID, <span class="string"><span class="delimiter">"</span><span class="content">id_new_item</span><span class="delimiter">"</span></span>)
+    inputbox.send_keys(<span class="string"><span class="delimiter">"</span><span class="content">Use peacock feathers to make a fly</span><span class="delimiter">"</span></span>)
+    inputbox.send_keys(Keys.ENTER)
+    time.sleep(<span class="integer">1</span>)
+
+    <span class="comment"># The page updates again, and now shows both items on her list</span>
+    table = <span class="predefined-constant">self</span>.browser.find_element(By.ID, <span class="string"><span class="delimiter">"</span><span class="content">id_list_table</span><span class="delimiter">"</span></span>)
+    rows = table.find_elements(By.TAG_NAME, <span class="string"><span class="delimiter">"</span><span class="content">tr</span><span class="delimiter">"</span></span>)
+    <span class="predefined-constant">self</span>.assertIn(
+        <span class="string"><span class="delimiter">"</span><span class="content">1: Buy peacock feathers</span><span class="delimiter">"</span></span>,
+        [row.text <span class="keyword">for</span> row <span class="keyword">in</span> rows],
+    )
+    <span class="predefined-constant">self</span>.assertIn(
+        <span class="string"><span class="delimiter">"</span><span class="content">2: Use peacock feathers to make a fly</span><span class="delimiter">"</span></span>,
+        [row.text <span class="keyword">for</span> row <span class="keyword">in</span> rows],
+    )
+
+    <span class="comment"># Satisfied, she goes back to sleep</span></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>
+Sure enough, the functional tests return an error:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>AssertionError: '1: Buy peacock feathers' not found in ['1: Use peacock
+feathers to make a fly']</pre>
+</div>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="three_strikes_and_refactor">Three Strikes and Refactor</h3>
+<div class="paragraph">
+<p>
+
+
+But before we go further&#8212;&#8203;we&#8217;ve got a bad <em>code smell</em><sup class="footnote">[<a id="_footnoteref_5" class="footnote" href="#_footnotedef_5" title="View footnote.">5</a>]</sup>
+in this FT.
+We have three almost identical code blocks checking for new items in the list table.
+
+When we want to apply the DRY principle,
+I like to follow the mantra <em>three strikes and refactor</em>.
+You can copy and paste code once,
+and it may be premature to try to remove the duplication it causes,
+but once you get three occurrences, it&#8217;s time to tidy up.</p>
+</div>
+<div class="paragraph">
+<p>Let&#8217;s start by committing what we have so far. Even though we know our site
+has a major flaw&#8212;&#8203;it can only handle one list item&#8212;&#8203;it&#8217;s still further ahead than it was.
+We may have to rewrite it all, and we may not, but the rule
+is that before you do any refactoring, always do a commit:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>git diff</strong>
+# should show changes to functional_tests.py, home.html,
+# tests.py and views.py
+$ <strong>git commit -a</strong></pre>
+</div>
+</div>
+<div class="admonitionblock tip">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-tip" title="Tip"></i>
+</td>
+<td class="content">
+Always do a commit before embarking on a refactor.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>Onto our functional test refactor: let&#8217;s use a helper method&#8212;&#8203;remember,
+only methods that begin with <code>test_</code> will get run as tests,
+so you can use other methods for your own purposes:</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">functional_tests.py (ch05l016)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python">    <span class="keyword">def</span> <span class="function">tearDown</span>(<span class="predefined-constant">self</span>):
+        <span class="predefined-constant">self</span>.browser.quit()
+
+    <span class="keyword">def</span> <span class="function">check_for_row_in_list_table</span>(<span class="predefined-constant">self</span>, row_text):
+        table = <span class="predefined-constant">self</span>.browser.find_element(By.ID, <span class="string"><span class="delimiter">"</span><span class="content">id_list_table</span><span class="delimiter">"</span></span>)
+        rows = table.find_elements(By.TAG_NAME, <span class="string"><span class="delimiter">"</span><span class="content">tr</span><span class="delimiter">"</span></span>)
+        <span class="predefined-constant">self</span>.assertIn(row_text, [row.text <span class="keyword">for</span> row <span class="keyword">in</span> rows])
+
+    <span class="keyword">def</span> <span class="function">test_can_start_a_todo_list</span>(<span class="predefined-constant">self</span>):
+        [...]</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>I like to put helper methods near the top of the class, between the <code>tearDown</code>
+and the first test. Let&#8217;s use it in the FT:</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">functional_tests.py (ch05l017)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python">    <span class="comment"># When she hits enter, the page updates, and now the page lists</span>
+    <span class="comment"># "1: Buy peacock feathers" as an item in a to-do list table</span>
+    inputbox.send_keys(Keys.ENTER)
+    time.sleep(<span class="integer">1</span>)
+    <span class="predefined-constant">self</span>.check_for_row_in_list_table(<span class="string"><span class="delimiter">"</span><span class="content">1: Buy peacock feathers</span><span class="delimiter">"</span></span>)
+
+    <span class="comment"># There is still a text box inviting her to add another item.</span>
+    <span class="comment"># She enters "Use peacock feathers to make a fly"</span>
+    <span class="comment"># (Edith is very methodical)</span>
+    inputbox = <span class="predefined-constant">self</span>.browser.find_element(By.ID, <span class="string"><span class="delimiter">"</span><span class="content">id_new_item</span><span class="delimiter">"</span></span>)
+    inputbox.send_keys(<span class="string"><span class="delimiter">"</span><span class="content">Use peacock feathers to make a fly</span><span class="delimiter">"</span></span>)
+    inputbox.send_keys(Keys.ENTER)
+    time.sleep(<span class="integer">1</span>)
+
+    <span class="comment"># The page updates again, and now shows both items on her list</span>
+    <span class="predefined-constant">self</span>.check_for_row_in_list_table(<span class="string"><span class="delimiter">"</span><span class="content">1: Buy peacock feathers</span><span class="delimiter">"</span></span>)
+    <span class="predefined-constant">self</span>.check_for_row_in_list_table(<span class="string"><span class="delimiter">"</span><span class="content">2: Use peacock feathers to make a fly</span><span class="delimiter">"</span></span>)
+
+    <span class="comment"># Satisfied, she goes back to sleep</span></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>We run the FT again to check that it still behaves in the same way&#8230;&#8203;</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>AssertionError: '1: Buy peacock feathers' not found in ['1: Use peacock
+feathers to make a fly']</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Good. Now we can commit the FT refactor as its own small, atomic change:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>git diff</strong> # check the changes to functional_tests.py
+$ <strong>git commit -a</strong></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>And back to work.  If we&#8217;re ever going to handle more than one list item,
+we&#8217;re going to need some kind of persistence, and databases are a stalwart
+solution in this area.
+
+</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_the_django_orm_and_our_first_model">The Django ORM and Our First Model</h3>
+<div class="paragraph">
+<p>
+
+
+An <em>Object-Relational Mapper</em> (ORM) is a layer of abstraction for data stored in a database
+with tables, rows, and columns.
+It lets us work with databases using familiar object-oriented metaphors which work well with code.
+Classes map to database tables, attributes map to columns,
+and an individual instance of the class represents a row of data in the database.</p>
+</div>
+<div class="paragraph">
+<p>Django comes with an excellent ORM,
+and writing a unit test that uses it is actually an excellent way of learning it,
+since it exercises code by specifying how we want it to work.</p>
+</div>
+<div class="paragraph">
+<p>Let&#8217;s create a new class in <em>lists/tests.py</em>:</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">lists/tests.py (ch05l018)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> <span class="include">django.test</span> <span class="keyword">import</span> <span class="include">TestCase</span>
+<span class="keyword">from</span> <span class="include">lists.models</span> <span class="keyword">import</span> <span class="include">Item</span>
+
+
+<span class="keyword">class</span> <span class="class">HomePageTest</span>(TestCase):
+    [...]
+
+
+<span class="keyword">class</span> <span class="class">ItemModelTest</span>(TestCase):
+    <span class="keyword">def</span> <span class="function">test_saving_and_retrieving_items</span>(<span class="predefined-constant">self</span>):
+        first_item = Item()
+        first_item.text = <span class="string"><span class="delimiter">"</span><span class="content">The first (ever) list item</span><span class="delimiter">"</span></span>
+        first_item.save()
+
+        second_item = Item()
+        second_item.text = <span class="string"><span class="delimiter">"</span><span class="content">Item the second</span><span class="delimiter">"</span></span>
+        second_item.save()
+
+        saved_items = Item.objects.all()
+        <span class="predefined-constant">self</span>.assertEqual(saved_items.count(), <span class="integer">2</span>)
+
+        first_saved_item = saved_items[<span class="integer">0</span>]
+        second_saved_item = saved_items[<span class="integer">1</span>]
+        <span class="predefined-constant">self</span>.assertEqual(first_saved_item.text, <span class="string"><span class="delimiter">"</span><span class="content">The first (ever) list item</span><span class="delimiter">"</span></span>)
+        <span class="predefined-constant">self</span>.assertEqual(second_saved_item.text, <span class="string"><span class="delimiter">"</span><span class="content">Item the second</span><span class="delimiter">"</span></span>)</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>You can see that creating a new record in the database
+is a relatively simple matter of creating an object,
+assigning some attributes, and calling a <code>.save()</code> function.
+Django also gives us an API for querying the database
+via a class attribute, <code>.objects</code>,
+and we use the simplest possible query, <code>.all()</code>,
+which retrieves all the records for that table.
+The results are returned as a list-like object called a <code>QuerySet</code>,
+from which we can extract individual objects,
+and also call further functions, like <code>.count()</code>.
+We then check the objects as saved to the database,
+to check whether the right information was saved.</p>
+</div>
+<div class="paragraph">
+<p>
+Django&#8217;s ORM has many other helpful and intuitive features;
+this might be a good time to skim through the
+<a href="https://docs.djangoproject.com/en/4.2/intro/tutorial01/">Django tutorial</a>,
+which has an excellent intro to them.</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+I&#8217;ve written this unit test in a very verbose style,
+    as a way of introducing the Django ORM.
+    I wouldn&#8217;t recommend writing your model tests like this "in real life",
+    because it&#8217;s testing the framework, rather than testing our own code.
+    We&#8217;ll actually rewrite this test to be much more concise
+    in <a href="/book/chapter_advanced_forms.html">[chapter_advanced_forms]</a>
+    (specifically, at <a href="/book/chapter_advanced_forms.html#rewrite-model-test">[rewrite-model-test]</a>).
+</td>
+</tr>
+</table>
+</div>
+<div class="sidebarblock">
+<div class="content">
+<div class="title">Unit Tests Versus Integrated/Integration Tests, and the Database</div>
+<div class="paragraph">
+<p>
+
+Some people will tell you that a "real" unit test should never touch the database,
+and that the test I&#8217;ve just written should be more properly called an
+"integrated" test, or "integration" test,
+because it doesn&#8217;t only test our code,
+but also relies on an external system&#8212;&#8203;that is, a database.</p>
+</div>
+<div class="paragraph">
+<p>It&#8217;s OK to ignore this distinction for now&#8212;&#8203;we have two types of test,
+the high-level functional tests which test the application from the user&#8217;s
+point of view, and these lower-level tests which test it from the programmer&#8217;s
+point of view.</p>
+</div>
+<div class="paragraph">
+<p>We&#8217;ll come back to this topic
+and talk about the differences between unit tests, integrated tests, integration tests, and more in <a href="/book/chapter_purist_unit_tests.html">[chapter_purist_unit_tests]</a>,
+towards the end of the book.</p>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>Let&#8217;s try running the unit test. Here comes another unit-test/code cycle:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>ImportError: cannot import name 'Item' from 'lists.models'</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Very well, let&#8217;s give it something to import from <em>lists/models.py</em>.  We&#8217;re
+feeling confident so we&#8217;ll skip the <code>Item = None</code> step, and go straight to
+creating a class:</p>
+</div>
+<div id="first-django-model" class="exampleblock sourcecode">
+<div class="title">lists/models.py (ch05l019)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> <span class="include">django.db</span> <span class="keyword">import</span> <span class="include">models</span>
+
+<span class="comment"># Create your models here.</span>
+<span class="keyword">class</span> <span class="class">Item</span>:
+    <span class="keyword">pass</span></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>That gets our test as far as:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>[...]
+  File "...goat-book/lists/tests.py", line 20, in
+test_saving_and_retrieving_items
+    first_item.save()
+    ^^^^^^^^^^^^^^^
+AttributeError: 'Item' object has no attribute 'save'</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>To give our <code>Item</code> class a <code>save</code> method, and to make it into a real Django
+model, we make it inherit from the <code>Model</code> class:</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">lists/models.py (ch05l020)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> <span class="include">django.db</span> <span class="keyword">import</span> <span class="include">models</span>
+
+
+<span class="keyword">class</span> <span class="class">Item</span>(models.Model):
+    <span class="keyword">pass</span></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_our_first_database_migration">Our First Database Migration</h4>
+<div class="paragraph">
+<p>
+The next thing that happens is a huuuuge traceback,
+the long and short of which is that there&#8217;s a problem with the database:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>django.db.utils.OperationalError: no such table: lists_item</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>In Django, the ORM&#8217;s job is to model and read and write from database tables,
+but there&#8217;s a second system that&#8217;s in charge,of actually <em>creating</em>
+the tables in the database called "migrations".
+Its job is to let you to add, remove, and modify tables and columns,
+based on changes you make to your <em>models.py</em> files.</p>
+</div>
+<div class="paragraph">
+<p>One way to think of it is as a version control system for your database.
+As we&#8217;ll see later, it comes in particularly useful
+when we need to upgrade a database that&#8217;s deployed on a live server.</p>
+</div>
+<div class="paragraph">
+<p>For now all we need to know is how to build our first database migration,
+which we do using the <code>makemigrations</code> command:<sup class="footnote">[<a id="_footnoteref_6" class="footnote" href="#_footnotedef_6" title="View footnote.">6</a>]</sup></p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>python manage.py makemigrations</strong>
+Migrations for 'lists':
+  lists/migrations/0001_initial.py
+    - Create model Item
+$ <strong>ls lists/migrations</strong>
+0001_initial.py  __init__.py  __pycache__</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>If you&#8217;re curious, you can go and take a look in the migrations file,
+and you&#8217;ll see it&#8217;s a representation of our additions to <em>models.py</em>.</p>
+</div>
+<div class="paragraph">
+<p>In the meantime, we should find our tests get a little further.</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_the_test_gets_surprisingly_far">The Test Gets Surprisingly Far</h4>
+<div class="paragraph">
+<p>The test actually gets surprisingly far:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>python manage.py test</strong>
+[...]
+    self.assertEqual(first_saved_item.text, "The first (ever) list item")
+                     ^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'Item' object has no attribute 'text'</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>That&#8217;s a full eight lines later than the last failure&#8212;&#8203;we&#8217;ve
+been all the way through saving the two <code>Item</code>s,
+and we&#8217;ve checked that they&#8217;re saved in the database,
+but Django just doesn&#8217;t seem to have "remembered" the <code>.text</code> attribute.</p>
+</div>
+<div class="paragraph">
+<p>If you&#8217;re new to Python, you might have been surprised
+that we were allowed to assign the <code>.text</code> attribute at all.
+In a language like Java, you would probably get a compilation error.
+Python is more relaxed.</p>
+</div>
+<div class="paragraph">
+<p>Classes that inherit from <code>models.Model</code> map to tables in the database.
+By default they get an auto-generated <code>id</code> attribute,
+which will be a primary key column<sup class="footnote">[<a id="_footnoteref_7" class="footnote" href="#_footnotedef_7" title="View footnote.">7</a>]</sup>
+in the database,
+but you have to define any other columns and attributes you want explicitly;
+here&#8217;s how we set up a text column:</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">lists/models.py (ch05l022)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">class</span> <span class="class">Item</span>(models.Model):
+    text = models.TextField()</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>Django has many other field types, like <code>IntegerField</code>, <code>CharField</code>,
+<code>DateField</code>, and so on.  I&#8217;ve chosen <code>TextField</code> rather than <code>CharField</code> because
+the latter requires a length restriction, which seems arbitrary at this point.
+You can read more on field types in the Django
+<a href="https://docs.djangoproject.com/en/4.2/intro/tutorial02/#creating-models">tutorial</a>
+and in the
+<a href="https://docs.djangoproject.com/en/4.2/ref/models/fields/">documentation</a>.</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_a_new_field_means_a_new_migration">A New Field Means a New Migration</h4>
+<div class="paragraph">
+<p>Running the tests gives us another database error:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>django.db.utils.OperationalError: table lists_item has no column named text</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>It&#8217;s because we&#8217;ve added another new field to our database, which means we need
+to create another migration.  Nice of our tests to let us know!</p>
+</div>
+<div class="paragraph">
+<p>Let&#8217;s try it:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>python manage.py makemigrations</strong>
+It is impossible to add a non-nullable field 'text' to item without specifying
+a default. This is because the database needs something to populate existing
+rows.
+Please select a fix:
+ 1) Provide a one-off default now (will be set on all existing rows with a null
+value for this column)
+ 2) Quit and manually define a default value in models.py.
+Select an option:<strong>2</strong></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Ah.  It won&#8217;t let us add the column without a default value.  Let&#8217;s pick option
+2 and set a default in <em>models.py</em>.  I think you&#8217;ll find the syntax reasonably
+self-explanatory:</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">lists/models.py (ch05l023)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">class</span> <span class="class">Item</span>(models.Model):
+    text = models.TextField(default=<span class="string"><span class="delimiter">"</span><span class="delimiter">"</span></span>)</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>And now the migration should complete:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>python manage.py makemigrations</strong>
+Migrations for 'lists':
+  lists/migrations/0002_item_text.py
+    - Add field text to item</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>So, two new lines in <em>models.py</em>, two database migrations, and as a result,
+the <code>.text</code> attribute on our model objects is now recognised as a special attribute,
+so it does get saved to the database, and the tests pass&#8230;&#8203;</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>python manage.py test</strong>
+[...]
+
+Ran 3 tests in 0.010s
+OK</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>
+
+
+So let&#8217;s do a commit for our first ever model!</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>git status</strong> # see tests.py, models.py, and 2 untracked migrations
+$ <strong>git diff</strong> # review changes to tests.py and models.py
+$ <strong>git add lists</strong>
+$ <strong>git commit -m "Model for list Items and associated migration"</strong></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_saving_the_post_to_the_database">Saving the POST to the Database</h3>
+<div class="paragraph">
+<p>
+
+
+Let&#8217;s adjust the test for our home page POST request,
+and say we want the view to save a new item to the database
+instead of just passing it through to its response.
+We can do that by adding three new lines to the existing test called
+<code>test_can_save_a_POST_request</code>:</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">lists/tests.py (ch05l025)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">def</span> <span class="function">test_can_save_a_POST_request</span>(<span class="predefined-constant">self</span>):
+    response = <span class="predefined-constant">self</span>.client.post(<span class="string"><span class="delimiter">"</span><span class="content">/</span><span class="delimiter">"</span></span>, data={<span class="string"><span class="delimiter">"</span><span class="content">item_text</span><span class="delimiter">"</span></span>: <span class="string"><span class="delimiter">"</span><span class="content">A new list item</span><span class="delimiter">"</span></span>})
+
+    <span class="predefined-constant">self</span>.assertEqual(Item.objects.count(), <span class="integer">1</span>)  <i class="conum" data-value="1"></i><b>(1)</b>
+    new_item = Item.objects.first()  <i class="conum" data-value="2"></i><b>(2)</b>
+    <span class="predefined-constant">self</span>.assertEqual(new_item.text, <span class="string"><span class="delimiter">"</span><span class="content">A new list item</span><span class="delimiter">"</span></span>)  <i class="conum" data-value="3"></i><b>(3)</b>
+
+    <span class="predefined-constant">self</span>.assertContains(response, <span class="string"><span class="delimiter">"</span><span class="content">A new list item</span><span class="delimiter">"</span></span>)
+    <span class="predefined-constant">self</span>.assertTemplateUsed(response, <span class="string"><span class="delimiter">"</span><span class="content">home.html</span><span class="delimiter">"</span></span>)</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>We check that one new <code>Item</code> has been saved to the database.
+<code>objects.count()</code> is a shorthand for <code>objects.all().count()</code>.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td><code>objects.first()</code> is the same as doing <code>objects.all()[0]</code>.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="3"></i><b>3</b></td>
+<td>We check that the item&#8217;s text is correct.</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>
+This test is getting a little long-winded.
+It seems to be testing lots of different things.
+That&#8217;s another <em>code smell</em>&#8212;a
+long unit test either needs to be broken into two,
+or it may be an indication that the thing you&#8217;re testing is too complicated.
+Let&#8217;s add that to a little to-do list of our own,
+perhaps on a piece of scrap paper:</p>
+</div>
+<div class="sidebarblock scratchpad">
+<div class="content">
+<div class="ulist">
+<ul>
+<li>
+<p><em>Code smell: POST test is too long?</em></p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>Writing it down on a scratchpad like this reassures us that we won&#8217;t forget,
+so we are comfortable getting back to what we were working on.
+We rerun the tests and see an expected failure:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>    self.assertEqual(Item.objects.count(), 1)
+AssertionError: 0 != 1</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Let&#8217;s adjust our view:</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">lists/views.py (ch05l026)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> <span class="include">django.shortcuts</span> <span class="keyword">import</span> <span class="include">render</span>
+<span class="keyword">from</span> <span class="include">lists.models</span> <span class="keyword">import</span> <span class="include">Item</span>
+
+
+<span class="keyword">def</span> <span class="function">home_page</span>(request):
+    item = Item()
+    item.text = request.POST.get(<span class="string"><span class="delimiter">"</span><span class="content">item_text</span><span class="delimiter">"</span></span>, <span class="string"><span class="delimiter">"</span><span class="delimiter">"</span></span>)
+    item.save()
+
+    <span class="keyword">return</span> render(
+        request,
+        <span class="string"><span class="delimiter">"</span><span class="content">home.html</span><span class="delimiter">"</span></span>,
+        {<span class="string"><span class="delimiter">"</span><span class="content">new_item_text</span><span class="delimiter">"</span></span>: request.POST.get(<span class="string"><span class="delimiter">"</span><span class="content">item_text</span><span class="delimiter">"</span></span>, <span class="string"><span class="delimiter">"</span><span class="delimiter">"</span></span>)},
+    )</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>I&#8217;ve coded a very naive solution and you can probably spot a very obvious problem,
+which is that we&#8217;re going to be saving empty items with every request to the home page.
+Let&#8217;s add that to our list of things to fix later.
+You know, along with the painfully obvious fact
+that we currently have no way at all of having different lists for different people.
+That we&#8217;ll keep ignoring for now.</p>
+</div>
+<div class="paragraph">
+<p>Remember, I&#8217;m not saying you should always ignore glaring problems like this in "real life".
+Whenever we spot problems in advance, there&#8217;s a judgement call to make
+over whether to stop what you&#8217;re doing and start again, or leave them until later.
+Sometimes finishing off what you&#8217;re doing is still worth it,
+and sometimes the problem may be so major as to warrant a stop and rethink.</p>
+</div>
+<div class="paragraph">
+<p>Let&#8217;s see how the unit tests get on&#8230;&#8203;</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>Ran 3 tests in 0.010s
+
+OK</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>They pass!  Good. Let&#8217;s have a little look at our scratchpad.
+I&#8217;ve added a couple of the other things that are on our mind:</p>
+</div>
+<div class="sidebarblock scratchpad">
+<div class="content">
+<div class="ulist">
+<ul>
+<li>
+<p><em>Don&#8217;t save blank items for every request</em></p>
+</li>
+<li>
+<p><em>Code smell: POST test is too long?</em></p>
+</li>
+<li>
+<p><em>Display multiple items in the table</em></p>
+</li>
+<li>
+<p><em>Support more than one list!</em></p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>Let&#8217;s start with the first scratch pad item:
+<em>Don&#8217;t save blank items for every request</em>.
+We could tack on an assertion to an existing test,
+but it&#8217;s best to keep unit tests to testing one thing at a time,
+so let&#8217;s add a new one:</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">lists/tests.py (ch05l027)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">class</span> <span class="class">HomePageTest</span>(TestCase):
+    <span class="keyword">def</span> <span class="function">test_uses_home_template</span>(<span class="predefined-constant">self</span>):
+        [...]
+
+    <span class="keyword">def</span> <span class="function">test_can_save_a_POST_request</span>(<span class="predefined-constant">self</span>):
+        [...]
+
+    <span class="keyword">def</span> <span class="function">test_only_saves_items_when_necessary</span>(<span class="predefined-constant">self</span>):
+        <span class="predefined-constant">self</span>.client.get(<span class="string"><span class="delimiter">"</span><span class="content">/</span><span class="delimiter">"</span></span>)
+        <span class="predefined-constant">self</span>.assertEqual(Item.objects.count(), <span class="integer">0</span>)</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>That gives us a <code>1 != 0</code> failure.  Let&#8217;s fix it by bringing the
+<code>if request.method</code> check back and putting the Item creation in there:</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">lists/views.py (ch05l028)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">def</span> <span class="function">home_page</span>(request):
+    <span class="keyword">if</span> request.method == <span class="string"><span class="delimiter">"</span><span class="content">POST</span><span class="delimiter">"</span></span>:
+        item = Item()
+        item.text = request.POST[<span class="string"><span class="delimiter">"</span><span class="content">item_text</span><span class="delimiter">"</span></span>]
+        item.save()
+
+    <span class="keyword">return</span> render(
+        request,
+        <span class="string"><span class="delimiter">"</span><span class="content">home.html</span><span class="delimiter">"</span></span>,
+        {<span class="string"><span class="delimiter">"</span><span class="content">new_item_text</span><span class="delimiter">"</span></span>: request.POST.get(<span class="string"><span class="delimiter">"</span><span class="content">item_text</span><span class="delimiter">"</span></span>, <span class="string"><span class="delimiter">"</span><span class="delimiter">"</span></span>)},
+    )</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>
+
+
+And that gets the test passing:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>Ran 4 tests in 0.010s
+
+OK</pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_redirect_after_a_post">Redirect After a POST</h3>
+<div class="paragraph">
+<p>
+
+
+But, yuck, those duplicated <code>request.POST</code> accesses are making me pretty unhappy.
+Thankfully we are about to have the opportunity to fix it.
+A view function has two jobs: processing user input, and returning an appropriate response.
+We&#8217;ve taken care of the first part, which is saving the user&#8217;s input to the database,
+so now let&#8217;s work on the second part.</p>
+</div>
+<div class="paragraph">
+<p><a href="https://en.wikipedia.org/wiki/Post/Redirect/Get">Always redirect after a POST</a>,
+they say, so let&#8217;s do that.
+Once again we change our unit test for saving a POST request:
+instead of expecting a response with the item in it,
+we want it to expect a redirect back to the home page.</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">lists/tests.py (ch05l029)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python">    <span class="keyword">def</span> <span class="function">test_can_save_a_POST_request</span>(<span class="predefined-constant">self</span>):
+        response = <span class="predefined-constant">self</span>.client.post(<span class="string"><span class="delimiter">"</span><span class="content">/</span><span class="delimiter">"</span></span>, data={<span class="string"><span class="delimiter">"</span><span class="content">item_text</span><span class="delimiter">"</span></span>: <span class="string"><span class="delimiter">"</span><span class="content">A new list item</span><span class="delimiter">"</span></span>})
+
+        <span class="predefined-constant">self</span>.assertEqual(Item.objects.count(), <span class="integer">1</span>)
+        new_item = Item.objects.first()
+        <span class="predefined-constant">self</span>.assertEqual(new_item.text, <span class="string"><span class="delimiter">"</span><span class="content">A new list item</span><span class="delimiter">"</span></span>)
+
+        <span class="predefined-constant">self</span>.assertRedirects(response, <span class="string"><span class="delimiter">"</span><span class="content">/</span><span class="delimiter">"</span></span>)  <i class="conum" data-value="1"></i><b>(1)</b>
+
+    <span class="keyword">def</span> <span class="function">test_only_saves_items_when_necessary</span>(<span class="predefined-constant">self</span>):
+        [...]</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>We no longer expect a response with HTML content rendered by a template,
+so we lose the <code>assertContains</code> calls that looked at that.
+Instead, we use Django&#8217;s <code>assertRedirects</code> helper
+which checks that we return an HTTP 302 redirect, back to the home URL.</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>That gives us this expected failure:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>AssertionError: 200 != 302 : Response didn't redirect as expected: Response
+code was 200 (expected 302)</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>We can now tidy up our view substantially:</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">lists/views.py (ch05l030)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> <span class="include">django.shortcuts</span> <span class="keyword">import</span> <span class="include">redirect</span>, <span class="include">render</span>
+<span class="keyword">from</span> <span class="include">lists.models</span> <span class="keyword">import</span> <span class="include">Item</span>
+
+
+<span class="keyword">def</span> <span class="function">home_page</span>(request):
+    <span class="keyword">if</span> request.method == <span class="string"><span class="delimiter">"</span><span class="content">POST</span><span class="delimiter">"</span></span>:
+        item = Item()
+        item.text = request.POST[<span class="string"><span class="delimiter">"</span><span class="content">item_text</span><span class="delimiter">"</span></span>]
+        item.save()
+        <span class="keyword">return</span> redirect(<span class="string"><span class="delimiter">"</span><span class="content">/</span><span class="delimiter">"</span></span>)
+
+    <span class="keyword">return</span> render(
+        request,
+        <span class="string"><span class="delimiter">"</span><span class="content">home.html</span><span class="delimiter">"</span></span>,
+        {<span class="string"><span class="delimiter">"</span><span class="content">new_item_text</span><span class="delimiter">"</span></span>: request.POST.get(<span class="string"><span class="delimiter">"</span><span class="content">item_text</span><span class="delimiter">"</span></span>, <span class="string"><span class="delimiter">"</span><span class="delimiter">"</span></span>)},
+    )</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>And the tests should now pass:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>Ran 4 tests in 0.010s
+
+OK</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>We&#8217;re at green, time for a little refactor!</p>
+</div>
+<div class="paragraph">
+<p>Let&#8217;s have a look at <em>views.py</em>
+and see what opportunities for improvement there might be:</p>
+</div>
+<div class="exampleblock sourcecode currentcontents">
+<div class="title">lists/views.py</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">def</span> <span class="function">home_page</span>(request):
+    <span class="keyword">if</span> request.method == <span class="string"><span class="delimiter">"</span><span class="content">POST</span><span class="delimiter">"</span></span>:
+        item = Item()  <i class="conum" data-value="1"></i><b>(1)</b>
+        item.text = request.POST[<span class="string"><span class="delimiter">"</span><span class="content">item_text</span><span class="delimiter">"</span></span>]  <i class="conum" data-value="1"></i><b>(1)</b>
+        item.save()  <i class="conum" data-value="1"></i><b>(1)</b>
+        <span class="keyword">return</span> redirect(<span class="string"><span class="delimiter">"</span><span class="content">/</span><span class="delimiter">"</span></span>)
+
+    <span class="keyword">return</span> render(
+        request,
+        <span class="string"><span class="delimiter">"</span><span class="content">home.html</span><span class="delimiter">"</span></span>,
+        {<span class="string"><span class="delimiter">"</span><span class="content">new_item_text</span><span class="delimiter">"</span></span>: request.POST.get(<span class="string"><span class="delimiter">"</span><span class="content">item_text</span><span class="delimiter">"</span></span>, <span class="string"><span class="delimiter">"</span><span class="delimiter">"</span></span>)},  <i class="conum" data-value="2"></i><b>(2)</b>
+    )</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>There&#8217;s a quicker way to do these 3 lines with <code>.objects.create()</code></td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>This line doesn&#8217;t seem quite right now, in fact it won&#8217;t work at all.
+Let&#8217;s make a note on our scratchpad to sort out passing list items to the template.
+It&#8217;s actually closely related to "Display multiple items",
+so we&#8217;ll put it just before that one:</td>
+</tr>
+</table>
+</div>
+<div class="sidebarblock scratchpad">
+<div class="content">
+<div class="ulist">
+<ul>
+<li>
+<p><em><span class="strikethrough line-through">Don&#8217;t save blank items for every request</span></em></p>
+</li>
+<li>
+<p><em>Code smell: POST test is too long?</em></p>
+</li>
+<li>
+<p><em>Pass existing list items to the template somehow</em></p>
+</li>
+<li>
+<p><em>Display multiple items in the table</em></p>
+</li>
+<li>
+<p><em>Support more than one list!</em></p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>And here&#8217;s the refactored version of <em>views.py</em> using the <code>.objects.create()</code>
+helper method that Django provides, for one-line creation of objects:</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">lists/views.py (ch05l031)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">def</span> <span class="function">home_page</span>(request):
+    <span class="keyword">if</span> request.method == <span class="string"><span class="delimiter">"</span><span class="content">POST</span><span class="delimiter">"</span></span>:
+        Item.objects.create(text=request.POST[<span class="string"><span class="delimiter">"</span><span class="content">item_text</span><span class="delimiter">"</span></span>])
+        <span class="keyword">return</span> redirect(<span class="string"><span class="delimiter">"</span><span class="content">/</span><span class="delimiter">"</span></span>)
+
+    <span class="keyword">return</span> render(
+        request,
+        <span class="string"><span class="delimiter">"</span><span class="content">home.html</span><span class="delimiter">"</span></span>,
+        {<span class="string"><span class="delimiter">"</span><span class="content">new_item_text</span><span class="delimiter">"</span></span>: request.POST.get(<span class="string"><span class="delimiter">"</span><span class="content">item_text</span><span class="delimiter">"</span></span>, <span class="string"><span class="delimiter">"</span><span class="delimiter">"</span></span>)},
+    )</code></pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_better_unit_testing_practice_each_test_should_test_one_thing">Better Unit Testing Practice: Each Test Should Test One Thing</h3>
+<div class="paragraph">
+<p>
+
+Let&#8217;s address the "POST test is too long" code smell.</p>
+</div>
+<div class="paragraph">
+<p>Good unit testing practice says that each test should only test one thing. The
+reason is that it makes it easier to track down bugs.  Having multiple
+assertions in a test means that, if the test fails on an early assertion, you
+don&#8217;t know what the statuses of the later assertions are. As we&#8217;ll see in the next
+chapter, if we ever break this view accidentally, we want to know whether it&#8217;s
+the saving of objects that&#8217;s broken, or the type of response.</p>
+</div>
+<div class="paragraph">
+<p>You may not always write perfect unit tests with single assertions on your
+first go, but now feels like a good time to separate out our concerns:</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">lists/tests.py (ch05l032)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python">    <span class="keyword">def</span> <span class="function">test_can_save_a_POST_request</span>(<span class="predefined-constant">self</span>):
+        <span class="predefined-constant">self</span>.client.post(<span class="string"><span class="delimiter">"</span><span class="content">/</span><span class="delimiter">"</span></span>, data={<span class="string"><span class="delimiter">"</span><span class="content">item_text</span><span class="delimiter">"</span></span>: <span class="string"><span class="delimiter">"</span><span class="content">A new list item</span><span class="delimiter">"</span></span>})
+        <span class="predefined-constant">self</span>.assertEqual(Item.objects.count(), <span class="integer">1</span>)
+        new_item = Item.objects.first()
+        <span class="predefined-constant">self</span>.assertEqual(new_item.text, <span class="string"><span class="delimiter">"</span><span class="content">A new list item</span><span class="delimiter">"</span></span>)
+
+    <span class="keyword">def</span> <span class="function">test_redirects_after_POST</span>(<span class="predefined-constant">self</span>):
+        response = <span class="predefined-constant">self</span>.client.post(<span class="string"><span class="delimiter">"</span><span class="content">/</span><span class="delimiter">"</span></span>, data={<span class="string"><span class="delimiter">"</span><span class="content">item_text</span><span class="delimiter">"</span></span>: <span class="string"><span class="delimiter">"</span><span class="content">A new list item</span><span class="delimiter">"</span></span>})
+        <span class="predefined-constant">self</span>.assertRedirects(response, <span class="string"><span class="delimiter">"</span><span class="content">/</span><span class="delimiter">"</span></span>)</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>
+
+
+And we should now see five tests pass instead of four:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>Ran 5 tests in 0.010s
+
+OK</pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_rendering_items_in_the_template">Rendering Items in the Template</h3>
+<div class="paragraph">
+<p>
+Much better!  Back to our to-do list:</p>
+</div>
+<div class="sidebarblock scratchpad">
+<div class="content">
+<div class="ulist">
+<ul>
+<li>
+<p><em><span class="strikethrough line-through">Don&#8217;t save blank items for every request</span></em></p>
+</li>
+<li>
+<p><em><span class="strikethrough line-through">Code smell: POST test is too long?</span></em></p>
+</li>
+<li>
+<p><em>Pass existing list items to the template somehow</em></p>
+</li>
+<li>
+<p><em>Display multiple items in the table</em></p>
+</li>
+<li>
+<p><em>Support more than one list!</em></p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>Crossing things off the list is almost as satisfying as seeing tests pass!</p>
+</div>
+<div class="paragraph">
+<p>The third and fourth items are the last of the "easy" ones.
+Our view now does the right thing for POST requests,
+it saves new list items to the database.
+Now we want GET requests to load all currently existing list items,
+and pass them to the template for rendering.
+Let&#8217;s have a new unit test for that:</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">lists/tests.py (ch05l033)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">class</span> <span class="class">HomePageTest</span>(TestCase):
+    <span class="keyword">def</span> <span class="function">test_uses_home_template</span>(<span class="predefined-constant">self</span>):
+        [...]
+
+    <span class="keyword">def</span> <span class="function">test_displays_all_list_items</span>(<span class="predefined-constant">self</span>):
+        Item.objects.create(text=<span class="string"><span class="delimiter">"</span><span class="content">itemey 1</span><span class="delimiter">"</span></span>)
+        Item.objects.create(text=<span class="string"><span class="delimiter">"</span><span class="content">itemey 2</span><span class="delimiter">"</span></span>)
+        response = <span class="predefined-constant">self</span>.client.get(<span class="string"><span class="delimiter">"</span><span class="content">/</span><span class="delimiter">"</span></span>)
+        <span class="predefined-constant">self</span>.assertContains(response, <span class="string"><span class="delimiter">"</span><span class="content">itemey 1</span><span class="delimiter">"</span></span>)
+        <span class="predefined-constant">self</span>.assertContains(response, <span class="string"><span class="delimiter">"</span><span class="content">itemey 2</span><span class="delimiter">"</span></span>)
+
+    <span class="keyword">def</span> <span class="function">test_can_save_a_POST_request</span>(<span class="predefined-constant">self</span>):
+        [...]</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>That fails as expected:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>AssertionError: False is not true : Couldn't find 'itemey 1' in response</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>
+
+The Django template syntax has a tag for iterating through lists,
+<code>{% for .. in .. %}</code>; we can use it like this:</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">lists/templates/home.html (ch05l034)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="html"><span class="tag">&lt;table</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">"</span><span class="content">id_list_table</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>
+  {% for item in items %}
+    <span class="tag">&lt;tr&gt;</span><span class="tag">&lt;td&gt;</span>1: {{ item.text }}<span class="tag">&lt;/td&gt;</span><span class="tag">&lt;/tr&gt;</span>
+  {% endfor %}
+<span class="tag">&lt;/table&gt;</span></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>This is one of the major strengths of the templating system. Now the template
+will render with multiple <code>&lt;tr&gt;</code> rows, one for each item in the variable
+<code>items</code>.  Pretty neat!  I&#8217;ll introduce a few more bits of Django template
+magic as we go, but at some point you&#8217;ll want to go and read up on the rest of
+them in the
+<a href="https://docs.djangoproject.com/en/4.2/topics/templates/">Django docs</a>.</p>
+</div>
+<div class="paragraph">
+<p>Just changing the template doesn&#8217;t get our tests to green; we need to actually
+pass the items to it from our home page view:</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">lists/views.py (ch05l035)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">def</span> <span class="function">home_page</span>(request):
+    <span class="keyword">if</span> request.method == <span class="string"><span class="delimiter">"</span><span class="content">POST</span><span class="delimiter">"</span></span>:
+        Item.objects.create(text=request.POST[<span class="string"><span class="delimiter">"</span><span class="content">item_text</span><span class="delimiter">"</span></span>])
+        <span class="keyword">return</span> redirect(<span class="string"><span class="delimiter">"</span><span class="content">/</span><span class="delimiter">"</span></span>)
+
+    items = Item.objects.all()
+    <span class="keyword">return</span> render(request, <span class="string"><span class="delimiter">"</span><span class="content">home.html</span><span class="delimiter">"</span></span>, {<span class="string"><span class="delimiter">"</span><span class="content">items</span><span class="delimiter">"</span></span>: items})</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>That does get the unit tests to pass&#8230;&#8203;moment of truth, will the functional
+test pass?</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>python functional_tests.py</strong>
+[...]
+AssertionError: 'To-Do' not found in 'OperationalError at /'</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>
+
+Oops, apparently not.  Let&#8217;s use another functional test debugging technique,
+and it&#8217;s one of the most straightforward: manually visiting the site!
+Open up <em>http://localhost:8000</em> in your web browser,
+and you&#8217;ll see a Django debug page saying "no such table: lists_item", as in <a href="#operationalerror">Another helpful debug message</a>.</p>
+</div>
+<div id="operationalerror" class="imageblock width-75">
+<div class="content">
+<img src="images/twp2_0502.png" alt="OperationalError at / no such table: lists_item">
+</div>
+<div class="title">Figure 2. Another helpful debug message</div>
+</div>
+</div>
+<div class="sect2 pagebreak-before less_space">
+<h3 id="_creating_our_production_database_with_migrate">Creating Our Production Database with migrate</h3>
+<div class="paragraph">
+<p>
+
+Another helpful error message from Django,
+which is basically complaining that we haven&#8217;t set up the database properly.
+How come everything worked fine in the unit tests, I hear you ask?
+Because Django creates a special <em>test database</em> for unit tests;
+it&#8217;s one of the magical things that Django&#8217;s <code>TestCase</code> does.</p>
+</div>
+<div class="paragraph">
+<p>To set up our "real" database, we need to explicitly create it.
+SQLite databases are just a file on disk,
+and you&#8217;ll see in <em>settings.py</em> that Django, by default, will just put it in a file
+called <em>db.sqlite3</em> in the base project directory:</p>
+</div>
+<div class="exampleblock sourcecode currentcontents">
+<div class="title">superlists/settings.py</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python">[...]
+<span class="comment"># Database</span>
+<span class="comment"># https://docs.djangoproject.com/en/4.2/ref/settings/#databases</span>
+
+DATABASES = {
+    <span class="string"><span class="delimiter">"</span><span class="content">default</span><span class="delimiter">"</span></span>: {
+        <span class="string"><span class="delimiter">"</span><span class="content">ENGINE</span><span class="delimiter">"</span></span>: <span class="string"><span class="delimiter">"</span><span class="content">django.db.backends.sqlite3</span><span class="delimiter">"</span></span>,
+        <span class="string"><span class="delimiter">"</span><span class="content">NAME</span><span class="delimiter">"</span></span>: BASE_DIR / <span class="string"><span class="delimiter">"</span><span class="content">db.sqlite3</span><span class="delimiter">"</span></span>,
+    }
+}</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>We&#8217;ve told Django everything it needs to create the database,
+first via <em>models.py</em> and then when we created the migrations file.
+To actually apply it to creating a real database,
+we use another Django Swiss Army knife <em>manage.py</em> command, <code>migrate</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>python manage.py migrate</strong>
+Operations to perform:
+  Apply all migrations: admin, auth, contenttypes, lists, sessions
+Running migrations:
+  Applying contenttypes.0001_initial... OK
+  Applying auth.0001_initial... OK
+  Applying admin.0001_initial... OK
+  Applying admin.0002_logentry_remove_auto_add... OK
+  Applying admin.0003_logentry_add_action_flag_choices... OK
+  Applying contenttypes.0002_remove_content_type_name... OK
+  Applying auth.0002_alter_permission_name_max_length... OK
+  Applying auth.0003_alter_user_email_max_length... OK
+  Applying auth.0004_alter_user_username_opts... OK
+  Applying auth.0005_alter_user_last_login_null... OK
+  Applying auth.0006_require_contenttypes_0002... OK
+  Applying auth.0007_alter_validators_add_error_messages... OK
+  Applying auth.0008_alter_user_username_max_length... OK
+  Applying auth.0009_alter_user_last_name_max_length... OK
+  Applying auth.0010_alter_group_name_max_length... OK
+  Applying auth.0011_update_proxy_permissions... OK
+  Applying auth.0012_alter_user_first_name_max_length... OK
+  Applying lists.0001_initial... OK
+  Applying lists.0002_item_text... OK
+  Applying sessions.0001_initial... OK</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Now we can refresh the page on <em>localhost</em>, see that our error is gone, and try
+running the functional tests
+again:<sup class="footnote">[<a id="_footnoteref_8" class="footnote" href="#_footnotedef_8" title="View footnote.">8</a>]</sup></p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>AssertionError: '2: Use peacock feathers to make a fly' not found in ['1: Buy
+peacock feathers', '1: Use peacock feathers to make a fly']</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>So close!  We just need to get our list numbering right.  Another awesome
+Django template tag, <code>forloop.counter</code>, will help here:</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">lists/templates/home.html (ch05l036)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="html">  {% for item in items %}
+    <span class="tag">&lt;tr&gt;</span><span class="tag">&lt;td&gt;</span>{{ forloop.counter }}: {{ item.text }}<span class="tag">&lt;/td&gt;</span><span class="tag">&lt;/tr&gt;</span>
+  {% endfor %}</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>If you try it again, you should now see the FT gets to the end:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>python functional_tests.py</strong>
+.
+ ---------------------------------------------------------------------
+Ran 1 test in 5.036s
+
+OK</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Hooray!</p>
+</div>
+<div class="paragraph">
+<p>But, as it&#8217;s running, you may notice something is amiss, like in
+<a href="#items_left_over_from_previous_run">There are list items left over from the last run of the test</a>.</p>
+</div>
+<div id="items_left_over_from_previous_run" class="imageblock">
+<div class="content">
+<img src="images/twp2_0503.png" alt="There are list items left over from the last run of the test">
+</div>
+<div class="title">Figure 3. There are list items left over from the last run of the test</div>
+</div>
+<div class="paragraph">
+<p>Oh dear. It looks like previous runs of the test are leaving stuff lying around
+in our database.  In fact, if you run the tests again, you&#8217;ll see it gets
+worse:</p>
+</div>
+<div class="listingblock skipme">
+<div class="content">
+<pre>1: Buy peacock feathers
+2: Use peacock feathers to make a fly
+3: Buy peacock feathers
+4: Use peacock feathers to make a fly
+5: Buy peacock feathers
+6: Use peacock feathers to make a fly</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Grrr.  We&#8217;re so close! We&#8217;re going to need some kind of automated way of
+tidying up after ourselves. For now, if you feel like it, you can do it
+manually, by deleting the database and re-creating it fresh with <code>migrate</code>
+(you&#8217;ll need to shut down your Django server first):</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>rm db.sqlite3</strong>
+$ <strong>python manage.py migrate --noinput</strong></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>And then (after restarting your server!) reassure yourself that the FT still
+passes.</p>
+</div>
+<div class="paragraph">
+<p>Apart from that little bug in our functional testing, we&#8217;ve got some code
+that&#8217;s more or less working.  Let&#8217;s do a commit.
+</p>
+</div>
+<div class="paragraph">
+<p>Start by doing a <strong><code>git status</code></strong> and a <strong><code>git diff</code></strong>, and you should see changes
+to <em>home.html</em>, <em>tests.py</em>, and <em>views.py</em>. Let&#8217;s add them:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>git add lists</strong>
+$ <strong>git commit -m "Redirect after POST, and show all items in template"</strong></pre>
+</div>
+</div>
+<div class="admonitionblock tip">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-tip" title="Tip"></i>
+</td>
+<td class="content">
+You might find it useful to add markers for the end of each chapter, like
+    <strong><code>git tag end-of-chapter-05</code></strong>.
+</td>
+</tr>
+</table>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_recap">Recap</h3>
+<div class="paragraph">
+<p>Where are we?  How is progress on our app, and what have we learned?</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>We&#8217;ve got a form set up to add new items to the list using POST.</p>
+</li>
+<li>
+<p>We&#8217;ve set up a simple model in the database to save list items.</p>
+</li>
+<li>
+<p>We&#8217;ve learned about creating database migrations, both for the
+test database (where they&#8217;re applied automatically) and for the real
+database (where we have to apply them manually).</p>
+</li>
+<li>
+<p>We&#8217;ve used our first couple of Django template tags:  <code>{% csrf_token %}</code>
+and the <code>{% for ... endfor %}</code> loop.</p>
+</li>
+<li>
+<p>And we&#8217;ve used two different FT debugging techniques:
+<code>time.sleep</code>s, and improving the error messages.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph pagebreak-before">
+<p>But we&#8217;ve got a couple of items on our own to-do list,
+namely getting the FT to clean up after itself,
+and perhaps more critically,
+adding support for more than one list.</p>
+</div>
+<div class="sidebarblock scratchpad">
+<div class="content">
+<div class="ulist">
+<ul>
+<li>
+<p><em><span class="strikethrough line-through">Don&#8217;t save blank items for every request</span></em></p>
+</li>
+<li>
+<p><em><span class="strikethrough line-through">Code smell: POST test is too long?</span></em></p>
+</li>
+<li>
+<p><em><span class="strikethrough line-through">'Pass existing list items to the template somehow</span></em></p>
+</li>
+<li>
+<p><em><span class="strikethrough line-through">Display multiple items in the table</span></em></p>
+</li>
+<li>
+<p><em>Clean up after FT runs</em></p>
+</li>
+<li>
+<p><em>Support more than one list!</em></p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>I mean, we <em>could</em> ship the site as it is, but people might find it strange
+that the entire human population has to share a single to-do list.
+I suppose it might get people to stop and think about
+how connected we all are to one another,
+how we all share a common destiny here on Spaceship Earth,
+and how we must all work together to solve the global problems that we face.</p>
+</div>
+<div class="paragraph">
+<p>But in practical terms, the site wouldn&#8217;t be very useful.</p>
+</div>
+<div class="paragraph">
+<p>Ah well.
+"", startref="UIdatabase05")</p>
+</div>
+<div class="sidebarblock pagebreak-before less_space">
+<div class="content">
+<div class="title">Useful TDD Concepts</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">Regression</dt>
+<dd>
+<p>When a change unexpectedly breaks some aspect of the application which used to work.
+
+</p>
+</dd>
+<dt class="hdlist1">Unexpected failure</dt>
+<dd>
+<p>When a test fails in a way we weren&#8217;t expecting.
+This either means that we&#8217;ve made a mistake in our tests,
+or that the tests have helped us find a regression,
+and we need to fix something in our code.
+
+</p>
+</dd>
+<dt class="hdlist1">Triangulation</dt>
+<dd>
+<p>Adding a test case with a new specific example for some existing code,
+to justify generalising the implementation
+(which may be a "cheat" until that point).
+
+</p>
+</dd>
+<dt class="hdlist1">Three strikes and refactor</dt>
+<dd>
+<p>A rule of thumb for when to remove duplication from code.
+When two pieces of code look very similar,
+it often pays to wait until you see a third use case,
+so that you&#8217;re more sure about what part of the code really is the common,
+re-usable part to refactor out.
+
+</p>
+</dd>
+<dt class="hdlist1">The scratchpad to-do list</dt>
+<dd>
+<p>A place to write down things that occur to us as we&#8217;re coding,
+so that we can finish up what we&#8217;re doing and come back to them later.
+
+</p>
+</dd>
+</dl>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div id="footnotes">
+<hr>
+<div class="footnote" id="_footnotedef_1">
+<a href="#_footnoteref_1">1</a>. "Geepaw" Hill, another one of the TDD OGs, has <a href="https://www.geepawhill.org/2021/09/29/many-more-much-smaller-steps-first-sketch/">a series of blog posts</a> advocating for taking "Many More Much Smaller Steps (MMMSS)". In this chapter I&#8217;m being unrealistically <em>short-sighted</em> for effect, so don&#8217;t do that! But Geepaw argues that in the real world, when you slice your work into tiny increments, not only do you get there in the end, but you end up delivering business value <em>faster</em>.
+</div>
+<div class="footnote" id="_footnotedef_2">
+<a href="#_footnoteref_2">2</a>. Did you know that you don&#8217;t need a button to make a form submit? I can&#8217;t remember when I learned that, but readers have mentioned that it&#8217;s unusual so I thought I&#8217;d draw your attention to it.
+</div>
+<div class="footnote" id="_footnotedef_3">
+<a href="#_footnoteref_3">3</a>. Another common technique for debugging tests is to use <code>breakpoint()</code> to drop into a debugger like <code>pdb</code>. This is more useful for <em>unit</em> tests rather than FTs though, because in an FT you usually can&#8217;t step into actual application code. Personally I only find debuggers useful for really fiddly algorithms, which we won&#8217;t see in this book.)
+</div>
+<div class="footnote" id="_footnotedef_4">
+<a href="#_footnoteref_4">4</a>. But we <em>did</em> learn about <code>request.method</code> and <code>request.POST</code> right? I know it might seem that I&#8217;m overdoing it, but doing things in tiny little really does have a lot of advantages, and one of them is that you can really think about (or in this case, learn) one thing at a time.
+</div>
+<div class="footnote" id="_footnotedef_5">
+<a href="#_footnoteref_5">5</a>. If you&#8217;ve not come across the concept, a "code smell" is something about a piece of code that makes you want to rewrite it. Jeff Atwood has <a href="https://blog.codinghorror.com/code-smells/">a compilation on his blog Coding Horror</a>. The more experience you gain as a programmer, the more fine-tuned your nose becomes to code smells&#8230;&#8203;
+</div>
+<div class="footnote" id="_footnotedef_6">
+<a href="#_footnoteref_6">6</a>. If you&#8217;ve done a bit of Django before, you may be wondering about when we&#8217;re going to run "migrate" as well as "makemigrations"? Read on; that&#8217;s coming up later in the chapter.
+</div>
+<div class="footnote" id="_footnotedef_7">
+<a href="#_footnoteref_7">7</a>. Database tables usually have a special column called a "primary key", which is the unique identifier for each row in the table. It&#8217;s worth brushing up on a <em>tiny</em> bit of relational database theory, if you&#8217;re not familiar with the concept or why it&#8217;s useful. The top three articles I found when searching for "introduction to databases" all seemed pretty good, at the time of writing.
+</div>
+<div class="footnote" id="_footnotedef_8">
+<a href="#_footnoteref_8">8</a>. If you get a different error at this point, try restarting your dev server&#8212;&#8203;it may have gotten confused by the changes to the database happening under its feet.
+</div>
+</div>
+<div id="footer">
+<div id="footer-text">
+License: Creative Commons <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode">CC-BY-NC-ND</a>. Last updated: 2023-08-16 20:48:19 +0100
+</div>
+</div>
+<div class="comments" style="padding: 20px">
+  <h3>Comments</h3>
+  <div id="disqus_thread"></div>
+  <script type="text/javascript">
+    var disqus_config = function () {
+        this.page.identifier = 'chapter_05_post_and_database';
+    };
+    
+    (function() {
+        var d = document, s = d.createElement('script');
+        s.src = '//obeythetestinggoat.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+  </script>
+  <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript" rel="nofollow">comments powered by Disqus.</a></noscript>
+</div>
+
+<html><head><script>   (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){   (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),   m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)   })(window,document,'script','//www.google-analytics.com/analytics.js','ga');    ga('create', 'UA-40928035-1', 'obeythetestinggoat.com');   ga('send', 'pageview');  </script>
+</head></html></body>
+</html>

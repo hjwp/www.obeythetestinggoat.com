@@ -1,0 +1,1301 @@
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="generator" content="Asciidoctor 2.0.16">
+<title>Testing a Simple Home Page with Unit Tests</title>
+<link rel="stylesheet" href="./asciidoctor.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+<link rel="stylesheet" href="./coderay-asciidoctor.css">
+<script>var httpRequest = new XMLHttpRequest();
+httpRequest.onreadystatechange = function() {
+  if (httpRequest.readyState === XMLHttpRequest.DONE) {
+    if (httpRequest.status === 200) {
+      document.getElementById('header').innerHTML += httpRequest.responseText;
+      var subheaders = document.getElementsByClassName('sectlevel2');
+      var section;
+      for (var i=0; i<subheaders.length; i++) {
+        section = subheaders[i];
+        if (section.innerHTML.indexOf(window.location.pathname) === -1) {
+          section.style.display = 'none';
+        } else {
+          section.scrollIntoView && section.scrollIntoView();
+        }
+      }
+
+    }
+  }
+};
+httpRequest.open('GET', 'toc.html');
+httpRequest.send();
+
+</script></head>
+<body class="article toc2 toc-left">
+<div id="buy_the_book" style="position: absolute; top: 0; right: 0; z-index:100">
+  <a href="/pages/book.html">
+    <img src="images/buy_the_book.svg" alt="buy the book ribbon">
+  </a>
+</div>
+<div id="header">
+</div>
+<div id="content">
+<div class="sect1">
+<h2 id="chapter_03_unit_test_first_view">Testing a Simple Home Page with <span class="keep-together">Unit Tests</span></h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>We finished the last chapter with a functional test failing,
+telling us that it wanted the home page for our site to have &#8220;To-Do&#8221; in its title.
+It&#8217;s time to start working on our application.
+In this chapter, we&#8217;ll build our first HTML page, find out about URL handling,
+and creating responses to HTTP requests with Django&#8217;s view functions.</p>
+</div>
+<div class="sidebarblock">
+<div class="content">
+<div class="title">Warning: Things Are About to Get Real</div>
+<div class="paragraph">
+<p>The first two chapters were intentionally nice and light.  From now on, we
+get into some more meaty coding.  Here&#8217;s a prediction:  at some point, things
+are going to go wrong.  You&#8217;re going to see different results from what I say
+you should see. This is a Good Thing, because it will be a genuine
+character-building Learning Experience&#8482;.</p>
+</div>
+<div class="paragraph">
+<p>One possibility is that I&#8217;ve given some ambiguous explanations, and you&#8217;ve
+done something different from what I intended. Step back and have a think about
+what we&#8217;re trying to achieve at this point in the book. Which file are we
+editing, what do we want the user to be able to do, what are we testing and
+why?  It may be that you&#8217;ve edited the wrong file or function, or are running
+the wrong tests.  I reckon you&#8217;ll learn more about TDD from these "stop and think"
+moments than you do from all the times when following instructions and
+copy-pasting goes smoothly.</p>
+</div>
+<div class="paragraph">
+<p>Or it may be a real bug. Be tenacious, read the error message carefully
+(see <a href="#reading_tracebacks">Reading Tracebacks</a> a little later on in the chapter),
+and you&#8217;ll get to the bottom of it.
+It&#8217;s probably just a missing comma,
+or trailing slash, or maybe a missing <em>s</em> in one of the Selenium find methods.
+But, as Zed Shaw memorably insisted in
+<a href="https://learnpythonthehardway.org/">Learn Python The Hard Way</a>,
+this kind of debugging is also an absolutely vital part of learning,
+so do stick it out!</p>
+</div>
+<div class="paragraph">
+<p>
+
+You can always drop me an email (or try the
+<a href="https://groups.google.com/forum/#!forum/obey-the-testing-goat-book">Google
+Group</a>) if you get really stuck.  Happy debugging!</p>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_our_first_django_app_and_our_first_unit_test">Our First Django App, and Our First Unit Test</h3>
+<div class="paragraph">
+<p>
+
+Django encourages you to structure your code into <em>apps</em>: the theory is that
+one project can have many apps, you can use third-party apps developed by other
+people, and you might even reuse one of your own apps in a different
+project&#8230;&#8203;although I admit I&#8217;ve never actually managed it myself!  Still, apps
+are a good way to keep your code organised.</p>
+</div>
+<div class="paragraph">
+<p>Let&#8217;s start an app for our to-do lists:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>python manage.py startapp lists</strong></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>That will create a folder called <em>lists</em>, next to <em>manage.py</em> and the existing
+<em>superlists</em> folder, and within it a number of placeholder files for things
+like models, views, and, of immediate interest to us, tests:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>.
+&#9500;&#9472;&#9472; db.sqlite3
+&#9500;&#9472;&#9472; functional_tests.py
+&#9500;&#9472;&#9472; lists
+&#9474;&#160;&#160; &#9500;&#9472;&#9472; __init__.py
+&#9474;&#160;&#160; &#9500;&#9472;&#9472; admin.py
+&#9474;&#160;&#160; &#9500;&#9472;&#9472; apps.py
+&#9474;&#160;&#160; &#9500;&#9472;&#9472; migrations
+&#9474;&#160;&#160; &#9474;&#160;&#160; &#9492;&#9472;&#9472; __init__.py
+&#9474;&#160;&#160; &#9500;&#9472;&#9472; models.py
+&#9474;&#160;&#160; &#9500;&#9472;&#9472; tests.py
+&#9474;&#160;&#160; &#9492;&#9472;&#9472; views.py
+&#9500;&#9472;&#9472; manage.py
+&#9492;&#9472;&#9472; superlists
+    &#9500;&#9472;&#9472; __init__.py
+    &#9500;&#9472;&#9472; asgi.py
+    &#9500;&#9472;&#9472; settings.py
+    &#9500;&#9472;&#9472; urls.py
+    &#9492;&#9472;&#9472; wsgi.py</pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_unit_tests_and_how_they_differ_from_functional_tests">Unit Tests, and How They Differ from Functional Tests</h3>
+<div class="paragraph">
+<p>
+
+As with so many of the labels we put on things,
+the line between unit tests and functional tests can become a little blurry at times.
+The basic distinction, though, is that
+functional tests test the application from the outside, from the user&#8217;s point of view.
+Unit tests test the application from the inside, from the programmer&#8217;s point of view.</p>
+</div>
+<div class="paragraph">
+<p>The TDD approach I&#8217;m demonstrating uses both types of test
+to drive the development of our application, and ensure its correctness.
+Our workflow will look a bit like this:</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>We start by writing a <em>functional test</em>, describing a typical
+example of our new functionality from the user&#8217;s point of view.</p>
+</li>
+<li>
+<p>Once we have a functional test that fails,
+we start to think about how to write code that can get it to pass
+(or at least to get past its current failure).
+We now use one or more <em>unit tests</em> to define
+how we want our code to behave&#8212;&#8203;the idea is that
+each line of production code we write should be tested
+by (at least) one of our unit tests.</p>
+</li>
+<li>
+<p>Once we have a failing unit test,
+we write the smallest amount of <em>application code</em> we can,
+just enough to get the unit test to pass.
+We may iterate between steps 2 and 3 a few times,
+until we think the functional test will get a little further.</p>
+</li>
+<li>
+<p>Now we can rerun our functional tests and see if they pass,
+or get a little further.
+That may prompt us to write some new unit tests,
+and some new code, and so on.</p>
+</li>
+<li>
+<p>Once we&#8217;re comfortable that the core functionality works end-to-end,
+we can extend out to cover more permutations and edge cases,
+using just unit tests now.</p>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p>You can see that, all the way through,
+the functional tests are driving what development we do from a high level,
+while the unit tests drive what we do at a low level.</p>
+</div>
+<div class="paragraph">
+<p>The functional tests don&#8217;t aim to cover every single tiny detail of our
+app&#8217;s behaviour, they are there to reassure us that everything is wired up correctly.
+The unit tests are there to exhaustively check all the lower level details and corner cases.</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+Functional tests should help you build an application that actually works,
+    and guarantee you never accidentally break it.
+    Unit tests should help you to write code that&#8217;s clean and bug free.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>Enough theory for now&#8212;let&#8217;s see how it looks in practice.</p>
+</div>
+<table id="fts_vs_unit_tests_table" class="tableblock frame-all grid-all stretch">
+<caption class="title">Table 1. FTs vs Unit Tests</caption>
+<colgroup>
+<col style="width: 50%;">
+<col style="width: 50%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">FTs</th>
+<th class="tableblock halign-left valign-top">Unit Tests</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">One test per feature / user story</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Many tests per feature</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Test from the user&#8217;s point of view</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Test the code, ie the programmer&#8217;s point of view</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Can test that the UI "really" works</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Tests the internals, individual functions or classes</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Provides confidence that everything is wired together correctly, works end-to-end</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Can exhaustively check permutations, details, edge cases</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="sect2">
+<h3 id="_unit_testing_in_django">Unit Testing in Django</h3>
+<div class="paragraph">
+<p>
+Let&#8217;s see how to write a unit test for our home page view.
+Open up the new file at <em>lists/tests.py</em>, and you&#8217;ll see something like this:</p>
+</div>
+<div class="exampleblock sourcecode currentcontents">
+<div class="title">lists/tests.py</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> <span class="include">django.test</span> <span class="keyword">import</span> <span class="include">TestCase</span>
+
+<span class="comment"># Create your tests here.</span></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>Django has helpfully suggested we use a special version of <code>TestCase</code>, which
+it provides. It&#8217;s an augmented version of the standard <code>unittest.TestCase</code>,
+with some additional Django-specific features, which we&#8217;ll discover over the
+next few chapters.</p>
+</div>
+<div class="paragraph">
+<p>You&#8217;ve already seen that the TDD cycle involves starting with a test that
+fails, then writing code to get it to pass. Well, before we can even get that
+far, we want to know that the unit test we&#8217;re writing will definitely be
+run by our automated test runner, whatever it is.  In the case of
+<em>functional_tests.py</em>, we&#8217;re running it directly, but this file made by Django
+is a bit more like magic. So, just to make sure, let&#8217;s make a deliberately
+silly failing test:</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">lists/tests.py (ch03l002)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> <span class="include">django.test</span> <span class="keyword">import</span> <span class="include">TestCase</span>
+
+
+<span class="keyword">class</span> <span class="class">SmokeTest</span>(TestCase):
+    <span class="keyword">def</span> <span class="function">test_bad_maths</span>(<span class="predefined-constant">self</span>):
+        <span class="predefined-constant">self</span>.assertEqual(<span class="integer">1</span> + <span class="integer">1</span>, <span class="integer">3</span>)</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>Now let&#8217;s invoke this mysterious Django test runner. As usual, it&#8217;s a
+<em>manage.py</em> <span class="keep-together">command</span>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>python manage.py test</strong>
+Creating test database for alias 'default'...
+Found 1 test(s).
+System check identified no issues (0 silenced).
+F
+======================================================================
+FAIL: test_bad_maths (lists.tests.SmokeTest.test_bad_maths)
+ ---------------------------------------------------------------------
+Traceback (most recent call last):
+  File "...goat-book/lists/tests.py", line 6, in test_bad_maths
+    self.assertEqual(1 + 1, 3)
+AssertionError: 2 != 3
+
+ ---------------------------------------------------------------------
+Ran 1 test in 0.001s
+
+FAILED (failures=1)
+Destroying test database for alias 'default'...</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Excellent.  The machinery seems to be working. This is a good point for a
+commit:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>git status</strong>  # should show you lists/ is untracked
+$ <strong>git add lists</strong>
+$ <strong>git diff --staged</strong>  # will show you the diff that you're about to commit
+$ <strong>git commit -m "Add app for lists, with deliberately failing unit test"</strong></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>As you&#8217;ve no doubt guessed,
+the <code>-m</code> flag lets you pass in a commit message at the command line,
+so you don&#8217;t need to use an editor.
+It&#8217;s up to you to pick the way you like to use the Git command line;
+I&#8217;ll just show you the main ones I&#8217;ve seen used.
+For me the main big of VCS hygiene is:
+<em>make sure you always review what you&#8217;re about to commit before you do it</em>.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_djangos_mvc_urls_and_view_functions">Django&#8217;s MVC, URLs, and View Functions</h3>
+<div class="paragraph">
+<p>
+Django is structured along a classic <em>Model-View-Controller</em> (MVC) pattern.
+Well, <em>broadly</em>.
+It definitely does have models,
+but what Django calls views are really controllers,
+and the view part is actually provided by the templates,
+but you can see the general idea is there!</p>
+</div>
+<div class="paragraph">
+<p>If you&#8217;re interested, you can look up the finer points of the discussion
+<a href="https://docs.djangoproject.com/en/4.2/faq/general/#django-appears-to-be-a-mvc-framework-but-you-call-the-controller-the-view-and-the-view-the-template-how-come-you-don-t-use-the-standard-names">in the Django FAQs</a>.</p>
+</div>
+<div class="paragraph">
+<p>Irrespective of any of that, as with any web server, Django&#8217;s main job is to
+decide what to do when a user asks for a particular URL on our site.
+Django&#8217;s workflow goes something like this:</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>An HTTP <em>request</em> comes in for a particular <em>URL</em>.</p>
+</li>
+<li>
+<p>Django uses some rules to decide which <em>view</em> function should deal with
+the request (this is referred to as <em>resolving</em> the URL).</p>
+</li>
+<li>
+<p>The view function processes the request and returns an HTTP <em>response</em>.</p>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p>So, we want to test two things:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Can we make this view function return the HTML we need?</p>
+</li>
+<li>
+<p>Can we tell Django to use this view function
+when we make a request for the root of the site (&#8220;/&#8221;)?</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Let&#8217;s start with the first.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_unit_testing_a_view">Unit Testing a View</h3>
+<div class="paragraph">
+<p>
+Open up <em>lists/tests.py</em>, and change our silly test to something like this:</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">lists/tests.py (ch03l003)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> <span class="include">django.test</span> <span class="keyword">import</span> <span class="include">TestCase</span>
+<span class="keyword">from</span> <span class="include">django.http</span> <span class="keyword">import</span> <span class="include">HttpRequest</span>  <i class="conum" data-value="1"></i><b>(1)</b>
+<span class="keyword">from</span> <span class="include">lists.views</span> <span class="keyword">import</span> <span class="include">home_page</span>
+
+
+<span class="keyword">class</span> <span class="class">HomePageTest</span>(TestCase):
+    <span class="keyword">def</span> <span class="function">test_home_page_returns_correct_html</span>(<span class="predefined-constant">self</span>):
+        request = HttpRequest()  <i class="conum" data-value="1"></i><b>(1)</b>
+        response = home_page(request)  <i class="conum" data-value="2"></i><b>(2)</b>
+        html = response.content.decode(<span class="string"><span class="delimiter">"</span><span class="content">utf8</span><span class="delimiter">"</span></span>)  <i class="conum" data-value="3"></i><b>(3)</b>
+        <span class="predefined-constant">self</span>.assertIn(<span class="string"><span class="delimiter">"</span><span class="content">&lt;title&gt;To-Do lists&lt;/title&gt;</span><span class="delimiter">"</span></span>, html)  <i class="conum" data-value="4"></i><b>(4)</b>
+        <span class="predefined-constant">self</span>.assertTrue(html.startswith(<span class="string"><span class="delimiter">"</span><span class="content">&lt;html&gt;</span><span class="delimiter">"</span></span>))  <i class="conum" data-value="5"></i><b>(5)</b>
+        <span class="predefined-constant">self</span>.assertTrue(html.endswith(<span class="string"><span class="delimiter">"</span><span class="content">&lt;/html&gt;</span><span class="delimiter">"</span></span>))  <i class="conum" data-value="5"></i><b>(5)</b></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>What&#8217;s going on in this new test?
+Well, remember, a view function takes an HTTP request as input,
+and produces an HTTP response.
+So, to test that:</p>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>We import the <code>HttpRequest</code> class
+so that we can then create a request object within our test.
+This is the kind of object that Django will create when a user&#8217;s browser asks for a page.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>We pass the <code>HttpRequest</code> object to our <code>home_page</code> view,
+which gives us a response.
+You won&#8217;t be surprised to hear that the response is an instance
+of a class called <code>HttpResponse</code>.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="3"></i><b>3</b></td>
+<td>Then, we extract the <code>.content</code> of the response.
+These are the raw bytes,
+the ones and zeros that would be sent down the wire to the user&#8217;s browser.
+We call <code>.decode()</code> to convert them into the string of HTML that&#8217;s being sent to the user.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="4"></i><b>4</b></td>
+<td>Now we can make some assertions: we know we want an html <code>&lt;title&gt;</code> tag somewhere in there,
+with the words "To-Do lists" in it&#8212;&#8203;because
+that&#8217;s what we specified in our functional test.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="5"></i><b>5</b></td>
+<td>And we can do a vague sanity check that it&#8217;s valid html, by checking
+that it starts with an <code>&lt;html&gt;</code> tag which gets closed at the end.</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>So, what do you think will happen when we run the tests?</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>python manage.py test</strong>
+Found 1 test(s).
+System check identified no issues (0 silenced).
+E
+======================================================================
+ERROR: lists.tests (unittest.loader._FailedTest.lists.tests)
+ ---------------------------------------------------------------------
+ImportError: Failed to import test module: lists.tests
+Traceback (most recent call last):
+[...]
+  File "...goat-book/lists/tests.py", line 3, in &lt;module&gt;
+    from lists.views import home_page
+ImportError: cannot import name 'home_page' from 'lists.views'</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>It&#8217;s a very predictable and uninteresting error: we tried to import something
+we haven&#8217;t even written yet. But it&#8217;s still good news&#8212;&#8203;for the purposes of
+TDD, an exception which was predicted counts as an expected failure.
+Since we have both a failing functional test and a failing unit test, we have
+the Testing Goat&#8217;s full blessing to code away.</p>
+</div>
+<div class="sect3">
+<h4 id="_at_last_we_actually_write_some_application_code">At Last! We Actually Write Some Application Code!</h4>
+<div class="paragraph">
+<p>It is exciting, isn&#8217;t it?
+Be warned, TDD means that long periods of anticipation are only defused very gradually,
+and by tiny increments.
+Especially since we&#8217;re learning and only just starting out,
+we only allow ourselves to change (or add) one line of code at a time&#8212;&#8203;and each time,
+we make just the minimal change required to address the current test failure.</p>
+</div>
+<div class="paragraph">
+<p>I&#8217;m being deliberately extreme here, but what&#8217;s our current test failure?
+We can&#8217;t import <code>home_page</code> from <code>lists.views</code>?
+OK, let&#8217;s fix that&#8212;&#8203;and only that.
+In <em>lists/views.py</em>:</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">lists/views.py (ch03l004)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> <span class="include">django.shortcuts</span> <span class="keyword">import</span> <span class="include">render</span>
+
+<span class="comment"># Create your views here.</span>
+home_page = <span class="predefined-constant">None</span></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p><em>"You must be joking!"</em> I can hear you say.</p>
+</div>
+<div class="paragraph">
+<p>I can hear you because it&#8217;s what I used to say (with feeling)
+when my colleagues first demonstrated TDD to me.
+Well, bear with me,
+and we&#8217;ll talk about whether or not this is all taking it too far in a little while.
+But for now, let yourself follow along, even if it&#8217;s with some exasperation,
+and see if our tests can help us write the correct code,
+one tiny step at a time.</p>
+</div>
+<div class="paragraph">
+<p>Let&#8217;s run the tests again:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>[...]
+  File "...goat-book/lists/tests.py", line 9, in
+test_home_page_returns_correct_html
+    response = home_page(request)
+               ^^^^^^^^^^^^^^^^^^
+TypeError: 'NoneType' object is not callable</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>We still get an error, but it&#8217;s moved on a bit.
+Instead of an import error,
+our tests are telling us that our <code>home_page</code> "function" is not callable.
+That gives us a justification for
+changing it from being <code>None</code> to being an actual function. At the very smallest
+level of detail, every single code change can be driven by the tests!</p>
+</div>
+<div class="paragraph">
+<p>Back in <em>lists/views.py</em>:</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">lists/views.py (ch03l005)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> <span class="include">django.shortcuts</span> <span class="keyword">import</span> <span class="include">render</span>
+
+
+<span class="keyword">def</span> <span class="function">home_page</span>():
+    <span class="keyword">pass</span></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>Again, we&#8217;re making the smallest, dumbest change we can possibly make,
+that addresses precisely the current test failure.  Our tests wanted
+something callable, so we gave them the simplest possible callable thing,
+a function that takes no arguments and returns nothing.</p>
+</div>
+<div class="paragraph">
+<p>Let&#8217;s run the tests again and see what they think:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>    response = home_page(request)
+               ^^^^^^^^^^^^^^^^^^
+TypeError: home_page() takes 0 positional arguments but 1 was given</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Once more, our error message has changed slightly,
+and is guiding us towards fixing the next thing that&#8217;s wrong.</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_the_unit_testcode_cycle">The Unit-Test/Code Cycle</h4>
+<div class="paragraph">
+<p>
+
+
+We can start to settle into the TDD <em>unit-test/code cycle</em> now:</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>In the terminal, run the unit tests and see how they fail.</p>
+</li>
+<li>
+<p>In the editor, make a minimal code change to address the current test failure.</p>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p>And repeat!</p>
+</div>
+<div class="paragraph">
+<p>The more nervous we are about getting our code right, the smaller and more
+minimal we make each code change&#8212;&#8203;the idea is to be absolutely sure that each
+bit of code is justified by a test.</p>
+</div>
+<div class="paragraph">
+<p>This may seem laborious, and at first, it will be.  But once you get into the
+swing of things, you&#8217;ll find yourself coding quickly even if you take
+microscopic steps&#8212;&#8203;this is how we write all of our production code at work.</p>
+</div>
+<div class="paragraph">
+<p>Let&#8217;s see how fast we can get this cycle going:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Minimal code change:</p>
+<div class="exampleblock sourcecode">
+<div class="title">lists/views.py (ch03l006)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">def</span> <span class="function">home_page</span>(request):
+    <span class="keyword">pass</span></code></pre>
+</div>
+</div>
+</div>
+</div>
+</li>
+<li>
+<p>Tests:</p>
+<div class="listingblock">
+<div class="content">
+<pre>    html = response.content.decode("utf8")
+           ^^^^^^^^^^^^^^^^
+AttributeError: 'NoneType' object has no attribute 'content'</pre>
+</div>
+</div>
+</li>
+<li>
+<p>Code&#8212;&#8203;we use <code>django.http.HttpResponse</code>, as predicted:</p>
+<div class="exampleblock sourcecode">
+<div class="title">lists/views.py (ch03l007)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> <span class="include">django.http</span> <span class="keyword">import</span> <span class="include">HttpResponse</span>
+
+
+<span class="keyword">def</span> <span class="function">home_page</span>(request):
+    <span class="keyword">return</span> HttpResponse()</code></pre>
+</div>
+</div>
+</div>
+</div>
+</li>
+<li>
+<p>Tests again:</p>
+<div class="listingblock">
+<div class="content">
+<pre>AssertionError: '&lt;title&gt;To-Do lists&lt;/title&gt;' not found in ''</pre>
+</div>
+</div>
+</li>
+<li>
+<p>Code again:</p>
+<div class="exampleblock sourcecode">
+<div class="title">lists/views.py (ch03l008)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">def</span> <span class="function">home_page</span>(request):
+    <span class="keyword">return</span> HttpResponse(<span class="string"><span class="delimiter">"</span><span class="content">&lt;title&gt;To-Do lists&lt;/title&gt;</span><span class="delimiter">"</span></span>)</code></pre>
+</div>
+</div>
+</div>
+</div>
+</li>
+<li>
+<p>Tests yet again:</p>
+<div class="listingblock">
+<div class="content">
+<pre>    self.assertTrue(html.startswith("&lt;html&gt;"))
+AssertionError: False is not true</pre>
+</div>
+</div>
+</li>
+<li>
+<p>Code yet again:</p>
+<div class="exampleblock sourcecode">
+<div class="title">lists/views.py (ch03l009)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">def</span> <span class="function">home_page</span>(request):
+    <span class="keyword">return</span> HttpResponse(<span class="string"><span class="delimiter">"</span><span class="content">&lt;html&gt;&lt;title&gt;To-Do lists&lt;/title&gt;</span><span class="delimiter">"</span></span>)</code></pre>
+</div>
+</div>
+</div>
+</div>
+</li>
+<li>
+<p>Tests&#8212;&#8203;almost there?</p>
+<div class="listingblock">
+<div class="content">
+<pre>    self.assertTrue(html.endswith("&lt;/html&gt;"))
+AssertionError: False is not true</pre>
+</div>
+</div>
+</li>
+<li>
+<p>Come on, one last effort:</p>
+<div class="exampleblock sourcecode">
+<div class="title">lists/views.py (ch03l010)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">def</span> <span class="function">home_page</span>(request):
+    <span class="keyword">return</span> HttpResponse(<span class="string"><span class="delimiter">"</span><span class="content">&lt;html&gt;&lt;title&gt;To-Do lists&lt;/title&gt;&lt;/html&gt;</span><span class="delimiter">"</span></span>)</code></pre>
+</div>
+</div>
+</div>
+</div>
+</li>
+<li>
+<p>Surely?</p>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>python manage.py test</strong>
+Creating test database for alias 'default'...
+Found 1 test(s).
+System check identified no issues (0 silenced).
+.
+ ---------------------------------------------------------------------
+Ran 1 test in 0.001s
+
+OK
+Destroying test database for alias 'default'...</pre>
+</div>
+</div>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Hooray! Our first ever unit test pass!  That&#8217;s so momentous that I think it&#8217;s
+worthy of a commit:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>git diff</strong>  # should show changes to tests.py, and views.py
+$ <strong>git commit -am "First unit test and view function"</strong></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>That was the last variation on <code>git commit</code> I&#8217;ll show, the <code>a</code> and <code>m</code> flags
+together, which adds all changes to tracked files and uses the commit message
+from the command line.</p>
+</div>
+<div class="admonitionblock warning">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-warning" title="Warning"></i>
+</td>
+<td class="content">
+<code>git commit -am</code> is the quickest formulation, but also gives you the
+    least feedback about what&#8217;s being committed, so make sure you&#8217;ve done a
+    <code>git status</code> and a <code>git diff</code> beforehand, and are clear on what changes are
+    about to go in.
+</td>
+</tr>
+</table>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_our_functional_tests_tell_us_were_not_quite_done_yet">Our functional tests tell us we&#8217;re not quite done yet.</h3>
+<div class="paragraph">
+<p>We&#8217;ve got our unit test passing,
+so let&#8217;s go back to running our functional tests to see if we&#8217;ve made progress.
+Don&#8217;t forget to spin up the dev server again, if it&#8217;s not still running.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>python functional_tests.py</strong>
+F
+======================================================================
+FAIL: test_can_start_a_todo_list
+(__main__.NewVisitorTest.test_can_start_a_todo_list)
+ ---------------------------------------------------------------------
+Traceback (most recent call last):
+  File "...goat-book/functional_tests.py", line 18, in
+test_can_start_a_todo_list
+    self.assertIn("To-Do", self.browser.title)
+AssertionError: 'To-Do' not found in 'The install worked successfully!
+Congratulations!'
+
+ ---------------------------------------------------------------------
+Ran 1 test in 1.609s
+
+FAILED (failures=1)</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Looks like something isn&#8217;t quite right.  This is the reason we have functional
+tests!</p>
+</div>
+<div class="paragraph">
+<p>Do you remember at the beginning of the chapter, we said we needed to do two things,
+firstly create a view function to produce responses for requests,
+and secondly tell the server which functions should respond to which URLs?
+Thanks to our FT, we have been reminded that we still need to do the second thing.</p>
+</div>
+<div class="paragraph">
+<p>
+
+How can we write a test for URL resolution?
+At the moment we just test the view function directly by importing it and calling it.
+But we want to test more layers of the Django stack.
+Django, like most web frameworks, supplies a tool for doing just that, called the
+<a href="https://docs.djangoproject.com/en/4.2/topics/testing/tools/#the-test-client">Django Test Client</a>.</p>
+</div>
+<div class="paragraph">
+<p>Let&#8217;s see how to use it by adding a second, alternative test to our unit tests:</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">lists/tests.py (ch03l011)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">class</span> <span class="class">HomePageTest</span>(TestCase):
+    <span class="keyword">def</span> <span class="function">test_home_page_returns_correct_html</span>(<span class="predefined-constant">self</span>):
+        request = HttpRequest()
+        response = home_page(request)
+        html = response.content.decode(<span class="string"><span class="delimiter">"</span><span class="content">utf8</span><span class="delimiter">"</span></span>)
+        <span class="predefined-constant">self</span>.assertIn(<span class="string"><span class="delimiter">"</span><span class="content">&lt;title&gt;To-Do lists&lt;/title&gt;</span><span class="delimiter">"</span></span>, html)
+        <span class="predefined-constant">self</span>.assertTrue(html.startswith(<span class="string"><span class="delimiter">"</span><span class="content">&lt;html&gt;</span><span class="delimiter">"</span></span>))
+        <span class="predefined-constant">self</span>.assertTrue(html.endswith(<span class="string"><span class="delimiter">"</span><span class="content">&lt;/html&gt;</span><span class="delimiter">"</span></span>))
+
+    <span class="keyword">def</span> <span class="function">test_home_page_returns_correct_html_2</span>(<span class="predefined-constant">self</span>):
+        response = <span class="predefined-constant">self</span>.client.get(<span class="string"><span class="delimiter">"</span><span class="content">/</span><span class="delimiter">"</span></span>)  <i class="conum" data-value="1"></i><b>(1)</b>
+        <span class="predefined-constant">self</span>.assertContains(response, <span class="string"><span class="delimiter">"</span><span class="content">&lt;title&gt;To-Do lists&lt;/title&gt;</span><span class="delimiter">"</span></span>)  <i class="conum" data-value="2"></i><b>(2)</b></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>We can access the tests client via <code>self.client</code>,
+which is available on any test that uses <code>django.test.TestCase</code>.
+It provides methods like <code>.get()</code> which simulate a browser making http requests,
+and take a URL as their first parameter.
+We use this instead of manually creating a request object
+and calling the view function directly</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>Django also provides some assertion helpers like <code>assertContains</code>
+that save us from having to manually extract and decode response content,
+and have some other nice properties besides, as we&#8217;ll see.</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>Let&#8217;s see how that works:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>python manage.py test</strong>
+Found 2 test(s).
+Creating test database for alias 'default'...
+System check identified no issues (0 silenced).
+.F
+======================================================================
+FAIL: test_home_page_returns_correct_html_2
+(lists.tests.HomePageTest.test_home_page_returns_correct_html_2)
+ ---------------------------------------------------------------------
+Traceback (most recent call last):
+  File "...goat-book/lists/tests.py", line 17, in
+test_home_page_returns_correct_html_2
+    self.assertContains(response, "&lt;title&gt;To-Do lists&lt;/title&gt;")
+[...]
+AssertionError: 404 != 200 : Couldn't retrieve content: Response code was 404
+(expected 200)
+
+ ---------------------------------------------------------------------
+Ran 2 tests in 0.004s
+
+FAILED (failures=1)
+Destroying test database for alias 'default'...</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Hmm, something about 404s?  Let&#8217;s dig into it.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="reading_tracebacks">Reading Tracebacks</h3>
+<div class="paragraph">
+<p>
+Let&#8217;s spend a moment talking about how to read tracebacks, since it&#8217;s something
+we have to do a lot in TDD. You soon learn to scan through them and pick up
+relevant clues:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>======================================================================
+FAIL: test_home_page_returns_correct_html_2  <i class="conum" data-value="2"></i><b>(2)</b>
+(lists.tests.HomePageTest.test_home_page_returns_correct_html_2)
+ ---------------------------------------------------------------------
+Traceback (most recent call last):
+  File "...goat-book/lists/tests.py", line 17, in
+test_home_page_returns_correct_html_2
+    self.assertContains(response, "&lt;title&gt;To-Do lists&lt;/title&gt;")  <i class="conum" data-value="3"></i><b>(3)</b>
+  File ".../django/test/testcases.py", line 647, in assertContains
+    text_repr, real_count, msg_prefix = self._assert_contains(
+                                        ^^^^^^^^^^^^^^^^^^^^^^  <i class="conum" data-value="4"></i><b>(4)</b>
+  File ".../django/test/testcases.py", line 610, in _assert_contains
+    self.assertEqual(
+AssertionError: 404 != 200 : Couldn't retrieve content: Response code was 404  <i class="conum" data-value="1"></i><b>(1)</b>
+(expected 200)
+
+ ---------------------------------------------------------------------
+[...]</pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>The first place you look is usually <em>the error itself</em>. Sometimes that&#8217;s
+all you need to see, and it will let you identify the problem immediately.
+But sometimes, like in this case, it&#8217;s not quite self-evident.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>The next thing to double-check is: <em>which test is failing?</em> Is it
+definitely the one we expected&#8212;&#8203;that is, the one we just wrote?  In this case,
+the answer is yes.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="3"></i><b>3</b></td>
+<td>Then we look for the place in <em>our test code</em> that kicked off the failure.
+We work our way down from the top of the traceback, looking for the
+filename of the tests file, to check which test function, and what line of
+code, the failure is coming from.
+In this case it&#8217;s the line where we call the <code>assertContains</code> method.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="4"></i><b>4</b></td>
+<td>In Python 3.11 and later, you can also look out for the string of carets,
+which try to tell you exactly where the exception came from.
+This is more useful for unexpected exceptions than for assertion failures
+like we have now.</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>There is ordinarily a fifth step, where we look further down for any
+of <em>our own application code</em> which was involved with the problem.  In this
+case it&#8217;s all Django code, but we&#8217;ll see plenty of examples of this fifth step
+later in the book.</p>
+</div>
+<div class="paragraph">
+<p>Pulling it all together, we interpret the traceback as telling us that,
+when we tried to do our assertion on the content of the response,
+Django&#8217;s test helpers failed saying that they could not do that, because
+the response is an HTML 404 "Not Found" error instead of a normal 200 OK response.</p>
+</div>
+<div class="paragraph">
+<p>In other words, Django isn&#8217;t yet configured to respond to requests for the
+root URL ("/") of our site.  Let&#8217;s make that happen now.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_urls_py">urls.py</h3>
+<div class="paragraph">
+<p>
+Django uses a file called <em>urls.py</em> to map URLs to view functions. This mapping is also called <em>routing</em>.
+There&#8217;s a main <em>urls.py</em> for the whole site in the <em>superlists</em> folder.
+Let&#8217;s go take a look:</p>
+</div>
+<div class="exampleblock sourcecode currentcontents">
+<div class="title">superlists/urls.py</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python"><span class="docstring"><span class="delimiter">"""</span><span class="content">
+</span><span class="content">URL configuration for superlists project.</span><span class="content">
+</span><span class="content">
+</span><span class="content">The `urlpatterns` list routes URLs to views. For more information please see:</span><span class="content">
+</span><span class="content">    https://docs.djangoproject.com/en/4.2/topics/http/urls/</span><span class="content">
+</span><span class="content">Examples:</span><span class="content">
+</span><span class="content">Function views</span><span class="content">
+</span><span class="content">    1. Add an import:  from my_app import views</span><span class="content">
+</span><span class="content">    2. Add a URL to urlpatterns:  path('', views.home, name='home')</span><span class="content">
+</span><span class="content">Class-based views</span><span class="content">
+</span><span class="content">    1. Add an import:  from other_app.views import Home</span><span class="content">
+</span><span class="content">    2. Add a URL to urlpatterns:  path('', Home.as_view(), name='home')</span><span class="content">
+</span><span class="content">Including another URLconf</span><span class="content">
+</span><span class="content">    1. Import the include() function: from django.urls import include, path</span><span class="content">
+</span><span class="content">    2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))</span><span class="content">
+</span><span class="delimiter">"""</span></span>
+<span class="keyword">from</span> <span class="include">django.contrib</span> <span class="keyword">import</span> <span class="include">admin</span>
+<span class="keyword">from</span> <span class="include">django.urls</span> <span class="keyword">import</span> <span class="include">path</span>
+
+urlpatterns = [
+    path(<span class="string"><span class="delimiter">"</span><span class="content">admin/</span><span class="delimiter">"</span></span>, admin.site.urls),
+]</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="admonitionblock warning">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-warning" title="Warning"></i>
+</td>
+<td class="content">
+If your <em>urls.py</em> looks different or if it mentions a function called
+    <code>url()</code> instead of <code>path()</code>, it&#8217;s because you&#8217;ve got the wrong version of
+    Django.  This book is written for Django v4.  Take another look at
+    the <a href="/book/pre-requisite-installations.html">[pre-requisites]</a> section and get the right version before you
+    go any further.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>As usual, lots of helpful comments and default suggestions from Django.
+In fact, that very first example is pretty much exactly what we want!
+Let&#8217;s use that, with some minor changes.</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">superlists/urls.py (ch03l012)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> <span class="include">django.urls</span> <span class="keyword">import</span> <span class="include">path</span>  <i class="conum" data-value="1"></i><b>(1)</b>
+<span class="keyword">from</span> <span class="include">lists.views</span> <span class="keyword">import</span> <span class="include">home_page</span>  <i class="conum" data-value="2"></i><b>(2)</b>
+
+urlpatterns = [
+    path(<span class="string"><span class="delimiter">"</span><span class="delimiter">"</span></span>, home_page, name=<span class="string"><span class="delimiter">"</span><span class="content">home</span><span class="delimiter">"</span></span>),  <i class="conum" data-value="3"></i><b>(3)</b>
+]</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>No need to import <code>admin</code> from <code>django.contrib</code>. Django&#8217;s admin site is amazing,
+but it&#8217;s a topic for another book.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>But we will import our home page view function.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="3"></i><b>3</b></td>
+<td>And we wire it up here, as a <code>path()</code> entry in the <code>urlpatterns</code> global.
+Django strips the leading slash from all urls,
+so <code>"/url/path/to"</code> becomes <code>"url/path/to"</code>
+and the base URL is just the empty string, <code>""</code>.  So this config
+says, the "base url should point to our home page view"</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>Now we can run our unit tests again, with <strong><code>python manage.py test</code></strong>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>[...]
+..
+ ---------------------------------------------------------------------
+Ran 2 tests in 0.003s
+
+OK</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Hooray!</p>
+</div>
+<div class="paragraph">
+<p>Time for a little tidy-up.  We don&#8217;t need two separate tests,
+let&#8217;s move everything out of our low-level test that calls the view
+function directly, into the test that uses the Django test client:</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">lists/tests.py (ch03l013)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">class</span> <span class="class">HomePageTest</span>(TestCase):
+    <span class="keyword">def</span> <span class="function">test_home_page_returns_correct_html</span>(<span class="predefined-constant">self</span>):
+        response = <span class="predefined-constant">self</span>.client.get(<span class="string"><span class="delimiter">"</span><span class="content">/</span><span class="delimiter">"</span></span>)
+        <span class="predefined-constant">self</span>.assertContains(response, <span class="string"><span class="delimiter">"</span><span class="content">&lt;title&gt;To-Do lists&lt;/title&gt;</span><span class="delimiter">"</span></span>)
+        <span class="predefined-constant">self</span>.assertContains(response, <span class="string"><span class="delimiter">"</span><span class="content">&lt;html&gt;</span><span class="delimiter">"</span></span>)
+        <span class="predefined-constant">self</span>.assertContains(response, <span class="string"><span class="delimiter">"</span><span class="content">&lt;/html&gt;</span><span class="delimiter">"</span></span>)</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="sidebarblock pagebreak-before less_space">
+<div class="content">
+<div class="title">Why Didn&#8217;t We Just Use the Django Test Client All Along?</div>
+<div class="paragraph">
+<p>You may be asking yourself,
+"Why didn&#8217;t we just use the Django Test Client from the very beginning?"
+In real life, that&#8217;s what I would do.
+But I wanted to show you the "manual" way of doing it first for a couple of reasons.
+Firstly because it allowed me to introduce concepts one by one,
+and keep the learning curve as shallow as possible.
+Secondly, because you may not always be using Django to build your apps,
+and testing tools may not always be available&#8212;&#8203;but
+calling functions directly and examining their responses is always possible!</p>
+</div>
+<div class="paragraph">
+<p>The Django Test Client does also have disadvantages;
+later in the book (in <a href="/book/chapter_purist_unit_tests.html">[chapter_purist_unit_tests]</a>)
+we&#8217;ll discuss the difference
+between fully isolated unit tests
+and the "integrated" tests that the test client pushes us towards.
+But for now, it&#8217;s very much the pragmatic choice.
+
+</p>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>But now the moment of truth, will our functional tests pass?</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>python functional_tests.py</strong>
+[...]
+======================================================================
+FAIL: test_can_start_a_todo_list
+(__main__.NewVisitorTest.test_can_start_a_todo_list)
+ ---------------------------------------------------------------------
+Traceback (most recent call last):
+  File "...goat-book/functional_tests.py", line 21, in
+test_can_start_a_todo_list
+    self.fail("Finish the test!")
+AssertionError: Finish the test!</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Failed? What? Oh, it&#8217;s just our little reminder? Yes? Yes! We have a web page!</p>
+</div>
+<div class="paragraph">
+<p>Ahem.  Well, <em>I</em> thought it was a thrilling end to the chapter. You may still
+be a little baffled, perhaps keen to hear a justification for all these tests,
+and don&#8217;t worry, all that will come, but I hope you felt just a tinge of
+excitement near the end there.</p>
+</div>
+<div class="paragraph">
+<p>Just a little commit to calm down, and reflect on what we&#8217;ve covered:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>git diff</strong>  # should show our modified test in tests.py, and the new config in urls.py
+$ <strong>git commit -am "url config, map / to home_page view"</strong></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>
+
+That was quite a chapter! Why not try typing <code>git log</code>, possibly using the
+<code>--oneline</code> flag, for a reminder of what we got up to:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>git log --oneline</strong>
+a6e6cc9 url config, map / to home_page view
+450c0f3 First unit test and view function
+ea2b037 Add app for lists, with deliberately failing unit test
+[...]</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Not bad&#8212;&#8203;we covered:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Starting a Django app</p>
+</li>
+<li>
+<p>The Django unit test runner</p>
+</li>
+<li>
+<p>The difference between functional-, and unit tests</p>
+</li>
+<li>
+<p>Django view functions, request and response objects</p>
+</li>
+<li>
+<p>Django URL resolving and <em>urls.py</em></p>
+</li>
+<li>
+<p>The Django Test Client</p>
+</li>
+<li>
+<p>And returning basic HTML from a view.</p>
+</li>
+</ul>
+</div>
+<div class="sidebarblock pagebreak-before less_space">
+<div class="content">
+<div class="title">Useful Commands and Concepts</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">Running the Django dev server</dt>
+<dd>
+<p><strong><code>python manage.py runserver</code></strong>
+</p>
+</dd>
+<dt class="hdlist1">Running the functional tests</dt>
+<dd>
+<p><strong><code>python functional_tests.py</code></strong>
+</p>
+</dd>
+<dt class="hdlist1">Running the unit tests</dt>
+<dd>
+<p><strong><code>python manage.py test</code></strong>
+</p>
+</dd>
+<dt class="hdlist1">The unit-test/code cycle</dt>
+<dd>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>Run the unit tests in the terminal.</p>
+</li>
+<li>
+<p>Make a minimal code change in the editor.</p>
+</li>
+<li>
+<p>Repeat!
+
+</p>
+</li>
+</ol>
+</div>
+</dd>
+</dl>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div id="footer">
+<div id="footer-text">
+License: Creative Commons <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode">CC-BY-NC-ND</a>. Last updated: 2023-08-16 20:48:18 +0100
+</div>
+</div>
+<div class="comments" style="padding: 20px">
+  <h3>Comments</h3>
+  <div id="disqus_thread"></div>
+  <script type="text/javascript">
+    var disqus_config = function () {
+        this.page.identifier = 'chapter_03_unit_test_first_view';
+    };
+    
+    (function() {
+        var d = document, s = d.createElement('script');
+        s.src = '//obeythetestinggoat.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+  </script>
+  <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript" rel="nofollow">comments powered by Disqus.</a></noscript>
+</div>
+
+<html><head><script>   (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){   (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),   m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)   })(window,document,'script','//www.google-analytics.com/analytics.js','ga');    ga('create', 'UA-40928035-1', 'obeythetestinggoat.com');   ga('send', 'pageview');  </script>
+</head></html></body>
+</html>

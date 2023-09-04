@@ -1,0 +1,1208 @@
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="generator" content="Asciidoctor 2.0.16">
+<title>What Are We Doing with All These Tests? (And, Refactoring)</title>
+<link rel="stylesheet" href="./asciidoctor.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+<link rel="stylesheet" href="./coderay-asciidoctor.css">
+<script>var httpRequest = new XMLHttpRequest();
+httpRequest.onreadystatechange = function() {
+  if (httpRequest.readyState === XMLHttpRequest.DONE) {
+    if (httpRequest.status === 200) {
+      document.getElementById('header').innerHTML += httpRequest.responseText;
+      var subheaders = document.getElementsByClassName('sectlevel2');
+      var section;
+      for (var i=0; i<subheaders.length; i++) {
+        section = subheaders[i];
+        if (section.innerHTML.indexOf(window.location.pathname) === -1) {
+          section.style.display = 'none';
+        } else {
+          section.scrollIntoView && section.scrollIntoView();
+        }
+      }
+
+    }
+  }
+};
+httpRequest.open('GET', 'toc.html');
+httpRequest.send();
+
+</script></head>
+<body class="article toc2 toc-left">
+<div id="buy_the_book" style="position: absolute; top: 0; right: 0; z-index:100">
+  <a href="/pages/book.html">
+    <img src="images/buy_the_book.svg" alt="buy the book ribbon">
+  </a>
+</div>
+<div id="header">
+</div>
+<div id="content">
+<div class="sect1">
+<h2 id="chapter_04_philosophy_and_refactoring">What Are We Doing with All These Tests? (And, Refactoring)</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>
+Now that we&#8217;ve seen the basics of TDD in action,
+it&#8217;s time to pause and talk about why we&#8217;re doing it.</p>
+</div>
+<div class="paragraph">
+<p>I&#8217;m imagining several of you, dear readers, have been holding back
+some seething frustration&#8212;&#8203;perhaps some of you have done a bit of unit testing before,
+and perhaps some of you are just in a hurry.
+You&#8217;ve been biting back questions like:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Aren&#8217;t all these tests a bit excessive?</p>
+</li>
+<li>
+<p>Surely some of them are redundant?
+There&#8217;s duplication between the functional tests and the unit tests.</p>
+</li>
+<li>
+<p>Those unit tests seemed way too trivial&#8212;&#8203;testing
+a one-line function that returns a constant!
+Isn&#8217;t that just a waste of time?
+Shouldn&#8217;t we save our tests for more complex things?</p>
+</li>
+<li>
+<p>What about all those tiny changes during the unit-test/code cycle?
+Couldn&#8217;t we just skip to the end? I mean, <code>home_page = None</code>!?  Really?</p>
+</li>
+<li>
+<p>You&#8217;re not telling me you <em>actually</em> code like this in real life?</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Ah, young grasshopper. I too was once full of questions like these.
+But only because they&#8217;re perfectly good questions.
+In fact, I still ask myself questions like these, all the time.
+Does all this stuff really have value? Is this a bit of a cargo cult?</p>
+</div>
+<div class="sect2">
+<h3 id="_programming_is_like_pulling_a_bucket_of_water_up_from_a_well">Programming Is Like Pulling a Bucket of Water Up <span class="keep-together">from a Well</span></h3>
+<div class="paragraph">
+<p>
+Ultimately, programming is hard.  Often, we are smart, so we succeed.
+TDD is there to help us out when we&#8217;re not so smart.
+Kent Beck (who basically invented TDD) uses the metaphor
+of lifting a bucket of water out of a well with a rope:
+when the well isn&#8217;t too deep, and the bucket isn&#8217;t very full, it&#8217;s easy.
+And even lifting a full bucket is pretty easy at first.
+But after a while, you&#8217;re going to get tired.
+TDD is like having a ratchet that lets you save your progress,
+so you can take a break, and make sure you never slip backwards.</p>
+</div>
+<div class="paragraph">
+<p>That way you don&#8217;t have to be smart <em>all</em> the time.</p>
+</div>
+<div id="figure4-1" class="imageblock right">
+<div class="content">
+<img src="images/twp2_0401.png" alt="Test ALL the things">
+</div>
+<div class="title">Figure 1. Test ALL the things (original illustration source: <a href="http://bit.ly/1iXxdYp">Allie Brosh, Hyperbole and a Half</a>)</div>
+</div>
+<div class="paragraph">
+<p>OK, perhaps <em>in general</em>, you&#8217;re prepared to concede that TDD is a good
+idea, but maybe you still think I&#8217;m overdoing it?  Testing the tiniest thing,
+and taking ridiculously many small steps?</p>
+</div>
+<div class="paragraph">
+<p>TDD is a <em>discipline</em>, and that means it&#8217;s not something that comes naturally;
+because many of the payoffs aren&#8217;t immediate but only come in the longer term,
+you have to force yourself to do it in the moment.
+That&#8217;s what the image of the Testing Goat is supposed to represent&#8212;&#8203;you
+need to be a bit bloody-minded about it.</p>
+</div>
+<div class="sidebarblock pagebreak-before less_space">
+<div class="content">
+<div class="title">On the Merits of Trivial Tests for Trivial Functions</div>
+<div class="paragraph">
+<p>In the short term it may feel a bit silly to write tests for simple
+functions and <span class="keep-together">constants</span>.</p>
+</div>
+<div class="paragraph">
+<p>It&#8217;s perfectly possible to imagine still doing &#8220;mostly&#8221; TDD,
+but following more relaxed rules where you don&#8217;t unit test <em>absolutely</em> everything.
+But in this book my aim is to demonstrate full, rigorous TDD.
+Like a kata in a martial art,
+the idea is to learn the motions in a controlled context,
+when there is no adversity,
+so that the techniques are part of your muscle memory.
+It seems trivial now, because we&#8217;ve started with a very simple example.
+The problem comes when your application gets complex&#8212;&#8203;that&#8217;s when you really need your tests.
+And the danger is that complexity tends to sneak up on you, gradually.
+You may not notice it happening, but soon you&#8217;re a boiled frog.</p>
+</div>
+<div class="paragraph">
+<p>There are two other things to say in favour of tiny, simple tests for simple functions.</p>
+</div>
+<div class="paragraph">
+<p>Firstly, if they&#8217;re really trivial tests,
+then they won&#8217;t take you that long to write them.
+So stop moaning and just write them already.</p>
+</div>
+<div class="paragraph">
+<p>Secondly, it&#8217;s always good to have a placeholder.
+Having a test <em>there</em> for a simple function
+means it&#8217;s that much less of a psychological barrier to overcome
+when the simple function gets a tiny bit more complex&#8212;&#8203;perhaps
+it grows an <code>if</code>.
+Then a few weeks later it grows a <code>for</code> loop.
+Before you know it, it&#8217;s a recursive metaclass-based polymorphic tree parser factory.
+But because it&#8217;s had tests from the very beginning,
+adding a new test each time has felt quite natural,
+and it&#8217;s well tested.
+The alternative involves trying to decide when a function becomes &#8220;complicated enough&#8221;,
+which is highly subjective;
+but worse, because there&#8217;s no placeholder
+it feels like that much more effort to start,
+and you&#8217;re tempted each time to put it off&#8230;&#8203;
+Pretty soon&#8212;&#8203;frog soup!</p>
+</div>
+<div class="paragraph">
+<p>Instead of trying to figure out some hand-wavy subjective rules
+for when you should write tests,
+and when you can get away with not bothering,
+I suggest following the discipline for now&#8212;&#8203;as with any discipline,
+you have to take the time to learn the rules before you can break them.</p>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>Now, let us return to our muttons.
+</p>
+</div>
+</div>
+<div class="sect2 pagebreak-before less_space">
+<h3 id="_using_selenium_to_test_user_interactions">Using Selenium to Test User Interactions</h3>
+<div class="paragraph">
+<p>
+
+Where were we at the end of the last chapter?
+Let&#8217;s rerun the test and find out:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>python functional_tests.py</strong>
+F
+======================================================================
+FAIL: test_can_start_a_todo_list
+(__main__.NewVisitorTest.test_can_start_a_todo_list)
+ ---------------------------------------------------------------------
+Traceback (most recent call last):
+  File "...goat-book/functional_tests.py", line 21, in
+test_can_start_a_todo_list
+    self.fail("Finish the test!")
+AssertionError: Finish the test!
+
+ ---------------------------------------------------------------------
+Ran 1 test in 1.609s
+
+FAILED (failures=1)</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Did you try it, and get an error saying <em>Problem loading page</em> or
+<em>Unable to connect</em>?  So did I. It&#8217;s because we forgot to spin up the dev
+server first using <code>manage.py runserver</code>.  Do that, and you&#8217;ll get the failure
+message we&#8217;re after.</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+One of the great things about TDD is that you never have to worry
+    about forgetting what to do next&#8212;&#8203;just rerun your tests
+    and they will tell you what you need to work on.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>&#8220;Finish the test&#8221;, it says, so let&#8217;s do just that!  Open up
+<em>functional_tests.py</em> and we&#8217;ll extend our FT:</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">functional_tests.py (ch04l001)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> <span class="include">selenium</span> <span class="keyword">import</span> <span class="include">webdriver</span>
+<span class="keyword">from</span> <span class="include">selenium.webdriver.common.by</span> <span class="keyword">import</span> <span class="include">By</span>
+<span class="keyword">from</span> <span class="include">selenium.webdriver.common.keys</span> <span class="keyword">import</span> <span class="include">Keys</span>
+<span class="keyword">import</span> <span class="include">time</span>
+<span class="keyword">import</span> <span class="include">unittest</span>
+
+
+<span class="keyword">class</span> <span class="class">NewVisitorTest</span>(unittest.TestCase):
+    <span class="keyword">def</span> <span class="function">setUp</span>(<span class="predefined-constant">self</span>):
+        <span class="predefined-constant">self</span>.browser = webdriver.Firefox()
+
+    <span class="keyword">def</span> <span class="function">tearDown</span>(<span class="predefined-constant">self</span>):
+        <span class="predefined-constant">self</span>.browser.quit()
+
+    <span class="keyword">def</span> <span class="function">test_can_start_a_todo_list</span>(<span class="predefined-constant">self</span>):
+        <span class="comment"># Edith has heard about a cool new online to-do app.</span>
+        <span class="comment"># She goes to check out its homepage</span>
+        <span class="predefined-constant">self</span>.browser.get(<span class="string"><span class="delimiter">"</span><span class="content">http://localhost:8000</span><span class="delimiter">"</span></span>)
+
+        <span class="comment"># She notices the page title and header mention to-do lists</span>
+        <span class="predefined-constant">self</span>.assertIn(<span class="string"><span class="delimiter">"</span><span class="content">To-Do</span><span class="delimiter">"</span></span>, <span class="predefined-constant">self</span>.browser.title)
+        header_text = <span class="predefined-constant">self</span>.browser.find_element(By.TAG_NAME, <span class="string"><span class="delimiter">"</span><span class="content">h1</span><span class="delimiter">"</span></span>).text  <i class="conum" data-value="1"></i><b>(1)</b>
+        <span class="predefined-constant">self</span>.assertIn(<span class="string"><span class="delimiter">"</span><span class="content">To-Do</span><span class="delimiter">"</span></span>, header_text)
+
+        <span class="comment"># She is invited to enter a to-do item straight away</span>
+        inputbox = <span class="predefined-constant">self</span>.browser.find_element(By.ID, <span class="string"><span class="delimiter">"</span><span class="content">id_new_item</span><span class="delimiter">"</span></span>)  <i class="conum" data-value="1"></i><b>(1)</b>
+        <span class="predefined-constant">self</span>.assertEqual(inputbox.get_attribute(<span class="string"><span class="delimiter">"</span><span class="content">placeholder</span><span class="delimiter">"</span></span>), <span class="string"><span class="delimiter">"</span><span class="content">Enter a to-do item</span><span class="delimiter">"</span></span>)
+
+        <span class="comment"># She types "Buy peacock feathers" into a text box</span>
+        <span class="comment"># (Edith's hobby is tying fly-fishing lures)</span>
+        inputbox.send_keys(<span class="string"><span class="delimiter">"</span><span class="content">Buy peacock feathers</span><span class="delimiter">"</span></span>)  <i class="conum" data-value="2"></i><b>(2)</b>
+
+        <span class="comment"># When she hits enter, the page updates, and now the page lists</span>
+        <span class="comment"># "1: Buy peacock feathers" as an item in a to-do list table</span>
+        inputbox.send_keys(Keys.ENTER)  <i class="conum" data-value="3"></i><b>(3)</b>
+        time.sleep(<span class="integer">1</span>)  <i class="conum" data-value="4"></i><b>(4)</b>
+
+        table = <span class="predefined-constant">self</span>.browser.find_element(By.ID, <span class="string"><span class="delimiter">"</span><span class="content">id_list_table</span><span class="delimiter">"</span></span>)
+        rows = table.find_elements(By.TAG_NAME, <span class="string"><span class="delimiter">"</span><span class="content">tr</span><span class="delimiter">"</span></span>)  <i class="conum" data-value="1"></i><b>(1)</b>
+        <span class="predefined-constant">self</span>.assertTrue(<span class="predefined">any</span>(row.text == <span class="string"><span class="delimiter">"</span><span class="content">1: Buy peacock feathers</span><span class="delimiter">"</span></span> <span class="keyword">for</span> row <span class="keyword">in</span> rows))
+
+        <span class="comment"># There is still a text box inviting her to add another item.</span>
+        <span class="comment"># She enters "Use peacock feathers to make a fly"</span>
+        <span class="comment"># (Edith is very methodical)</span>
+        <span class="predefined-constant">self</span>.fail(<span class="string"><span class="delimiter">"</span><span class="content">Finish the test!</span><span class="delimiter">"</span></span>)
+
+        <span class="comment"># The page updates again, and now shows both items on her list</span>
+        [...]</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>We&#8217;re using the two methods that Selenium provides to examine web pages:
+<code>find_element</code> and <code>find_elements</code>
+(notice the extra <code>s</code>,
+which means it will return several elements rather than just one).
+Each one is parameterized with a <code>By.SOMETHING</code>
+which lets us search using different HTML properties and attributes.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>We also use <code>send_keys</code>,
+which is Selenium&#8217;s way of typing into input elements.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="3"></i><b>3</b></td>
+<td>The <code>Keys</code> class (don&#8217;t forget to import it)
+lets us send special keys like Enter.<sup class="footnote">[<a id="_footnoteref_1" class="footnote" href="#_footnotedef_1" title="View footnote.">1</a>]</sup></td>
+</tr>
+<tr>
+<td><i class="conum" data-value="4"></i><b>4</b></td>
+<td>When we hit Enter, the page will refresh.
+The <code>time.sleep</code> is there to make sure the browser has finished loading
+before we make any assertions about the new page.
+This is called an "explicit wait"
+(a very simple one; we&#8217;ll improve it in <a href="/book/chapter_06_explicit_waits_1.html">[chapter_06_explicit_waits_1]</a>).</td>
+</tr>
+</table>
+</div>
+<div class="admonitionblock tip">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-tip" title="Tip"></i>
+</td>
+<td class="content">
+Watch out for the difference between the Selenium <code>find_element()</code>
+    and <code>find_elements()</code> functions.
+    One returns an element and raises an exception if it can&#8217;t find it,
+    whereas the other returns a list, which may be empty.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>Also, just look at that <code>any()</code> function.
+It&#8217;s a little-known Python built-in.
+I don&#8217;t even need to explain it, do I?
+Python is such a joy.<sup class="footnote">[<a id="_footnoteref_2" class="footnote" href="#_footnotedef_2" title="View footnote.">2</a>]</sup></p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+If you&#8217;re one of my readers who doesn&#8217;t know Python,
+    what&#8217;s happening <em>inside</em> the <code>any()</code> may need some explaining.
+    The basic syntax is that of a <em>list comprehension</em>,
+    and if you haven&#8217;t learned about them, you should do so immediately!
+    <a href="https://www.pythonmorsels.com/what-are-list-comprehensions/">Trey Hunner&#8217;s explanation is excellent.</a>
+    In point of fact, because we&#8217;re omitting the square brackets,
+    we&#8217;re actually using a <em>generator expression</em> rather than a list comprehension.
+    It&#8217;s probably less important to understand the difference between those two,
+    but if you&#8217;re curious, check out this
+     <a href="http://python-history.blogspot.com/2010/06/from-list-comprehensions-to-generator.html">blog post by Guido himself</a>
+    explaining the difference.
+    
+    
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>Let&#8217;s see how it gets on:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>python functional_tests.py</strong>
+[...]
+selenium.common.exceptions.NoSuchElementException: Message: Unable to locate
+element: h1</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Decoding that,
+the test is saying it can&#8217;t find an <code>&lt;h1&gt;</code> element on the page.
+Let&#8217;s see what we can do to add that to the HTML of our home page.</p>
+</div>
+<div class="paragraph">
+<p>
+
+Big changes to a functional test are usually a good thing to commit on their own.
+I failed to do so when I was first working out the code for this chapter,
+and I regretted it later when I changed my mind
+and had the change mixed up with a bunch of others.
+The more atomic your commits, the better:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>git diff</strong>  # should show changes to functional_tests.py
+$ <strong>git commit -am "Functional test now checks we can input a to-do item"</strong></pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_the_dont_test_constants_rule_and_templates_to_the_rescue">The &#8220;Don&#8217;t Test Constants&#8221; Rule, and Templates to the Rescue</h3>
+<div class="paragraph">
+<p>
+
+Let&#8217;s take a look at our unit tests, <em>lists/tests.py</em>.
+Currently we&#8217;re looking for specific HTML strings,
+but that&#8217;s not a particularly efficient way of testing HTML.
+In general, one of the rules of unit testing is <em>Don&#8217;t test constants</em>,
+and testing HTML as text is a lot like testing a constant.</p>
+</div>
+<div class="paragraph">
+<p>In other words, if you have some code that says:</p>
+</div>
+<div class="listingblock skipme">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python">wibble = <span class="integer">3</span></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>There&#8217;s not much point in a test that says:</p>
+</div>
+<div class="listingblock skipme">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> <span class="include">myprogram</span> <span class="keyword">import</span> <span class="include">wibble</span>
+<span class="keyword">assert</span> wibble == <span class="integer">3</span></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Unit tests are really about testing logic, flow control, and configuration.
+Making assertions about exactly what sequence of characters we have in our HTML strings isn&#8217;t doing that.</p>
+</div>
+<div class="paragraph">
+<p>It&#8217;s not <em>quite</em> that simple, since HTML is code after all,
+and we do want something to check that we&#8217;ve written code that works,
+but that&#8217;s our FT&#8217;s job, not the unit tests'.</p>
+</div>
+<div class="paragraph">
+<p>In any case, mangling raw strings in Python
+really isn&#8217;t a great way of dealing with HTML.
+There&#8217;s a much better solution, which is to use templates.
+Quite apart from anything else,
+if we can keep HTML to one side in a file whose name ends in <em>.html</em>,
+we&#8217;ll get better syntax highlighting!
+There are lots of Python templating frameworks out there,
+and Django has its own which works very well.
+Let&#8217;s use that.</p>
+</div>
+<div class="sect3">
+<h4 id="_refactoring_to_use_a_template">Refactoring to Use a Template</h4>
+<div class="paragraph">
+<p>
+
+What we want to do now is make our view function return exactly the same HTML,
+but just using a different process.
+That&#8217;s a refactor&#8212;&#8203;when we try to improve the code
+<em>without changing its functionality</em>.</p>
+</div>
+<div class="paragraph">
+<p>That last bit is really important.
+If you try to add new functionality at the same time as refactoring,
+you&#8217;re much more likely to run into trouble.
+Refactoring is actually a whole discipline in itself,
+and it even has a reference book:
+Martin Fowler&#8217;s <a href="http://refactoring.com/"><em>Refactoring</em></a>.</p>
+</div>
+<div class="paragraph">
+<p>The first rule is that you can&#8217;t refactor without tests.
+Thankfully, we&#8217;re doing TDD, so we&#8217;re way ahead of the game.
+Let&#8217;s check that our tests pass;
+they will be what makes sure that our refactoring is behaviour-preserving:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>python manage.py test</strong>
+[...]
+OK</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Great! We&#8217;ll start by taking our HTML string and putting it into its own file.
+Create a directory called <em>lists/templates</em> to keep templates in,
+and then open a file at <em>lists/templates/home.html</em>,
+to which we&#8217;ll transfer our HTML:<sup class="footnote">[<a id="_footnoteref_3" class="footnote" href="#_footnotedef_3" title="View footnote.">3</a>]</sup></p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">lists/templates/home.html (ch04l002)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="html"><span class="tag">&lt;html&gt;</span>
+  <span class="tag">&lt;title&gt;</span>To-Do lists<span class="tag">&lt;/title&gt;</span>
+<span class="tag">&lt;/html&gt;</span></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>Mmmh, syntax-highlighted&#8230;&#8203;much nicer! Now to change our view function:</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">lists/views.py (ch04l003)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> <span class="include">django.shortcuts</span> <span class="keyword">import</span> <span class="include">render</span>
+
+
+<span class="keyword">def</span> <span class="function">home_page</span>(request):
+    <span class="keyword">return</span> render(request, <span class="string"><span class="delimiter">"</span><span class="content">home.html</span><span class="delimiter">"</span></span>)</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>Instead of building our own <code>HttpResponse</code>, we now use the Django <code>render()</code>
+function.  It takes the request as its first parameter (for reasons we&#8217;ll go
+into later) and the name of the template to render.  Django will automatically
+search folders called <em>templates</em> inside any of your apps' directories.  Then
+it builds an <code>HttpResponse</code> for you, based on the content of the template.</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+Templates are a very powerful feature of Django&#8217;s,
+    and their main strength consists of substituting Python variables into HTML text.
+    We&#8217;re not using this feature yet, but we will in future chapters.
+    That&#8217;s why we use <code>render()</code> rather than, say,
+    manually reading the file from disk with the built-in <code>open()</code>.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>Let&#8217;s see if it works:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>python manage.py test</strong>
+[...]
+======================================================================
+ERROR: test_home_page_returns_correct_html
+(lists.tests.HomePageTest.test_home_page_returns_correct_html)  <i class="conum" data-value="2"></i><b>(2)</b>
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "...goat-book/lists/tests.py", line 7, in test_home_page_returns_correct_html
+    response = self.client.get("/")  <i class="conum" data-value="3"></i><b>(3)</b>
+               ^^^^^^^^^^^^^^^^^^^^
+[...]
+  File "...goat-book/lists/views.py", line 4, in home_page
+    return render(request, "home.html")  <i class="conum" data-value="4"></i><b>(4)</b>
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File ".../django/shortcuts.py", line 24, in render
+    content = loader.render_to_string(template_name, context, request, using=using)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File ".../django/template/loader.py", line 61, in render_to_string
+    template = get_template(template_name, using=using)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File ".../django/template/loader.py", line 19, in get_template
+    raise TemplateDoesNotExist(template_name, chain=chain)
+django.template.exceptions.TemplateDoesNotExist: home.html  <i class="conum" data-value="1"></i><b>(1)</b>
+
+----------------------------------------------------------------------
+Ran 1 test in 0.074s</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Another chance to analyse a traceback:</p>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>We start with the error: it can&#8217;t find the template.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>Then we double-check what test is failing: sure enough, it&#8217;s our test
+of the view HTML.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="3"></i><b>3</b></td>
+<td>Then we find the line in our tests that caused the failure: it&#8217;s when
+we request the root URL ("/").</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="4"></i><b>4</b></td>
+<td>Finally, we look for the part of our own application code that caused the
+failure: it&#8217;s when we try to call <code>render</code>.</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>So why can&#8217;t Django find the template?
+It&#8217;s right where it&#8217;s supposed to be, in the <em>lists/templates</em> folder.</p>
+</div>
+<div class="paragraph">
+<p>The thing is that we haven&#8217;t yet <em>officially</em> registered our lists app with Django.
+Unfortunately, just running the <code>startapp</code> command
+and having what is obviously an app in your project folder
+isn&#8217;t quite enough.
+You have to tell Django that you <em>really</em> mean it,
+and add it to <em>settings.py</em> as well. Belt and braces.
+Open it up and look for a variable called <code>INSTALLED_APPS</code>,
+to which we&#8217;ll add <code>lists</code>:</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">superlists/settings.py (ch04l004)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python"><span class="comment"># Application definition</span>
+
+INSTALLED_APPS = [
+    <span class="string"><span class="delimiter">"</span><span class="content">django.contrib.admin</span><span class="delimiter">"</span></span>,
+    <span class="string"><span class="delimiter">"</span><span class="content">django.contrib.auth</span><span class="delimiter">"</span></span>,
+    <span class="string"><span class="delimiter">"</span><span class="content">django.contrib.contenttypes</span><span class="delimiter">"</span></span>,
+    <span class="string"><span class="delimiter">"</span><span class="content">django.contrib.sessions</span><span class="delimiter">"</span></span>,
+    <span class="string"><span class="delimiter">"</span><span class="content">django.contrib.messages</span><span class="delimiter">"</span></span>,
+    <span class="string"><span class="delimiter">"</span><span class="content">django.contrib.staticfiles</span><span class="delimiter">"</span></span>,
+    <span class="string"><span class="delimiter">"</span><span class="content">lists</span><span class="delimiter">"</span></span>,
+]</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>You can see there&#8217;s lots of apps already in there by default.
+We just need to add ours to the bottom of the list.
+Don&#8217;t forget the trailing comma&#8212;&#8203;it may not be required,
+but one day you&#8217;ll be really annoyed when you forget it
+and Python concatenates two strings on different lines&#8230;&#8203;</p>
+</div>
+<div class="paragraph">
+<p>Now we can try running the tests again:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>python manage.py test</strong>
+[...]
+OK</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Our refactor of the code is now complete,
+and the tests mean we&#8217;re happy that behaviour is preserved.
+Now we can change the tests so that they&#8217;re no longer testing constants;
+instead, they should just check that we&#8217;re rendering the right template.
+
+</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_checking_template_rendering">Checking template rendering</h4>
+<div class="paragraph">
+<p>The Django test client has a method, <code>assertTemplateUsed</code>, which can do just what we want:</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">lists/tests.py (ch04l005)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">def</span> <span class="function">test_home_page_returns_correct_html</span>(<span class="predefined-constant">self</span>):
+    response = <span class="predefined-constant">self</span>.client.get(<span class="string"><span class="delimiter">"</span><span class="content">/</span><span class="delimiter">"</span></span>)
+    <span class="predefined-constant">self</span>.assertContains(response, <span class="string"><span class="delimiter">"</span><span class="content">&lt;title&gt;To-Do lists&lt;/title&gt;</span><span class="delimiter">"</span></span>)  <i class="conum" data-value="1"></i><b>(1)</b>
+    <span class="predefined-constant">self</span>.assertContains(response, <span class="string"><span class="delimiter">"</span><span class="content">&lt;html&gt;</span><span class="delimiter">"</span></span>)
+    <span class="predefined-constant">self</span>.assertContains(response, <span class="string"><span class="delimiter">"</span><span class="content">&lt;/html&gt;</span><span class="delimiter">"</span></span>)
+    <span class="predefined-constant">self</span>.assertTemplateUsed(response, <span class="string"><span class="delimiter">"</span><span class="content">home.html</span><span class="delimiter">"</span></span>)  <i class="conum" data-value="2"></i><b>(2)</b></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>We&#8217;ll leave the old tests there for now,
+just to make sure everything is working the way we think it is.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td><code>.assertTemplateUsed</code> lets us check what template was used to render a response
+(NB: it will only work for responses that were retrieved by the test client).</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>And that test will still pass:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>Ran 1 tests in 0.016s
+
+OK</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Just because I&#8217;m always suspicious of a test I haven&#8217;t seen fail, let&#8217;s
+deliberately break it:</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">lists/tests.py (ch04l006)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python"><span class="predefined-constant">self</span>.assertTemplateUsed(response, <span class="string"><span class="delimiter">"</span><span class="content">wrong.html</span><span class="delimiter">"</span></span>)</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>That way we&#8217;ll also learn what its error messages look like:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>AssertionError: False is not true : Template 'wrong.html' was not a template
+used to render the response. Actual template(s) used: home.html</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>That&#8217;s very helpful!
+Let&#8217;s change the assert back to the right thing.
+While we&#8217;re at it, we can delete our old assertions,
+and give the test method a more specific name:</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">lists/tests.py (ch04l007)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> <span class="include">django.test</span> <span class="keyword">import</span> <span class="include">TestCase</span>
+
+
+<span class="keyword">class</span> <span class="class">HomePageTest</span>(TestCase):
+    <span class="keyword">def</span> <span class="function">test_uses_home_template</span>(<span class="predefined-constant">self</span>):
+        response = <span class="predefined-constant">self</span>.client.get(<span class="string"><span class="delimiter">"</span><span class="content">/</span><span class="delimiter">"</span></span>)
+        <span class="predefined-constant">self</span>.assertTemplateUsed(response, <span class="string"><span class="delimiter">"</span><span class="content">home.html</span><span class="delimiter">"</span></span>)</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>The main point, though, is that instead of testing constants
+we&#8217;re testing our implementation.
+Great!</p>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_on_refactoring">On Refactoring</h3>
+<div class="paragraph">
+<p>
+
+That was an absolutely trivial example of refactoring.
+But, as Kent Beck puts it in <em>Test-Driven Development: By Example</em>,
+"Am I recommending that you actually work this way? No.
+I&#8217;m recommending that you be <em>able</em> to work this way".</p>
+</div>
+<div class="paragraph">
+<p>In fact, as I was writing this my first instinct was to dive in
+and change the test first&#8212;&#8203;make it
+use the <code>assertTemplateUsed</code> function straight away;
+delete the three superfluous assertions,
+leaving just a check of the contents
+against the expected render;
+and then go ahead and make the code change.
+But notice how that actually would have left space
+for me to break things:
+I could have defined the template as containing <em>any</em> arbitrary string,
+instead of the string with the right <code>&lt;html&gt;</code> and <code>&lt;title&gt;</code> tags.</p>
+</div>
+<div class="admonitionblock tip">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-tip" title="Tip"></i>
+</td>
+<td class="content">
+When refactoring, work on either the code or the tests,
+    but not both at once.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>There&#8217;s always a tendency to skip ahead a couple of steps, to make a couple of
+tweaks to the behaviour while you&#8217;re refactoring, but pretty soon you&#8217;ve got
+changes to half a dozen different files, you&#8217;ve totally lost track of where you
+are, and nothing works any more.  If you don&#8217;t want to end up like
+<a href="http://bit.ly/1iXyRt4">Refactoring Cat</a> (<a href="#RefactoringCat">Refactoring Cat&#8212;&#8203;be sure to look up the full animated GIF (source: 4GIFs.com)</a>), stick to small
+steps; keep refactoring and functionality changes entirely separate.</p>
+</div>
+<div id="RefactoringCat" class="imageblock">
+<div class="content">
+<img src="images/twp2_0402.png" alt="An adventurous cat, trying to refactor its way out of a slippery bathtub">
+</div>
+<div class="title">Figure 2. Refactoring Cat&#8212;&#8203;be sure to look up the full animated GIF (source: 4GIFs.com)</div>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+We&#8217;ll come across &#8220;Refactoring Cat&#8221; again during this book,
+    as an example of what happens when we get carried away
+    and want to change too many things at once.
+    Think of it as the little cartoon demon counterpart to the Testing Goat,
+    popping up over your other shoulder and giving you bad advice.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>It&#8217;s a good idea to do a commit after any refactoring:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>git status</strong> # see tests.py, views.py, settings.py, + new templates folder
+$ <strong>git add .</strong>  # will also add the untracked templates folder
+$ <strong>git diff --staged</strong> # review the changes we're about to commit
+$ <strong>git commit -m "Refactor home page view to use a template"</strong></pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_a_little_more_of_our_front_page">A Little More of Our Front Page</h3>
+<div class="paragraph">
+<p>In the meantime, our functional test is still failing.
+Let&#8217;s now make an actual code change to get it passing.
+Because our HTML is now in a template,
+we can feel free to make changes to it,
+without needing to write any extra unit tests.</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+This is another distinction between FTs and unit tests;
+    Because the FTs use a real web browser,
+    we use them as the primary tool for testing our UI,
+    and the HTML that implements it.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>So, wanted an <code>&lt;h1&gt;</code>:</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">lists/templates/home.html (ch04l008)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="html"><span class="tag">&lt;html&gt;</span>
+  <span class="tag">&lt;head&gt;</span>
+    <span class="tag">&lt;title&gt;</span>To-Do lists<span class="tag">&lt;/title&gt;</span>
+  <span class="tag">&lt;/head&gt;</span>
+  <span class="tag">&lt;body&gt;</span>
+    <span class="tag">&lt;h1&gt;</span>Your To-Do list<span class="tag">&lt;/h1&gt;</span>
+  <span class="tag">&lt;/body&gt;</span>
+<span class="tag">&lt;/html&gt;</span></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>Let&#8217;s see if our functional test likes it a little better:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>selenium.common.exceptions.NoSuchElementException: Message: Unable to locate
+element: [id="id_new_item"]</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>OK, let&#8217;s add an input with that ID:</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">lists/templates/home.html (ch04l009)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="html">  [...]
+  <span class="tag">&lt;body&gt;</span>
+    <span class="tag">&lt;h1&gt;</span>Your To-Do list<span class="tag">&lt;/h1&gt;</span>
+    <span class="tag">&lt;input</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">"</span><span class="content">id_new_item</span><span class="delimiter">"</span></span> <span class="tag">/&gt;</span>
+  <span class="tag">&lt;/body&gt;</span>
+<span class="tag">&lt;/html&gt;</span></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>And now what does the FT say?</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>AssertionError: '' != 'Enter a to-do item'</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>We add our placeholder text&#8230;&#8203;</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">lists/templates/home.html (ch04l010)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="html">    <span class="tag">&lt;input</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">"</span><span class="content">id_new_item</span><span class="delimiter">"</span></span> <span class="attribute-name">placeholder</span>=<span class="string"><span class="delimiter">"</span><span class="content">Enter a to-do item</span><span class="delimiter">"</span></span> <span class="tag">/&gt;</span></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>Which gives:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>selenium.common.exceptions.NoSuchElementException: Message: Unable to locate
+element: [id="id_list_table"]</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>So we can go ahead and put the table onto the page. At this stage it&#8217;ll just be empty:</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">lists/templates/home.html (ch04l011)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="html">    <span class="tag">&lt;input</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">"</span><span class="content">id_new_item</span><span class="delimiter">"</span></span> <span class="attribute-name">placeholder</span>=<span class="string"><span class="delimiter">"</span><span class="content">Enter a to-do item</span><span class="delimiter">"</span></span> <span class="tag">/&gt;</span>
+    <span class="tag">&lt;table</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">"</span><span class="content">id_list_table</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>
+    <span class="tag">&lt;/table&gt;</span>
+  <span class="tag">&lt;/body&gt;</span></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>What does the FT think?</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>  File "...goat-book/functional_tests.py", line 40, in
+test_can_start_a_todo_list
+    self.assertTrue(any(row.text == "1: Buy peacock feathers" for row in rows))
+AssertionError: False is not true</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Slightly cryptic!
+We can use the line number to track it down,
+and it turns out it&#8217;s that <code>any()</code> function I was so smug about earlier&#8212;&#8203;or,
+more precisely, the <code>assertTrue</code>, which doesn&#8217;t have a very explicit failure message.
+We can pass a custom error message as an argument to most <code>assertX</code> methods in <code>unittest</code>:</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">functional_tests.py (ch04l012)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python">    <span class="predefined-constant">self</span>.assertTrue(
+        <span class="predefined">any</span>(row.text == <span class="string"><span class="delimiter">"</span><span class="content">1: Buy peacock feathers</span><span class="delimiter">"</span></span> <span class="keyword">for</span> row <span class="keyword">in</span> rows),
+        <span class="string"><span class="delimiter">"</span><span class="content">New to-do item did not appear in table</span><span class="delimiter">"</span></span>,
+    )</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>If you run the FT again, you should see our helpful message:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>AssertionError: False is not true : New to-do item did not appear in table</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>But now, to get this to pass, we will need to actually process the user&#8217;s form submission.
+And that&#8217;s a topic for the next chapter.</p>
+</div>
+<div class="paragraph">
+<p>For now let&#8217;s do a commit:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>git diff</strong>
+$ <strong>git commit -am "Front page HTML now generated from a template"</strong></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Thanks to a bit of refactoring,
+we&#8217;ve got our view set up to render a template,
+we&#8217;ve stopped testing constants,
+and we&#8217;re now well placed to start processing user input.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_recap_the_tdd_process">Recap: The TDD Process</h3>
+<div class="paragraph">
+<p>
+
+
+
+We&#8217;ve now seen all the main aspects of the TDD process, in practice:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Functional tests</p>
+</li>
+<li>
+<p>Unit tests</p>
+</li>
+<li>
+<p>The unit-test/code cycle</p>
+</li>
+<li>
+<p>Refactoring</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>It&#8217;s time for a little recap, and perhaps even some flowcharts
+(forgive me, my years misspent as a management consultant have ruined me.
+On the plus side, said flowcharts will feature recursion!)</p>
+</div>
+<div class="paragraph">
+<p>What does the overall TDD process look like?</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>We write a test.</p>
+</li>
+<li>
+<p>We run the test and see it fail.</p>
+</li>
+<li>
+<p>We write some minimal code to get it a little further.</p>
+</li>
+<li>
+<p>We rerun the test and repeat until it passes (the unit test / code cycle)</p>
+</li>
+<li>
+<p>Then, we look for opportunities to refactor our code,
+using our tests to make sure we don&#8217;t break anything.</p>
+</li>
+<li>
+<p>And start again from the top!</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>See <a href="#simple-tdd-diagram">TDD process as a flowchart, including the unit test / code cycle</a>.</p>
+</div>
+<div id="simple-tdd-diagram" class="imageblock">
+<div class="content">
+<img src="images/tdd-process-unit-tests-only-excalidraw.png" alt="A flowchart with boxes for tests, coding and refactoring, with yes/no labels showing when we move forwards or backwards">
+</div>
+<div class="title">Figure 3. TDD process as a flowchart, including the unit test / code cycle</div>
+</div>
+<div class="paragraph">
+<p>It&#8217;s very common to talk about this process using the three words
+<em>Red, Green, Refactor</em>. See <a href="#red-green-refactor">Red, Green, Refactor</a>.</p>
+</div>
+<div id="red-green-refactor" class="imageblock">
+<div class="content">
+<img src="images/red-green-refactor-excalidraw.png" alt="Red, Green and Refactor as three nodes in a circle, with arrows flowing around.">
+</div>
+<div class="title">Figure 4. Red, Green, Refactor</div>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>We write a test, and see it fail ("Red").</p>
+</li>
+<li>
+<p>We cycle between code and tests until the test passes: "Green".</p>
+</li>
+<li>
+<p>Then, we look for opportunities to refactor.</p>
+</li>
+<li>
+<p>Repeat as required!</p>
+</li>
+</ul>
+</div>
+<div class="sect3">
+<h4 id="_double_loop_tdd">Double-loop TDD</h4>
+<div class="paragraph">
+<p></p>
+</div>
+<div class="paragraph">
+<p>But how does this apply when we have functional tests <em>and</em> unit tests?
+Well, you can think of the functional test as driving a higher-level version of the same cycle,
+with an inner red/green/refactor loop being required to get an FT from Red to Green; see ee <a href="#double-loop-tdd-diagram">Double-Loop TDD: Inner and Outer Loops</a>.</p>
+</div>
+<div id="double-loop-tdd-diagram" class="imageblock">
+<div class="content">
+<img src="images/double-loop-tdd-simpler.png" alt="An inner red/green/refactor loop surrounded by an outer red/green of FTs">
+</div>
+<div class="title">Figure 5. Double-Loop TDD: Inner and Outer Loops</div>
+</div>
+<div class="paragraph">
+<p>When a new feature or business requirement comes along,
+we write a new (failing) FT to capture a high level view of the requirement.
+It may not cover every last edge case,
+but it should be enough to reassure ourselves that things are working.</p>
+</div>
+<div class="paragraph">
+<p>To get that functional test to green,
+we then enter into the lower-level unit tests cycle,
+where we put together all the moving parts required,
+add tests for all the edge cases.
+Any time we get to green &amp; refactored at the unit tests level,
+we can pop back up to the FT level to guide us towards the
+next thing we need to work.
+Once both levels are green, we can do any extra refactoring
+or work on edge cases.</p>
+</div>
+<div class="paragraph">
+<p>We&#8217;ll explore all of the different parts of this workflow in more detail
+over the coming chapters.
+</p>
+</div>
+<div class="sidebarblock pagebreak-before">
+<div class="content">
+<div class="title">How to "Check" Your Code, or Skip Ahead (If You Must)</div>
+<div class="paragraph">
+<p>
+
+All of the code examples I&#8217;ve used in the book are available
+in <a href="https://github.com/hjwp/book-example/">my repo on GitHub</a>.
+So, if you ever want to compare your code against mine,
+you can take a look at it there.</p>
+</div>
+<div class="paragraph">
+<p>Each chapter has its own branch which is named after its short name.
+The one for this chapter is
+<a href="https://github.com/hjwp/book-example/tree/chapter_04_philosophy_and_refactoring">here</a>,
+for example.
+It is a snapshot of the code as it should be at the <em>end</em> of the chapter.</p>
+</div>
+<div class="paragraph">
+<p>You can find a full list of them in <a href="/book/appendix_github_links.html">[appendix_github_links]</a>, as well as
+instructions on how to download them or use Git to compare your code to
+mine.</p>
+</div>
+<div class="paragraph">
+<p>Obviously I can&#8217;t possibly condone it,
+but you can also use my repo to "skip ahead"
+and check out the code to let you work on a later chapter
+without having worked through all the earlier chapters yourself.
+You&#8217;re only cheating yourself you know!</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div id="footnotes">
+<hr>
+<div class="footnote" id="_footnotedef_1">
+<a href="#_footnoteref_1">1</a>. You could also just use the string <code>"\n"</code>, but <code>Keys</code> also lets you send special keys like Ctrl so I thought I&#8217;d show it.
+</div>
+<div class="footnote" id="_footnotedef_2">
+<a href="#_footnoteref_2">2</a>. Python <em>is</em> most definitely a joy, but if you think I&#8217;m being a bit smug here, I don&#8217;t blame you! Actually I wish I&#8217;d picked up on this feeling of self-satisfaction and seen it as a warning sign that I was being a little <em>too</em> clever. In the next chapter, you&#8217;ll see I get my comeuppance.
+</div>
+<div class="footnote" id="_footnotedef_3">
+<a href="#_footnoteref_3">3</a>. Some people like to use another subfolder named after the app (i.e., <em>lists/templates/lists</em>) and then refer to the template as <em>lists/home.html</em>. This is called "template namespacing". I figured it was overcomplicated for this small project, but it may be worth it on larger projects. There&#8217;s more in the <a href="https://docs.djangoproject.com/en/4.2/intro/tutorial03/#write-views-that-actually-do-something">Django tutorial</a>.
+</div>
+</div>
+<div id="footer">
+<div id="footer-text">
+License: Creative Commons <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode">CC-BY-NC-ND</a>. Last updated: 2023-08-16 20:48:18 +0100
+</div>
+</div>
+<div class="comments" style="padding: 20px">
+  <h3>Comments</h3>
+  <div id="disqus_thread"></div>
+  <script type="text/javascript">
+    var disqus_config = function () {
+        this.page.identifier = 'chapter_04_philosophy_and_refactoring';
+    };
+    
+    (function() {
+        var d = document, s = d.createElement('script');
+        s.src = '//obeythetestinggoat.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+  </script>
+  <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript" rel="nofollow">comments powered by Disqus.</a></noscript>
+</div>
+
+<html><head><script>   (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){   (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),   m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)   })(window,document,'script','//www.google-analytics.com/analytics.js','ga');    ga('create', 'UA-40928035-1', 'obeythetestinggoat.com');   ga('send', 'pageview');  </script>
+</head></html></body>
+</html>

@@ -1,0 +1,1241 @@
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="generator" content="Asciidoctor 2.0.16">
+<title>Prettification: Layout and Styling, and What to Test About It</title>
+<link rel="stylesheet" href="./asciidoctor.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+<link rel="stylesheet" href="./coderay-asciidoctor.css">
+<script>var httpRequest = new XMLHttpRequest();
+httpRequest.onreadystatechange = function() {
+  if (httpRequest.readyState === XMLHttpRequest.DONE) {
+    if (httpRequest.status === 200) {
+      document.getElementById('header').innerHTML += httpRequest.responseText;
+      var subheaders = document.getElementsByClassName('sectlevel2');
+      var section;
+      for (var i=0; i<subheaders.length; i++) {
+        section = subheaders[i];
+        if (section.innerHTML.indexOf(window.location.pathname) === -1) {
+          section.style.display = 'none';
+        } else {
+          section.scrollIntoView && section.scrollIntoView();
+        }
+      }
+
+    }
+  }
+};
+httpRequest.open('GET', 'toc.html');
+httpRequest.send();
+
+</script></head>
+<body class="article toc2 toc-left">
+<div id="buy_the_book" style="position: absolute; top: 0; right: 0; z-index:100">
+  <a href="/pages/book.html">
+    <img src="images/buy_the_book.svg" alt="buy the book ribbon">
+  </a>
+</div>
+<div id="header">
+</div>
+<div id="content">
+<div class="sect1">
+<h2 id="chapter_08_prettification">Prettification: Layout and Styling, and What to Test About It</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>
+
+We&#8217;re starting to think about releasing the first version of our site,
+but we&#8217;re a bit embarrassed by how ugly it looks at the moment.
+In this chapter, we&#8217;ll cover some of the basics of styling,
+including integrating an HTML/CSS framework called Bootstrap.
+We&#8217;ll learn how static files work in Django,
+and what we need to do about testing them.</p>
+</div>
+<div class="sect2">
+<h3 id="_testing_layout_and_style">Testing Layout and Style</h3>
+<div class="paragraph">
+<p>
+Our site is undeniably a bit unattractive at the moment
+(<a href="#homepage-looking-ugly">Our home page, looking a little ugly&#8230;&#8203;</a>).</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+If you spin up your dev server with <code>manage.py runserver</code>,
+    you may run into a database error
+    "table lists_item has no column named list_id".
+    You need to update your local database
+    to reflect the changes we made in <em>models.py</em>.
+    Use <code>manage.py migrate</code>.
+    If it gives you any grief about <code>IntegrityErrors</code>,
+    just delete the database file<sup class="footnote">[<a id="_footnoteref_1" class="footnote" href="#_footnotedef_1" title="View footnote.">1</a>]</sup>
+    and try again.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>We can&#8217;t be adding to Python&#8217;s reputation for being
+<a href="http://grokcode.com/746/dear-python-why-are-you-so-ugly/">ugly</a>,
+so let&#8217;s do a tiny bit of polishing.
+Here&#8217;s a few things we might want:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>A nice large input field for adding new and existing lists</p>
+</li>
+<li>
+<p>A large, attention-grabbing, centered box to put it in</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>
+How do we apply TDD to these things?
+Most people will tell you you shouldn&#8217;t test aesthetics, and they&#8217;re right.
+It&#8217;s a bit like testing a constant, in that tests usually wouldn&#8217;t add any value.</p>
+</div>
+<div id="homepage-looking-ugly" class="imageblock">
+<div class="content">
+<img src="images/ugly-homepage.png" alt="Our home page, looking a little ugly.">
+</div>
+<div class="title">Figure 1. Our home page, looking a little ugly&#8230;&#8203;</div>
+</div>
+<div class="paragraph">
+<p>
+
+But we can test the essential <em>behaviour</em> of our aesthetics,
+ie, that we have any at all.
+All we want to do is reassure ourselves that things are working.
+For example, we&#8217;re going to use Cascading Style Sheets (CSS) for our styling,
+and they are loaded as static files.
+Static files can be a bit tricky to configure
+(especially, as we&#8217;ll see later, when you move off your own computer and onto a hosting site),
+so we&#8217;ll want some kind of simple "smoke test" that the CSS has loaded.
+We don&#8217;t have to test fonts and colours and every single pixel,
+but we can do a quick check that the main input box is aligned the way we want it on each page,
+and that will give us confidence that the rest of the styling for that page is probably loaded too.</p>
+</div>
+<div class="paragraph">
+<p>Let&#8217;s add a new test method inside our functional test:</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">functional_tests/tests.py (ch08l001)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">class</span> <span class="class">NewVisitorTest</span>(LiveServerTestCase):
+    [...]
+
+
+    <span class="keyword">def</span> <span class="function">test_layout_and_styling</span>(<span class="predefined-constant">self</span>):
+        <span class="comment"># Edith goes to the home page,</span>
+        <span class="predefined-constant">self</span>.browser.get(<span class="predefined-constant">self</span>.live_server_url)
+
+        <span class="comment"># Her browser window is set to a very specific size</span>
+        <span class="predefined-constant">self</span>.browser.set_window_size(<span class="integer">1024</span>, <span class="integer">768</span>)
+
+        <span class="comment"># She notices the input box is nicely centered</span>
+        inputbox = <span class="predefined-constant">self</span>.browser.find_element(By.ID, <span class="string"><span class="delimiter">"</span><span class="content">id_new_item</span><span class="delimiter">"</span></span>)
+        <span class="predefined-constant">self</span>.assertAlmostEqual(
+            inputbox.location[<span class="string"><span class="delimiter">"</span><span class="content">x</span><span class="delimiter">"</span></span>] + inputbox.size[<span class="string"><span class="delimiter">"</span><span class="content">width</span><span class="delimiter">"</span></span>] / <span class="integer">2</span>,
+            <span class="integer">512</span>,
+            delta=<span class="integer">10</span>,
+        )</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>A few new things here.
+We start by setting the window size to a fixed size.
+We then find the input element,
+look at its size and location,
+and do a little maths
+to check whether it seems to be positioned in the middle of the page.
+<code>assertAlmostEqual</code> helps us to deal with rounding errors
+and the occasional weirdness due to scrollbars and the like,
+by letting us specify that we want our arithmetic to work
+to within plus or minus 10 pixels.</p>
+</div>
+<div class="paragraph">
+<p>If we run the functional tests, we get:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>python manage.py test functional_tests</strong>
+[...]
+.F.
+======================================================================
+FAIL: test_layout_and_styling
+(functional_tests.tests.NewVisitorTest.test_layout_and_styling)
+ ---------------------------------------------------------------------
+Traceback (most recent call last):
+  File "...goat-book/functional_tests/tests.py", line 120, in
+test_layout_and_styling
+    self.assertAlmostEqual(
+AssertionError: 103.333... != 512 within 10 delta (408.666...
+difference)
+
+ ---------------------------------------------------------------------
+Ran 3 tests in 9.188s
+
+FAILED (failures=1)</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>That&#8217;s the expected failure.
+Still, this kind of FT is easy to get wrong,
+so let&#8217;s use a quick-and-dirty "cheat" solution,
+to check that the FT definitely passes when the input box is centered.
+We&#8217;ll delete this code again almost as soon as we&#8217;ve used it
+to check the FT:</p>
+</div>
+<div class="exampleblock sourcecode small-code">
+<div class="title">lists/templates/home.html (ch08l002)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="html"><span class="tag">&lt;form</span> <span class="attribute-name">method</span>=<span class="string"><span class="delimiter">"</span><span class="content">POST</span><span class="delimiter">"</span></span> <span class="attribute-name">action</span>=<span class="string"><span class="delimiter">"</span><span class="content">/lists/new</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>
+  <span class="tag">&lt;p</span> <span class="attribute-name">style</span>=<span class="string"><span class="delimiter">"</span><span class="key">text-align</span>: <span class="value">center</span>;<span class="delimiter">"</span></span><span class="tag">&gt;</span>
+    <span class="tag">&lt;input</span> <span class="attribute-name">name</span>=<span class="string"><span class="delimiter">"</span><span class="content">item_text</span><span class="delimiter">"</span></span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">"</span><span class="content">id_new_item</span><span class="delimiter">"</span></span> <span class="attribute-name">placeholder</span>=<span class="string"><span class="delimiter">"</span><span class="content">Enter a to-do item</span><span class="delimiter">"</span></span> <span class="tag">/&gt;</span>
+  <span class="tag">&lt;/p&gt;</span>
+  {% csrf_token %}
+<span class="tag">&lt;/form&gt;</span></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>That passes, which means the FT works.
+Let&#8217;s extend it to make sure that the input box is also
+center-aligned on the page for a new list:</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">functional_tests/tests.py (ch08l003)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python">    <span class="comment"># She starts a new list and sees the input is nicely</span>
+    <span class="comment"># centered there too</span>
+    inputbox.send_keys(<span class="string"><span class="delimiter">"</span><span class="content">testing</span><span class="delimiter">"</span></span>)
+    inputbox.send_keys(Keys.ENTER)
+    <span class="predefined-constant">self</span>.wait_for_row_in_list_table(<span class="string"><span class="delimiter">"</span><span class="content">1: testing</span><span class="delimiter">"</span></span>)
+    inputbox = <span class="predefined-constant">self</span>.browser.find_element(By.ID, <span class="string"><span class="delimiter">"</span><span class="content">id_new_item</span><span class="delimiter">"</span></span>)
+    <span class="predefined-constant">self</span>.assertAlmostEqual(
+        inputbox.location[<span class="string"><span class="delimiter">"</span><span class="content">x</span><span class="delimiter">"</span></span>] + inputbox.size[<span class="string"><span class="delimiter">"</span><span class="content">width</span><span class="delimiter">"</span></span>] / <span class="integer">2</span>,
+        <span class="integer">512</span>,
+        delta=<span class="integer">10</span>,
+    )</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>That gives us another test failure:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>  File "...goat-book/functional_tests/tests.py", line 132, in
+test_layout_and_styling
+    self.assertAlmostEqual(
+AssertionError: 103.333... != 512 within 10 delta (408.666...</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Let&#8217;s commit just the FT:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>git add functional_tests/tests.py</strong>
+$ <strong>git commit -m "first steps of FT for layout + styling"</strong></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Now it feels like we&#8217;re justified in finding a "proper" solution
+to our need for some better styling for our site.
+We can back out our hacky <code>text-align: center</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>git reset --hard</strong></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>
+WARNING: <code>git reset --hard</code>
+    is the "take off and nuke the site from orbit"
+    Git command, so be careful with it&#8212;&#8203;it
+    blows away all your un-committed changes.
+    Unlike almost everything else you can do with Git,
+    there&#8217;s no way of going back after this one.
+</p>
+</div>
+</div>
+<div class="sect2 pagebreak-before less_space">
+<h3 id="_prettification_using_a_css_framework">Prettification: Using a CSS Framework</h3>
+<div class="paragraph">
+<p>
+
+
+UI design is hard,
+and doubly so now that we have to deal with mobile, tablets, and so forth.
+That&#8217;s why many programmers, particularly lazy ones like me,
+turn to CSS frameworks to solve some of those problems for them.
+There are lots of frameworks out there,
+but one of the earliest and most popular still, is Twitter&#8217;s Bootstrap.
+Let&#8217;s use that.</p>
+</div>
+<div class="paragraph">
+<p>You can find bootstrap at <a href="http://getbootstrap.com/" class="bare">http://getbootstrap.com/</a>.</p>
+</div>
+<div class="paragraph">
+<p>We&#8217;ll download it and put it in a new folder called <em>static</em> inside the <code>lists</code>
+app:<sup class="footnote">[<a id="_footnoteref_2" class="footnote" href="#_footnotedef_2" title="View footnote.">2</a>]</sup></p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>wget -O bootstrap.zip https://github.com/twbs/bootstrap/releases/download/\
+v5.3.0/bootstrap-5.3.0-dist.zip</strong>
+$ <strong>unzip bootstrap.zip</strong>
+$ <strong>mkdir lists/static</strong>
+$ <strong>mv bootstrap-5.3.0-dist lists/static/bootstrap</strong>
+$ <strong>rm bootstrap.zip</strong></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Bootstrap comes with a plain, uncustomised installation in the <em>dist</em> folder.
+We&#8217;re going to use that for now,
+but you should really never do this for a real site&#8212;&#8203;vanilla
+Bootstrap is instantly recognisable,
+and a big signal to anyone in the know
+that you couldn&#8217;t be bothered to style your site.
+Learn how to use Sass and change the font, if nothing else!
+There is info in Bootstrap&#8217;s docs, or there&#8217;s an
+<a href="https://www.freecodecamp.org/news/how-to-customize-bootstrap-with-sass/" class="bare">https://www.freecodecamp.org/news/how-to-customize-bootstrap-with-sass/</a>
+[introductory guide here].</p>
+</div>
+<div class="paragraph">
+<p>Our <em>lists</em> folder will end up looking like this:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>tree lists</strong>
+lists
+&#9500;&#9472;&#9472; __init__.py
+&#9500;&#9472;&#9472; admin.py
+&#9500;&#9472;&#9472; apps.py
+&#9500;&#9472;&#9472; migrations
+&#9474;&#160;&#160; &#9500;&#9472;&#9472; [...]
+&#9500;&#9472;&#9472; models.py
+&#9500;&#9472;&#9472; static
+&#9474;&#160;&#160; &#9492;&#9472;&#9472; bootstrap
+&#9474;&#160;&#160;     &#9500;&#9472;&#9472; css
+&#9474;&#160;&#160;     &#9474;&#160;&#160; &#9500;&#9472;&#9472; bootstrap.css
+&#9474;&#160;&#160;     &#9474;&#160;&#160; &#9500;&#9472;&#9472; bootstrap.css.map
+&#9474;&#160;&#160;     &#9474;&#160;&#160; &#9500;&#9472;&#9472; [...]
+&#9474;       &#9474;   &#9492;&#9472;&#9472; bootstrap-utilities.rtl.min.css.map
+&#9474;&#160;&#160;     &#9492;&#9472;&#9472; js
+&#9474;&#160;&#160;         &#9500;&#9472;&#9472; bootstrap.bundle.js
+&#9474;&#160;&#160;         &#9500;&#9472;&#9472; bootstrap.bundle.js.map
+&#9474;&#160;&#160;         &#9500;&#9472;&#9472; [...]
+&#9474;&#160;&#160;         &#9492;&#9472;&#9472; bootstrap.min.js.map
+&#9500;&#9472;&#9472; templates
+&#9474;&#160;&#160; &#9500;&#9472;&#9472; home.html
+&#9474;&#160;&#160; &#9492;&#9472;&#9472; list.html
+&#9500;&#9472;&#9472; [...]</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>
+Look at the "Getting Started" section of the
+<a href="https://getbootstrap.com/docs/5.3/getting-started/introduction/">Bootstrap documentation</a>;
+you&#8217;ll see it wants our HTML template to include something like this:</p>
+</div>
+<div class="listingblock skipme">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="html"><span class="doctype">&lt;!doctype html&gt;</span>
+<span class="tag">&lt;html</span> <span class="attribute-name">lang</span>=<span class="string"><span class="delimiter">"</span><span class="content">en</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>
+  <span class="tag">&lt;head&gt;</span>
+    <span class="tag">&lt;meta</span> <span class="attribute-name">charset</span>=<span class="string"><span class="delimiter">"</span><span class="content">utf-8</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>
+    <span class="tag">&lt;meta</span> <span class="attribute-name">name</span>=<span class="string"><span class="delimiter">"</span><span class="content">viewport</span><span class="delimiter">"</span></span> <span class="attribute-name">content</span>=<span class="string"><span class="delimiter">"</span><span class="content">width=device-width, initial-scale=1</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>
+    <span class="tag">&lt;title&gt;</span>Bootstrap demo<span class="tag">&lt;/title&gt;</span>
+  <span class="tag">&lt;/head&gt;</span>
+  <span class="tag">&lt;body&gt;</span>
+    <span class="tag">&lt;h1&gt;</span>Hello, world!<span class="tag">&lt;/h1&gt;</span>
+  <span class="tag">&lt;/body&gt;</span>
+<span class="tag">&lt;/html&gt;</span></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>We already have two HTML templates.
+We don&#8217;t want to be adding a whole load of boilerplate code to each,
+so now feels like the right time to apply
+the "Don&#8217;t repeat yourself" rule,
+and bring all the common parts together.
+Thankfully, the Django template language makes that easy using something
+called template inheritance.
+
+</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_django_template_inheritance">Django Template Inheritance</h3>
+<div class="paragraph">
+<p>
+
+
+Let&#8217;s have a little review of what the differences are between <em>home.html</em> and
+<em>list.html</em>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>diff lists/templates/home.html lists/templates/list.html</strong>
+&lt;     &lt;h1&gt;Start a new To-Do list&lt;/h1&gt;
+&lt;     &lt;form method="POST" action="/lists/new"&gt;
+---
+&gt;     &lt;h1&gt;Your To-Do list&lt;/h1&gt;
+&gt;     &lt;form method="POST" action="/lists/{{ list.id }}/add_item"&gt;
+[...]
+&gt;     &lt;table id="id_list_table"&gt;
+&gt;       {% for item in list.item_set.all %}
+&gt;         &lt;tr&gt;&lt;td&gt;{{ forloop.counter }}: {{ item.text }}&lt;/td&gt;&lt;/tr&gt;
+&gt;       {% endfor %}
+&gt;     &lt;/table&gt;</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>They have different header texts, and their forms use different URLs. On top
+of that, <em>list.html</em> has the additional <code>&lt;table&gt;</code> element.</p>
+</div>
+<div class="paragraph">
+<p>Now that we&#8217;re clear on what&#8217;s in common and what&#8217;s not, we can make the two
+templates inherit from a common "superclass" template.  We&#8217;ll start by
+making a copy of <em>list.html</em>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>cp lists/templates/list.html lists/templates/base.html</strong></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>We make this into a base template which just contains the common boilerplate,
+and mark out the "blocks", places where child templates can customise it:</p>
+</div>
+<div class="exampleblock sourcecode small-code">
+<div class="title">lists/templates/base.html (ch08l007)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="html"><span class="tag">&lt;html&gt;</span>
+  <span class="tag">&lt;head&gt;</span>
+    <span class="tag">&lt;title&gt;</span>To-Do lists<span class="tag">&lt;/title&gt;</span>
+  <span class="tag">&lt;/head&gt;</span>
+
+  <span class="tag">&lt;body&gt;</span>
+    <span class="tag">&lt;h1&gt;</span>{% block header_text %}{% endblock %}<span class="tag">&lt;/h1&gt;</span>
+
+    <span class="tag">&lt;form</span> <span class="attribute-name">method</span>=<span class="string"><span class="delimiter">"</span><span class="content">POST</span><span class="delimiter">"</span></span> <span class="attribute-name">action</span>=<span class="string"><span class="delimiter">"</span><span class="content">{% block form_action %}{% endblock %}</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>
+      <span class="tag">&lt;input</span> <span class="attribute-name">name</span>=<span class="string"><span class="delimiter">"</span><span class="content">item_text</span><span class="delimiter">"</span></span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">"</span><span class="content">id_new_item</span><span class="delimiter">"</span></span> <span class="attribute-name">placeholder</span>=<span class="string"><span class="delimiter">"</span><span class="content">Enter a to-do item</span><span class="delimiter">"</span></span> <span class="tag">/&gt;</span>
+      {% csrf_token %}
+    <span class="tag">&lt;/form&gt;</span>
+
+    {% block table %}
+    {% endblock %}
+  <span class="tag">&lt;/body&gt;</span>
+
+<span class="tag">&lt;/html&gt;</span></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>The base template defines a series of areas called "blocks",
+which will be places that other templates can hook in and add their own content.
+Let&#8217;s see how that works in practice,
+by changing <em>home.html</em> so that it "inherits from" <em>base.html</em>:</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">lists/templates/home.html (ch08l008)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="html">{% extends 'base.html' %}
+
+{% block header_text %}Start a new To-Do list{% endblock %}
+
+{% block form_action %}/lists/new{% endblock %}</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>You can see that lots of the boilerplate HTML disappears,
+and we just concentrate on the bits we want to customise.
+We do the same for <em>list.html</em>:</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">lists/templates/list.html (ch08l009)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="html">{% extends 'base.html' %}
+
+{% block header_text %}Your To-Do list{% endblock %}
+
+{% block form_action %}/lists/{{ list.id }}/add_item{% endblock %}
+
+{% block table %}
+  <span class="tag">&lt;table</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">"</span><span class="content">id_list_table</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>
+    {% for item in list.item_set.all %}
+      <span class="tag">&lt;tr&gt;</span><span class="tag">&lt;td&gt;</span>{{ forloop.counter }}: {{ item.text }}<span class="tag">&lt;/td&gt;</span><span class="tag">&lt;/tr&gt;</span>
+    {% endfor %}
+  <span class="tag">&lt;/table&gt;</span>
+{% endblock %}</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>That&#8217;s a refactor of the way our templates work.
+We rerun the FTs to make sure we haven&#8217;t broken anything&#8230;&#8203;</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>AssertionError: 103.333... != 512 within 10 delta (408.666...</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Sure enough, they&#8217;re still getting to exactly where they were before.
+That&#8217;s worthy of a commit:
+</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>git diff -w</strong>
+# the -w means ignore whitespace, useful since we've changed some html indenting
+$ <strong>git status</strong>
+$ <strong>git add lists/templates</strong> # leave static, for now
+$ <strong>git commit -m "refactor templates to use a base template"</strong></pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_integrating_bootstrap">Integrating Bootstrap</h3>
+<div class="paragraph">
+<p>
+
+Now it&#8217;s much easier to integrate the boilerplate code that Bootstrap wants&#8212;&#8203;we
+won&#8217;t add the JavaScript yet, just the CSS:</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">lists/templates/base.html (ch08l010)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="html"><span class="doctype">&lt;!doctype html&gt;</span>
+<span class="tag">&lt;html</span> <span class="attribute-name">lang</span>=<span class="string"><span class="delimiter">"</span><span class="content">en</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>
+
+  <span class="tag">&lt;head&gt;</span>
+    <span class="tag">&lt;title&gt;</span>To-Do lists<span class="tag">&lt;/title&gt;</span>
+    <span class="tag">&lt;meta</span> <span class="attribute-name">charset</span>=<span class="string"><span class="delimiter">"</span><span class="content">utf-8</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>
+    <span class="tag">&lt;meta</span> <span class="attribute-name">name</span>=<span class="string"><span class="delimiter">"</span><span class="content">viewport</span><span class="delimiter">"</span></span> <span class="attribute-name">content</span>=<span class="string"><span class="delimiter">"</span><span class="content">width=device-width, initial-scale=1</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>
+    <span class="tag">&lt;link</span> <span class="attribute-name">href</span>=<span class="string"><span class="delimiter">"</span><span class="content">css/bootstrap.min.css</span><span class="delimiter">"</span></span> <span class="attribute-name">rel</span>=<span class="string"><span class="delimiter">"</span><span class="content">stylesheet</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>
+  <span class="tag">&lt;/head&gt;</span>
+[...]</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_rows_and_columns">Rows and Columns</h4>
+<div class="paragraph">
+<p>Finally, let&#8217;s actually use some of the Bootstrap magic!
+You&#8217;ll have to read the documentation yourself,
+but we should be able to use a combination
+of the grid system and the <code>justify-content-center</code> class to get what we want:</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">lists/templates/base.html (ch08l011)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="html">  <span class="tag">&lt;body&gt;</span>
+    <span class="tag">&lt;div</span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">"</span><span class="content">container</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>
+
+      <span class="tag">&lt;div</span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">"</span><span class="content">row justify-content-center</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>
+        <span class="tag">&lt;div</span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">"</span><span class="content">col-lg-6 text-center</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>
+          <span class="tag">&lt;h1&gt;</span>{% block header_text %}{% endblock %}<span class="tag">&lt;/h1&gt;</span>
+
+          <span class="tag">&lt;form</span> <span class="attribute-name">method</span>=<span class="string"><span class="delimiter">"</span><span class="content">POST</span><span class="delimiter">"</span></span> <span class="attribute-name">action</span>=<span class="string"><span class="delimiter">"</span><span class="content">{% block form_action %}{% endblock %}</span><span class="delimiter">"</span></span> <span class="tag">&gt;</span>
+            <span class="tag">&lt;input</span>
+              <span class="attribute-name">name</span>=<span class="string"><span class="delimiter">"</span><span class="content">item_text</span><span class="delimiter">"</span></span>
+              <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">"</span><span class="content">id_new_item</span><span class="delimiter">"</span></span>
+              <span class="attribute-name">placeholder</span>=<span class="string"><span class="delimiter">"</span><span class="content">Enter a to-do item</span><span class="delimiter">"</span></span>
+            <span class="tag">/&gt;</span>
+            {% csrf_token %}
+          <span class="tag">&lt;/form&gt;</span>
+        <span class="tag">&lt;/div&gt;</span>
+      <span class="tag">&lt;/div&gt;</span>
+
+      <span class="tag">&lt;div</span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">"</span><span class="content">row justify-content-center</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>
+        <span class="tag">&lt;div</span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">"</span><span class="content">col-lg-6</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>
+          {% block table %}
+          {% endblock %}
+        <span class="tag">&lt;/div&gt;</span>
+      <span class="tag">&lt;/div&gt;</span>
+
+    <span class="tag">&lt;/div&gt;</span>
+  <span class="tag">&lt;/body&gt;</span></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>(If you&#8217;ve never seen an HTML tag broken up over several lines,
+that <code>&lt;input&gt;</code> may be a little shocking.
+It is definitely valid,
+but you don&#8217;t have to use it if you find it offensive. ;)</p>
+</div>
+<div class="admonitionblock tip">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-tip" title="Tip"></i>
+</td>
+<td class="content">
+Take the time to browse through the
+    <a href="http://getbootstrap.com/">Bootstrap documentation</a>,
+    if you&#8217;ve never seen it before.
+    It&#8217;s a shopping trolley brimming full of useful tools
+    to use in your site.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>Does that work?</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>AssertionError: 103.333... != 512 within 10 delta (408.666...</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Hmm. No.  Why isn&#8217;t our CSS loading?</p>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_static_files_in_django">Static Files in Django</h3>
+<div class="paragraph">
+<p>
+Django, and indeed any web server,
+needs to know two things to deal with static files:</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>How to tell when a URL request is for a static file,
+as opposed to for some HTML
+that&#8217;s going to be served via a view function</p>
+</li>
+<li>
+<p>Where to find the static file the user wants</p>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p>In other words, static files are a mapping from URLs to files on disk.</p>
+</div>
+<div class="paragraph">
+<p>
+For item 1, Django lets us define a URL "prefix"
+to say that any URLs which start with that prefix
+should be treated as requests for static files.
+By default, the prefix is <span class="keep-together"><em>/static/</em></span>.
+It&#8217;s defined in <em>settings.py</em>:</p>
+</div>
+<div class="exampleblock sourcecode currentcontents">
+<div class="title">superlists/settings.py</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python">[...]
+
+<span class="comment"># Static files (CSS, JavaScript, Images)</span>
+<span class="comment"># https://docs.djangoproject.com/en/4.2/howto/static-files/</span>
+
+STATIC_URL = <span class="string"><span class="delimiter">"</span><span class="content">static/</span><span class="delimiter">"</span></span></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>
+The rest of the settings we will add to this section
+are all to do with item 2:
+finding the actual static files on disk.</p>
+</div>
+<div class="paragraph">
+<p>While we&#8217;re using the Django development server (<code>manage.py runserver</code>),
+we can rely on Django to magically find static files for us&#8212;&#8203;it&#8217;ll
+just look in any subfolder of one of our apps called <em>static</em>.</p>
+</div>
+<div class="paragraph">
+<p>You now see why we put all the Bootstrap static files into <em>lists/static</em>.
+So why are they not working at the moment?
+It&#8217;s because we&#8217;re not using the <code>/static/</code> URL prefix.
+Have another look at the link to the CSS in <em>base.html</em>:</p>
+</div>
+<div class="listingblock sourcecode currentcontents">
+<div class="title">lists/templates/base.html</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="html">    <span class="tag">&lt;link</span> <span class="attribute-name">href</span>=<span class="string"><span class="delimiter">"</span><span class="content">css/bootstrap.min.css</span><span class="delimiter">"</span></span> <span class="attribute-name">rel</span>=<span class="string"><span class="delimiter">"</span><span class="content">stylesheet</span><span class="delimiter">"</span></span><span class="tag">&gt;</span></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>That <code>href</code> is just what happened to be in the bootstrap docs.
+To get it to work, we need to change it to:</p>
+</div>
+<div class="exampleblock sourcecode small-code">
+<div class="title">lists/templates/base.html (ch08l012)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="html">    <span class="tag">&lt;link</span> <span class="attribute-name">href</span>=<span class="string"><span class="delimiter">"</span><span class="content">/static/bootstrap/css/bootstrap.min.css</span><span class="delimiter">"</span></span> <span class="attribute-name">rel</span>=<span class="string"><span class="delimiter">"</span><span class="content">stylesheet</span><span class="delimiter">"</span></span><span class="tag">&gt;</span></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>Now when <code>runserver</code> sees the request,
+it knows that it&#8217;s for a static file because it begins with <code>/static/</code>.
+It then tries to find a file called <em>bootstrap/css/bootstrap.min.css</em>,
+looking in each of our app folders for subfolders called <em>static</em>,
+and it should find it at <em>lists/static/bootstrap/css/bootstrap.min.css</em>.</p>
+</div>
+<div class="paragraph">
+<p>So if you take a look manually, you should see it works,
+as in <a href="#list-page-centered">Our site starts to look a little better&#8230;&#8203;</a>.</p>
+</div>
+<div id="list-page-centered" class="imageblock">
+<div class="content">
+<img src="images/prettified-1.png" alt="The list page with centered header.">
+</div>
+<div class="title">Figure 2. Our site starts to look a little better&#8230;&#8203;</div>
+</div>
+<div class="sect3">
+<h4 id="_switching_to_staticliveservertestcase">Switching to StaticLiveServerTestCase</h4>
+<div class="paragraph">
+<p>
+If you run the FT though, annoyingly, it still won&#8217;t pass:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>AssertionError: 103.333... != 512 within 10 delta (408.666...</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>That&#8217;s because, although <code>runserver</code> automagically finds static files,
+<code>LiveServerTestCase</code> doesn&#8217;t.
+Never fear, though:
+the Django developers have made an even more magical test class
+called <code>StaticLiveServerTestCase</code>
+(see <a href="https://docs.djangoproject.com/en/4.2/topics/testing/tools/#liveservertestcase">the docs</a>).</p>
+</div>
+<div class="paragraph">
+<p>Let&#8217;s switch to that:</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">functional_tests/tests.py (ch08l013)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="diff"><span class="line change"><span class="change">@@</span> -1,14 +1,14 <span class="change">@@</span></span>
+<span class="line delete"><span class="delete">-</span>from django.<span class="eyecatcher">test import </span>LiveServerTestCase</span>
+<span class="line insert"><span class="insert">+</span>from django.<span class="eyecatcher">contrib.staticfiles.testing import Static</span>LiveServerTestCase</span>
+ from selenium import webdriver
+ from selenium.common.exceptions import WebDriverException
+ from selenium.webdriver.common.keys import Keys
+ import time
+
+ MAX_WAIT = 10
+
+
+<span class="line delete"><span class="delete">-</span>class NewVisitorTest(LiveServerTestCase):</span>
+<span class="line insert"><span class="insert">+</span>class NewVisitorTest(<span class="eyecatcher">Static</span>LiveServerTestCase):</span>
+
+     def setUp(self):</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>And now it will find the new CSS, which will get our test to pass:
+</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>python manage.py test functional_tests</strong>
+Creating test database for alias 'default'...
+...
+ ---------------------------------------------------------------------
+Ran 3 tests in 9.764s</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Hooray!</p>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_using_bootstrap_components_to_improve_the_look_of_the_site">Using Bootstrap Components to Improve the Look of the Site</h3>
+<div class="paragraph">
+<p>Let&#8217;s
+see if we can do even better, using some of the other tools in
+Bootstrap&#8217;s panoply.</p>
+</div>
+<div class="sect3">
+<h4 id="_jumbotron">Jumbotron!</h4>
+<div class="paragraph">
+<p>The first version of Bootstrap used to ship with a class called <code>jumbotron</code>
+for things that are meant to be particularly prominent on the page.
+It doesn&#8217;t exit any more, but old-timers like me still pine for it,
+so they have a specific page in the docs that tells you how to recreate it.</p>
+</div>
+<div class="paragraph">
+<p>Essentially, we massively embiggen the main page header and the input form,
+putting it into a grey box with nice rounded corners:</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">lists/templates/base.html (ch08l014)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="html">  <span class="tag">&lt;body&gt;</span>
+    <span class="tag">&lt;div</span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">"</span><span class="content">container</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>
+
+      <span class="tag">&lt;div</span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">"</span><span class="content">row justify-content-center p-5 bg-body-tertiary rounded-3</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>
+        <span class="tag">&lt;div</span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">"</span><span class="content">col-lg-6 text-center</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>
+          <span class="tag">&lt;h1</span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">"</span><span class="content">display-1 mb-4</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>{% block header_text %}{% endblock %}<span class="tag">&lt;/h1&gt;</span>
+          [...]</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>That ends up looking something like <a href="#jumbotron-header">A big grey box at the top of the page</a>:</p>
+</div>
+<div id="jumbotron-header" class="imageblock">
+<div class="content">
+<img src="images/prettified-2.png" alt="The homepage with a big grey box surrounding the title and input">
+</div>
+<div class="title">Figure 3. A big grey box at the top of the page</div>
+</div>
+<div class="admonitionblock tip">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-tip" title="Tip"></i>
+</td>
+<td class="content">
+When hacking about with design and layout,
+    it&#8217;s best to have a window open that we can hit refresh on, frequently.
+    Use <code>python manage.py runserver</code> to spin up the dev server,
+    and then browse to <em><a href="http://localhost:8000" class="bare">http://localhost:8000</a></em>
+    to see your work as we go.
+</td>
+</tr>
+</table>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_large_inputs">Large Inputs</h4>
+<div class="paragraph">
+<p>
+
+The jumbotron is a good start,
+but now the input box has tiny text compared to everything else.
+Thankfully, Bootstrap&#8217;s form control classes offer an option
+to set an input to be "large":</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">lists/templates/base.html (ch08l015)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="html">    <span class="tag">&lt;input</span>
+      <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">"</span><span class="content">form-control form-control-lg</span><span class="delimiter">"</span></span>
+      <span class="attribute-name">name</span>=<span class="string"><span class="delimiter">"</span><span class="content">item_text</span><span class="delimiter">"</span></span>
+      <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">"</span><span class="content">id_new_item</span><span class="delimiter">"</span></span>
+      <span class="attribute-name">placeholder</span>=<span class="string"><span class="delimiter">"</span><span class="content">Enter a to-do item</span><span class="delimiter">"</span></span>
+    <span class="tag">/&gt;</span></code></pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_table_styling">Table Styling</h4>
+<div class="paragraph">
+<p>
+
+The table text also looks too small compared to the rest of the page now.
+Adding the Bootstrap <code>table</code> class improves things, over in <em>list.html</em>:</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">lists/templates/list.html (ch08l016)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="html">  <span class="tag">&lt;table</span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">"</span><span class="content">table</span><span class="delimiter">"</span></span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">"</span><span class="content">id_list_table</span><span class="delimiter">"</span></span><span class="tag">&gt;</span></code></pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_dark_modeeeeeee">Dark Modeeeeeee</h4>
+<div class="paragraph">
+<p>In contrast to my greybeard nostalgia for the Jumbotron,
+here&#8217;s something relatively new to Bootstrap, Dark Mode!</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">lists/templates/base.html (ch08l017)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="html"><span class="doctype">&lt;!doctype html&gt;</span>
+<span class="tag">&lt;html</span> <span class="attribute-name">lang</span>=<span class="string"><span class="delimiter">"</span><span class="content">en</span><span class="delimiter">"</span></span> <span class="attribute-name">data-bs-theme</span>=<span class="string"><span class="delimiter">"</span><span class="content">dark</span><span class="delimiter">"</span></span><span class="tag">&gt;</span></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>Take a look at <a href="#dark-modeee">The lists page goes dark</a>.
+I think that looks great!</p>
+</div>
+<div id="dark-modeee" class="imageblock">
+<div class="content">
+<img src="images/prettified-dark.png" alt="Screenshot of lists page in dark mode. Cool.">
+</div>
+<div class="title">Figure 4. The lists page goes dark</div>
+</div>
+<div class="paragraph">
+<p>But it&#8217;s very much a matter of personal preference,
+and my editor will kill me
+if I make all the rest of my screenshots use so much ink,
+so I&#8217;m going to revert it for now.
+You feel free to keep it if you like!</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_a_semi_decent_page">A semi-decent page</h4>
+<div class="paragraph">
+<p>All that took me a few goes, but I&#8217;m reasonably happy with it now
+(<a href="#homepage-looking-better">The lists page, looking good enough for now&#8230;&#8203;</a>).</p>
+</div>
+<div id="homepage-looking-better" class="imageblock">
+<div class="content">
+<img src="images/prettified-final.png" alt="Screenshot of lists page in light mode with decent styling.">
+</div>
+<div class="title">Figure 5. The lists page, looking good enough for now&#8230;&#8203;</div>
+</div>
+<div class="paragraph">
+<p>If you want to go further with customising Bootstrap,
+you need to get into compiling Sass.
+I&#8217;ve said it already, but I <em>definitely</em> recommend
+taking the time to do that some day.
+Sass/SCSS is a great improvement on plain old CSS,
+and a useful tool even if you don&#8217;t use Bootstrap.</p>
+</div>
+<div class="paragraph">
+<p>A last run of the functional tests, to see if everything still works OK:</p>
+</div>
+<div class="listingblock dofirst-ch08l018">
+<div class="content">
+<pre>$ <strong>python manage.py test functional_tests</strong>
+[...]
+...
+ ---------------------------------------------------------------------
+Ran 3 tests in 10.084s
+
+OK</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>That&#8217;s it! Definitely time for a commit:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>git status</strong> # changes tests.py, base.html, list.html, settings.py, + untracked lists/static
+$ <strong>git add .</strong>
+$ <strong>git status</strong> # will now show all the bootstrap additions
+$ <strong>git commit -m "Use Bootstrap to improve layout"</strong></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_what_we_glossed_over_collectstatic_and_other_static_directories">What We Glossed Over: collectstatic and Other Static Directories</h3>
+<div class="paragraph">
+<p>
+
+
+We saw earlier that the Django dev server will magically find all your static files
+inside app folders, and serve them for you.
+That&#8217;s fine during development,
+but when you&#8217;re running on a real web server,
+you don&#8217;t want Django serving your static content&#8212;&#8203;using Python
+to serve raw files is slow and inefficient,
+and a web server like Apache or Nginx can do this all for you.
+You might even decide to upload all your static files to a CDN,
+instead of hosting them yourself.</p>
+</div>
+<div class="paragraph">
+<p>For these reasons, you want to be able to gather up all your static files
+from inside their various app folders,
+and copy them into a single location, ready for deployment.
+This is what the <code>collectstatic</code> command is for.</p>
+</div>
+<div class="paragraph">
+<p>The destination, the place where the collected static files go, is defined in
+<em>settings.py</em> as <code>STATIC_ROOT</code>. In the next chapter we&#8217;ll be doing some
+deployment, so let&#8217;s actually experiment with that now.  A common and
+straightforward place to put it is in a folder called "static" in the root
+of our repo:</p>
+</div>
+<div class="listingblock skipme">
+<div class="content">
+<pre>.
+&#9500;&#9472;&#9472; db.sqlite3
+&#9500;&#9472;&#9472; functional_tests/
+&#9500;&#9472;&#9472; lists/
+&#9500;&#9472;&#9472; manage.py
+&#9500;&#9472;&#9472; static/
+&#9492;&#9472;&#9472; superlists/</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Here&#8217;s a neat way of specifying that folder,
+making it relative to the location of the project base directory:</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">superlists/settings.py (ch08l019)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python"><span class="comment"># Static files (CSS, JavaScript, Images)</span>
+<span class="comment"># https://docs.djangoproject.com/en/4.2/howto/static-files/</span>
+
+STATIC_URL = <span class="string"><span class="delimiter">"</span><span class="content">static/</span><span class="delimiter">"</span></span>
+STATIC_ROOT = BASE_DIR / <span class="string"><span class="delimiter">"</span><span class="content">static</span><span class="delimiter">"</span></span></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>Take a look at the top of the settings file,
+and you&#8217;ll see how that <code>BASE_DIR</code> variable is helpfully defined for us,
+using <code>pathlib.Path</code> and <code>__file__</code>
+(both really nice Python builtins)<sup class="footnote">[<a id="_footnoteref_3" class="footnote" href="#_footnotedef_3" title="View footnote.">3</a>]</sup>.</p>
+</div>
+<div class="paragraph">
+<p>Anyway, let&#8217;s try running <code>collectstatic</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>python manage.py collectstatic</strong>
+
+169 static files copied to '...goat-book/static'.</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>And if we look in <em>./static</em>, we&#8217;ll find all our CSS files:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>tree -v static/</strong>
+static/
+&#9500;&#9472;&#9472; admin
+&#9474;&#160;&#160; &#9500;&#9472;&#9472; css
+&#9474;&#160;&#160; &#9474;&#160;&#160; &#9500;&#9472;&#9472; autocomplete.css
+&#9474;&#160;&#160; &#9474;&#160;&#160; &#9500;&#9472;&#9472; [...]
+[...]
+&#9474;&#160;&#160;             &#9492;&#9472;&#9472; xregexp.min.js
+&#9492;&#9472;&#9472; bootstrap
+    &#9500;&#9472;&#9472; css
+    &#9474;&#160;&#160; &#9500;&#9472;&#9472; bootstrap-grid.css
+    &#9474;&#160;&#160; &#9500;&#9472;&#9472; [...]
+    &#9474;   &#9492;&#9472;&#9472; bootstrap.rtl.min.css.map
+    &#9492;&#9472;&#9472; js
+        &#9500;&#9472;&#9472; bootstrap.bundle.js
+        &#9500;&#9472;&#9472; [...]
+        &#9492;&#9472;&#9472; bootstrap.min.js.map
+
+16 directories, 169 files</pre>
+</div>
+</div>
+<div class="paragraph">
+<p><code>collectstatic</code> has also picked up all the CSS for the admin site.
+The admin site is one of Django&#8217;s powerful features,
+but we don&#8217;t need it for our simple site, so let&#8217;s disable it for now:</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">superlists/settings.py</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python">INSTALLED_APPS = [
+    <span class="comment"># "django.contrib.admin",</span>
+    <span class="string"><span class="delimiter">"</span><span class="content">django.contrib.auth</span><span class="delimiter">"</span></span>,
+    <span class="string"><span class="delimiter">"</span><span class="content">django.contrib.contenttypes</span><span class="delimiter">"</span></span>,
+    <span class="string"><span class="delimiter">"</span><span class="content">django.contrib.sessions</span><span class="delimiter">"</span></span>,
+    <span class="string"><span class="delimiter">"</span><span class="content">django.contrib.messages</span><span class="delimiter">"</span></span>,
+    <span class="string"><span class="delimiter">"</span><span class="content">django.contrib.staticfiles</span><span class="delimiter">"</span></span>,
+    <span class="string"><span class="delimiter">"</span><span class="content">lists</span><span class="delimiter">"</span></span>,
+]</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph pagebreak-before">
+<p>And we try again:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>rm -rf static/</strong>
+$ <strong>python manage.py collectstatic</strong>
+
+44 static files copied to '...goat-book/static'.</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Much better.</p>
+</div>
+<div class="paragraph">
+<p>Now we know how to collect all the static files into a single folder,
+where it&#8217;s easy for a web server to find them.
+We&#8217;ll find out all about that, including how to test it, in the next chapter!</p>
+</div>
+<div class="paragraph">
+<p>
+
+
+For now let&#8217;s save our changes to <em>settings.py</em>.
+We&#8217;ll also add the top-level static folder to our gitignore,
+since it will only contain copies of files
+we actually keep in individual apps' static folders.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>git diff</strong> # should show changes in settings.py plus the new directory*
+$ <strong>echo /static &gt;&gt; .gitignore</strong>
+$ <strong>git commit -am "set STATIC_ROOT in settings and disable admin"</strong></pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_a_few_things_that_didnt_make_it">A Few Things That Didn&#8217;t Make It</h3>
+<div class="paragraph">
+<p>Inevitably this was only a whirlwind tour of styling and CSS,
+and there were several topics that I&#8217;d considered covering that didn&#8217;t make it.
+Here are a few candidates for further study:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>The <code>{% static %}</code> template tag, for more DRY and fewer hardcoded URLs</p>
+</li>
+<li>
+<p>Client-side packaging tools, like <code>npm</code> and <code>bower</code></p>
+</li>
+<li>
+<p>And again, customising bootstrap with SASS</p>
+</li>
+</ul>
+</div>
+<div class="sidebarblock pagebreak-before less_space">
+<div class="content">
+<div class="title">Recap: On Testing Design and Layout</div>
+<div class="paragraph">
+<p>
+The short answer is: you shouldn&#8217;t write tests for design and layout <em>per se</em>.
+It&#8217;s too much like testing a constant,
+and the tests you write are often brittle.</p>
+</div>
+<div class="paragraph">
+<p>With that said,
+the <em>implementation</em> of design and layout involves something quite tricky:
+CSS and static files.
+As a result, it is valuable to have some kind of minimal "smoke test"
+which checks that your static files and CSS are working.
+As we&#8217;ll see in the next chapter, it can help pick up problems
+when you deploy your code to <span class="keep-together">production</span>.</p>
+</div>
+<div class="paragraph">
+<p>Similarly, if a particular piece of styling required a lot of client-side JavaScript code
+to get it to work
+(dynamic resizing is one I&#8217;ve spent a bit of time on),
+you&#8217;ll definitely want some tests for that.</p>
+</div>
+<div class="paragraph">
+<p>Try to write the minimal tests that will give you confidence
+that your design and layout is working,
+without testing <em>what</em> it actually is.
+Aim to leave yourself in a position
+where you can freely make changes to the design and layout,
+without having to go back and adjust tests all the time.</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div id="footnotes">
+<hr>
+<div class="footnote" id="_footnotedef_1">
+<a href="#_footnoteref_1">1</a>. What? Delete the database?  Are you crazy?  Not completely.     The local dev database often gets out of sync with its migrations as we     go back and forth in our development, and it doesn&#8217;t have any important     data in it, so it&#8217;s OK to blow it away now and again.  We&#8217;ll be much more     careful once we have a "production" database on the server.  More on this     in <a href="/book/appendix_IV_testing_migrations.html">[data-migrations-appendix]</a>.
+</div>
+<div class="footnote" id="_footnotedef_2">
+<a href="#_footnoteref_2">2</a>. On Windows, you may not have <code>wget</code> and <code>unzip</code>, but I&#8217;m sure you can figure out how to download Bootstrap, unzip it, and put the contents of the <em>dist</em> folder into the <em>lists/static/bootstrap</em> folder.
+</div>
+<div class="footnote" id="_footnotedef_3">
+<a href="#_footnoteref_3">3</a>. Notice in the <code>Pathlib</code> wrangling of <code>__file__</code> that the <code>.resolve()</code> happens before anything else. Always follow this pattern when working with <code>__file__</code>, otherwise you can see unpredictable behaviours depending on how the file is imported. Thanks to <a href="https://github.com/CleanCut/green">Green Nathan</a> for that tip!
+</div>
+</div>
+<div id="footer">
+<div id="footer-text">
+License: Creative Commons <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode">CC-BY-NC-ND</a>. Last updated: 2023-08-16 20:48:19 +0100
+</div>
+</div>
+<div class="comments" style="padding: 20px">
+  <h3>Comments</h3>
+  <div id="disqus_thread"></div>
+  <script type="text/javascript">
+    var disqus_config = function () {
+        this.page.identifier = 'chapter_08_prettification';
+    };
+    
+    (function() {
+        var d = document, s = d.createElement('script');
+        s.src = '//obeythetestinggoat.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+  </script>
+  <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript" rel="nofollow">comments powered by Disqus.</a></noscript>
+</div>
+
+<html><head><script>   (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){   (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),   m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)   })(window,document,'script','//www.google-analytics.com/analytics.js','ga');    ga('create', 'UA-40928035-1', 'obeythetestinggoat.com');   ga('send', 'pageview');  </script>
+</head></html></body>
+</html>
