@@ -3,7 +3,7 @@
 <meta charset="UTF-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="generator" content="Asciidoctor 2.0.16">
+<meta name="generator" content="Asciidoctor 2.0.20">
 <title>Getting Django Set Up Using a Functional Test</title>
 <link rel="stylesheet" href="./asciidoctor.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
@@ -156,19 +156,19 @@ For now, it&#8217;s enough to assure ourselves that we understand what it&#8217;
 Traceback (most recent call last):
   File "...goat-book/functional_tests.py", line 4, in &lt;module&gt;
     browser.get("http://localhost:8000")
-  File ".../selenium/webdriver/remote/webdriver.py", line 449, in get
+  File ".../selenium/webdriver/remote/webdriver.py", line 356, in get
     self.execute(Command.GET, {"url": url})
-  File ".../selenium/webdriver/remote/webdriver.py", line 440, in execute
+  File ".../selenium/webdriver/remote/webdriver.py", line 347, in execute
     self.error_handler.check_response(response)
-  File ".../selenium/webdriver/remote/errorhandler.py", line 245, in
+  File ".../selenium/webdriver/remote/errorhandler.py", line 229, in
 check_response
     raise exception_class(message, screen, stacktrace)
 selenium.common.exceptions.WebDriverException: Message: Reached error page: abo
 ut:neterror?e=connectionFailure&amp;u=http%3A//localhost%3A8000/[...]
 Stacktrace:
 RemoteError@chrome://remote/content/shared/RemoteError.sys.mjs:8:8
-WebDriverError@chrome://remote/content/shared/webdriver/Errors.sys.mjs:180:6
-UnknownError@chrome://remote/content/shared/webdriver/Errors.sys.mjs:507:5
+WebDriverError@chrome://remote/content/shared/webdriver/Errors.sys.mjs:182:5
+UnknownError@chrome://remote/content/shared/webdriver/Errors.sys.mjs:530:5
 [...]</pre>
 </div>
 </div>
@@ -251,7 +251,6 @@ and a subfolder called <em>superlists</em>, with more stuff inside it:</p>
 <div class="content">
 <pre>.
 &#9500;&#9472;&#9472; functional_tests.py
-&#9500;&#9472;&#9472; geckodriver.log
 &#9500;&#9472;&#9472; manage.py
 &#9492;&#9472;&#9472; superlists
     &#9500;&#9472;&#9472; __init__.py
@@ -398,7 +397,7 @@ We&#8217;re using <em>Git</em> as our VCS, &#8217;cos it&#8217;s the best.</p>
 <div class="listingblock">
 <div class="content">
 <pre>$ <strong>ls</strong>
-db.sqlite3  functional_tests.py  geckodriver.log  manage.py  superlists
+db.sqlite3  functional_tests.py  manage.py  superlists
 
 $ <strong>git init .</strong>
 Initialised empty Git repository in ...goat-book/.git/</pre>
@@ -430,19 +429,17 @@ Now let&#8217;s take a look and see what files we want to commit:</p>
 <div class="listingblock">
 <div class="content">
 <pre>$ <strong>ls</strong>
-db.sqlite3 functional_tests.py geckodriver.log manage.py superlists</pre>
+db.sqlite3 functional_tests.py manage.py superlists</pre>
 </div>
 </div>
 <div class="paragraph">
 <p>There are a few things in here that we <em>don&#8217;t</em> want under version control:
-<em>db.sqlite3</em> is the database file, <em>geckodriver.log</em> contains Selenium debug output,
-and finally our virtualenv shouldn&#8217;t be in git either.
+<em>db.sqlite3</em> is the database file, and our virtualenv shouldn&#8217;t be in git either.
 We&#8217;ll add all of them to a special file called <em>.gitignore</em> which, um, tells Git what to ignore:</p>
 </div>
 <div class="listingblock">
 <div class="content">
 <pre>$ <strong>echo "db.sqlite3" &gt;&gt; .gitignore</strong>
-$ <strong>echo "geckodriver.log" &gt;&gt; .gitignore</strong>
 $ <strong>echo ".venv" &gt;&gt; .gitignore</strong></pre>
 </div>
 </div>
@@ -464,10 +461,10 @@ Changes to be committed:
         new file:   functional_tests.py
         new file:   manage.py
         new file:   superlists/__init__.py
-        new file:   superlists/__pycache__/__init__.cpython-311.pyc
-        new file:   superlists/__pycache__/settings.cpython-311.pyc
-        new file:   superlists/__pycache__/urls.cpython-311.pyc
-        new file:   superlists/__pycache__/wsgi.cpython-311.pyc
+        new file:   superlists/__pycache__/__init__.cpython-312.pyc
+        new file:   superlists/__pycache__/settings.cpython-312.pyc
+        new file:   superlists/__pycache__/urls.cpython-312.pyc
+        new file:   superlists/__pycache__/wsgi.cpython-312.pyc
         new file:   superlists/asgi.py
         new file:   superlists/settings.py
         new file:   superlists/urls.py
@@ -482,10 +479,10 @@ Let&#8217;s remove them from Git and add them to <em>.gitignore</em> too:</p>
 <div class="listingblock">
 <div class="content">
 <pre>$ <strong>git rm -r --cached superlists/__pycache__</strong>
-rm 'superlists/__pycache__/__init__.cpython-311.pyc'
-rm 'superlists/__pycache__/settings.cpython-311.pyc'
-rm 'superlists/__pycache__/urls.cpython-311.pyc'
-rm 'superlists/__pycache__/wsgi.cpython-311.pyc'
+rm 'superlists/__pycache__/__init__.cpython-312.pyc'
+rm 'superlists/__pycache__/settings.cpython-312.pyc'
+rm 'superlists/__pycache__/urls.cpython-312.pyc'
+rm 'superlists/__pycache__/wsgi.cpython-312.pyc'
 $ <strong>echo "__pycache__" &gt;&gt; .gitignore</strong>
 $ <strong>echo "*.pyc" &gt;&gt; .gitignore</strong></pre>
 </div>
@@ -564,7 +561,7 @@ If you want to really go to town on Git,
     to a cloud-based VCS hosting service like GitHub or GitLab.
     They&#8217;ll be useful if you think you want to follow along with this book on different computers.
     I leave it to you to find out how they work; they have excellent documentation.
-    Alternatively, you can wait until <a href="/book/chapter_manual_deployment.html">[chapter_manual_deployment]</a> when we&#8217;ll be using one for deployment.
+    Alternatively, you can wait until <a href="/book/chapter_09_docker.html">[chapter_09_docker]</a> when we&#8217;ll be using one for deployment.
 </td>
 </tr>
 </table>
@@ -593,7 +590,7 @@ user.username</code>? Check out the Git manual and its <a href="http://git-scm.c
 </div>
 <div id="footer">
 <div id="footer-text">
-License: Creative Commons <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode">CC-BY-NC-ND</a>. Last updated: 2023-08-16 20:48:18 +0100
+License: Creative Commons <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode">CC-BY-NC-ND</a>. Last updated: 2023-11-21 12:30:56 UTC
 </div>
 </div>
 <div class="comments" style="padding: 20px">

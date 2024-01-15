@@ -90,9 +90,9 @@ Table of contents follows:
 ### [Part 2: Web Development Sine Qua Nons](/book/part2.harry.html)
 
 * [Chapter 8: Prettification: Layout and Styling, and What to Test About It](/book/chapter_prettification.html)
-* [Chapter 9: Testing Deployment Using a Staging Site](/book/chapter_manual_deployment.html)
-* [Chapter 10: Getting to a Production-Ready Deployment](/book/chapter_making_deployment_production_ready.html)
-* [Chapter 11: Automating Deployment with Fabric](/book/chapter_automate_deployment_with_fabric.html)
+* [Chapter 9: Deployment Part 1: Containerization aka Docker](/book/chapter_09_docker.html)
+* [Chapter 10: Making our App Production-Ready](/book/chapter_10_production_readiness.html)
+* [Chapter 11: Infrastructure As Code with Ansbile](/book/chapter_11_ansible.html)
 * [Chapter 12: Splitting our tests into multiple files, and a generic wait helper](/book/chapter_organising_test_files.html)
 * [Chapter 13: Validation at the Database Layer](/book/chapter_database_layer_validation.html)
 * [Chapter 14: A Simple Form](/book/chapter_simple_form.html)

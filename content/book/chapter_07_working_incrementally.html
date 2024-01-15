@@ -3,7 +3,7 @@
 <meta charset="UTF-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="generator" content="Asciidoctor 2.0.16">
+<meta name="generator" content="Asciidoctor 2.0.20">
 <title>Working Incrementally</title>
 <link rel="stylesheet" href="./asciidoctor.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
@@ -51,7 +51,7 @@ which is that our design only allows for one global list.
 In this chapter I&#8217;ll demonstrate a critical TDD technique:
 how to adapt existing code using an incremental, step-by-step process
 which takes you from working state to working state.
-Testing Goat, not Refactoring Cat.</p>
+Testing Goat, not Refactoring Cat!</p>
 </div>
 <div class="sect2">
 <h3 id="_small_design_when_necessary">Small Design When Necessary</h3>
@@ -109,7 +109,7 @@ Later on we may want some way of automatically recognising users and showing the
 </div>
 <div class="paragraph">
 <p>To deliver the "for now" items,
-it sounds like we&#8217;re going to store lists and their items in a database.
+we&#8217;re going to have to store lists and their items in a database.
 Each list will have a unique URL,
 and each list item will be a bit of descriptive text, associated with a particular list.</p>
 </div>
@@ -124,15 +124,17 @@ All sorts of other thoughts are occurring to us&#8212;&#8203;we might want to gi
 we might want to recognise users using usernames and passwords,
 we might want to add a longer notes field as well as short descriptions to our list,
 we might want to store some kind of ordering, and so on.
-But we obey another tenet of the agile gospel:  "YAGNI" (pronounced yag-knee),
+But we should obey another tenet of the agile gospel:  "YAGNI" (pronounced yag-knee),
 which stands for "You ain&#8217;t gonna need it!"
 As software developers, we have fun creating things,
 and sometimes it&#8217;s hard to resist the urge to build things
 just because an idea occurred to us and we <em>might</em> need it.
 The trouble is that more often than not, no matter how cool the idea was,
 you <em>won&#8217;t</em> end up using it.
-Instead you have a load of unused code, adding to the complexity of your application.
-YAGNI is the mantra we use to resist our overenthusiastic creative urges.</p>
+Instead you have a load of unused code, adding to the complexity of your application.</p>
+</div>
+<div class="paragraph">
+<p>YAGNI is the mantra we use to resist our overenthusiastic creative urges.</p>
 </div>
 </div>
 <div class="sect3">
@@ -221,7 +223,7 @@ In summary, our scratchpad for this chapter looks something like this:</p>
 <p>
 
 How do we use TDD to implement the new design?
-Let&#8217;s take another look at the flowchart for the TDD process in <a href="#TDD-double-loop">[TDD-double-loop]</a>.</p>
+Let&#8217;s take another look at the flowchart for the TDD process in <a href="#double-loop-tdd-diagram-2">The TDD Process With Both Functional and Unit Tests</a>.</p>
 </div>
 <div class="paragraph">
 <p>At the top level, we&#8217;re going to use a combination of adding new functionality
@@ -270,10 +272,6 @@ list should live at its own, unique URL:</p>
 <pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">def</span> <span class="function">test_can_start_a_todo_list</span>(<span class="predefined-constant">self</span>):
     <span class="comment"># Edith has heard about a cool new online to-do app.</span>
     [...]
-    <span class="comment"># The page updates again, and now shows both items on her list</span>
-    <span class="predefined-constant">self</span>.wait_for_row_in_list_table(<span class="string"><span class="delimiter">"</span><span class="content">1: Buy peacock feathers</span><span class="delimiter">"</span></span>)
-    <span class="predefined-constant">self</span>.wait_for_row_in_list_table(<span class="string"><span class="delimiter">"</span><span class="content">2: Use peacock feathers to make a fly</span><span class="delimiter">"</span></span>)
-
     <span class="comment"># Satisfied, she goes back to sleep</span>
 
 <span class="keyword">def</span> <span class="function">test_multiple_users_can_start_lists_at_different_urls</span>(<span class="predefined-constant">self</span>):
@@ -298,7 +296,7 @@ list should live at its own, unique URL:</p>
 <td><code>assertRegex</code> is a helper function from <code>unittest</code>
 that checks whether a string matches a regular expression.
 We use it to check that our new REST-ish design has been implemented.
-Find out more in the <a href="http://docs.python.org/3/library/unittest.html"><code>unittest</code> documentation</a>.
+Find out more in the <a href="https://docs.python.org/3/library/unittest.html"><code>unittest</code> documentation</a>.
 
 </td>
 </tr>
@@ -554,7 +552,7 @@ urlpatterns = [
 <tr>
 <td><i class="conum" data-value="1"></i><b>1</b></td>
 <td>We&#8217;ll just point our new URL at the existing home page view.
-This is the minimimal change.</td>
+This is the minimal change.</td>
 </tr>
 </table>
 </div>
@@ -608,11 +606,19 @@ but they&#8217;re actually doing the exact same thing.
 Under the hood, they&#8217;re just pointing at the same function.
 Continuing to work incrementally,
 we can start to break apart the responsibilities
-for these two different URLs:
-* the home page only needs to display and react to creating
-a brand new list based on its first item.
-* the list view page needs to be able to display existing list items
+for these two different URLs:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>the home page only needs to display and react to creating
+a brand new list based on its first item.</p>
+</li>
+<li>
+<p>the list view page needs to be able to display existing list items
 and add new items to the list</p>
+</li>
+</ul>
 </div>
 <div class="paragraph">
 <p>Let&#8217;s split out some tests for our new URL.</p>
@@ -696,7 +702,7 @@ AttributeError: module 'lists.views' has no attribute 'view_list'</pre>
 <div class="sect4">
 <h5 id="_a_new_view_function">A New View Function</h5>
 <div class="paragraph">
-<p>Fair enough.  Let&#8217;s create a dummy view function in <em>lists/views.py</em>:</p>
+<p>Fair enough. Let&#8217;s create a dummy view function in <em>lists/views.py</em>:</p>
 </div>
 <div class="exampleblock sourcecode">
 <div class="title">lists/views.py (ch07l012-0)</div>
@@ -1142,11 +1148,14 @@ Let&#8217;s commit our progress so far:</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>$ <strong>git status</strong> # should show 4 changed files and 1 new file, list.html
+<pre>$ <strong>git status</strong> # should show 5 changed files and 1 new file, list.html
 $ <strong>git add lists/templates/list.html</strong>
 $ <strong>git diff</strong> # should show we've simplified home.html,
            # moved one test to a new class in lists/tests.py added a new view
            # in views.py, and simplified home_page and added a line to urls.py
+           # moved one test to a new class in lists/tests.py,
+           # added a new view and simplified home_page in views.py,
+           # and added a line to urls.py.
 $ <strong>git commit -a</strong> # add a message summarising the above, maybe something like
                 # "new URL, view and template to display lists"</pre>
 </div>
@@ -1389,7 +1398,7 @@ for example?</p>
 </div>
 </div>
 <div class="paragraph">
-<p>Yep!</p>
+<p>Yep! The unit tests pass:</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -1417,7 +1426,7 @@ OK</pre>
 <div class="sect3">
 <h4 id="_a_regression_pointing_our_forms_at_the_new_url">A Regression! Pointing Our Forms at the New URL</h4>
 <div class="paragraph">
-<p>Oops:</p>
+<p>Oops. When we run the FTs:</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -1432,13 +1441,13 @@ test_can_start_a_todo_list
             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 [...]
 selenium.common.exceptions.NoSuchElementException: Message: Unable to locate
-element: [id="id_list_table"]
+element: [id="id_list_table"]; For documentation [...]
 
 ERROR: test_multiple_users_can_start_lists_at_different_urls (functional_tests.
 tests.NewVisitorTest.test_multiple_users_can_start_lists_at_different_urls)
 [...]
 selenium.common.exceptions.NoSuchElementException: Message: Unable to locate
-element: [id="id_list_table"]
+element: [id="id_list_table"]; For documentation [...]
 [...]
 
 Ran 2 tests in 11.592s
@@ -1478,7 +1487,7 @@ FAILED (failures=1)</pre>
 <p>That&#8217;s another nicely self-contained commit,
 in that we&#8217;ve made a bunch of changes to our URLs,
 our <em>views.py</em> is looking much neater and tidier,
-and we&#8217;re sure the application is still working as well as it did before.
+and we&#8217;re sure the application is still working as well as it was before.
 We&#8217;re getting good at this working-state-to-working-state malarkey!</p>
 </div>
 <div class="listingblock">
@@ -1521,7 +1530,7 @@ And we can cross out an item on the to-do list:</p>
 <p>Enough housekeeping with our URLs.
 It&#8217;s time to bite the bullet and change our models.
 Let&#8217;s adjust the model unit test.
-Again, a diff is a good way to see the changes:</p>
+Again, I&#8217;ll use a diff to show you the changes:</p>
 </div>
 <div class="exampleblock sourcecode">
 <div class="title">lists/tests.py (ch07l029)</div>
@@ -1573,7 +1582,7 @@ Again, a diff is a good way to see the changes:</p>
 </div>
 <div class="paragraph">
 <p>We create a new <code>List</code> object
-and then we assign each item to it by assigning it as its <code>.list</code> property.
+and then we assign each item to it by setting it as its <code>.list</code> property.
 We check that the list is properly saved,
 and we check that the two items have also saved their relationship to the list.
 You&#8217;ll also notice that we can compare list objects with each other directly
@@ -1654,7 +1663,7 @@ AttributeError: 'Item' object has no attribute 'list'</pre>
 <p>How do we give our <code>Item</code> a list attribute?
 Let&#8217;s just try naively making it like the <code>text</code> attribute
 (and here&#8217;s your chance
-to see whether your solution so far looks like mine by the way):</p>
+to see whether your solution so far looks like mine, by the way):</p>
 </div>
 <div class="exampleblock sourcecode">
 <div class="title">lists/models.py (ch07l033)</div>
@@ -1700,7 +1709,7 @@ Migrations for 'lists':
 </div>
 <div class="paragraph">
 <p>We&#8217;re not quite there. Look closely at each side of the <code>!=</code>.
-Do you see the quotes <code>'</code>?
+Do you see the quotes (<code>'</code>)?
 Django has only saved the string representation of the <code>List</code> object.
 To save the relationship to the object itself,
 we tell Django about the relationship between the two classes using a <code>ForeignKey</code>:</p>
@@ -1847,8 +1856,10 @@ So we make a similar change in the view:</p>
 </div>
 </div>
 <div class="paragraph">
-<p>And that<sup class="footnote">[<a id="_footnoteref_1" class="footnote" href="#_footnotedef_1" title="View footnote.">1</a>]</sup>
-gets our tests passing again:</p>
+<p>And that<sup class="footnote">[<a id="_footnoteref_1" class="footnote" href="#_footnotedef_1" title="View footnote.">1</a>]</sup></p>
+</div>
+<div class="paragraph">
+<p>gets our tests passing again:</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -1929,14 +1940,14 @@ $ <strong>git commit</strong></pre>
 <div class="sect2">
 <h3 id="_each_list_should_have_its_own_url">Each List Should Have Its Own URL</h3>
 <div class="paragraph">
-<p>We can get rid of the silly <code>the-only-list-in-the-world</code> url,
+<p>We can get rid of the silly <code>the-only-list-in-the-world</code> URL,
 but what shall we use as the unique identifier for our lists?
 Probably the simplest thing, for now,
 is just to use the auto-generated <code>id</code> field from the database.
 Let&#8217;s change <code>ListViewTest</code> so that the two tests point at new URLs.</p>
 </div>
 <div class="paragraph">
-<p>We&#8217;ll also change the old <code>test_displays_all_items</code> test
+<p>We&#8217;ll also change the old <code>test_displays_all_list_items</code> test
 and call it <code>test_displays_only_items_for_that_list</code> instead,
 making it check that only the items for a specific list are displayed:</p>
 </div>
@@ -1975,13 +1986,13 @@ making it check that only the items for a specific list are displayed:</p>
 </td>
 <td class="content">
 Are you wondering about the line spacing in the test?
-    I&#8217;m grouping together two lines at the beginning which set up the test,
+    I&#8217;m grouping together five lines at the beginning which set up the test,
     one line in the middle which actually calls the code under test,
     and the assertions at the end.
     This isn&#8217;t obligatory, but it does help see the structure of the test.
     Some people refer to this structure as <em>Arrange-Act-Assert</em>,
     or <em>Given-When-Then</em>: <em>Given</em> the database contains our list with two items,
-    and another list, <em>When</em> I do a GET request for our list,
+    and another list, <em>When</em> I make a GET request for our list,
     <em>Then</em> I see the items in our list, but not the items in the other list.
     
     
@@ -2024,7 +2035,7 @@ AssertionError: No templates used to render the response</pre>
 <div class="paragraph">
 <p>We adjust the regular expression for our URL to include a <em>capture group</em>,
 <code>&lt;int:list_id&gt;</code>, which will match any numerical characters, up to the following <code>/</code>,
-The captured id will get passed to the view as an argument.</p>
+The captured <code>id</code> will get passed to the view as an argument.</p>
 </div>
 <div class="paragraph">
 <p>In other words, if we go to the URL <em>/lists/1/</em>, <code>view_list</code> will get a second
@@ -2103,7 +2114,7 @@ over which items it sends to the template:</p>
 <div class="sect3">
 <h4 id="_adjusting_new_list_to_the_new_world">Adjusting new_list to the New World</h4>
 <div class="paragraph">
-<p>Now let&#8217;s address the <em>only-list-in-the-world</em> failure:</p>
+<p>It&#8217;s time to address the <em>only-list-in-the-world</em> failure:</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -2188,7 +2199,7 @@ OK</pre>
 <div class="sect2 pagebreak-before">
 <h3 id="_the_functional_tests_detect_another_regression">The Functional Tests Detect Another Regression</h3>
 <div class="paragraph">
-<p>Well, almost:</p>
+<p>Well, almost. When we run the FTs, we get:</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -2607,7 +2618,7 @@ which is what we were trying to do anyway:</p>
 <td><code>.item_set</code> is called a
 <a href="https://docs.djangoproject.com/en/4.2/topics/db/queries/#following-relationships-backward">reverse lookup</a>.
 It&#8217;s one of Django&#8217;s incredibly useful bits of ORM that lets you look up an
-object&#8217;s related items from a different table&#8230;&#8203;
+object&#8217;s related items from a different table.
 </td>
 </tr>
 </table>
@@ -2664,7 +2675,7 @@ OK</pre>
 </div>
 <div class="paragraph">
 <p>Irritatingly, the Testing Goat is a stickler for tying up loose ends too, so
-we&#8217;ve got to do this one final thing.</p>
+we&#8217;ve got to do one final thing.</p>
 </div>
 <div class="paragraph">
 <p>Before we start, we&#8217;ll do a commit&#8212;&#8203;always make sure you&#8217;ve got a commit
@@ -2762,7 +2773,7 @@ OK</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>When I saw that it,
+<p>When I saw that it passed,
 I couldn&#8217;t quite believe I did it correctly on the first go.
 It always pays to be skeptical of your own abilities,
 so I deliberately changed one of the URLs slightly,
@@ -2785,7 +2796,7 @@ $ <strong>git commit</strong></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>Phew. A marathon chapter.
+<p>Phew. This was a marathon chapter.
 But we covered a number of important topics,
 starting with some thinking about design.
 We covered rules of thumb like "YAGNI" and "three strikes then refactor".
@@ -2855,7 +2866,7 @@ or you won&#8217;t have anticipated your future requirements correctly.
 </div>
 <div id="footer">
 <div id="footer-text">
-License: Creative Commons <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode">CC-BY-NC-ND</a>. Last updated: 2023-08-16 20:48:19 +0100
+License: Creative Commons <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode">CC-BY-NC-ND</a>. Last updated: 2023-11-21 12:30:56 UTC
 </div>
 </div>
 <div class="comments" style="padding: 20px">
