@@ -1,0 +1,1700 @@
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="generator" content="Asciidoctor 2.0.20">
+<title>Deployment Part 1: Containerization aka Docker</title>
+<link rel="stylesheet" href="./asciidoctor.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+<link rel="stylesheet" href="./coderay-asciidoctor.css">
+<script>var httpRequest = new XMLHttpRequest();
+httpRequest.onreadystatechange = function() {
+  if (httpRequest.readyState === XMLHttpRequest.DONE) {
+    if (httpRequest.status === 200) {
+      document.getElementById('header').innerHTML += httpRequest.responseText;
+      var subheaders = document.getElementsByClassName('sectlevel2');
+      var section;
+      for (var i=0; i<subheaders.length; i++) {
+        section = subheaders[i];
+        if (section.innerHTML.indexOf(window.location.pathname) === -1) {
+          section.style.display = 'none';
+        } else {
+          section.scrollIntoView && section.scrollIntoView();
+        }
+      }
+
+    }
+  }
+};
+httpRequest.open('GET', 'toc.html');
+httpRequest.send();
+
+</script></head>
+<body class="article toc2 toc-left">
+<div id="buy_the_book" style="position: absolute; top: 0; right: 0; z-index:100">
+  <a href="/pages/book.html">
+    <img src="images/buy_the_book.svg" alt="buy the book ribbon">
+  </a>
+</div>
+<div id="header">
+</div>
+<div id="content">
+<div class="sect1">
+<h2 id="chapter_09_docker">Deployment Part 1: Containerization aka Docker</h2>
+<div class="sectionbody">
+<div class="quoteblock">
+<blockquote>
+<div class="paragraph">
+<p>Is all fun and game until you are need of put it in production.</p>
+</div>
+</blockquote>
+<div class="attribution">
+&#8212; <a href="http://bit.ly/2uhCXnH">Devops Borat</a>
+</div>
+</div>
+<div class="paragraph">
+<p>It&#8217;s time to deploy the first version of our site and make it public.
+They say that if you wait until you feel <em>ready</em> to ship,
+then you&#8217;ve waited too long.</p>
+</div>
+<div class="paragraph">
+<p>Is our site usable? Is it better than nothing? Can we make lists on it?
+Yes, yes, yes.</p>
+</div>
+<div class="paragraph">
+<p>No, you can&#8217;t log in yet.
+No, you can&#8217;t mark tasks as completed.
+But do we really need any of that stuff?
+Not really&#8212;&#8203;and you can never be sure
+what your users are <em>actually</em> going to do with your site
+once they get their hands on it.
+We think our users want to use the site for to-do lists,
+but maybe they actually want to use it
+to make "top 10 best fly-fishing spots" lists,
+for which you don&#8217;t <em>need</em> any kind of "mark completed" function.
+We won&#8217;t know until we put it out there.</p>
+</div>
+<div class="paragraph">
+<p>Over the next couple of chapters we&#8217;re going to go through
+and actually deploy our site to a real, live web server.</p>
+</div>
+<div class="paragraph">
+<p>You might be tempted to skip this bit&#8212;&#8203;there&#8217;s lots of daunting stuff in it,
+and maybe you think this isn&#8217;t what you signed up for.
+But I <em>strongly</em> urge you to give it a go.
+This is one of the sections of the book I&#8217;m most pleased with,
+and it&#8217;s one that people often write to me
+saying they were really glad they stuck through it.</p>
+</div>
+<div class="paragraph">
+<p>If you&#8217;ve never done a server deployment before,
+it will demystify a whole world for you,
+and there&#8217;s nothing like the feeling of seeing your site live
+on the actual internet.
+Give it a buzzword name like "DevOps"
+if that&#8217;s what it takes to convince you it&#8217;s worth it.</p>
+</div>
+<div class="sidebarblock">
+<div class="content">
+<div class="title">&#128679; Warning, this chapter is under construction</div>
+<div class="paragraph">
+<p>As part of my work on the third edition of the book,
+I&#8217;m rewriting the deployment chapters,
+and this chapter is still an early draft I&#8217;m afraid.
+Sorry!</p>
+</div>
+<div class="paragraph">
+<p>Still, the broad outline is complete, so I&#8217;d love it if you had a go at following along!</p>
+</div>
+<div class="paragraph">
+<p>Most importantly, please please send your feedback to <a href="mailto:obeythetestinggoat@gmail.com">obeythetestinggoat@gmail.com</a>,
+or as a <a href="https://github.com/hjwp/Book-TDD-Web-Dev-Python/issues">GitHub Issue</a></p>
+</div>
+<div class="paragraph">
+<p>The next two chapters are even more rough, so if you prefer,
+you are welcome to skip all the deployment stuff and go straight to
+<a href="/book/chapter_12_organising_test_files.html">[chapter_12_organising_test_files]</a></p>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_tdd_and_the_danger_areas_of_deployment">TDD and the Danger Areas of Deployment</h3>
+<div class="paragraph">
+<p>Deploying a site to a live web server can be a tricky topic.
+Oft-heard is the forlorn cry <em>"but it works on my machine!"</em></p>
+</div>
+<div class="paragraph">
+<p>
+Some of the danger areas of deployment include:</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">Networking</dt>
+<dd>
+<p>Once we&#8217;re off our own machine, networking issues come in:
+making sure that DNS is routing our domain to the correct IP address for our server,
+making sure our server is configured to listen to traffic coming in from the world,
+making sure it&#8217;s using the right ports,
+and making sure any firewalls in the way are configured to let traffic through.</p>
+</dd>
+<dt class="hdlist1">Dependencies</dt>
+<dd>
+<p>We need to make sure that the packages our software relies on
+(Python, Django, and so on) are installed on the server,
+and have the correct versions.</p>
+</dd>
+<dt class="hdlist1">The database</dt>
+<dd>
+<p>There can be permissions and path issues,
+and we need to be careful about preserving data between deploys.</p>
+</dd>
+<dt class="hdlist1">Static files (CSS, JavaScript, images, etc.)</dt>
+<dd>
+<p>Web servers usually need special configuration for serving these.
+</p>
+</dd>
+<dt class="hdlist1">Security and Configuration</dt>
+<dd>
+<p>Once we&#8217;re on the public internet,
+we need to worry more about security.
+Various settings that are really useful for local development
+(like the Django debug page)
+become dangerous in production
+(because they expose our source code in tracebacks).</p>
+</dd>
+</dl>
+</div>
+<div class="paragraph">
+<p>One way to approach the problem is to get a server,
+and start manually configuring and installing everything,
+hacking about until it works,
+and maybe think about automating things later<sup class="footnote">[<a id="_footnoteref_1" class="footnote" href="#_footnotedef_1" title="View footnote.">1</a>]</sup>.</p>
+</div>
+<div class="paragraph">
+<p>But if there&#8217;s one thing we&#8217;ve learned
+in the world of agile/lean software development,
+it&#8217;s that taking smaller steps usually pays off.</p>
+</div>
+<div class="paragraph">
+<p>How can we take smaller, safer steps towards a production deployment?
+Can we <em>simulate</em> the process of moving to a server,
+so that we can iron out all the bugs,
+before we actually take the plunge?
+Can we then make small changes one at a time,
+solving problems one by one,
+rather than having to bite off everything in one mouthful?</p>
+</div>
+<div class="paragraph">
+<p>Absolutely we can.  And from the title of the chapter,
+I&#8217;m sure you&#8217;re already guessing that Docker is going
+to be part of the answer.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_docker_containers_and_virtualization">Docker, Containers and Virtualization</h3>
+<div class="paragraph">
+<p>Docker is a commercial product that wraps several free
+and open source technologies from the world of Linux,
+sometimes referred to as "containerization".
+(Feel free to skip this section if you already know all about Docker.)</p>
+</div>
+<div class="paragraph">
+<p>You may have already heard of the idea of "virtualization",
+which allows a single physical computer to pretend to be several machines.
+Pioneered by IBM (amongst others) on mainframes in the 1960s,
+it rose to mainstream adoption in the 90s,
+where it was sold as a way to optimise resource usage in datacentres.
+AWS, for example, was an offshoot of Amazon,
+who were using virtualization already,
+and realised they could sell some spare capacity on their servers
+to customers outside the business.</p>
+</div>
+<div class="paragraph">
+<p>So when you come to deploy your code to a real server in a datacentre,
+it will be using virtualization.
+And actually you can use virtualization on your own machine,
+with software like Virtualbox or KVM.</p>
+</div>
+<div class="paragraph">
+<p>But that can be fiddly to set up!
+And nowadays, thanks to containerization, we can do better.
+Because containerization is a kind of even-more-virtual virtualization.</p>
+</div>
+<div class="paragraph">
+<p>Conceptually, "regular" virtualization works at the hardware level,
+it gives you multiple virtual machines (VMs)
+that pretend to be physical computers, on a single real machine.
+So you can run multiple operating systems inside separate VMs
+on the same physical box.</p>
+</div>
+<div class="paragraph">
+<p>Containers work at the operating system level.
+It gives you multiple virtual operating systems that
+all run on a single real OS.
+So you can run multiple programs inside separate virtual operating systems,
+using a single real host operating system and kernel.</p>
+</div>
+<div class="paragraph">
+<p>The upshot of this is that containers are much "cheaper".
+You can start one up in milliseconds,
+and you can run hundreds on the same machine.</p>
+</div>
+<div class="sect3">
+<h4 id="_docker_and_your_cv">Docker and your CV</h4>
+<div class="paragraph">
+<p>That&#8217;s all well and good for the <em>theoretical</em> justification.
+But let&#8217;s get to the <em>real</em> reason for using this technology,
+which, as always, is:
+"it&#8217;s fashionable so it&#8217;s going to look good on my CV."</p>
+</div>
+<div class="paragraph">
+<p>For the purposes of this book,
+that&#8217;s not such a bad justification really!</p>
+</div>
+<div class="paragraph">
+<p>Yes I think it&#8217;s going to be a nice way to have a "pretend"
+deployment on our own machine, before we try the real one&#8212;&#8203;but
+also, containers are so popular nowadays,
+that it&#8217;s very likely that you&#8217;re going to encounter them at work
+(if you haven&#8217;t already).
+For many working developers, a container image is the final artifact of their work,
+it&#8217;s what they "deliver",
+and most of the rest of the deployment process is taken care of by someone else.</p>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_docker_and_the_danger_areas_of_deployment">Docker and the Danger Areas of Deployment</h3>
+<div class="paragraph">
+<p>How will containerizing our software help with the danger areas?</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Containers are like a little virtual server,
+so they will force us to address many of the problems
+like dependency management and configuration.</p>
+</li>
+<li>
+<p>We can use the containers to package up as much
+of the functionality of our application as possible,
+which in turn will minimise the amount of configuration
+we need to do to our actual servers.</p>
+</li>
+<li>
+<p>We can test our containers work by running our functional tests
+against them.</p>
+</li>
+<li>
+<p>Later, when we deploy our containers to a staging server,
+we can run the FTs against that too.</p>
+</li>
+<li>
+<p>If we automate container creation and deployment to staging,
+and we&#8217;ve tested both those things, then we will have
+minimised the risk of deployment to production.</p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_an_overview_of_our_deployment_procedure">An Overview of Our Deployment Procedure</h3>
+<div class="paragraph">
+<p>Over these three chapters chapters I&#8217;m going to go through <em>a</em> deployment procedure.
+It isn&#8217;t meant to be the <em>perfect</em> deployment procedure,
+so please don&#8217;t take it as being best practice,
+or a recommendation&#8212;&#8203;it&#8217;s meant to be an illustration,
+to show the kinds of issues involved in putting code into production,
+and where testing fits in.</p>
+</div>
+<div class="paragraph">
+<p><strong>This chapter: containerizing our software</strong></p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Adapt our FTs so they can run against a container</p>
+</li>
+<li>
+<p>Build a minimal Dockerfile with everything we need to run our site,</p>
+</li>
+<li>
+<p>Learn how to build and run a container on our machine</p>
+</li>
+<li>
+<p>Learn how to run our FTs against our container.</p>
+</li>
+<li>
+<p>Get a first cut of our code up and running inside Docker,
+with passing tests.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p><strong>Next chapter: moving to a production-ready configuration</strong></p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Gradually, incrementally change the container configuration
+to make it production-ready.</p>
+</li>
+<li>
+<p>Regularly re-run the FTs to check we didn&#8217;t break anything.</p>
+</li>
+<li>
+<p>Address issues to do with the database, static files, and so on.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p><strong>Third chapter: Automated deployment to real servers</strong></p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Gradually build up an Ansible playbook to deplor our containers on a real server</p>
+</li>
+<li>
+<p>Again, use our FTs to check for any problems</p>
+</li>
+<li>
+<p>Learn how to SSH in to the server to debug things,
+where to find logs and other useful information.</p>
+</li>
+<li>
+<p>Once we have a working deployment script for staging,
+we can confidently deploy to production.</p>
+</li>
+<li>
+<p>We&#8217;ll use Ansible to build an automated script that can deploy
+our container to staging</p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_as_always_start_with_a_test">As Always, Start with a Test</h3>
+<div class="paragraph">
+<p>
+
+Let&#8217;s adapt our functional tests slightly
+so that it can be run against a standalone server,
+instead of the one that <code>LiveServerTestCase</code> creates for us.
+We&#8217;ll do it by checking for an environment variable
+called <code>TEST_SERVER</code>:</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">functional_tests/tests.py (ch08l001)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">import</span> <span class="include">os</span>
+[...]
+
+<span class="keyword">class</span> <span class="class">NewVisitorTest</span>(StaticLiveServerTestCase):
+
+    <span class="keyword">def</span> <span class="function">setUp</span>(<span class="predefined-constant">self</span>):
+        <span class="predefined-constant">self</span>.browser = webdriver.Firefox()
+        test_server = os.environ.get(<span class="string"><span class="delimiter">'</span><span class="content">TEST_SERVER</span><span class="delimiter">'</span></span>)  <i class="conum" data-value="1"></i><b>(1)</b>
+        <span class="keyword">if</span> test_server:
+            <span class="predefined-constant">self</span>.live_server_url = <span class="string"><span class="delimiter">'</span><span class="content">http://</span><span class="delimiter">'</span></span> + test_server  <i class="conum" data-value="2"></i><b>(2)</b></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>Do you remember I said that <code>LiveServerTestCase</code> had certain limitations?
+Well, one is that it always assumes you want to use its own test server,
+which it makes available at <code>self.live_server_url</code>.
+I still want to be able to do that sometimes,
+but I also want to be able to selectively tell it not to bother,
+and to use a real server instead.</p>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>The way I decided to do it is using an environment variable called
+<code>TEST_SERVER</code>.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>Here&#8217;s the hack: we replace <code>self.live_server_url</code> with the address of
+our "real" server.</td>
+</tr>
+</table>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+A clarification: in these chapter,
+    we run tests <em>against</em> our Docker container, or <em>against</em> our staging server,
+    but that doesn&#8217;t mean we run the tests <em>from</em> Docker or <em>from</em> our staging server.
+    We still run the tests from our own laptop,
+    but they target the place that&#8217;s running our code.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>We test that said hack hasn&#8217;t broken anything by running the functional
+tests <span class="keep-together">"normally"</span>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>python manage.py test functional_tests</strong>
+[...]
+Ran 3 tests in 8.544s
+
+OK</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>And now we can try them against our docker server URL,
+which once we&#8217;ve done the right docker magic,
+will be at <em><a href="http://locahost:8888" class="bare">http://locahost:8888</a></em></p>
+</div>
+<div class="admonitionblock tip">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-tip" title="Tip"></i>
+</td>
+<td class="content">
+I&#8217;m deliberately choosing a different port to run Dockerised Django on (8888)
+    from the default port that a local <code>manage.py runserver</code> would choose (8080),
+    to avoid getting in the situation where I (or the tests) <em>think</em>
+    we&#8217;re looking at Docker, when we&#8217;re actually looking at a local <code>runserver</code>
+    that I&#8217;ve left running in some terminal somewhere.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>I&#8217;ll use the <code>--failfast</code> option to exit as soon as a single test fails:</p>
+</div>
+<div class="listingblock small-code">
+<div class="content">
+<pre>$ <strong>TEST_SERVER=localhost:8888 ./manage.py test functional_tests \
+    --failfast</strong>
+[...]
+E
+======================================================================
+ERROR: test_can_start_a_todo_list
+(functional_tests.tests.NewVisitorTest.test_can_start_a_todo_list)
+ ---------------------------------------------------------------------
+Traceback (most recent call last):
+  File "...goat-book/functional_tests/tests.py", line 31, in
+test_can_start_a_todo_list
+    self.browser.get(self.live_server_url)
+[...]
+selenium.common.exceptions.WebDriverException: Message: Reached error page: abo
+ut:neterror?e=connectionFailure&amp;u=http%3A//localhost:8888/&amp;c=UTF-8&amp;
+f=regular&amp;d=Firefox%20can%27t%20establish%20a%20connection%20to%20the%20server%
+20at%20locahost.
+
+
+Ran 1 tests in 5.518s
+
+FAILED (errors=1)</pre>
+</div>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+If, on Windows, you see an error saying something like
+    "TEST_SERVER is not recognized as a command",
+  it&#8217;s probably because you&#8217;re not using Git-Bash.
+  Take another look at the <a href="/book/pre-requisite-installations.html">[pre-requisites]</a> section.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>You can see that our tests are failing, as expected, since we&#8217;re not running Docker yet.
+Selenium reports that Firefox is seeing an error and "cannot establish connection to the server",
+and you can see <em>localhost:8888</em> in there too.
+</p>
+</div>
+<div class="paragraph">
+<p>The FT seems to be testing the right things, so let&#8217;s commit:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>git diff</strong> # should show changes to functional_tests.py
+$ <strong>git commit -am "Hack FT runner to be able to test docker"</strong></pre>
+</div>
+</div>
+<div class="admonitionblock tip">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-tip" title="Tip"></i>
+</td>
+<td class="content">
+Don&#8217;t use <code>export</code> to set the <em>TEST_SERVER</em> environment variable;
+    otherwise, all your subsequent test runs in that terminal will be against staging,
+    and that can be very confusing if you&#8217;re not expecting it.
+    Setting it explicitly inline each time you run the FTs is best.
+</td>
+</tr>
+</table>
+</div>
+<div class="sect3">
+<h4 id="_making_an_src_folder">Making an src Folder</h4>
+<div class="paragraph">
+<p>When preparing a codebase for deployment,
+it&#8217;s often convenient to separate out the actual source code of our production app,
+from the rest of the files that you need in the project.
+A folder called <em>src</em> is a common convention.</p>
+</div>
+<div class="paragraph">
+<p>Currently, all our code is source code really, so we move everything into <em>src</em>
+(we&#8217;ll be seeing some new files appearing outside <em>src</em> shortly.<sup class="footnote">[<a id="_footnoteref_2" class="footnote" href="#_footnotedef_2" title="View footnote.">2</a>]</sup>
+)</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>mkdir src</strong>
+$ <strong>git mv functional_tests lists superlists manage.py src</strong>
+$ <strong>git commit -m "Move all our code into a src folder"</strong></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_installing_docker">Installing Docker</h3>
+<div class="paragraph">
+<p>The <a href="https://docs.docker.com/get-docker/">Docker documentation</a> is pretty good,
+and you&#8217;ll find detailed installation instructions for Windows, Mac, and Linux.
+Follow those, and then test you installation by running:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>docker run busybox echo hello world</strong>
+Unable to find image <em>busybox:latest</em> locally
+[...]
+latest: Pulling from library/busybox
+[...]: Pull complete
+Digest: sha256:[...]
+Status: Downloaded newer image for busybox:latest
+hello world</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>What&#8217;s happened there is that Docker has</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Searched for a local copy of the "busybox" image and not found it</p>
+</li>
+<li>
+<p>Downloaded the image from DockerHub</p>
+</li>
+<li>
+<p>Created a container based on that image</p>
+</li>
+<li>
+<p>Started up that container, telling it to run <code>echo hello world</code></p>
+</li>
+<li>
+<p>And we can see it worked!</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Cool! We&#8217;ll find out more about all of these steps as the chapter progresses.</p>
+</div>
+<div class="sidebarblock">
+<div class="content">
+<div class="title">Podman, a Docker Alternative</div>
+<div class="paragraph">
+<p>Impartiality commands me to also recommend <a href="https://podman.io/">Podman</a>,
+which is a like-for-like replacement for Docker.</p>
+</div>
+<div class="paragraph">
+<p>It&#8217;s pretty much exactly the same as docker,
+arguably with a few advantages even, but I won&#8217;t go into detail here.</p>
+</div>
+<div class="paragraph">
+<p>I actually tried it out on early drafts of this chapter and it worked perfectly well.
+But it&#8217;s a little less well established and documented,
+(the Windows installation instructions are a little more DIY for example),
+and in the end, although I&#8217;m a fan of a plucky upstart,
+Docker is open source too,
+so I didn&#8217;t decide to stick with Docker. But you could definitely check it out!</p>
+</div>
+<div class="paragraph">
+<p>You can follow along all the instructions in the book
+by just substituing the <code>docker</code> binary for <code>podman</code> in all the CLI instructions,
+eg</p>
+</div>
+<div class="listingblock skipme">
+<div class="content">
+<pre>$ <strong>docker run busybox echo hello</strong>
+# becomes
+$ <strong>podman run busybox echo hello</strong>
+# similarly with podman build, podman ps, etc.</pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_building_a_docker_image_and_running_a_docker_container">Building a Docker Image and Running a Docker Container</h3>
+<div class="paragraph">
+<p>Docker has the concepts of <em>images</em> as well as containers.
+An image is essentially a pre-prepared root filesystem,
+including the operating system, dependencies, and any code you want to run.</p>
+</div>
+<div class="paragraph">
+<p>Once you have an image, you can run one or many containers that use the same image.</p>
+</div>
+<div class="sect3">
+<h4 id="_a_first_cut_of_a_dockerfile">A First Cut of a Dockerfile</h4>
+<div class="paragraph">
+<p>Think of a Dockerfile as instructions for setting up a brand new computer,
+that we&#8217;re going to use to run our Django server on.
+What do we need to do?  Something like this, right?</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>Install an operating system</p>
+</li>
+<li>
+<p>Make sure it has Python on it</p>
+</li>
+<li>
+<p>Get our source code onto it</p>
+</li>
+<li>
+<p>Run <code>python manage.py runserver</code></p>
+</li>
+</ol>
+</div>
+<div class="exampleblock">
+<div class="title">Dockerfile (ch09l003)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="dockerfile">FROM python:slim  <i class="conum" data-value="1"></i><b>(1)</b>
+
+COPY src /src  <i class="conum" data-value="2"></i><b>(2)</b>
+
+WORKDIR /src  <i class="conum" data-value="3"></i><b>(3)</b>
+
+CMD python manage.py runserver  <i class="conum" data-value="4"></i><b>(4)</b></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>The <code>FROM</code> line is usually the first thing in a Dockerfile,
+and it says which <em>base image</em> we are starting from.
+Docker images are built from other Docker images!
+It&#8217;s not quite turtles all the way down, but almost.
+So this is the equivalent of choosing a base operating system,
+but images can actually have lots of software preinstalled too.
+You can browse various base images on DockerHub,
+we&#8217;re using <a href="https://hub.docker.com/_/python">one that&#8217;s published by the Python Software Foundation</a>,
+called "slim" because it&#8217;s as small as possible.
+It&#8217;s based on a popular version of Linux called Debian,
+and of course it comes with Python already installed on it.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>The <code>COPY</code> instruction (the uppercase words are called "instructions")
+lets you copy files from your own computer into the container image.
+We use it to copy all our source code from the newly-created <em>src</em> folder,
+into a similarly-named folder at the root of the container image</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="3"></i><b>3</b></td>
+<td><code>WORKDIR</code> sets the current working directory for all subsequent commands.
+It&#8217;s a bit like doing <code>cd /src</code></td>
+</tr>
+<tr>
+<td><i class="conum" data-value="4"></i><b>4</b></td>
+<td>Finally the <code>CMD</code> instruction tells docker which command you want it to run
+by default, when you start a container based on that image.</td>
+</tr>
+</table>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_docker_build">Docker build</h4>
+<div class="paragraph">
+<p>You build an image with <code>docker build &lt;path-containing-dockerfile&gt;</code>
+and we&#8217;ll use the <code>-t &lt;tagname&gt;</code> argument to "tag" our image
+with a memorable name.</p>
+</div>
+<div class="paragraph">
+<p>It&#8217;s typical to invoke <code>docker build</code> from the folder that contains your Dockerfile,
+so the last argument is usually <code>.</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>docker build -t superlists .</strong>
+[+] Building 1.2s (8/8) FINISHED                            docker:default
+ =&gt; [internal] load build definition from Dockerfile                  0.0s
+ =&gt; =&gt; transferring dockerfile: 115B                                  0.0s
+ =&gt; [internal] load .dockerignore                                     0.1s
+ =&gt; =&gt; transferring context: 2B                                       0.0s
+ =&gt; [internal] load metadata for docker.io/library/python:slim        0.0s
+ =&gt; [internal] load build context                                     0.2s
+ =&gt; =&gt; transferring context: 68.54kB                                  0.1s
+ =&gt; [1/3] FROM docker.io/library/python:slim                                                                 0.0s
+ =&gt; [2/3] COPY src /src                                               0.2
+ =&gt; [3/3] WORKDIR /src                                                0.1s
+ =&gt; exporting to image                                                0.0s
+ =&gt; =&gt; exporting layers                                               0.0s
+ =&gt; =&gt; writing image sha256:7b8e1c9fa68e7bad7994fa41e2aca852ca79f01a  0.0s
+ =&gt; =&gt; naming to docker.io/library/superlists                         0.0s</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Now we can see our image in the list of docker images on the system:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ pass:quotes[*docker images*]
+REPOSITORY    TAG       IMAGE ID       CREATED          SIZE
+[...]
+superlists    latest    7b8e1c9fa68e   13 minutes ago   155MB</pre>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_docker_run">Docker run</h4>
+<div class="paragraph">
+<p>Once you&#8217;ve built an image,
+you can run one or more containers based on that image, using <code>docker run</code>.
+What happens when we run ours?</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>docker run superlists</strong>
+Traceback (most recent call last):
+  File "/src/manage.py", line 11, in main
+    from django.core.management import execute_from_command_line
+ModuleNotFoundError: No module named 'django'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/src/manage.py", line 22, in &lt;module&gt;
+    main()
+  File "/src/manage.py", line 13, in main
+    raise ImportError(
+ImportError: Couldn't import Django. Are you sure it's installed and available
+on your PYTHONPATH environment variable? Did you forget to activate a virtual
+environment?</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Ah, we forgot that we need to install Django.</p>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_virtualenv_and_requirements_txt">Virtualenv and requirements.txt</h3>
+<div class="paragraph">
+<p>Just like on our own machine,
+a virtualenv is useful in a deployed environment to make
+sure we have full control over the packages installed for a particular
+project.</p>
+</div>
+<div class="paragraph">
+<p>To reproduce our local virtualenv,
+rather than just manually pip installing things
+one by one, and having to remember to sync things
+between local dev and docker,
+we can "save" the list of packages we&#8217;re using
+by creating a <em>requirements.txt</em> file<sup class="footnote">[<a id="_footnoteref_3" class="footnote" href="#_footnotedef_3" title="View footnote.">3</a>]</sup></p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>pip freeze</strong>
+asgiref==3.7.2
+attrs==23.1.0
+certifi==2023.7.22
+Django==4.2.7
+h11==0.14.0
+idna==3.4
+outcome==1.3.0.post0
+PySocks==1.7.1
+selenium==4.15.2
+sniffio==1.3.0
+sortedcontainers==2.4.0
+sqlparse==0.4.4
+trio==0.23.1
+trio-websocket==0.11.1
+urllib3==2.1.0
+wsproto==1.2.0</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>That shows <em>all</em> the packages in our virtualenv. Let&#8217;s find Django,
+and then add it as a single item to our requirements.txt,
+with its exact version specified:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>pip freeze | grep -i django</strong>
+Django==4.2.7
+$ <strong>pip freeze | grep -i django== &gt;&gt; requirements.txt</strong>
+# that's a good first cut, let's commit it:
+$ <strong>git add requirements.txt</strong>
+$ <strong>git commit -m "Add requirements.txt for virtualenv"</strong></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>You may be wondering why we didn&#8217;t add our other dependency,
+Selenium, to our requirements,
+or why we didn&#8217;t just add <em>all</em> the dependencies,
+including the "transitive" ones (eg, Django has its own dependencies of <code>asgiref</code> and <code>sqlparse</code>).</p>
+</div>
+<div class="paragraph">
+<p>As always, I have to gloss over some nuance and tradeoffs,
+but the short answer is first, Selenium is only a dependency for the tests,
+not the application code;
+we&#8217;re never going to run the tests directly on our production servers.
+As to transitive dependencies, they&#8217;re fiddly to manage without bringing
+in more tools, and I didn&#8217;t want to do that for this book.<sup class="footnote">[<a id="_footnoteref_4" class="footnote" href="#_footnotedef_4" title="View footnote.">4</a>]</sup></p>
+</div>
+<div class="admonitionblock tip">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-tip" title="Tip"></i>
+</td>
+<td class="content">
+Itamar Turner-Traurig has a great guide to
+    <a href="https://pythonspeed.com/docker/">Docker Packaging for Python Developers</a>,
+    which I cannot recommend highly enough.  Read that before you&#8217;re too much older.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>In any case, back in our Dockerfile, we can create a virtualenv
+just like we did on our own machine with <code>python -m venv</code>,
+and then we can use the special <code>-r</code> flag for <code>pip install</code>,
+to point it at our requirements file:</p>
+</div>
+<div class="exampleblock">
+<div class="title">Dockerfile (ch09l005)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="dockerfile">FROM python:slim
+
+RUN python -m venv /venv  <i class="conum" data-value="1"></i><b>(1)</b>
+ENV PATH="/venv/bin:$PATH"  <i class="conum" data-value="2"></i><b>(2)</b>
+
+COPY requirements.txt requirements.txt  <i class="conum" data-value="3"></i><b>(3)</b>
+RUN pip install -r requirements.txt  <i class="conum" data-value="4"></i><b>(4)</b>
+
+COPY src /src
+
+WORKDIR /src
+
+CMD python manage.py runserver</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>Here&#8217;s where we create our virtualenv</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>You can&#8217;t really "activate" a virtualenv inside a Dockerfile,
+so instead we change the system PATH so that the venv versions
+of <code>pip</code> and <code>python</code> become the default ones
+(this is actually one of the things that <code>activate</code> does, under the hood).</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="3"></i><b>3</b></td>
+<td>We copy our requirements file in, just like the src folder.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="4"></i><b>4</b></td>
+<td>Now we install our dependencies with <code>pip</code>,
+pointing it at our <em>requirements.txt</em>.
+Notice the <code>-r</code>.</td>
+</tr>
+</table>
+</div>
+<div class="admonitionblock tip">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-tip" title="Tip"></i>
+</td>
+<td class="content">
+Forgetting the <code>-r</code> and running <code>pip install requirements.txt</code>
+    is such a common error, that I recommend you do it <em>right now</em>
+    and get familiar with the error message,
+    because (at the time of writing), it&#8217;s not very self-explanatory.
+    And it&#8217;s a mistake I still make, <em>all the time</em>.
+</td>
+</tr>
+</table>
+</div>
+<div class="sect3">
+<h4 id="_successful_run">Successful run</h4>
+<div class="paragraph">
+<p>Let&#8217;s do the <code>build</code> and <code>run</code> in a single line.
+This is a pattern I used quite often when developing a Dockerfile,
+to be able to quickly rebuild and see the effect of a change:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>docker build -t superlists . &amp;&amp; docker run -it superlists</strong>
+[+] Building 0.2s (11/11) FINISHED                                  docker:default
+[...]
+ =&gt; [internal] load .dockerignore                                   0.1s
+ =&gt; =&gt; transferring context: 2B                                     0.0s
+ =&gt; [internal] load build definition from Dockerfile                0.0s
+ =&gt; =&gt; transferring dockerfile: 246B                                0.0s
+ =&gt; [internal] load metadata for docker.io/library/python:slim      0.0s
+ =&gt; CACHED [1/6] FROM docker.io/library/python:slim                 0.0s
+ =&gt; [internal] load build context                                   0.0s
+ =&gt; =&gt; transferring context: 4.75kB                                 0.0s
+ =&gt; [2/6] RUN python -m venv /venv                                  0.0s
+ =&gt; [3/6] COPY requirements.txt requirements.txt                    0.0s
+ =&gt; [4/6] RUN pip install -r requirements.txt                       0.0s
+ =&gt; [5/6] COPY src /src                                             0.0s
+ =&gt; [6/6] WORKDIR /src                                              0.0s
+ =&gt; exporting to image                                              0.0s
+ =&gt; =&gt; exporting layers                                             0.0s
+ =&gt; =&gt; writing image sha256:[...]                                   0.0s
+ =&gt; =&gt; naming to docker.io/library/superlists                       0.0s
+Watching for file changes with StatReloader
+Performing system checks...
+
+System check identified no issues (0 silenced).
+
+You have 19 unapplied migration(s). Your project may not [...]
+[...]
+Django version 4.2.7, using settings <em>superlists.settings</em>
+Starting development server at http://127.0.0.1:8000/
+Quit the server with CONTROL-C.</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>OK, scanning through that, it looks like the server is running!</p>
+</div>
+<div class="admonitionblock warning">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-warning" title="Warning"></i>
+</td>
+<td class="content">
+Make sure you use the <code>-it</code> flags to the Docker <code>run</code>
+    command when running <code>runserver</code>, or any other tool that expects
+    to be run in an interactive terminal session,
+    otherwise you&#8217;ll get strange behaviours, including not being able
+    to interrupt the docker process with <em>Ctrl-C</em>.
+</td>
+</tr>
+</table>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_using_the_ft_to_check_that_our_container_works">Using the FT to Check That Our Container Works</h3>
+<div class="paragraph">
+<p>Let&#8217;s see what our FTs think about this Docker version of our site.</p>
+</div>
+<div class="listingblock small-code">
+<div class="content">
+<pre>$ <strong>TEST_SERVER=localhost:8888 ./src/manage.py test functional_tests \
+    --failfast</strong>
+[...]
+selenium.common.exceptions.WebDriverException: Message: Reached error page:
+about:neterror?e=connectionFailure&amp;u=http%3A//localhost%3A8888/[...]</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Nope!  What&#8217;s going on here?  Time for a little debugging.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_debugging_a_container_networking_problems">Debugging a Container Networking Problems</h3>
+<div class="paragraph">
+<p>First let&#8217;s try and take a look ourselves, in our browser:</p>
+</div>
+<div id="firefox-unable-to-connect-screenshot" class="imageblock">
+<div class="content">
+<img src="images/firefox-unable-to-connect.png" alt="Firefox showing the 'Unable to connect' error">
+</div>
+<div class="title">Figure 1. Cannot connect on that port</div>
+</div>
+<div class="paragraph">
+<p>Now let&#8217;s take another look at the output from our <code>docker run</code>.  Here&#8217;s what appeared right at the end:</p>
+</div>
+<div class="listingblock skipme">
+<div class="content">
+<pre>Starting development server at http://127.0.0.1:8000/
+Quit the server with CONTROL-C.</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Aha!  We notice that we&#8217;re using the wrong port, <code>8000</code> instead of the <code>8888</code>
+that we specified in the <code>TEST_SERVER</code> env var.</p>
+</div>
+<div class="paragraph">
+<p>Let&#8217;s fix that by amending the <code>CMD</code> instruction in the Dockerfile:</p>
+</div>
+<div class="exampleblock">
+<div class="title">Dockerfile (ch09l006)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="dockerfile">[...]
+WORKDIR /src
+
+CMD python manage.py runserver 8888</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Ctrl+C the current dockerized container process if it&#8217;s still running in your terminal,
+give it another <code>build &amp;&amp; run</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>docker build -t superlists . &amp;&amp; docker run -it superlists</strong>
+[...]
+Starting development server at http://127.0.0.1:8888/</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>==== Debugging web server connectivity with "curl"</p>
+</div>
+<div class="paragraph">
+<p>Nope, that won&#8217;t work either.
+Let&#8217;s try an even lower-level smoke test, the traditional Unix utility <code>curl</code>.
+It&#8217;s a command-line tool for making HTTP requests.  Try it on your own computer first:</p>
+</div>
+<div class="listingblock ignore-errors">
+<div class="content">
+<pre>$ <strong>curl -iv localhost:8888</strong>
+*   Trying 127.0.0.1:8888...
+* connect to 127.0.0.1 port 8888 failed: Connection refused
+*   Trying [::1]:8888...
+* connect to ::1 port 8888 failed: Connection refused
+* Failed to connect to localhost port 8888 after 0 ms: Couldn't connect to server
+* Closing connection 0
+curl: (7) Failed to connect to localhost port 8888 after 0 ms: Couldn't connect to server</pre>
+</div>
+</div>
+<div class="admonitionblock tip">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-tip" title="Tip"></i>
+</td>
+<td class="content">
+The <code>-iv</code> flag to curl is useful for debugging.
+    It prints verbose output, as well as full HTTP headers.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>=== Running code "inside" the container with docker exec</p>
+</div>
+<div class="paragraph">
+<p>So, we can&#8217;t see Django running on port 8888 when we&#8217;re <em>outside</em> the container.
+What do we see if we run things from <em>inside</em> the container?</p>
+</div>
+<div class="paragraph">
+<p>We can use <code>docker exec</code> to run commands inside a running container.
+First we need to get the name or ID of the container:</p>
+</div>
+<div class="listingblock skipme small-code">
+<div class="content">
+<pre>$ <strong>docker ps</strong>
+CONTAINER ID   IMAGE        COMMAND                  CREATED          STATUS          PORTS     NAMES
+5ed84681fdf8   superlists   "/bin/sh -c 'python &#8230;"   12 minutes ago   Up 12 minutes             trusting_wu</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Your values for <code>CONTAINER_ID</code> and <code>NAMES</code> will be different from mine,
+because they&#8217;re randomly generated.
+But, make a note of one or the other, and then run <code>docker exec -it &lt;containerid&gt; bash</code>.
+On most platforms, you can use tab-completion for the container id or name.</p>
+</div>
+<div class="paragraph">
+<p>Let&#8217;s try it now.  Notice that the shell prompt will change from your default Bash prompt
+to <code>root@container-id</code>.  Watch out for those in future listings,
+so that you can be sure of what&#8217;s being run inside vs outside containers.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>docker exec -it <container-id-or-name> bash</container-id-or-name></strong>
+root@5ed84681fdf8:/src# <strong>apt-get update &amp;&amp; apt-get install -y curl</strong>
+Get:1 <a href="http://deb.debian.org/debian" class="bare">http://deb.debian.org/debian</a> bookworm InRelease [151 kB]
+Get:2 <a href="http://deb.debian.org/debian" class="bare">http://deb.debian.org/debian</a> bookworm-updates InRelease [52.1 kB]
+[...]
+Reading package lists... Done
+Building dependency tree... Done
+Reading state information... Done
+The following additional packages will be installed:
+  libbrotli1 libcurl4 libldap-2.5-0 libldap-common libnghttp2-14 libpsl5
+[...]
+root@5ed84681fdf8:/src# <strong>curl -iv http://localhost:8888</strong>
+*   Trying 127.0.0.1:8888...
+* Connected to localhost (127.0.0.1) port 8888 (#0)
+&gt; GET / HTTP/1.1
+&gt; Host: localhost:8888
+&gt; User-Agent: curl/7.88.1
+&gt; Accept: */*
+&gt;
+&lt; HTTP/1.1 200 OK
+HTTP/1.1 200 OK
+[...]
+&lt;!doctype html&gt;
+&lt;html lang="en"&gt;
+
+  &lt;head&gt;
+    &lt;title&gt;To-Do lists&lt;/title&gt;
+    &lt;meta charset="utf-8"&gt;
+    &lt;meta name="viewport" content="width=device-width, initial-scale=1"&gt;
+    &lt;link href="/static/bootstrap/css/bootstrap.min.css" rel="stylesheet"&gt;
+  &lt;/head&gt;
+
+  &lt;body&gt;
+    [...]
+  &lt;/body&gt;
+
+&lt;/html&gt;</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>That&#8217;s definitely some HTML! And the <code>&lt;title&gt;To-Do lists&lt;/title&gt;</code> looks like it&#8217;s our html, too.</p>
+</div>
+<div class="paragraph">
+<p>So, we can see Django is serving our site <em>inside</em> the container,
+why can&#8217;t we see it <em>outside</em>??</p>
+</div>
+<div class="paragraph">
+<p>==== Exposing Docker Ports</p>
+</div>
+<div class="paragraph">
+<p>The pythonspeed guide to Docker&#8217;s very first section is called
+<a href="https://pythonspeed.com/articles/docker-connection-refused/">Connection Refused</a>,
+so I&#8217;ll refer you there once again for an <em>excellent</em>, detailed explanation.</p>
+</div>
+<div class="paragraph">
+<p>But in short, Docker runs in its own little world,
+specifically it has its own little network,
+so the ports <em>inside</em> the container are different
+from the ports <em>outside</em> the container, the ones we can see on our host machine.</p>
+</div>
+<div class="paragraph">
+<p>So we need to tell Docker to connect the internal ports to the outside ones,
+or "expose" them, in Docker terminology.</p>
+</div>
+<div class="paragraph">
+<p><code>docker run</code> takes a <code>-p</code> argument, with the syntax <code>OUTSIDE:INSIDE</code>.
+So you can actually map a different port number on the inside and outside.
+But we&#8217;re just mapping 8888 to 8888, and that will look like this:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>docker build -t superlists . &amp;&amp; docker run -p 8888:8888 -it superlists</strong></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Now that will <em>change</em> the error we see, but only quite subtly (see <a href="#firefox-connection-reset">Cannot connect on that port</a>).
+Things clearly aren&#8217;t working yet.</p>
+</div>
+<div id="firefox-connection-reset" class="imageblock">
+<div class="content">
+<img src="images/firefox-connection-reset.png" alt="Firefox showing the 'Connection reset' error">
+</div>
+<div class="title">Figure 2. Cannot connect on that port</div>
+</div>
+<div class="paragraph">
+<p>Similarly, if you try our <code>curl -iv</code> (outside the container) once again,
+you&#8217;ll see the error has changed from "Failed to connect",
+to "Empty reply":</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>curl -iv localhost:8888</strong>
+*   Trying 127.0.0.1:8888...
+* Connected to localhost (127.0.0.1) port 8888 (#0)
+&gt; GET / HTTP/1.1
+&gt; Host: localhost:8888
+&gt; User-Agent: curl/7.88.1
+&gt; Accept: */*
+&gt;
+* Empty reply from server
+* Closing connection 0
+curl: (52) Empty reply from server</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>==== Essential Googling the Error Message</p>
+</div>
+<div class="paragraph">
+<p>The need to expose ports and the <code>-p</code> argument to <code>docker run</code> are something you just learn,
+fairly on in learning Docker.  But the next debugging step is quite a bit more obscure
+(although admittedly Itamar does address it in his
+<a href="https://pythonspeed.com/articles/docker-connection-refused/">docker networking article</a>,
+did I already mention how excellent it is?).</p>
+</div>
+<div class="paragraph">
+<p>But if we haven&#8217;t read that, we can always resort to resort to the tried and tested "Googling the error message" technique instead
+(<a href="#googling-the-error">An indispensable publication (source: https://news.ycombinator.com/item?id=11459601)</a>).</p>
+</div>
+<div id="googling-the-error" class="imageblock">
+<div class="content">
+<img src="images/orly-essential-googling-the-error-message.png" alt="Cover of a fake O&#8217;Reilly book called Googling the Error Message" width="400">
+</div>
+<div class="title">Figure 3. An indispensable publication (source: <a href="https://news.ycombinator.com/item?id=11459601" class="bare">https://news.ycombinator.com/item?id=11459601</a>)</div>
+</div>
+<div class="paragraph">
+<p>Everyone&#8217;s search results are a little different,
+and mine are perhaps shaped by years of working with Docker and Django,
+but I found the answer in my very first result
+(see <a href="#google-results-screenshot">Google can still deliver results</a>),
+which was a <a href="https://stackoverflow.com/questions/49476217/docker-cant-access-django-server">stackoverflow post</a>.</p>
+</div>
+<div id="google-results-screenshot" class="imageblock">
+<div class="content">
+<img src="images/google-results-with-stackoverflow.png" alt="Google results with a useful stackoverflow post in first position" width="400">
+</div>
+<div class="title">Figure 4. Google can still deliver results</div>
+</div>
+<div class="paragraph">
+<p>So we need to tell Django to bind to <em>any</em> IP address,
+because container networking doesn&#8217;t always have 127.0.0.1
+as the address of <em>localhost</em>:</p>
+</div>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="dockerfile">[...]
+WORKDIR /src
+
+CMD python manage.py runserver 0.0.0.0:8888</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Rebuild and re-run your server, and if you have eagle eyes,
+you&#8217;ll spot it&#8217;s binding to <code>0.0.0.0</code> instead of <code>127.0.0.1</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>docker build -t superlists . &amp;&amp; docker run -p 8888:8888 -it superlists</strong>
+[...]
+Starting development server at http://0.0.0.0:8888/</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>We can verify it&#8217;s working with `curl:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>curl -iv localhost:8888</strong>
+*   Trying 127.0.0.1:8888...
+* Connected to localhost (127.0.0.1) port 8888 (#0)
+[...]
+
+  &lt;/body&gt;
+
+&lt;/html&gt;
+* Connection #0 to host localhost left intact</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Looking good!</p>
+</div>
+<div class="sidebarblock">
+<div class="content">
+<div class="title">On Debugging</div>
+<div class="paragraph">
+<p>Let me let you in on a little secret.  I&#8217;m actually bad at debugging.
+We all have our psychological strengths and weakness,
+and one of my weaknesses is
+that when I run into a problem I can&#8217;t see an obvious solution to,
+I want to throw up my hands way too soon
+and say "well, this is hopeless, it can&#8217;t be fixed",
+and give up.</p>
+</div>
+<div class="paragraph">
+<p>Thankfully I have had some good role models over the years
+who are much better at it than me (hi Glenn!).
+Debugging needs the patience and tenacity of a bloodhound.
+If at first you don&#8217;t succeed,
+you need to systematically rule out options,
+check your assumptions,
+eliminate various aspects of the problem and simplify things down,
+find the parts that do and don&#8217;t work,
+until you eventually find the cause.</p>
+</div>
+<div class="paragraph">
+<p>It always seems hopeless at first!  But eventually you get there.</p>
+</div>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_database_migrations">Database migrations</h3>
+<div class="paragraph">
+<p>
+A quick visual inspection confirms&#8212;&#8203;the site is up (<a href="#staging-is-up">The staging site is up!</a>)!</p>
+</div>
+<div id="staging-is-up" class="imageblock">
+<div class="content">
+<img src="images/twp2_0903.png" alt="The front page of the site, at least, is up">
+</div>
+<div class="title">Figure 5. The staging site is up!</div>
+</div>
+<div class="paragraph">
+<p>Let&#8217;s see what our functional tests say:</p>
+</div>
+<div class="listingblock small-code">
+<div class="content">
+<pre>$ <strong>TEST_SERVER=superlists-staging.ottg.eu:8000 ./manage.py test functional_tests \
+    --failfast</strong>
+[...]
+E
+======================================================================
+ERROR: test_can_start_a_todo_list
+(functional_tests.tests.NewVisitorTest.test_can_start_a_todo_list)
+ ---------------------------------------------------------------------
+Traceback (most recent call last):
+  File "...goat-book/src/functional_tests/tests.py", line 56, in
+test_can_start_a_todo_list
+    self.wait_for_row_in_list_table("1: Buy peacock feathers")
+  File "...goat-book/src/functional_tests/tests.py", line 26, in
+wait_for_row_in_list_table
+    table = self.browser.find_element(By.ID, "id_list_table")
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[...]
+selenium.common.exceptions.NoSuchElementException: Message: Unable to locate
+element: [id="id_list_table"]; For documentation [...]</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Although the FTs can connect happily and interact with our site,
+they are failing as soon as they try to submit a new item.</p>
+</div>
+<div class="paragraph">
+<p>It&#8217;s because we haven&#8217;t set up the database (which, as you may remember,
+we highlighted as one of the "danger areas" of deployment).
+You might have spotted the yellow Django debug page (<a href="#django-debug-screen">But the database isn&#8217;t</a>)
+telling us as much, or if you tried it manually.</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+The tests saved us from potential embarrassment there.
+    The site <em>looked</em> fine when we loaded its front page.
+    If we&#8217;d been a little hasty and only testing manually,
+    we might have thought we were done,
+    and it would have been the first users that discovered that nasty Django DEBUG page.
+    Okay, slight exaggeration for effect, maybe we <em>would</em> have checked,
+    but what happens as the site gets bigger and more complex?
+    You can&#8217;t check everything. The tests can.
+</td>
+</tr>
+</table>
+</div>
+<div id="django-debug-screen" class="imageblock">
+<div class="content">
+<img src="images/twp2_0904.png" alt="Django DEBUG page showing database error">
+</div>
+<div class="title">Figure 6. But the database isn&#8217;t</div>
+</div>
+<div class="paragraph">
+<p>To be fair, if you look back through the <code>runserver</code> command output
+each time we&#8217;ve been starting our container,
+you&#8217;ll see it&#8217;s been warning us about this issue:</p>
+</div>
+<div class="listingblock skipme">
+<div class="content">
+<pre>You have 19 unapplied migration(s). Your project may not work properly until
+you apply the migrations for app(s): auth, contenttypes, lists, sessions.
+Run 'python manage.py migrate' to apply them.</pre>
+</div>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+If you don&#8217;t see this error,
+    it&#8217;s because your src folder had the database file in it, unlike mine.
+    For the sake of argument, run <code>rm src/db.sqlite</code> and re-run the build &amp; run commands,
+    and you should be able to repro the error.  I promise it&#8217;s instructive!
+</td>
+</tr>
+</table>
+</div>
+<div class="sect3">
+<h4 id="_should_we_run_migrate_inside_the_dockerfile_no">Should we run "migrate" inside the Dockerfile? No.</h4>
+<div class="paragraph">
+<p>So, should we include <code>manage.py migrate</code> in our Dockerfile?</p>
+</div>
+<div class="paragraph">
+<p>If you try it, you&#8217;ll find it certainly fixes the problem:</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">Dockerfile (ch09l008)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="dockerfile">[...]
+WORKDIR /src
+
+RUN python manage.py migrate --noinput  <i class="conum" data-value="1"></i><b>(1)</b>
+CMD /venv/bin/python manage.py runserver</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>We run <code>migrate</code> using the <code>--noinput</code> argument to suppress any little "are you sure" prompts.</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>If we try our FTs again, they all pass!</p>
+</div>
+<div class="listingblock small-code">
+<div class="content">
+<pre>$ <strong>TEST_SERVER=superlists-staging.ottg.eu:8000 ./manage.py test functional_tests \
+    --failfast</strong>
+Found 3 test(s).
+Creating test database for alias 'default'...
+System check identified no issues (0 silenced).
+...
+ ---------------------------------------------------------------------
+Ran 3 tests in 26.965s
+
+OK</pre>
+</div>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_mounting_files_inside_the_container">Mounting files inside the container.</h3>
+<div class="paragraph">
+<p>But we don&#8217;t actually want to package up our database <em>inside</em> the image, do we?
+We want the database on the server to have totally separate data from the one on our machine.</p>
+</div>
+<div class="paragraph">
+<p>In most deployments, you&#8217;d probably be talking to a separate database server, like postgres.</p>
+</div>
+<div class="paragraph">
+<p>For the purposes of this book, the easiest analogy to a server that&#8217;s "outside" our container,
+is to access the database from the filesystem outside the container.</p>
+</div>
+<div class="paragraph">
+<p>That also gives us a convenient excuse to talk about mounting files in Docker,
+which is a very useful thing to be able to do &#8482;.</p>
+</div>
+<div class="paragraph">
+<p>First let&#8217;s revert our change:</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">Dockerfile (ch09l009)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="dockerfile">[...]
+WORKDIR /src
+
+CMD /venv/bin/python manage.py runserver</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>The extra flag to add is <code>-v</code>, and it takes a similar <code>outside:inside</code> argument as <code>-p</code> did for ports.
+We specify a folder or file <em>outside</em> the container, and the path we want it to appear at <em>inside</em> the container.</p>
+</div>
+<div class="listingblock small-code">
+<div class="content">
+<pre>$ <strong>./src/manage.py migrate --noinput</strong>
+Operations to perform:
+  Apply all migrations: auth, contenttypes, lists, sessions
+Running migrations:
+  Applying contenttypes.0001_initial... OK
+[...]
+  Applying sessions.0001_initial... OK
+[...]
+$ <strong>docker build -t superlists . &amp;&amp; docker run -p 8888:8888 -v ./src/db.sqlite3:/src/db.sqlite3 -it superlists</strong></pre>
+</div>
+</div>
+<div class="admonitionblock tip">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-tip" title="Tip"></i>
+</td>
+<td class="content">
+if you see an error saying: <code>django.db.utils.OperationalError</code>: "unable to open database file",
+    try stopping the container, <code>rm -rf src/db.sqlite3</code>, then re-run the migrate command
+    <em>outside</em> the container, and the rebuild and run your image.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>And we check the FTs again.</p>
+</div>
+<div class="listingblock small-code">
+<div class="content">
+<pre>$ <strong>TEST_SERVER=superlists-staging.ottg.eu:8000 ./manage.py test functional_tests \
+    --failfast</strong>
+Found 3 test(s).
+Creating test database for alias 'default'...
+System check identified no issues (0 silenced).
+...
+ ---------------------------------------------------------------------
+Ran 3 tests in 26.965s
+
+OK</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>AMAZING IT ACTUALLY WORKSSSSSSSS.</p>
+</div>
+<div class="paragraph">
+<p>Ahem, that&#8217;s definitely good enough for now!  Let&#8217;s commit.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>git add Dockerfile</strong>
+$ <strong>git commit -m"First cut of a Dockerfile"</strong></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Phew.  Well, it took a bit of hacking about,
+but now we can be reassured that the basic Docker plumbing works.
+Notice that the FT was able to guide us incrementally towards a working config,
+and spot problems early on (like the missing database).</p>
+</div>
+<div class="paragraph">
+<p>But we really can&#8217;t be using the Django dev server in production,
+or running on port 8888 forever.
+In the next chapter, we&#8217;ll make our hacky image more production-ready.</p>
+</div>
+<div class="paragraph">
+<p>But first, time for a well-earned tea break I think, and perhaps a
+<a href="https://en.wikipedia.org/wiki/Digestive_biscuit">chocolate biscuit</a>.</p>
+</div>
+<div class="sidebarblock">
+<div class="content">
+<div class="title">Test-Driving Server Configuration and Deployment</div>
+<div class="paragraph">
+<p>TODO update this recap.</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">Tests and small steps some of the uncertainty out of deployment</dt>
+<dd>
+<p>For developers, ops and infra work is always "fun",
+by which I mean a process full of uncertainty and surprises.
+My aim during this chapter was to show that a step-by-step approach
+helps to minimse risk, especially when allied to a functional test suite
+that can help us to catch errors early.</p>
+</dd>
+</dl>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">Some typical pain points&#8212;&#8203;networking, ports, static files, and the database</dt>
+<dd>
+<p>The things that you need to keep an eye out for on any deployment include
+making sure your database configuration, static files, software
+dependencies, and custom settings that differ between development and
+production.  You&#8217;ll need to think through each of these for your own
+deployments.</p>
+</dd>
+</dl>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div id="footnotes">
+<hr>
+<div class="footnote" id="_footnotedef_1">
+<a href="#_footnoteref_1">1</a>. This was, more or less, the approach I took in earlier editions of the book. With a fair bit of testing thrown in of course.
+</div>
+<div class="footnote" id="_footnotedef_2">
+<a href="#_footnoteref_2">2</a>. A common thing to find outside of the <em>src</em> folder is a folder called <em>tests</em>. We won&#8217;t be doing that while we&#8217;re relying on the standard Django test framework, but it&#8217;s a good thing to do if you&#8217;re using pytest, for example.
+</div>
+<div class="footnote" id="_footnotedef_3">
+<a href="#_footnoteref_3">3</a>. There are many other dependency management tools these days so requirements.txt is not the only way to do it, although it is one of the oldest and best established. As you continue your Python adventures I&#8217;m sure you&#8217;ll come across many others.
+</div>
+<div class="footnote" id="_footnotedef_4">
+<a href="#_footnoteref_4">4</a>. When you have a moment, you might want to do some further reading on "lockfiles", pyproject.toml, hard pinning vs soft pining, and immediate vs transitive dependencies.  If I absolutely <em>had</em> to recommend a python dependency management tool, it would be <a href="https://github.com/jazzband/pip-tools">pip-tools</a>, which is a fairly minimal one.
+</div>
+</div>
+<div id="footer">
+<div id="footer-text">
+License: Creative Commons <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode">CC-BY-NC-ND</a>. Last updated: 2024-01-15 22:23:49 UTC
+</div>
+</div>
+<div class="comments" style="padding: 20px">
+  <h3>Comments</h3>
+  <div id="disqus_thread"></div>
+  <script type="text/javascript">
+    var disqus_config = function () {
+        this.page.identifier = 'chapter_09_docker';
+    };
+    
+    (function() {
+        var d = document, s = d.createElement('script');
+        s.src = '//obeythetestinggoat.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+  </script>
+  <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript" rel="nofollow">comments powered by Disqus.</a></noscript>
+</div>
+
+<html><head><script>   (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){   (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),   m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)   })(window,document,'script','//www.google-analytics.com/analytics.js','ga');    ga('create', 'UA-40928035-1', 'obeythetestinggoat.com');   ga('send', 'pageview');  </script>
+</head></html></body>
+</html>

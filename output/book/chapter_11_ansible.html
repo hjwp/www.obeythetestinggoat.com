@@ -1,0 +1,837 @@
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="generator" content="Asciidoctor 2.0.20">
+<title>Infrastructure As Code with Ansbile</title>
+<link rel="stylesheet" href="./asciidoctor.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+<link rel="stylesheet" href="./coderay-asciidoctor.css">
+<script>var httpRequest = new XMLHttpRequest();
+httpRequest.onreadystatechange = function() {
+  if (httpRequest.readyState === XMLHttpRequest.DONE) {
+    if (httpRequest.status === 200) {
+      document.getElementById('header').innerHTML += httpRequest.responseText;
+      var subheaders = document.getElementsByClassName('sectlevel2');
+      var section;
+      for (var i=0; i<subheaders.length; i++) {
+        section = subheaders[i];
+        if (section.innerHTML.indexOf(window.location.pathname) === -1) {
+          section.style.display = 'none';
+        } else {
+          section.scrollIntoView && section.scrollIntoView();
+        }
+      }
+
+    }
+  }
+};
+httpRequest.open('GET', 'toc.html');
+httpRequest.send();
+
+</script></head>
+<body class="article toc2 toc-left">
+<div id="buy_the_book" style="position: absolute; top: 0; right: 0; z-index:100">
+  <a href="/pages/book.html">
+    <img src="images/buy_the_book.svg" alt="buy the book ribbon">
+  </a>
+</div>
+<div id="header">
+</div>
+<div id="content">
+<div class="sect1">
+<h2 id="chapter_11_ansible">Infrastructure As Code with Ansbile</h2>
+<div class="sectionbody">
+<div class="quoteblock">
+<blockquote>
+<div class="paragraph">
+<p>Automate, automate, automate.</p>
+</div>
+</blockquote>
+<div class="attribution">
+&#8212; Cay Horstman
+</div>
+</div>
+<div class="paragraph">
+<p>
+
+In this chapter we&#8217;re going to spin up an actual server,
+make it accessible on the Internet with a real domain name,
+and then we&#8217;re going to install our app on it, using our container.</p>
+</div>
+<div class="paragraph">
+<p>We <em>could</em> do all these things manually,
+but a key insight of the modern infrastructure management
+is that automation really pays off in reducing maintenance burdens.</p>
+</div>
+<div class="paragraph">
+<p>It&#8217;s also key to making sure our tests give us true confidence over our deployments.
+If we go to the trouble of builiding a staging server,
+we want to make sure that it&#8217;s as similar as possible to the production environment.
+By automating the way we deploy, and using the same automation for staging and prod,
+we give ourselves much more confidence.</p>
+</div>
+<div class="paragraph">
+<p>The buzzword for automating your deployments these days is
+"Infrastructure as Code".</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+Why not ping me a note once your site is live on the web,
+    and send me the URL?
+    It always gives me a warm and fuzzy feeling&#8230;&#8203;
+    <a href="mailto:obeythetestinggoat@gmail.com">obeythetestinggoat@gmail.com</a>.
+</td>
+</tr>
+</table>
+</div>
+<div class="sidebarblock">
+<div class="content">
+<div class="title">&#128679; Warning, this chapter is heavily under construction</div>
+<div class="paragraph">
+<p>As part of my work on the third edition of the book,
+I&#8217;m rewriting the deployment chapters,
+but this chapter is far from ready I&#8217;m afraid.
+Sorry!</p>
+</div>
+<div class="paragraph">
+<p>Following along with this chapter is going to be pretty
+much impossible while I&#8217;m still half-done.</p>
+</div>
+<div class="paragraph">
+<p>It might be best to skip ahead to <a href="/book/chapter_12_organising_test_files.html">[chapter_12_organising_test_files]</a></p>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_getting_a_domain_name">Getting a Domain Name</h3>
+<div class="paragraph">
+<p>
+We&#8217;re going to need a couple of domain names at this point in the book&#8212;&#8203;they
+can both be subdomains of a single domain.  I&#8217;m going to use
+<em>superlists.ottg.eu</em> and <em>superlists-staging.ottg.eu</em>.
+If you don&#8217;t already own a domain, this is the time to register one!
+Again, this is something I really want you to <em>actually</em> do.
+If you&#8217;ve never registered a domain before,
+just pick any old registrar and buy a cheap one&#8212;&#8203;it
+should only cost you $5 or so, and you can even find free ones.
+I promise seeing your site on a "real" website will be a thrill.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_manually_provisioning_a_server_to_host_our_site">Manually Provisioning a Server to Host Our Site</h3>
+<div class="paragraph">
+<p>TODO: revise this section</p>
+</div>
+<div class="paragraph">
+<p>
+
+We can separate out "deployment" into two tasks:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><em>Provisioning</em> a new server to be able to host the code</p>
+</li>
+<li>
+<p><em>Deploying</em> a new version of the code to an existing server</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Some people like to use a brand new server for every deployment&#8212;&#8203;it&#8217;s what we
+do at PythonAnywhere.  That&#8217;s only necessary for larger, more complex sites
+though, or major changes to an existing site. For a simple site like ours, it
+makes sense to separate the two tasks.  And, although we eventually want both
+to be completely automated, we can probably live with a manual provisioning
+system for now.</p>
+</div>
+<div class="paragraph">
+<p>As you go through this chapter, you should be aware that provisioning is
+something that varies a lot, and that as a result there are few universal
+best practices for deployment.  So, rather than trying to remember the
+specifics of what I&#8217;m doing here, you should be trying to understand the
+rationale, so that you can apply the same kind of thinking in the
+specific future circumstances you encounter.</p>
+</div>
+<div class="sect3">
+<h4 id="_choosing_where_to_host_our_site">Choosing Where to Host Our Site</h4>
+<div class="paragraph">
+<p>
+There are loads of different solutions out there these days,
+but they broadly fall into two camps:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Running your own (probably virtual) server</p>
+</li>
+<li>
+<p>Using a Platform-As-A-Service (PaaS)
+offering like Heroku or my old employers, PythonAnywhere.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>
+Particularly for small sites, a PaaS offers a lot of advantages,
+and I would definitely recommend looking into them.
+We&#8217;re not going to use a PaaS in this book however, for several reasons.
+The main reason is that I want to avoid endorsing specific commercial providers.
+Secondly, all the PaaS offerings are quite different,
+and the procedures to deploy to each vary a lot&#8212;&#8203;learning about one
+doesn&#8217;t necessarily tell you about the others.
+Any one of them might radically change their process or business model by the time you get to read this book.</p>
+</div>
+<div class="paragraph">
+<p>Instead, we&#8217;ll learn just a tiny bit of good old-fashioned server admin,
+including SSH and manual server config.  They&#8217;re unlikely to ever go away, and
+knowing a bit about them will get you some respect from all the grizzled
+dinosaurs out there.</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_spinning_up_a_server">Spinning Up a Server</h4>
+<div class="paragraph">
+<p>I&#8217;m not going to dictate how you do this&#8212;&#8203;whether you choose Amazon AWS,
+Rackspace, Digital Ocean, your own server in your own data centre or a
+Raspberry Pi in a cupboard under the stairs, any solution should be fine, as
+long as:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Your server is running Ubuntu 22.04 (aka "Jammy/LTS").</p>
+</li>
+<li>
+<p>You have root access to it.</p>
+</li>
+<li>
+<p>It&#8217;s on the public internet.</p>
+</li>
+<li>
+<p>You can SSH into it.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>I&#8217;m recommending Ubuntu as a distro because it&#8217;s popular and I&#8217;m used to it.
+If you know what you&#8217;re doing, you can probably get away with using
+something else, but you&#8217;re on your own.</p>
+</div>
+<div class="paragraph">
+<p>
+If you&#8217;ve never started a Linux server before and you have absolutely no idea
+where to start, I wrote a
+<a href="https://github.com/hjwp/Book-TDD-Web-Dev-Python/blob/master/server-quickstart.md">very brief guide on GitHub</a>.</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+Some people get to this chapter, and are tempted to skip the domain bit,
+    and the "getting a real server" bit, and just use a VM on their own PC.
+    Don&#8217;t do this. It&#8217;s <em>not</em> the same, and you&#8217;ll have more difficulty
+    following the instructions, which are complicated enough as it is.  If
+    you&#8217;re worried about cost, have a look at the link above for free options.
+    
+</td>
+</tr>
+</table>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_user_accounts_ssh_and_privileges">User Accounts, SSH, and Privileges</h4>
+<div class="paragraph">
+<p>In these instructions, I&#8217;m assuming that you have a nonroot user account set up,
+and that it has "sudo" privileges,
+so whenever we need to do something that requires root access, we use sudo,
+(or "become" in ansible terminology),
+and I&#8217;m explicit about that in the various instructions that follow.</p>
+</div>
+<div class="paragraph">
+<p>My user is called "elspeth", but you can call yours whatever you like!
+Just remember to substitute it in all the places I&#8217;ve hardcoded it below.
+See the guide linked above if you need tips on creating a sudo user.</p>
+</div>
+<div class="sidebarblock">
+<div class="content">
+<div class="title">General Server Debugging Tips</div>
+<div class="paragraph">
+<p>The most important lesson to remember from this chapter is to work
+incrementally, make one change at a time, and run your tests frequently.</p>
+</div>
+<div class="paragraph">
+<p>When things (inevitably) go wrong, resist the temptation to flail about
+and make other unrelated changes in the hope that things will start working again;
+instead, stop, go backward if necessary to get to a working state,
+and figure out what went wrong before moving forward again.</p>
+</div>
+<div class="paragraph">
+<p>It&#8217;s just as easy to fall into the Refactoring-Cat trap on the server!</p>
+</div>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_configuring_domains_for_staging_and_live">Configuring Domains for Staging and Live</h4>
+<div class="paragraph">
+<p>We don&#8217;t want to be messing about with IP addresses all the time,
+so we should point our staging and live domains to the server.
+At my registrar, the control screens looked a bit like <a href="#registrar-control-screens">Domain setup</a>.</p>
+</div>
+<div id="registrar-control-screens" class="imageblock">
+<div class="content">
+<img src="images/twp2_0902.png" alt="Registrar control screens for two domains">
+</div>
+<div class="title">Figure 1. Domain setup</div>
+</div>
+<div class="paragraph">
+<p>
+In the DNS system, pointing a domain at a specific IP address is called an "A-Record".
+All registrars are slightly different,
+but a bit of clicking around should get you to the right screen in yours.
+You&#8217;ll need two A-records:
+one for the staging address and one for the live one.
+No need to worry about any other type of record.</p>
+</div>
+<div class="paragraph">
+<p>DNS records take some time to "propagate" around the world
+(it&#8217;s controlled by a setting called "TTL", Time To Live),
+so once you&#8217;ve set up your A-record,
+you can check its progress on a "propagation checking" service like this one:
+<a href="https://www.whatsmydns.net/#A/superlists-staging.ottg.eu" class="bare">https://www.whatsmydns.net/#A/superlists-staging.ottg.eu</a>.</p>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_a_first_cut_of_an_ansible_script">A first cut of an ansible script</h3>
+<div class="paragraph">
+<p>Infrastructure-as-code tools, also called "configuration management" tools,
+come in lots of shapes and sizes.
+Chef and Puppet were two of the original ones,
+and you&#8217;ll probably come across Terraform,
+which is particularly strong on managing cloud services like AWS.</p>
+</div>
+<div class="paragraph">
+<p>We&#8217;re going to use Ansible, because it&#8217;s relatively popular,
+because I&#8217;m biased that it happens to be written in Python,
+because it can do everything we need it to,
+and because it&#8217;s probably the one I&#8217;m personally most familiar with.</p>
+</div>
+<div class="paragraph">
+<p>Another tool could probably have worked just as well!
+The main thing to remember is the <em>concept</em>, which is that, as much as possible
+we want to manage our server configuration <em>declaratively</em>,
+by expressing the desired state of the server in a particular config syntax,
+rather than specifying a procedural series of steps to be followed one by one.</p>
+</div>
+<div class="paragraph">
+<p>Let&#8217;s dip our toes into ansible,
+and see if we can get it to run a simple "hello world" container on our server:</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">infra/ansible-provision.yaml (ch11l001)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="yaml"><span class="head"><span class="head">---</span></span>
+- <span class="string"><span class="content">hosts: all</span></span>
+
+  <span class="key">tasks</span>:
+    - <span class="string"><span class="content">name: Install podman</span></span>
+      <span class="key">ansible.builtin.apt</span>:
+        <span class="key">name</span>: <span class="string"><span class="content">podman</span></span>
+        <span class="key">update_cache</span>: <span class="string"><span class="content">yes</span></span>
+      <span class="key">become</span>: <span class="string"><span class="content">true</span></span>
+
+    - <span class="string"><span class="content">name: Run container</span></span>
+      <span class="key">containers.podman.podman_container</span>:
+        <span class="key">name</span>: <span class="string"><span class="content">testcontainer</span></span>
+        <span class="key">image</span>: <span class="string"><span class="content">busybox</span></span>
+        <span class="key">state</span>: <span class="string"><span class="content">started</span></span>
+        <span class="key">cmd</span>: <span class="string"><span class="content">echo hello world</span></span></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>ansible-playbook --user=elspeth -i 192.168.56.10, infra/ansible-provision.yaml -vv</strong></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>TODO show ansible output.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_sshing_into_the_server_and_viewing_container_logs">SSHing Into the Server and Viewing Container Logs</h3>
+<div class="paragraph">
+<p>Now ssh into the server, check it worked</p>
+</div>
+<div class="listingblock server-commands">
+<div class="content">
+<pre>elspeth@server:$ <strong>podman ps -a</strong>
+elspeth@server:$ <strong>podman logs testcontainer</strong>
+hello, world</pre>
+</div>
+</div>
+<div class="admonitionblock tip">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-tip" title="Tip"></i>
+</td>
+<td class="content">
+Look out for that <code>elspeth@server</code>
+    in the command-line listings in this chapter.
+    It indicates commands that must be run on the server,
+    as opposed to commands you run on your own PC.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>SSHing in to check things worked is a key server debugging skill!
+It&#8217;s something we want to practice on our staging server,
+because ideally we&#8217;ll want to avoid doing it on production machines.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_getting_our_image_onto_the_server">Getting our image onto the server</h3>
+<div class="paragraph">
+<p>Typically, you can "push" and "pull" container images
+to a "container registry"&#8201;&#8212;&#8201;Docker offers a public one called DockerHub,
+and organisations will often run private ones,
+hosted by cloud providers like AWS.</p>
+</div>
+<div class="paragraph">
+<p>So your process of getting an image onto a server is usually
+* push the image from your machine to the registry
+* pull the image from the registry onto the server.
+  Usually this step is implicit,
+    in that you just specifying the image name
+    in the format registry-url/image-name:tag,
+    and then <code>docker run</code> takes care of pulling down the image for you.</p>
+</div>
+<div class="paragraph">
+<p>But I don&#8217;t want to ask you to create a DockerHub account,
+or implicitly endorse any particular provider,
+so we&#8217;re going to "simulate" this process by doing it manually.</p>
+</div>
+<div class="paragraph">
+<p>It turns out you can "export" a container image to an archive format,
+manually copy that to the server, and then re-import it.
+In ansible config, it looks like this:</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">infra/ansible-provision.yaml (ch11l002)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="yaml"><span class="head"><span class="head">---</span></span>
+- <span class="string"><span class="content">hosts: all</span></span>
+
+  <span class="key">tasks</span>:
+    - <span class="string"><span class="content">name: Install podman</span></span>
+      <span class="key">ansible.builtin.apt</span>:
+        <span class="key">name</span>: <span class="string"><span class="content">podman</span></span>
+        <span class="key">update_cache</span>: <span class="string"><span class="content">yes</span></span>
+      <span class="key">become</span>: <span class="string"><span class="content">true</span></span>
+
+    - <span class="string"><span class="content">name: Export container image locally</span></span>
+      <span class="key">containers.podman.podman_save</span>:
+        <span class="key">image</span>: <span class="string"><span class="content">superlists</span></span>
+        <span class="key">dest</span>: <span class="string"><span class="content">/tmp/superlists-img.oci</span></span>
+        <span class="key">format</span>: <span class="string"><span class="content">oci-archive</span></span>
+        <span class="key">force</span>: <span class="string"><span class="content">true</span></span>
+      <span class="key">delegate_to</span>: <span class="string"><span class="content">127.0.0.1</span></span>
+
+    - <span class="string"><span class="content">name: Upload image to server</span></span>
+      <span class="key">ansible.builtin.copy</span>:
+        <span class="key">src</span>: <span class="string"><span class="content">/tmp/superlists-img.oci</span></span>
+        <span class="key">dest</span>: <span class="string"><span class="content">/tmp/superlists-img.oci</span></span>
+
+    - <span class="string"><span class="content">name: Import container image on server</span></span>
+      <span class="key">containers.podman.podman_load</span>:
+        <span class="key">input</span>: <span class="string"><span class="content">/tmp/superlists-img.oci</span></span>
+
+    - <span class="string"><span class="content">name: Run container</span></span>
+      <span class="key">containers.podman.podman_container</span>:
+        <span class="key">name</span>: <span class="string"><span class="content">superlists</span></span>
+        <span class="key">image</span>: <span class="string"><span class="content">superlists</span></span>
+        <span class="key">state</span>: <span class="string"><span class="content">started</span></span>
+        <span class="key">recreate</span>: <span class="string"><span class="content">true</span></span></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>Let&#8217;s see if that worked!</p>
+</div>
+<div class="paragraph">
+<p>Nope.  TODO: debug, ssh into the server, show missing env vars.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_using_an_env_file_to_store_our_environment_variables">Using an env File to Store Our Environment Variables</h3>
+<div class="paragraph">
+<p>We don&#8217;t want to save secrets like SECRET_KEY into our ansible
+config either.</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>explain env files.</p>
+</li>
+<li>
+<p>explain jinja2.</p>
+</li>
+</ul>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">infra/env.j2 (ch11l003)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="python">DJANGO_DEBUG_FALSE=<span class="integer">1</span>
+DJANGO_SECRET_KEY=<span class="string"><span class="delimiter">"</span><span class="content">{{ secret_key }}</span><span class="delimiter">"</span></span>
+DJANGO_ALLOWED_HOST=<span class="string"><span class="delimiter">"</span><span class="content">{{ host }}</span><span class="delimiter">"</span></span></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">infra/ansible-provision.yaml (ch11l004)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="yaml">    - <span class="string"><span class="content">name: Ensure .env file exists</span></span>
+      <span class="key">ansible.builtin.template</span>:
+        <span class="key">src</span>: <span class="string"><span class="content">env.j2</span></span>
+        <span class="key">dest</span>: <span class="string"><span class="content">~/superlists.env</span></span>
+      <span class="key">vars</span>:
+        <span class="key">host</span>: <span class="string"><span class="delimiter">"</span><span class="content">{{ inventory_hostname }}</span><span class="delimiter">"</span></span>
+        <span class="key">secret_key</span>: <span class="string"><span class="delimiter">"</span><span class="content">{{ lookup('password', '/dev/null length=32 chars=ascii_letters,digits') }}</span><span class="delimiter">"</span></span>
+        <span class="key">force</span>: <span class="string"><span class="content">false</span></span>  <span class="comment"># do not recreate file if it already exists.</span></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>The <code>inventory_hostname</code> variable is the domain name of the server we&#8217;re running against.
+I&#8217;m using the <code>vars</code> section to rename it to "host", just for convenience.</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>explain idempotency</p>
+</li>
+<li>
+<p>mention other secret management tools. vault??</p>
+</li>
+</ul>
+</div>
+<div class="sect3">
+<h4 id="_more_debugging">More debugging</h4>
+<div class="paragraph">
+<p>forgot ports</p>
+</div>
+<div class="paragraph">
+<p>show ssh, curl localhosts maybe.</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">infra/ansible-provision.yaml (ch11l005)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="yaml">    - <span class="string"><span class="content">name: Allow nonroot user to bind to port 80</span></span>
+      <span class="key">ansible.posix.sysctl</span>:
+        <span class="key">name</span>: <span class="string"><span class="content">net.ipv4.ip_unprivileged_port_start</span></span>
+        <span class="key">value</span>: <span class="string"><span class="content">80</span></span>
+        <span class="key">reload</span>: <span class="string"><span class="content">true</span></span>
+      <span class="key">become</span>: <span class="string"><span class="content">true</span></span>
+
+    - <span class="string"><span class="content">name: Run container</span></span>
+      <span class="key">containers.podman.podman_container</span>:
+        <span class="key">name</span>: <span class="string"><span class="content">superlists</span></span>
+        <span class="key">image</span>: <span class="string"><span class="content">superlists</span></span>
+        <span class="key">state</span>: <span class="string"><span class="content">started</span></span>
+        <span class="key">recreate</span>: <span class="string"><span class="content">true</span></span>
+        <span class="key">env_file</span>: <span class="string"><span class="content">/superlists.env</span></span>
+        <span class="key">ports</span>: <span class="string"><span class="content">80:8888</span></span></code></pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_using_systemd_to_make_sure_our_container_starts_on_boot">Using Systemd to Make Sure Our Container Starts on Boot</h4>
+<div class="paragraph">
+<p>
+
+Our final step is to make sure
+that the server starts up our container automatically on boot,
+and reloads it automatically if it crashes.</p>
+</div>
+<div class="paragraph">
+<p>Ansible and the podman plugins have some modules for this:</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">infra/ansible-provision.yaml (ch11l006)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="yaml">    - <span class="string"><span class="content">name: Create container</span></span>
+      <span class="key">containers.podman.podman_container</span>:
+        <span class="key">name</span>: <span class="string"><span class="content">superlists</span></span>
+        <span class="key">image</span>: <span class="string"><span class="content">superlists</span></span>
+        <span class="key">state</span>: <span class="string"><span class="content">stopped</span></span>
+        <span class="key">recreate</span>: <span class="string"><span class="content">true</span></span>
+        <span class="key">env_file</span>: <span class="string"><span class="content">~/superlists.env</span></span>
+        <span class="key">ports</span>: <span class="string"><span class="content">80:8888</span></span>
+
+    - <span class="string"><span class="content">name: Generate Systemd config file</span></span>
+      <span class="key">containers.podman.podman_generate_systemd</span>:
+        <span class="key">name</span>: <span class="string"><span class="content">superlists</span></span>
+        <span class="key">dest</span>: <span class="string"><span class="content">~/.config/systemd/user/</span></span>
+
+    - <span class="string"><span class="content">name: Container must be started and enabled on systemd</span></span>
+      <span class="key">ansible.builtin.systemd</span>:
+        <span class="key">name</span>: <span class="string"><span class="content">container-superlists</span></span>
+        <span class="key">daemon_reload</span>: <span class="string"><span class="content">true</span></span>
+        <span class="key">state</span>: <span class="string"><span class="content">started</span></span>
+        <span class="key">enabled</span>: <span class="string"><span class="content">true</span></span></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>vagrant@ubuntu-jammy:~$ cat ~/.config/systemd/user/container-superlists.service
+# container-superlists.service
+# autogenerated by Podman 3.4.4
+# Wed Oct 25 10:55:38 UTC 2023
+
+[Unit]
+Description=Podman container-superlists.service
+Documentation=man:podman-generate-systemd(1)
+Wants=network-online.target
+After=network-online.target
+RequiresMountsFor=/run/user/1000/containers
+
+[Service]
+Environment=PODMAN_SYSTEMD_UNIT=%n
+Restart=on-failure
+TimeoutStopSec=70
+ExecStart=/usr/bin/podman start superlists
+ExecStop=/usr/bin/podman stop -t 10 superlists
+ExecStopPost=/usr/bin/podman stop -t 10 superlists
+PIDFile=/run/user/1000/containers/overlay-containers/c058e368b446388cf3b3faecdf1d8186d14d8b0a01fbf64bfca5714ae56d42fe/userdata/conmon.pid
+Type=forking
+
+[Install]
+WantedBy=default.target</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Systemd is joyously simple to configure (especially if you&#8217;ve ever had the
+dubious pleasure of writing an <code>init.d</code> script), and is fairly
+self-explanatory.</p>
+</div>
+<div class="listingblock small-code">
+<div class="content">
+<pre>$ <strong>TEST_SERVER=superlists-staging.ottg.eu python manage.py test functional_tests</strong>
+[...]
+OK</pre>
+</div>
+</div>
+<div class="sidebarblock">
+<div class="content">
+<div class="title">More Debugging Tips and Commands</div>
+<div class="paragraph">
+<p>A few more places to look and things to try, now that we&#8217;ve introduced
+Podman and Systemd into the mix, should things not go according to plan:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>You can check the Container logs using
+<code>podman logs superlists</code>.
+</p>
+</li>
+<li>
+<p>You can check the Systemd logs using
+<code>journalctl --user -u container-superlists</code>.
+</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_deploying_to_live">Deploying to Live</h4>
+<div class="paragraph">
+<p>So, let&#8217;s try using it for our live site!</p>
+</div>
+<div class="listingblock small-code against-server">
+<div class="content">
+<pre>$ <strong>fab deploy:host=elspeth@superlists.ottg.eu</strong>
+
+Done.
+Disconnecting from elspeth@superlists.ottg.eu... done.</pre>
+</div>
+</div>
+<div class="paragraph">
+<p><em>Brrp brrp brpp</em>. You can see the script follows a slightly different path,
+doing a <code>git clone</code> to bring down a brand new repo instead of a <code>git pull</code>.
+It also needs to set up a new virtualenv from scratch, including a fresh
+install of pip and Django. The <code>collectstatic</code> actually creates new files this
+time, and the <code>migrate</code> seems to have worked too.</p>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_git_tag_the_release">Git Tag the Release</h3>
+<div class="paragraph">
+<p>One
+final bit of admin.  In order to preserve a historical marker,
+we&#8217;ll use Git tags to mark the state of the codebase that reflects
+what&#8217;s currently live on the server:</p>
+</div>
+<div class="listingblock skipme">
+<div class="content">
+<pre>$ <strong>git tag LIVE</strong>
+$ <strong>export TAG=$(date +DEPLOYED-%F/%H%M)</strong>  # this generates a timestamp
+$ <strong>echo $TAG</strong> # should show "DEPLOYED-" and then the timestamp
+$ <strong>git tag $TAG</strong>
+$ <strong>git push origin LIVE $TAG</strong> # pushes the tags up</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Now it&#8217;s easy, at any time, to check what the difference is between
+our current codebase and what&#8217;s live on the servers.  This will come
+in useful in a few chapters, when we look at database migrations. Have
+a look at the tag in the history:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>git log --graph --oneline --decorate</strong>
+[...]</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Anyway, you now have a live website!  Tell all your friends!  Tell your mum, if
+no one else is interested!  And, in the next chapter, it&#8217;s back to coding
+again.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_further_reading">Further Reading</h3>
+<div class="paragraph">
+<p>
+There&#8217;s no such thing as the One True Way in deployment,
+and I&#8217;m no grizzled expert in any case.
+I&#8217;ve tried to set you off on a reasonably sane path,
+but there&#8217;s plenty of things you could do differently,
+and lots, lots more to learn besides.q
+Here are some resources I used for inspiration:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><a href="http://12factor.net/">The 12-factor App</a> by the Heroku team</p>
+</li>
+<li>
+<p><a href="http://hynek.me/talks/python-deployments">Solid Python Deployments for Everybody</a> by Hynek Schlawack</p>
+</li>
+<li>
+<p>The deployment chapter of <a href="/book/bibliography.html#twoscoops">Two Scoops of Django</a> by Dan
+Greenfeld and Audrey Roy</p>
+</li>
+</ul>
+</div>
+<div class="sidebarblock pagebreak-before less_space">
+<div class="content">
+<div class="title">Automated Deployments</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">Fabric</dt>
+<dd>
+<p>    Fabric
+lets you run commands on servers from inside Python scripts. This
+    is a great tool for automating server admin tasks.</p>
+</dd>
+<dt class="hdlist1">Idempotency</dt>
+<dd>
+<p>    If
+your deployment script is deploying to existing servers, you need to
+    design them so that they work against a fresh installation <em>and</em> against
+    a server that&#8217;s already configured.</p>
+</dd>
+<dt class="hdlist1">Keep config files under source control</dt>
+<dd>
+<p>Make sure your only copy of a config file isn&#8217;t on the server!  They
+are critical to your application, and should be under version control
+like anything else.</p>
+</dd>
+<dt class="hdlist1">Automating provisioning</dt>
+<dd>
+<p>Ultimately, <em>everything</em> should be automated, and that includes spinning up
+brand new servers and ensuring they have all the right software installed.
+This will involve interacting with the API of your hosting provider.</p>
+</dd>
+<dt class="hdlist1">Configuration management tools</dt>
+<dd>
+<p>
+
+Fabric is very flexible, but its logic is still based on scripting. More
+advanced tools take a more "declarative" approach, and can make your life
+even easier.  Ansible and Vagrant are two worth checking out (see
+<a href="#appendix3">[appendix3]</a>), but there are many more (Chef, Puppet, Salt, Juju&#8230;&#8203;).
+</p>
+</dd>
+</dl>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div id="footer">
+<div id="footer-text">
+License: Creative Commons <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode">CC-BY-NC-ND</a>. Last updated: 2024-01-15 22:20:30 UTC
+</div>
+</div>
+<div class="comments" style="padding: 20px">
+  <h3>Comments</h3>
+  <div id="disqus_thread"></div>
+  <script type="text/javascript">
+    var disqus_config = function () {
+        this.page.identifier = 'chapter_11_ansible';
+    };
+    
+    (function() {
+        var d = document, s = d.createElement('script');
+        s.src = '//obeythetestinggoat.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+  </script>
+  <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript" rel="nofollow">comments powered by Disqus.</a></noscript>
+</div>
+
+<html><head><script>   (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){   (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),   m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)   })(window,document,'script','//www.google-analytics.com/analytics.js','ga');    ga('create', 'UA-40928035-1', 'obeythetestinggoat.com');   ga('send', 'pageview');  </script>
+</head></html></body>
+</html>
