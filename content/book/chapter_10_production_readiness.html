@@ -56,19 +56,21 @@ and using the FTs to detect any regressions.</p>
 </div>
 <div class="sidebarblock">
 <div class="content">
-<div class="title">&#128679; Warning, this chapter is heavily under construction</div>
+<div class="title">&#128679; Warning, chapter under construction &#128679;</div>
 <div class="paragraph">
 <p>As part of my work on the third edition of the book,
-I&#8217;m rewriting the deployment chapters,
-but this chapter is far from ready I&#8217;m afraid.
-Sorry!</p>
+I&#8217;m making big changes to the deployment chapters,
+and this is a very new draft.</p>
 </div>
 <div class="paragraph">
-<p>Following along with this chapter is going to be pretty
-much impossible while I&#8217;m still half-done.</p>
+<p>This chapter still has a couple of TODOS in,
+but its content is mostly there, so you should be able to follow along.</p>
 </div>
 <div class="paragraph">
-<p>It might be best to skip ahead to <a href="/book/chapter_12_organising_test_files.html">[chapter_12_organising_test_files]</a></p>
+<p>But as always I really, really need fedback.
+So please hit me up at <a href="mailto:obeythetestinggoat@gmail.com">obeythetestinggoat@gmail.com</a>, or via
+<a href="https://github.com/hjwp/Book-TDD-Web-Dev-Python/issues">GitHub Issues</a>
+and Pull Requests.</p>
 </div>
 </div>
 </div>
@@ -124,11 +126,14 @@ Django provides one in <em>superlists/wsgi.py</em>:</p>
 </div>
 <div class="paragraph">
 <p>As in the previous chapter, we can use the <code>docker build &amp;&amp; docker run</code>
-in a single line to try out our changes by rebuilding and rerunning our container:</p>
+pattern to try out our changes by rebuilding and rerunning our container:</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>docker build -t superlists . &amp;&amp; docker run -p 8888:8888 -v ./src/db.sqlite3:/src/db.sqlite3 -it superlists</pre>
+<pre>$ *docker build -t superlists . &amp;&amp; docker run \
+  -p 8888:8888 \
+  -v ./src/db.sqlite3:/src/db.sqlite3 \
+  -it superlists*</pre>
 </div>
 </div>
 <div class="sect3">
@@ -142,7 +147,7 @@ but the test for layout + styling fails. Good job, tests!</p>
 <div class="content">
 <pre>$ <strong>TEST_SERVER=localhost:8888 python manage.py test functional_tests</strong>
 [...]
-AssertionError: 117.0 != 512 within 10 delta
+AssertionError: 102.5 != 512 within 10 delta (409.5 difference)
 FAILED (failures=1)</pre>
 </div>
 </div>
@@ -311,7 +316,8 @@ are useful for Dev.</td>
 </div>
 <div class="paragraph">
 <p>The end result is that you don&#8217;t need to set any env vars for dev,
-but production needs both , and it will error if any are missing.
+but production needs both to be set explicitly,
+and it will error if any are missing.
 I think this gives us a little bit of protection
 against accidentally forgetting to set one.</p>
 </div>
@@ -328,6 +334,9 @@ Better to fail hard than allow a typo in an environment variable name to
 </tr>
 </table>
 </div>
+</div>
+<div class="sect3">
+<h4 id="_setting_environment_variables_inside_the_dockerfile">Setting environment variables inside the Dockerfile</h4>
 <div class="paragraph">
 <p>Now let&#8217;s set that environment variable in our Dockerfile using then <code>ENV</code> directive:</p>
 </div>
@@ -344,32 +353,47 @@ CMD ["gunicorn", "--bind", ":8888", "superlists.wsgi:application"]</code></pre>
 </div>
 </div>
 </div>
+<div class="paragraph">
+<p>And try it out&#8230;&#8203;</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ *docker build -t superlists . &amp;&amp; docker run \
+  -p 8888:8888 \
+  -v ./src/db.sqlite3:/src/db.sqlite3 \
+  -it superlists*
+
+[...]
+    SECRET_KEY = os.environ["DJANGO_SECRET_KEY"]
+                 ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+# TODO: show more of traceback</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Ooops, and I forgot to set said secret key env var,
+mere seconds after having dreamt it up!</p>
+</div>
 </div>
 <div class="sect3">
 <h4 id="_setting_environment_variables_at_the_docker_command_line">Setting environment variables at the docker command-line</h4>
 <div class="paragraph">
-<p>Ooops, and I forgot to set that secret key env var,
-mere moments after having dreamt it up.</p>
+<p>We&#8217;ve said we can&#8217;t keep the secret key in our source code,
+so the Dockerfile isn&#8217;t an option; where else can we put it?</p>
+</div>
+<div class="paragraph">
+<p>For now, we can set it at the command line using the <code>-e</code> flag for <code>docker run</code>:</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>    SECRET_KEY = os.environ["DJANGO_SECRET_KEY"]
-                 ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^</pre>
+<pre>$ <strong>docker build -t superlists . &amp;&amp; docker run \
+  -p 8888:8888 \
+  -v ./src/db.sqlite3:/src/db.sqlite3 \
+  -e DJANGO_SECRET_KEY=sekrit \
+  -it superlists</strong></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>Now, we&#8217;ve said we can&#8217;t keep the secret key in our source code,
-where else can we put it?
-For now, we can set it at the command line using the <code>-e</code> flag for <code>docker run</code>:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>$ <strong>docker build -t superlists . &amp;&amp; \
-    docker run -p 8888:8888 -v ./src/db.sqlite3:/src/db.sqlite3 -e DJANGO_SECRET_KEY=sekrit -it superlists</strong></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>And use a test run to reassure ourselves that things still work&#8230;&#8203;</p>
+<p>With that running, we can use our FT again to see if we&#8217;re back to a working state.</p>
 </div>
 <div class="listingblock small-code">
 <div class="content">
@@ -382,7 +406,7 @@ AssertionError: 'To-Do' not found in 'Bad Request (400)'</pre>
 <div class="sect3">
 <h4 id="_allowed_hosts_is_required_when_debug_mode_is_turned_off">ALLOWED_HOSTS is Required When Debug Mode is Turned Off</h4>
 <div class="paragraph">
-<p>Oops.  Let&#8217;s take a look manually: <a href="#django-400-error">An ugly 400 error</a>.</p>
+<p>Not quite!  Let&#8217;s take a look manually: <a href="#django-400-error">An ugly 400 error</a>.</p>
 </div>
 <div id="django-400-error" class="imageblock">
 <div class="content">
@@ -391,18 +415,28 @@ AssertionError: 'To-Do' not found in 'Bad Request (400)'</pre>
 <div class="title">Figure 2. An ugly 400 error</div>
 </div>
 <div class="paragraph">
-<p>Something&#8217;s gone wrong.  But once again, by running our FTs frequently,
-we&#8217;re able to identify the problem early, before we&#8217;ve changed too many things.
-In this case the only thing we&#8217;ve changed is <em>settings.py</em>. We&#8217;ve changed three
-settings&#8212;which one might be at fault?</p>
+<p>We&#8217;ve set our two environment variables but doing so seems to have broken things.
+But once again, by running our FTs frequently,
+we&#8217;re able to identify the problem early,
+before we&#8217;ve changed too many things at the same time.
+We&#8217;ve only changed two settings&#8212;which one might be at fault?</p>
 </div>
 <div class="paragraph">
-<p>Let&#8217;s use the "Googling the error message" technique again.</p>
+<p>Let&#8217;s use the "Googling the error message" technique again,
+with the search terms "django debug false" and "400 bad request".</p>
 </div>
 <div class="paragraph">
-<p>The very first link in my search results for
-<a href="https://duckduckgo.com/?q=django+400+bad+request">Django 400 Bad Request</a>
-suggests that a 400 error is usually to do with <code>ALLOWED_HOSTS</code>.</p>
+<p>Well, the very first link in my <a href="https://duckduckgo.com/?q=django+400+bad+request">search results</a>
+was Stackoverflow suggesting that a 400 error is usually to do with <code>ALLOWED_HOSTS</code>,
+and the second was the official Django docs,
+which takes a bit more scrolling, but confirms it
+(see <a href="#search-results-400-bad-request">Search results for "django debug false 400 bad request"</a>).</p>
+</div>
+<div id="search-results-400-bad-request" class="imageblock">
+<div class="content">
+<img src="images/search-results-400-bad-request.png" alt="Duckduckgo search results with stackoverflow and django docs">
+</div>
+<div class="title">Figure 3. Search results for "django debug false 400 bad request"</div>
 </div>
 <div class="paragraph">
 <p><code>ALLOWED_HOSTS</code> is a security setting
@@ -448,13 +482,14 @@ or on a server, so we&#8217;ll use the <code>-e</code> flag again:</p>
 <div class="content">
 <pre>$ <strong>docker build -t superlists . &amp;&amp; \
     docker run -p 8888:8888 -v ./src/db.sqlite3:/src/db.sqlite3 \
-        -e DJANGO_SECRET_KEY=sekrit -e DJANGO_ALLOWED_HOST=localhost \
+        -e DJANGO_SECRET_KEY=sekrit \
+        -e DJANGO_ALLOWED_HOST=localhost \
         -it superlists</strong></pre>
 </div>
 </div>
 </div>
 <div class="sect3">
-<h4 id="_collectstatic_is_required_when_debug_is_turned_off">Collectstatic is required when Debug is Turned off</h4>
+<h4 id="_collectstatic_is_required_when_debug_is_turned_off">Collectstatic is Required when Debug is Turned Off</h4>
 <div class="paragraph">
 <p>An FT run (or just looking at the site) reveals that we&#8217;ve had a regression
 in our static files.</p>
@@ -463,13 +498,14 @@ in our static files.</p>
 <div class="content">
 <pre>$ <strong>TEST_SERVER=localhost:8888 python manage.py test functional_tests</strong>
 [...]
-AssertionError: 117.0 != 512 within 10 delta
+AssertionError: 102.5 != 512 within 10 delta (409.5 difference)
 FAILED (failures=1)</pre>
 </div>
 </div>
 <div class="paragraph">
 <p>We saw this before when switching from the Django dev server to Gunicorn,
-so we introduced Whitenoise. Similarly, when we switch DEBUG off,
+so we introduced Whitenoise.
+Similarly, when we switch DEBUG off,
 Whitenoise stops automagically finding static files in our code,
 and instead we need to run <code>collectstatic</code>:</p>
 </div>
@@ -535,8 +571,8 @@ WhiteNoise is just one example of how you might do that.</p>
 <dt class="hdlist1">Check your settings.py for dev-only settings</dt>
 <dd>
 <p><code>DEBUG=True</code>, <code>ALLOWED_HOSTS</code> and <code>SECRET_KEY</code> are the ones we came across,
-but you will probably have others (we&#8217;ll see more when we start to send
-emails from the server).</p>
+but you will probably have others
+(we&#8217;ll see more when we start to send emails from the server).</p>
 </dd>
 <dt class="hdlist1">Change things one at a time and rerun your tests frequently</dt>
 <dd>
@@ -583,7 +619,7 @@ wild place!
 </div>
 <div id="footer">
 <div id="footer-text">
-License: Creative Commons <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode">CC-BY-NC-ND</a>. Last updated: 2024-01-15 22:19:39 UTC
+License: Creative Commons <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode">CC-BY-NC-ND</a>. Last updated: 2024-01-22 06:53:07 UTC
 </div>
 </div>
 <div class="comments" style="padding: 20px">
