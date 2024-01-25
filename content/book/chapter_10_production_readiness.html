@@ -108,10 +108,16 @@ an ORM, all sorts of middleware, the admin site&#8230;&#8203;
 "What else do you want, a pony?" Well, Gunicorn stands for "Green Unicorn",
 which I guess is what you&#8217;d want next if you already had a pony&#8230;&#8203;</p>
 </div>
+<div class="paragraph">
+<p>cmdg</p>
+</div>
 <div class="listingblock">
 <div class="content">
-<pre>pip install gunicorn
-pip freeze | grep -i gunicorn== &gt;&gt; requirements.txt</pre>
+<pre>$ <strong>pip install gunicorn</strong>
+Collecting gunicorn
+[...]
+Successfully installed gunicorn-21.2.0
+$ <strong>pip freeze | grep -i gunicorn== &gt;&gt; requirements.txt</strong></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -119,9 +125,14 @@ pip freeze | grep -i gunicorn== &gt;&gt; requirements.txt</pre>
 which is usually a function called <code>application</code>.
 Django provides one in <em>superlists/wsgi.py</em>:</p>
 </div>
+<div class="exampleblock sourcecode">
+<div class="title">Dockerfile (ch10l002)</div>
+<div class="content">
 <div class="listingblock">
 <div class="content">
-<pre>CMD ["gunicorn", "--bind", ":8888", "superlists.wsgi:application"]</pre>
+<pre class="CodeRay highlight"><code data-lang="Dockerfile">CMD gunicorn --bind :8888 superlists.wsgi:application</code></pre>
+</div>
+</div>
 </div>
 </div>
 <div class="paragraph">
@@ -130,10 +141,10 @@ pattern to try out our changes by rebuilding and rerunning our container:</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>$ *docker build -t superlists . &amp;&amp; docker run \
+<pre>$ <strong>docker build -t superlists . &amp;&amp; docker run \
   -p 8888:8888 \
   -v ./src/db.sqlite3:/src/db.sqlite3 \
-  -it superlists*</pre>
+  -it superlists</strong></pre>
 </div>
 </div>
 <div class="sect3">
@@ -156,7 +167,7 @@ FAILED (failures=1)</pre>
 as in <a href="#site-with-broken-css">Broken CSS</a>.</p>
 </div>
 <div class="paragraph">
-<p>The reason that the CSS is broken is that although the Django dev server will
+<p>The reason that we have no CSS is that although the Django dev server will
 serve static files magically for you, Gunicorn doesn&#8217;t.</p>
 </div>
 <div id="site-with-broken-css" class="imageblock">
@@ -189,8 +200,8 @@ files from Python.</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>pip install whitenoise
-pip freeze | grep -i whitenoise== &gt;&gt; requirements.txt</pre>
+<pre>$ <strong>pip install whitenoise</strong>
+$ <strong>pip freeze | grep -i whitenoise== &gt;&gt; requirements.txt</strong></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -231,7 +242,7 @@ OK</pre>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>*git commit -am"Switch to Gunicorn and Whitenoise"*</pre>
+<pre>$ <strong>git commit -am"Switch to Gunicorn and Whitenoise"</strong></pre>
 </div>
 </div>
 </div>
@@ -266,7 +277,7 @@ but then keep it the same for the foreseeable future
 in their configuration.
 Environment variables are a good place to store those different settings.
 See <a href="http://www.clearlytech.com/2014/01/04/12-factor-apps-plain-english/">
-"the 12-factor app"</a>.<sup class="footnote">[<a id="_footnoteref_2" class="footnote" href="#_footnotedef_2" title="View footnote.">2</a>]</sup></p>
+"The 12-Factor App"</a>.<sup class="footnote">[<a id="_footnoteref_2" class="footnote" href="#_footnotedef_2" title="View footnote.">2</a>]</sup></p>
 </div>
 <div class="sect3">
 <h4 id="_setting_debugtrue_and_secret_key">Setting DEBUG=True and SECRET_KEY</h4>
@@ -348,7 +359,7 @@ Better to fail hard than allow a typo in an environment variable name to
 <pre class="CodeRay highlight"><code data-lang="dockerfile">WORKDIR /src
 
 ENV DJANGO_DEBUG_FALSE=1
-CMD ["gunicorn", "--bind", ":8888", "superlists.wsgi:application"]</code></pre>
+CMD gunicorn --bind :8888 superlists.wsgi:application</code></pre>
 </div>
 </div>
 </div>
@@ -358,15 +369,17 @@ CMD ["gunicorn", "--bind", ":8888", "superlists.wsgi:application"]</code></pre>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>$ *docker build -t superlists . &amp;&amp; docker run \
+<pre>$ <strong>docker build -t superlists . &amp;&amp; docker run \
   -p 8888:8888 \
   -v ./src/db.sqlite3:/src/db.sqlite3 \
-  -it superlists*
+  -it superlists</strong>
 
 [...]
+  File "/src/superlists/settings.py", line 22, in &lt;module&gt;
     SECRET_KEY = os.environ["DJANGO_SECRET_KEY"]
                  ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
-# TODO: show more of traceback</pre>
+  File "&lt;frozen os&gt;", line 685, in __getitem__
+KeyError: 'DJANGO_SECRET_KEY'</pre>
 </div>
 </div>
 <div class="paragraph">
@@ -375,7 +388,7 @@ mere seconds after having dreamt it up!</p>
 </div>
 </div>
 <div class="sect3">
-<h4 id="_setting_environment_variables_at_the_docker_command_line">Setting environment variables at the docker command-line</h4>
+<h4 id="_setting_environment_variables_at_the_docker_command_line">Setting Environment Variables at the Docker Command Line</h4>
 <div class="paragraph">
 <p>We&#8217;ve said we can&#8217;t keep the secret key in our source code,
 so the Dockerfile isn&#8217;t an option; where else can we put it?</p>
@@ -519,7 +532,7 @@ and instead we need to run <code>collectstatic</code>:</p>
 RUN python manage.py collectstatic
 
 ENV DJANGO_DEBUG_FALSE=1
-CMD ["gunicorn", "--bind", ":8888", "superlists.wsgi:application"]</code></pre>
+CMD gunicorn --bind :8888 superlists.wsgi:application</code></pre>
 </div>
 </div>
 </div>
@@ -538,14 +551,7 @@ OK</pre>
 <p>We have a container that we&#8217;re ready to ship to production!</p>
 </div>
 <div class="paragraph">
-<p>Find out how in the next exciting installment.</p>
-</div>
-</div>
-</div>
-<div class="sect2">
-<h3 id="_todo_log_files">TODO: log files</h3>
-<div class="paragraph">
-<p>provoke a 500 error somehow and make sure we see tracebacks for it</p>
+<p>Find out how in the next exciting installment&#8230;&#8203;</p>
 </div>
 <div class="sidebarblock pagebreak-before less_space">
 <div class="content">
@@ -568,7 +574,7 @@ it will let you run multiple workers, for example.
 that comes from Django and your webapp, so they need to be treated differently.
 WhiteNoise is just one example of how you might do that.</p>
 </dd>
-<dt class="hdlist1">Check your settings.py for dev-only settings</dt>
+<dt class="hdlist1">Check your settings.py for dev-only config</dt>
 <dd>
 <p><code>DEBUG=True</code>, <code>ALLOWED_HOSTS</code> and <code>SECRET_KEY</code> are the ones we came across,
 but you will probably have others
@@ -581,26 +587,8 @@ we can rerun the test suite,
 and either be confident that everything works as well as it did before,
 or find out immediately if we did something wrong.</p>
 </dd>
-<dt class="hdlist1">Security</dt>
-<dd>
-<p>A serious discussion of server security is beyond the scope of this book,
-and I&#8217;d warn against running your own servers
-without learning a good bit more about it.
-(One reason people choose to use a PaaS to host their code
-is that it means a slightly fewer security issues to worry about.)
-If you&#8217;d like a place to start, here&#8217;s as good a place as any:
-<a href="https://plusbryan.com/my-first-5-minutes-on-a-server-or-essential-security-for-linux-servers">My first 5 minutes on a server</a>.
-I can definitely recommend the eye-opening experience of installing
-fail2ban and watching its logfiles to see just how quickly it picks up on
-random drive-by attempts to brute force your SSH login.  The internet is a
-wild place!
-
-</p>
-</dd>
 </dl>
 </div>
-<div class="paragraph">
-<p>TODO: that last one probably belongs in the next chapter.</p>
 </div>
 </div>
 </div>
@@ -619,7 +607,7 @@ wild place!
 </div>
 <div id="footer">
 <div id="footer-text">
-License: Creative Commons <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode">CC-BY-NC-ND</a>. Last updated: 2024-01-22 06:53:07 UTC
+License: Creative Commons <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode">CC-BY-NC-ND</a>. Last updated: 2024-01-23 00:55:37 UTC
 </div>
 </div>
 <div class="comments" style="padding: 20px">
