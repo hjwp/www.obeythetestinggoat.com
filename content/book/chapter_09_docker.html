@@ -7,7 +7,7 @@
 <title>Deployment Part 1: Containerization aka Docker</title>
 <link rel="stylesheet" href="./asciidoctor.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
-<link rel="stylesheet" href="./coderay-asciidoctor.css">
+<link rel="stylesheet" href="./pygments-default.css">
 <script>var httpRequest = new XMLHttpRequest();
 httpRequest.onreadystatechange = function() {
   if (httpRequest.readyState === XMLHttpRequest.DONE) {
@@ -105,7 +105,7 @@ and this is a very new draft.</p>
 </div>
 <div class="paragraph">
 <p>What that means is that I&#8217;d, really, really love feedback from readers.
-Please have a go at following along and let me know how you got on!
+Please have a go at following along and let me know what you think!
 I&#8217;m <a href="mailto:obeythetestinggoat@gmail.com">obeythetestinggoat@gmail.com</a>, or you can open up
 <a href="https://github.com/hjwp/Book-TDD-Web-Dev-Python/issues">GitHub Issue</a>
 or Pull Requests.</p>
@@ -221,21 +221,26 @@ And nowadays, thanks to containerization, we can do better.
 Because containerization is a kind of even-more-virtual virtualization.</p>
 </div>
 <div class="paragraph">
-<p>Conceptually, "regular" virtualization works at the hardware level,
+<p>Conceptually, "regular" virtualization works at the hardware level:
 it gives you multiple virtual machines (VMs)
 that pretend to be physical computers, on a single real machine.
-So you can run multiple operating systems inside separate VMs
+So you can run multiple operating systems using separate VMs
 on the same physical box.</p>
 </div>
 <div class="paragraph">
-<p>Containers work at the operating system level.
-It gives you multiple virtual operating systems that
+<p>Containerization work at the operating system level:
+it gives you multiple virtual operating systems that
 all run on a single real OS.
-So you can run multiple programs inside separate virtual operating systems,
+It lets us pack the source code and its dependencies together,
+the entire environment required to run the application.
+So you can run programs inside separate virtual environments,
 using a single real host operating system and kernel.</p>
 </div>
 <div class="paragraph">
-<p>The upshot of this is that containers are much "cheaper".
+<p>Have a look at
+<a href="https://www.docker.com/resources/what-container/">Docker&#8217;s resources on containers</a>
+for more explanation,
+The upshot of this is that containers are much "cheaper".
 You can start one up in milliseconds,
 and you can run hundreds on the same machine.</p>
 </div>
@@ -271,14 +276,16 @@ and most of the rest of the deployment process is taken care of by someone else.
 <div class="ulist">
 <ul>
 <li>
-<p>Containers are like a little virtual server,
+<p>Containers can be like little virtual servers and this is how
+we will use them,
 so they will force us to address many of the problems
 like dependency management and configuration.</p>
 </li>
 <li>
 <p>We can use the containers to package up as much
 of the functionality of our application as possible,
-which in turn will minimise the amount of configuration
+like a production-ready web server and static files system.
+This in turn will minimise the amount of configuration
 we need to do to our actual servers.</p>
 </li>
 <li>
@@ -363,11 +370,11 @@ to make it production-ready.</p>
 where to find logs and other useful information.</p>
 </li>
 <li>
-<p>Confidently deploy to production once we have a working deployment script for staging.</p>
-</li>
-<li>
 <p>Use Ansible to build an automated script that can deploy
 our container to staging.</p>
+</li>
+<li>
+<p>Confidently deploy to production once we have a working deployment script for staging.</p>
 </li>
 </ul>
 </div>
@@ -387,16 +394,16 @@ called <code>TEST_SERVER</code>:</p>
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">import</span> <span class="include">os</span>
-[...]
+<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-kn">import</span> <span class="tok-nn">os</span>
+<span class="tok-p">[</span><span class="tok-o">...</span><span class="tok-p">]</span>
 
-<span class="keyword">class</span> <span class="class">NewVisitorTest</span>(StaticLiveServerTestCase):
+<span class="tok-k">class</span> <span class="tok-nc">NewVisitorTest</span><span class="tok-p">(</span><span class="tok-n">StaticLiveServerTestCase</span><span class="tok-p">):</span>
 
-    <span class="keyword">def</span> <span class="function">setUp</span>(<span class="predefined-constant">self</span>):
-        <span class="predefined-constant">self</span>.browser = webdriver.Firefox()
-        test_server = os.environ.get(<span class="string"><span class="delimiter">'</span><span class="content">TEST_SERVER</span><span class="delimiter">'</span></span>)  <i class="conum" data-value="1"></i><b>(1)</b>
-        <span class="keyword">if</span> test_server:
-            <span class="predefined-constant">self</span>.live_server_url = <span class="string"><span class="delimiter">'</span><span class="content">http://</span><span class="delimiter">'</span></span> + test_server  <i class="conum" data-value="2"></i><b>(2)</b></code></pre>
+    <span class="tok-k">def</span> <span class="tok-nf">setUp</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">):</span>
+        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">browser</span> <span class="tok-o">=</span> <span class="tok-n">webdriver</span><span class="tok-o">.</span><span class="tok-n">Firefox</span><span class="tok-p">()</span>
+        <span class="tok-n">test_server</span> <span class="tok-o">=</span> <span class="tok-n">os</span><span class="tok-o">.</span><span class="tok-n">environ</span><span class="tok-o">.</span><span class="tok-n">get</span><span class="tok-p">(</span><span class="tok-s1">'TEST_SERVER'</span><span class="tok-p">)</span>  <i class="conum" data-value="1"></i><b>(1)</b>
+        <span class="tok-k">if</span> <span class="tok-n">test_server</span><span class="tok-p">:</span>
+            <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">live_server_url</span> <span class="tok-o">=</span> <span class="tok-s1">'http://'</span> <span class="tok-o">+</span> <span class="tok-n">test_server</span>  <i class="conum" data-value="2"></i><b>(2)</b></code></pre>
 </div>
 </div>
 </div>
@@ -430,7 +437,7 @@ our "real" server.</td>
 <i class="fa icon-note" title="Note"></i>
 </td>
 <td class="content">
-A clarification: in these chapter,
+A clarification: in these chapters,
     we run tests <em>against</em> our Docker container, or <em>against</em> our staging server,
     but that doesn&#8217;t mean we run the tests <em>from</em> Docker or <em>from</em> our staging server.
     We still run the tests from our own laptop,
@@ -455,7 +462,7 @@ OK</pre>
 <div class="paragraph">
 <p>And now we can try them against our docker server URL,
 which once we&#8217;ve done the right docker magic,
-will be at <em><a href="http://locahost:8888" class="bare">http://locahost:8888</a></em></p>
+will be at <em><a href="http://localhost:8888" class="bare">http://localhost:8888</a></em></p>
 </div>
 <div class="admonitionblock tip">
 <table>
@@ -494,7 +501,7 @@ test_can_start_a_todo_list
 selenium.common.exceptions.WebDriverException: Message: Reached error page: abo
 ut:neterror?e=connectionFailure&amp;u=http%3A//localhost:8888/&amp;c=UTF-8&amp;
 f=regular&amp;d=Firefox%20can%27t%20establish%20a%20connection%20to%20the%20server%
-20at%20locahost.
+20at%20localhost.
 
 
 Ran 1 tests in 5.518s
@@ -573,7 +580,7 @@ $ <strong>git commit -m "Move all our code into a src folder"</strong></pre>
 <div class="paragraph">
 <p>The <a href="https://docs.docker.com/get-docker/">Docker documentation</a> is pretty good,
 and you&#8217;ll find detailed installation instructions for Windows, Mac, and Linux.
-Follow those, and then test you installation by running:</p>
+Follow those, and then test your installation by running:</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -629,12 +636,12 @@ But it&#8217;s a little less well established and documented,
 (the Windows installation instructions are a little more DIY for example),
 and in the end, although I&#8217;m a fan of a plucky upstart,
 Docker is open source too,
-so I didn&#8217;t decide to stick with Docker. But you could definitely check it out!</p>
+so I decided to stick with it. But you could definitely check it out!</p>
 </div>
 <div class="paragraph">
 <p>You can follow along all the instructions in the book
 by just substituing the <code>docker</code> binary for <code>podman</code> in all the CLI instructions,
-eg</p>
+e.g.</p>
 </div>
 <div class="listingblock skipme">
 <div class="content">
@@ -680,18 +687,22 @@ What do we need to do?  Something like this, right?</p>
 </li>
 </ol>
 </div>
+<div class="paragraph">
+<p>We create a new file called <em>Dockerfile</em> in the base folder of our repo,
+next to the <code>src/</code> directory we made earlier:</p>
+</div>
 <div class="exampleblock">
 <div class="title">Dockerfile (ch09l003)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="dockerfile">FROM python:slim  <i class="conum" data-value="1"></i><b>(1)</b>
+<pre class="pygments highlight"><code data-lang="dockerfile"><span></span><span class="tok-k">FROM</span><span class="tok-w"> </span><span class="tok-s">python:slim</span><span class="tok-w">  </span><i class="conum" data-value="1"></i><b>(1)</b>
 
-COPY src /src  <i class="conum" data-value="2"></i><b>(2)</b>
+<span class="tok-k">COPY</span><span class="tok-w"> </span>src<span class="tok-w"> </span>/src<span class="tok-w">  </span><i class="conum" data-value="2"></i><b>(2)</b>
 
-WORKDIR /src  <i class="conum" data-value="3"></i><b>(3)</b>
+<span class="tok-k">WORKDIR</span><span class="tok-w"> </span><span class="tok-s">/src  </span><i class="conum" data-value="3"></i><b>(3)</b>
 
-CMD python manage.py runserver  <i class="conum" data-value="4"></i><b>(4)</b></code></pre>
+<span class="tok-k">CMD</span><span class="tok-w"> </span>python<span class="tok-w"> </span>manage.py<span class="tok-w"> </span>runserver<span class="tok-w">  </span><i class="conum" data-value="4"></i><b>(4)</b></code></pre>
 </div>
 </div>
 </div>
@@ -733,7 +744,7 @@ by default, when you start a container based on that image.</td>
 </div>
 </div>
 <div class="sect3">
-<h4 id="_docker_build">Docker build</h4>
+<h4 id="_docker_build">Docker Build</h4>
 <div class="paragraph">
 <p>You build an image with <code>docker build &lt;path-containing-dockerfile&gt;</code>
 and we&#8217;ll use the <code>-t &lt;tagname&gt;</code> argument to "tag" our image
@@ -776,7 +787,7 @@ superlists    latest    7b8e1c9fa68e   13 minutes ago   155MB</pre>
 </div>
 </div>
 <div class="sect3">
-<h4 id="_docker_run">Docker run</h4>
+<h4 id="_docker_run">Docker Run</h4>
 <div class="paragraph">
 <p>Once you&#8217;ve built an image,
 you can run one or more containers based on that image, using <code>docker run</code>.
@@ -821,7 +832,7 @@ rather than just manually pip installing things
 one by one, and having to remember to sync things
 between local dev and docker,
 we can "save" the list of packages we&#8217;re using
-by creating a <em>requirements.txt</em> file<sup class="footnote">[<a id="_footnoteref_3" class="footnote" href="#_footnotedef_3" title="View footnote.">3</a>]</sup></p>
+by creating a <em>requirements.txt</em> file.<sup class="footnote">[<a id="_footnoteref_3" class="footnote" href="#_footnotedef_3" title="View footnote.">3</a>]</sup></p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -898,19 +909,19 @@ to point it at our requirements file:</p>
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="dockerfile">FROM python:slim
+<pre class="pygments highlight"><code data-lang="dockerfile"><span></span><span class="tok-k">FROM</span><span class="tok-w"> </span><span class="tok-s">python:slim</span>
 
-RUN python -m venv /venv  <i class="conum" data-value="1"></i><b>(1)</b>
-ENV PATH="/venv/bin:$PATH"  <i class="conum" data-value="2"></i><b>(2)</b>
+<span class="tok-k">RUN</span><span class="tok-w"> </span>python<span class="tok-w"> </span>-m<span class="tok-w"> </span>venv<span class="tok-w"> </span>/venv<span class="tok-w">  </span><i class="conum" data-value="1"></i><b>(1)</b>
+<span class="tok-k">ENV</span><span class="tok-w"> </span><span class="tok-nv">PATH</span><span class="tok-o">=</span><span class="tok-s2">"/venv/bin:</span><span class="tok-nv">$PATH</span><span class="tok-s2">"</span><span class="tok-w">  </span><i class="conum" data-value="2"></i><b>(2)</b>
 
-COPY requirements.txt requirements.txt  <i class="conum" data-value="3"></i><b>(3)</b>
-RUN pip install -r requirements.txt  <i class="conum" data-value="4"></i><b>(4)</b>
+<span class="tok-k">COPY</span><span class="tok-w"> </span>requirements.txt<span class="tok-w"> </span>requirements.txt<span class="tok-w">  </span><i class="conum" data-value="3"></i><b>(3)</b>
+<span class="tok-k">RUN</span><span class="tok-w"> </span>pip<span class="tok-w"> </span>install<span class="tok-w"> </span>-r<span class="tok-w"> </span>requirements.txt<span class="tok-w">  </span><i class="conum" data-value="4"></i><b>(4)</b>
 
-COPY src /src
+<span class="tok-k">COPY</span><span class="tok-w"> </span>src<span class="tok-w"> </span>/src
 
-WORKDIR /src
+<span class="tok-k">WORKDIR</span><span class="tok-w"> </span><span class="tok-s">/src</span>
 
-CMD python manage.py runserver</code></pre>
+<span class="tok-k">CMD</span><span class="tok-w"> </span>python<span class="tok-w"> </span>manage.py<span class="tok-w"> </span>runserver</code></pre>
 </div>
 </div>
 </div>
@@ -949,15 +960,15 @@ Notice the <code>-r</code>.</td>
 <td class="content">
 Forgetting the <code>-r</code> and running <code>pip install requirements.txt</code>
     is such a common error, that I recommend you do it <em>right now</em>
-    and get familiar with the error message,
-    because (at the time of writing), it&#8217;s not very self-explanatory.
-    And it&#8217;s a mistake I still make, <em>all the time</em>.
+    and get familiar with the error message
+    (which is thankfully much more helpful than it used to be).
+    It&#8217;s a mistake I still make, <em>all the time</em>.
 </td>
 </tr>
 </table>
 </div>
 <div class="sect3">
-<h4 id="_successful_run">Successful run</h4>
+<h4 id="_successful_run">Successful Run</h4>
 <div class="paragraph">
 <p>Let&#8217;s do the <code>build</code> and <code>run</code> in a single line.
 This is a pattern I used quite often when developing a Dockerfile,
@@ -1012,9 +1023,47 @@ Make sure you use the <code>-it</code> flags to the Docker <code>run</code>
     to be run in an interactive terminal session,
     otherwise you&#8217;ll get strange behaviours, including not being able
     to interrupt the docker process with <em>Ctrl-C</em>.
+    See <a href="#how-to-stop-a-docker-container">How to Stop a Docker Container</a> for an escape hatch.
 </td>
 </tr>
 </table>
+</div>
+<div id="how-to-stop-a-docker-container" class="sidebarblock">
+<div class="content">
+<div class="title">How to Stop a Docker Container</div>
+<div class="paragraph">
+<p>If you&#8217;ve got a container that&#8217;s "hanging" in a terminal window,
+you can kill it from another one.</p>
+</div>
+<div class="paragraph">
+<p>The docker daemon lets you list all the currently running containers
+with <code>docker ps</code>:</p>
+</div>
+<div class="listingblock skipme small-code">
+<div class="content">
+<pre>$ *docker ps
+CONTAINER ID   IMAGE        COMMAND                  CREATED         STATUS         PORTS     NAMES
+0818e1b8e9bf   superlists   "/bin/sh -c 'python &#8230;"   4 seconds ago   Up 4 seconds             hardcore_moore</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>This tells us a bit about each container, including a unique ID,
+and a randomly-generated name (you can override that if you want to).</p>
+</div>
+<div class="paragraph">
+<p>We can use the ID or the name to kill the container with <code>docker kill</code>:</p>
+</div>
+<div class="listingblock skipme">
+<div class="content">
+<pre>$ docker kill 0818e1b8e9bf
+0818e1b8e9bf</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>And if you go back to your other terminal window,
+you should find the docker process has been terminated.</p>
+</div>
+</div>
 </div>
 </div>
 </div>
@@ -1025,7 +1074,7 @@ Make sure you use the <code>-it</code> flags to the Docker <code>run</code>
 </div>
 <div class="listingblock small-code">
 <div class="content">
-<pre>$ <strong>TEST_SERVER=localhost:8888 ./src/manage.py test functional_tests \
+<pre>$ <strong>TEST_SERVER=localhost:8888 ./src/manage.py test src/functional_tests \
     --failfast</strong>
 [...]
 selenium.common.exceptions.WebDriverException: Message: Reached error page:
@@ -1039,7 +1088,7 @@ about:neterror?e=connectionFailure&amp;u=http%3A//localhost%3A8888/[...]</pre>
 <div class="sect2">
 <h3 id="_debugging_a_container_networking_problems">Debugging a Container Networking Problems</h3>
 <div class="paragraph">
-<p>First let&#8217;s try and take a look ourselves, in our browser:</p>
+<p>First let&#8217;s try and take a look ourselves, in our browser, by going to <a href="http://localhost:8888/" class="bare">http://localhost:8888/</a>:</p>
 </div>
 <div id="firefox-unable-to-connect-screenshot" class="imageblock">
 <div class="content">
@@ -1048,7 +1097,8 @@ about:neterror?e=connectionFailure&amp;u=http%3A//localhost%3A8888/[...]</pre>
 <div class="title">Figure 1. Cannot connect on that port</div>
 </div>
 <div class="paragraph">
-<p>Now let&#8217;s take another look at the output from our <code>docker run</code>.  Here&#8217;s what appeared right at the end:</p>
+<p>Now let&#8217;s take another look at the output from our <code>docker run</code>.
+Here&#8217;s what appeared right at the end:</p>
 </div>
 <div class="listingblock skipme">
 <div class="content">
@@ -1057,7 +1107,7 @@ Quit the server with CONTROL-C.</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>Aha!  We notice that we&#8217;re using the wrong port, <code>8000</code> instead of the <code>8888</code>
+<p>Aha!  We notice that we&#8217;re using the wrong port, the default <code>8000</code> instead of the <code>8888</code>
 that we specified in the <code>TEST_SERVER</code> env var.</p>
 </div>
 <div class="paragraph">
@@ -1068,17 +1118,17 @@ that we specified in the <code>TEST_SERVER</code> env var.</p>
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="dockerfile">[...]
-WORKDIR /src
+<pre class="pygments highlight"><code data-lang="dockerfile"><span></span><span class="tok-o">[</span>...<span class="tok-o">]</span>
+<span class="tok-k">WORKDIR</span><span class="tok-w"> </span><span class="tok-s">/src</span>
 
-CMD python manage.py runserver 8888</code></pre>
+<span class="tok-k">CMD</span><span class="tok-w"> </span>python<span class="tok-w"> </span>manage.py<span class="tok-w"> </span>runserver<span class="tok-w"> </span><span class="tok-m">8888</span></code></pre>
 </div>
 </div>
 </div>
 </div>
 <div class="paragraph">
 <p>Ctrl+C the current dockerized container process if it&#8217;s still running in your terminal,
-give it another <code>build &amp;&amp; run</code>:</p>
+then give it another <code>build &amp;&amp; run</code>:</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -1088,9 +1138,9 @@ Starting development server at http://127.0.0.1:8888/</pre>
 </div>
 </div>
 <div class="sect3">
-<h4 id="_debugging_web_server_connectivity_with_curl">Debugging web server connectivity with "curl"</h4>
+<h4 id="_debugging_web_server_connectivity_with_curl">Debugging Web Server Connectivity With "curl"</h4>
 <div class="paragraph">
-<p>Nope, that won&#8217;t work either.
+<p>A quick check in our browser will show us that nope, that doesn&#8217;t work either.
 Let&#8217;s try an even lower-level smoke test, the traditional Unix utility <code>curl</code>.
 It&#8217;s a command-line tool for making HTTP requests.  Try it on your own computer first:</p>
 </div>
@@ -1198,7 +1248,7 @@ HTTP/1.1 200 OK
 why can&#8217;t we see it <em>outside</em>??</p>
 </div>
 <div class="sect3">
-<h4 id="_exposing_docker_ports">Exposing Docker Ports</h4>
+<h4 id="_docker_ports_mapping">Docker Ports Mapping</h4>
 <div class="paragraph">
 <p>The pythonspeed guide to Docker&#8217;s very first section is called
 <a href="https://pythonspeed.com/articles/docker-connection-refused/">Connection Refused</a>,
@@ -1212,7 +1262,7 @@ from the ports <em>outside</em> the container, the ones we can see on our host m
 </div>
 <div class="paragraph">
 <p>So we need to tell Docker to connect the internal ports to the outside ones,
-or "expose" them, in Docker terminology.</p>
+to "publish" or "map" them, in Docker terminology.</p>
 </div>
 <div class="paragraph">
 <p><code>docker run</code> takes a <code>-p</code> argument, with the syntax <code>OUTSIDE:INSIDE</code>.
@@ -1258,14 +1308,14 @@ curl: (52) Empty reply from server</pre>
 <div class="sect3">
 <h4 id="_essential_googling_the_error_message">Essential Googling the Error Message</h4>
 <div class="paragraph">
-<p>The need to expose ports and the <code>-p</code> argument to <code>docker run</code> are something you just learn,
-fairly on in learning Docker.  But the next debugging step is quite a bit more obscure
+<p>The need to map ports and the <code>-p</code> argument to <code>docker run</code> are something you just learn,
+fairly early on in learning Docker.  But the next debugging step is quite a bit more obscure
 (although admittedly Itamar does address it in his
 <a href="https://pythonspeed.com/articles/docker-connection-refused/">docker networking article</a>,
 did I already mention how excellent it is?).</p>
 </div>
 <div class="paragraph">
-<p>But if we haven&#8217;t read that, we can always resort to resort to the tried and tested "Googling the error message" technique instead
+<p>But if we haven&#8217;t read that, we can always resort to the tried and tested "Googling the error message" technique instead
 (<a href="#googling-the-error">An indispensable publication (source: https://news.ycombinator.com/item?id=11459601)</a>).</p>
 </div>
 <div id="googling-the-error" class="imageblock">
@@ -1283,7 +1333,7 @@ which was a <a href="https://stackoverflow.com/questions/49476217/docker-cant-ac
 </div>
 <div id="google-results-screenshot" class="imageblock">
 <div class="content">
-<img src="images/google-results-with-stackoverflow.png" alt="Google results with a useful stackoverflow post in first position" width="400">
+<img src="images/google-results-with-stackoverflow.png" alt="Google results with a useful stackoverflow post in first position" width="1000">
 </div>
 <div class="title">Figure 4. Google can still deliver results</div>
 </div>
@@ -1297,10 +1347,10 @@ as the address of <em>localhost</em>:</p>
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="dockerfile">[...]
-WORKDIR /src
+<pre class="pygments highlight"><code data-lang="dockerfile"><span></span><span class="tok-o">[</span>...<span class="tok-o">]</span>
+<span class="tok-k">WORKDIR</span><span class="tok-w"> </span><span class="tok-s">/src</span>
 
-CMD python manage.py runserver 0.0.0.0:8888</code></pre>
+<span class="tok-k">CMD</span><span class="tok-w"> </span>python<span class="tok-w"> </span>manage.py<span class="tok-w"> </span>runserver<span class="tok-w"> </span><span class="tok-m">0</span>.0.0.0:8888</code></pre>
 </div>
 </div>
 </div>
@@ -1340,7 +1390,7 @@ Starting development server at http://0.0.0.0:8888/</pre>
 <div class="title">On Debugging</div>
 <div class="paragraph">
 <p>Let me let you in on a little secret.  I&#8217;m actually bad at debugging.
-We all have our psychological strengths and weakness,
+We all have our psychological strengths and weaknesses,
 and one of my weaknesses is
 that when I run into a problem I can&#8217;t see an obvious solution to,
 I want to throw up my hands way too soon
@@ -1369,20 +1419,20 @@ until you eventually find the cause.</p>
 <h3 id="_database_migrations">Database migrations</h3>
 <div class="paragraph">
 <p>
-A quick visual inspection confirms&#8212;&#8203;the site is up (<a href="#staging-is-up">The staging site is up!</a>)!</p>
+A quick visual inspection confirms&#8212;&#8203;the site is up (<a href="#site-in-docker-is-up">The site in Docker is up!</a>)!</p>
 </div>
-<div id="staging-is-up" class="imageblock">
+<div id="site-in-docker-is-up" class="imageblock">
 <div class="content">
 <img src="images/twp2_0903.png" alt="The front page of the site, at least, is up">
 </div>
-<div class="title">Figure 5. The staging site is up!</div>
+<div class="title">Figure 5. The site in Docker is up!</div>
 </div>
 <div class="paragraph">
 <p>Let&#8217;s see what our functional tests say:</p>
 </div>
 <div class="listingblock small-code">
 <div class="content">
-<pre>$ <strong>TEST_SERVER=superlists-staging.ottg.eu:8000 ./manage.py test functional_tests \
+<pre>$ <strong>TEST_SERVER=localhost:8888 ./src/manage.py test src/functional_tests \
     --failfast</strong>
 [...]
 E
@@ -1459,7 +1509,7 @@ Run 'python manage.py migrate' to apply them.</pre>
 <td class="content">
 If you don&#8217;t see this error,
     it&#8217;s because your src folder had the database file in it, unlike mine.
-    For the sake of argument, run <code>rm src/db.sqlite</code> and re-run the build &amp; run commands,
+    For the sake of argument, run <code>rm src/db.sqlite3</code> and re-run the build &amp; run commands,
     and you should be able to repro the error.  I promise it&#8217;s instructive!
 </td>
 </tr>
@@ -1478,11 +1528,11 @@ If you don&#8217;t see this error,
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="dockerfile">[...]
-WORKDIR /src
+<pre class="pygments highlight"><code data-lang="dockerfile"><span></span><span class="tok-o">[</span>...<span class="tok-o">]</span>
+<span class="tok-k">WORKDIR</span><span class="tok-w"> </span><span class="tok-s">/src</span>
 
-RUN python manage.py migrate --noinput  <i class="conum" data-value="1"></i><b>(1)</b>
-CMD /venv/bin/python manage.py runserver</code></pre>
+<span class="tok-k">RUN</span><span class="tok-w"> </span>python<span class="tok-w"> </span>manage.py<span class="tok-w"> </span>migrate<span class="tok-w"> </span>--noinput<span class="tok-w">  </span><i class="conum" data-value="1"></i><b>(1)</b>
+<span class="tok-k">CMD</span><span class="tok-w"> </span>python<span class="tok-w"> </span>manage.py<span class="tok-w"> </span>runserver</code></pre>
 </div>
 </div>
 </div>
@@ -1500,7 +1550,7 @@ CMD /venv/bin/python manage.py runserver</code></pre>
 </div>
 <div class="listingblock small-code">
 <div class="content">
-<pre>$ <strong>TEST_SERVER=superlists-staging.ottg.eu:8000 ./manage.py test functional_tests \
+<pre>$ <strong>TEST_SERVER=localhost:8888 ./src/manage.py test src/functional_tests \
     --failfast</strong>
 Found 3 test(s).
 Creating test database for alias 'default'...
@@ -1539,10 +1589,10 @@ which is a very useful thing to be able to do &#8482;.</p>
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="dockerfile">[...]
-WORKDIR /src
+<pre class="pygments highlight"><code data-lang="dockerfile"><span></span><span class="tok-o">[</span>...<span class="tok-o">]</span>
+<span class="tok-k">WORKDIR</span><span class="tok-w"> </span><span class="tok-s">/src</span>
 
-CMD /venv/bin/python manage.py runserver</code></pre>
+<span class="tok-k">CMD</span><span class="tok-w"> </span>python<span class="tok-w"> </span>manage.py<span class="tok-w"> </span>runserver</code></pre>
 </div>
 </div>
 </div>
@@ -1560,7 +1610,6 @@ Running migrations:
   Applying contenttypes.0001_initial... OK
 [...]
   Applying sessions.0001_initial... OK
-[...]
 $ <strong>docker build -t superlists . &amp;&amp; docker run \
   -p 8888:8888 \
   -v ./src/db.sqlite3:/src/db.sqlite3 \
@@ -1576,7 +1625,7 @@ $ <strong>docker build -t superlists . &amp;&amp; docker run \
 <td class="content">
 if you see an error saying: <code>django.db.utils.OperationalError</code>: "unable to open database file",
     try stopping the container, <code>rm -rf src/db.sqlite3</code>, then re-run the migrate command
-    <em>outside</em> the container, and the rebuild and run your image.
+    <em>outside</em> the container, and then rebuild and run your image.
 </td>
 </tr>
 </table>
@@ -1586,7 +1635,7 @@ if you see an error saying: <code>django.db.utils.OperationalError</code>: "unab
 </div>
 <div class="listingblock small-code">
 <div class="content">
-<pre>$ <strong>TEST_SERVER=superlists-staging.ottg.eu:8000 ./manage.py test functional_tests \
+<pre>$ <strong>TEST_SERVER=localhost:8888 ./src/manage.py test src/functional_tests \
     --failfast</strong>
 Found 3 test(s).
 Creating test database for alias 'default'...
@@ -1638,7 +1687,7 @@ In the next chapter, we&#8217;ll make our hacky image more production-ready.</p>
 <p>For developers, ops and infra work is always "fun",
 by which I mean a process full of uncertainty and surprises.
 My aim during this chapter was to show that a step-by-step approach
-helps to minimse risk, especially when allied to a functional test suite
+helps to minimise risk, especially when allied to a functional test suite
 that can help us to catch errors early.</p>
 </dd>
 </dl>
@@ -1678,7 +1727,7 @@ deployments.</p>
 </div>
 <div id="footer">
 <div id="footer-text">
-License: Creative Commons <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode">CC-BY-NC-ND</a>. Last updated: 2024-01-25 12:09:29 UTC
+License: Creative Commons <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode">CC-BY-NC-ND</a>. Last updated: 2024-02-21 15:10:34 UTC
 </div>
 </div>
 <div class="comments" style="padding: 20px">

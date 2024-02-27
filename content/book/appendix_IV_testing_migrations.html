@@ -7,7 +7,7 @@
 <title>Testing Database Migrations</title>
 <link rel="stylesheet" href="./asciidoctor.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
-<link rel="stylesheet" href="./coderay-asciidoctor.css">
+<link rel="stylesheet" href="./pygments-default.css">
 <script>var httpRequest = new XMLHttpRequest();
 httpRequest.onreadystatechange = function() {
   if (httpRequest.readyState === XMLHttpRequest.DONE) {
@@ -71,7 +71,7 @@ constraints in <a href="/book/chapter_deploying_validation.html">[chapter_deploy
 <div class="listingblock skipme">
 <div class="content">
 <pre>$ <strong>cd deploy_tools</strong>
-$ <strong>fab deploy:host=elspeth@superlists-staging.ottg.eu</strong>
+$ <strong>fab deploy:host=elspeth@staging.ottg.co.uk</strong>
 [...]
 Running migrations:
   Applying lists.0005_list_item_unique_together...Traceback (most recent call
@@ -137,8 +137,8 @@ Be very, very, very careful when using real data for testing.  For
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>$ <strong>scp elspeth@superlists.ottg.eu:\
-/home/elspeth/sites/superlists.ottg.eu/database/db.sqlite3 .</strong>
+<pre>$ <strong>scp elspeth@superlists.ottg.co.uk:\
+/home/elspeth/sites/superlists.ottg.co.uk/database/db.sqlite3 .</strong>
 $ <strong>mv ../database/db.sqlite3 ../database/db.sqlite3.bak</strong>
 $ <strong>mv db.sqlite3 ../database/db.sqlite3</strong></pre>
 </div>
@@ -195,30 +195,30 @@ instructions to change existing data:</p>
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="comment"># encoding: utf8</span>
-<span class="keyword">from</span> <span class="include">django.db</span> <span class="keyword">import</span> <span class="include">models</span>, <span class="include">migrations</span>
+<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-c1"># encoding: utf8</span>
+<span class="tok-kn">from</span> <span class="tok-nn">django.db</span> <span class="tok-kn">import</span> <span class="tok-n">models</span><span class="tok-p">,</span> <span class="tok-n">migrations</span>
 
-<span class="keyword">def</span> <span class="function">find_dupes</span>(apps, schema_editor):
-    List = apps.get_model(<span class="string"><span class="delimiter">"</span><span class="content">lists</span><span class="delimiter">"</span></span>, <span class="string"><span class="delimiter">"</span><span class="content">List</span><span class="delimiter">"</span></span>)
-    <span class="keyword">for</span> list_ <span class="keyword">in</span> List.objects.all():
-        items = list_.item_set.all()
-        texts = <span class="predefined">set</span>()
-        <span class="keyword">for</span> ix, item <span class="keyword">in</span> <span class="predefined">enumerate</span>(items):
-            <span class="keyword">if</span> item.text <span class="keyword">in</span> texts:
-                item.text = <span class="string"><span class="delimiter">'</span><span class="content">{} ({})</span><span class="delimiter">'</span></span>.format(item.text, ix)
-                item.save()
-            texts.add(item.text)
+<span class="tok-k">def</span> <span class="tok-nf">find_dupes</span><span class="tok-p">(</span><span class="tok-n">apps</span><span class="tok-p">,</span> <span class="tok-n">schema_editor</span><span class="tok-p">):</span>
+    <span class="tok-n">List</span> <span class="tok-o">=</span> <span class="tok-n">apps</span><span class="tok-o">.</span><span class="tok-n">get_model</span><span class="tok-p">(</span><span class="tok-s2">"lists"</span><span class="tok-p">,</span> <span class="tok-s2">"List"</span><span class="tok-p">)</span>
+    <span class="tok-k">for</span> <span class="tok-n">list_</span> <span class="tok-ow">in</span> <span class="tok-n">List</span><span class="tok-o">.</span><span class="tok-n">objects</span><span class="tok-o">.</span><span class="tok-n">all</span><span class="tok-p">():</span>
+        <span class="tok-n">items</span> <span class="tok-o">=</span> <span class="tok-n">list_</span><span class="tok-o">.</span><span class="tok-n">item_set</span><span class="tok-o">.</span><span class="tok-n">all</span><span class="tok-p">()</span>
+        <span class="tok-n">texts</span> <span class="tok-o">=</span> <span class="tok-nb">set</span><span class="tok-p">()</span>
+        <span class="tok-k">for</span> <span class="tok-n">ix</span><span class="tok-p">,</span> <span class="tok-n">item</span> <span class="tok-ow">in</span> <span class="tok-nb">enumerate</span><span class="tok-p">(</span><span class="tok-n">items</span><span class="tok-p">):</span>
+            <span class="tok-k">if</span> <span class="tok-n">item</span><span class="tok-o">.</span><span class="tok-n">text</span> <span class="tok-ow">in</span> <span class="tok-n">texts</span><span class="tok-p">:</span>
+                <span class="tok-n">item</span><span class="tok-o">.</span><span class="tok-n">text</span> <span class="tok-o">=</span> <span class="tok-s1">'</span><span class="tok-si">{}</span><span class="tok-s1"> (</span><span class="tok-si">{}</span><span class="tok-s1">)'</span><span class="tok-o">.</span><span class="tok-n">format</span><span class="tok-p">(</span><span class="tok-n">item</span><span class="tok-o">.</span><span class="tok-n">text</span><span class="tok-p">,</span> <span class="tok-n">ix</span><span class="tok-p">)</span>
+                <span class="tok-n">item</span><span class="tok-o">.</span><span class="tok-n">save</span><span class="tok-p">()</span>
+            <span class="tok-n">texts</span><span class="tok-o">.</span><span class="tok-n">add</span><span class="tok-p">(</span><span class="tok-n">item</span><span class="tok-o">.</span><span class="tok-n">text</span><span class="tok-p">)</span>
 
 
-<span class="keyword">class</span> <span class="class">Migration</span>(migrations.Migration):
+<span class="tok-k">class</span> <span class="tok-nc">Migration</span><span class="tok-p">(</span><span class="tok-n">migrations</span><span class="tok-o">.</span><span class="tok-n">Migration</span><span class="tok-p">):</span>
 
-    dependencies = [
-        (<span class="string"><span class="delimiter">'</span><span class="content">lists</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">0004_item_list</span><span class="delimiter">'</span></span>),
-    ]
+    <span class="tok-n">dependencies</span> <span class="tok-o">=</span> <span class="tok-p">[</span>
+        <span class="tok-p">(</span><span class="tok-s1">'lists'</span><span class="tok-p">,</span> <span class="tok-s1">'0004_item_list'</span><span class="tok-p">),</span>
+    <span class="tok-p">]</span>
 
-    operations = [
-        migrations.RunPython(find_dupes),
-    ]</code></pre>
+    <span class="tok-n">operations</span> <span class="tok-o">=</span> <span class="tok-p">[</span>
+        <span class="tok-n">migrations</span><span class="tok-o">.</span><span class="tok-n">RunPython</span><span class="tok-p">(</span><span class="tok-n">find_dupes</span><span class="tok-p">),</span>
+    <span class="tok-p">]</span></code></pre>
 </div>
 </div>
 </div>
@@ -249,7 +249,7 @@ $ <strong>mv lists/migrations/0006_* lists/migrations/0006_unique_together.py</s
 <div class="listingblock">
 <div class="content">
 <pre>$ <strong>cd deploy_tools</strong>
-$ <strong>fab deploy:host=elspeth@superlists-staging.ottg.eu</strong>
+$ <strong>fab deploy:host=elspeth@staging.ottg.co.uk</strong>
 [...]</pre>
 </div>
 </div>
@@ -258,7 +258,7 @@ $ <strong>fab deploy:host=elspeth@superlists-staging.ottg.eu</strong>
 </div>
 <div class="listingblock server-commands skipme">
 <div class="content">
-<pre>elspeth@server:$ <strong>sudo systemctl restart gunicorn-superlists.ottg.eu</strong></pre>
+<pre>elspeth@server:$ <strong>sudo systemctl restart gunicorn-superlists.ottg.co.uk</strong></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -266,7 +266,7 @@ $ <strong>fab deploy:host=elspeth@superlists-staging.ottg.eu</strong>
 </div>
 <div class="listingblock skipme small-code">
 <div class="content">
-<pre>$ <strong>STAGING_SERVER=superlists-staging.ottg.eu python manage.py test functional_tests</strong>
+<pre>$ <strong>STAGING_SERVER=staging.ottg.co.uk python manage.py test functional_tests</strong>
 [...]
 ....
  ---------------------------------------------------------------------
@@ -280,8 +280,8 @@ OK</pre>
 </div>
 <div class="listingblock skipme">
 <div class="content">
-<pre>$ <strong>fab deploy:host=superlists.ottg.eu</strong>
-[superlists.ottg.eu] Executing task 'deploy'
+<pre>$ <strong>fab deploy:host=superlists.ottg.co.uk</strong>
+[superlists.ottg.co.uk] Executing task 'deploy'
 [...]</pre>
 </div>
 </div>
@@ -348,7 +348,7 @@ production data I&#8217;d just loaded into it. Not a fun afternoon.</p>
 </div>
 <div id="footer">
 <div id="footer-text">
-License: Creative Commons <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode">CC-BY-NC-ND</a>. Last updated: 2023-11-21 12:30:56 UTC
+License: Creative Commons <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode">CC-BY-NC-ND</a>. Last updated: 2024-02-21 17:14:32 UTC
 </div>
 </div>
 <div class="comments" style="padding: 20px">

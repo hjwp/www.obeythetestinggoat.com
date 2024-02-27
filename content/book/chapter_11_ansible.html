@@ -7,7 +7,7 @@
 <title>Infrastructure As Code: Automated Deployments With Ansbile</title>
 <link rel="stylesheet" href="./asciidoctor.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
-<link rel="stylesheet" href="./coderay-asciidoctor.css">
+<link rel="stylesheet" href="./pygments-default.css">
 <script>var httpRequest = new XMLHttpRequest();
 httpRequest.onreadystatechange = function() {
   if (httpRequest.readyState === XMLHttpRequest.DONE) {
@@ -96,15 +96,16 @@ Why not ping me a note once your site is live on the web,
 <div class="paragraph">
 <p>As part of my work on the third edition of the book,
 I&#8217;m rewriting the deployment chapters,
-but this chapter is far from ready I&#8217;m afraid.
-Sorry!</p>
+but this chapter is very rough I&#8217;m afraid, sorry!</p>
 </div>
 <div class="paragraph">
-<p>Following along with this chapter is going to be pretty
-much impossible while I&#8217;m still half-done.</p>
+<p>Following along with this chapter is going to be quite challenging,
+since although most of the code listings and commands are there,
+I haven&#8217;t yet written all the explanations to go in between them.</p>
 </div>
 <div class="paragraph">
-<p>It might be best to skip ahead to <a href="/book/chapter_12_organising_test_files.html">[chapter_12_organising_test_files]</a></p>
+<p>By all means have a go if you&#8217;re feeling brave!
+But otherwise it might be best to skip ahead to <a href="/book/chapter_12_organising_test_files.html">[chapter_12_organising_test_files]</a></p>
 </div>
 </div>
 </div>
@@ -114,7 +115,7 @@ much impossible while I&#8217;m still half-done.</p>
 <p>
 We&#8217;re going to need a couple of domain names at this point in the book&#8212;&#8203;they
 can both be subdomains of a single domain.  I&#8217;m going to use
-<em>superlists.ottg.eu</em> and <em>superlists-staging.ottg.eu</em>.
+<em>superlists.ottg.co.uk</em> and <em>staging.ottg.co.uk</em>.
 If you don&#8217;t already own a domain, this is the time to register one!
 Again, this is something I really want you to <em>actually</em> do.
 If you&#8217;ve never registered a domain before,
@@ -125,9 +126,6 @@ I promise seeing your site on a "real" website will be a thrill.</p>
 </div>
 <div class="sect2">
 <h3 id="_manually_provisioning_a_server_to_host_our_site">Manually Provisioning a Server to Host Our Site</h3>
-<div class="paragraph">
-<p>TODO: revise this section</p>
-</div>
 <div class="paragraph">
 <p>
 
@@ -144,20 +142,15 @@ We can separate out "deployment" into two tasks:</p>
 </ul>
 </div>
 <div class="paragraph">
-<p>Some people like to use a brand new server for every deployment&#8212;&#8203;it&#8217;s what we
-do at PythonAnywhere.  That&#8217;s only necessary for larger, more complex sites
-though, or major changes to an existing site. For a simple site like ours, it
-makes sense to separate the two tasks.  And, although we eventually want both
-to be completely automated, we can probably live with a manual provisioning
-system for now.</p>
+<p>Ultimately, infrastructure-as-code tools can let you automate both of these,
+but for the purposes of this book, we can live with manual provisioning.</p>
 </div>
 <div class="paragraph">
-<p>As you go through this chapter, you should be aware that provisioning is
-something that varies a lot, and that as a result there are few universal
-best practices for deployment.  So, rather than trying to remember the
-specifics of what I&#8217;m doing here, you should be trying to understand the
-rationale, so that you can apply the same kind of thinking in the
-specific future circumstances you encounter.</p>
+<p>I should probably stress once more that deployment is something that varies a lot,
+and that as a result there are few universal best practices for how to do it.
+So, rather than trying to remember the specifics of what I&#8217;m doing here,
+you should be trying to understand the rationale,
+so that you can apply the same kind of thinking in the specific future circumstances you encounter.</p>
 </div>
 <div class="sect3">
 <h4 id="_choosing_where_to_host_our_site">Choosing Where to Host Our Site</h4>
@@ -199,10 +192,10 @@ from all the grizzled dinosaurs out there.</p>
 <div class="sect3">
 <h4 id="_spinning_up_a_server">Spinning Up a Server</h4>
 <div class="paragraph">
-<p>I&#8217;m not going to dictate how you do this&#8212;&#8203;whether you choose Amazon AWS,
-Rackspace, Digital Ocean, your own server in your own data centre or a
-Raspberry Pi in a cupboard under the stairs, any solution should be fine, as
-long as:</p>
+<p>I&#8217;m not going to dictate how you do this&#8212;&#8203;whether
+you choose Amazon AWS, Rackspace, Digital Ocean, your own server in a data centre,
+or a Raspberry Pi in a cupboard under the stairs,
+any solution should be fine, as long as:</p>
 </div>
 <div class="ulist">
 <ul>
@@ -240,8 +233,9 @@ where to start, I wrote a
 <td class="content">
 Some people get to this chapter, and are tempted to skip the domain bit,
     and the "getting a real server" bit, and just use a VM on their own PC.
-    Don&#8217;t do this. It&#8217;s <em>not</em> the same, and you&#8217;ll have more difficulty
-    following the instructions, which are complicated enough as it is.
+    Don&#8217;t do this.
+    It&#8217;s <em>not</em> the same, and you&#8217;ll have more difficulty following the instructions,
+    which are complicated enough as it is.
     If you&#8217;re worried about cost, have a look at the link above for free options.
     
 </td>
@@ -293,7 +287,7 @@ At my registrar, the control screens looked a bit like <a href="#registrar-contr
 </div>
 <div id="registrar-control-screens" class="imageblock">
 <div class="content">
-<img src="images/twp2_0902.png" alt="Registrar control screens for two domains">
+<img src="images/gandi_add_dns_a_record.png" alt="Registrar control screen for adding a DNS record">
 </div>
 <div class="title">Figure 1. Domain setup</div>
 </div>
@@ -311,10 +305,23 @@ No need to worry about any other type of record.</p>
 (it&#8217;s controlled by a setting called "TTL", Time To Live),
 so once you&#8217;ve set up your A-record,
 you can check its progress on a "propagation checking" service like this one:
-<a href="https://www.whatsmydns.net/#A/superlists-staging.ottg.eu" class="bare">https://www.whatsmydns.net/#A/superlists-staging.ottg.eu</a>.</p>
+<a href="https://www.whatsmydns.net/#A/staging.ottg.co.uk" class="bare">https://www.whatsmydns.net/#A/staging.ottg.co.uk</a>.</p>
 </div>
 <div class="paragraph">
-<p>I&#8217;m planning to host my staging server at <em>superlists-staging.ottg.eu</em>:</p>
+<p>I&#8217;m planning to host my staging server at <em>staging.ottg.co.uk</em></p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_installing_ansible">Installing ansible</h3>
+<div class="paragraph">
+<p>TODO:</p>
+</div>
+<div class="paragraph">
+<p><a href="https://docs.ansible.com/ansible/latest/installation_guide/intro_installation.html" class="bare">https://docs.ansible.com/ansible/latest/installation_guide/intro_installation.html</a></p>
+</div>
+<div class="paragraph">
+<p>suggests pipx.  could also install it in the local virtualenv?
+may need to add docker-sdk</p>
 </div>
 </div>
 <div class="sect2">
@@ -350,30 +357,30 @@ which, if you&#8217;ve never come across before,
 you will soon develop a love-hate<sup class="footnote">[<a id="_footnoteref_2" class="footnote" href="#_footnotedef_2" title="View footnote.">2</a>]</sup>
 relationship with.</p>
 </div>
-<div class="paragraph">
-<p>TODO: forget podman, just use docker.</p>
-</div>
 <div class="exampleblock sourcecode">
 <div class="title">infra/ansible-provision.yaml (ch11l001)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="yaml"><span class="head"><span class="head">---</span></span>
-- <span class="string"><span class="content">hosts: all</span></span>
+<pre class="pygments highlight"><code data-lang="yaml"><span></span><span class="tok-nn">---</span>
+<span class="tok-p tok-p-Indicator">-</span><span class="tok-w"> </span><span class="tok-nt">hosts</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">all</span>
 
-  <span class="key">tasks</span>:
-    - <span class="string"><span class="content">name: Install podman  </span></span><i class="conum" data-value="1"></i><b>(1)</b>
-      <span class="key">ansible.builtin.apt</span>:  <i class="conum" data-value="2"></i><b>(2)</b>
-        <span class="key">name</span>: <span class="string"><span class="content">podman  </span></span><i class="conum" data-value="3"></i><b>(3)</b>
-        <span class="key">update_cache</span>: <span class="string"><span class="content">yes</span></span>
-      <span class="key">become</span>: <span class="string"><span class="content">true</span></span>
+<span class="tok-w">  </span><span class="tok-nt">tasks</span><span class="tok-p">:</span>
 
-    - <span class="string"><span class="content">name: Run container</span></span>
-      <span class="key">containers.podman.podman_container</span>:
-        <span class="key">name</span>: <span class="string"><span class="content">testcontainer</span></span>
-        <span class="key">image</span>: <span class="string"><span class="content">busybox</span></span>
-        <span class="key">state</span>: <span class="string"><span class="content">started</span></span>
-        <span class="key">cmd</span>: <span class="string"><span class="content">echo hello world</span></span></code></pre>
+<span class="tok-w">    </span><span class="tok-p tok-p-Indicator">-</span><span class="tok-w"> </span><span class="tok-nt">name</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">Install docker</span><span class="tok-w">  </span><i class="conum" data-value="1"></i><b>(1)</b>
+<span class="tok-w">      </span><span class="tok-nt">ansible.builtin.apt</span><span class="tok-p">:</span><span class="tok-w">  </span><i class="conum" data-value="2"></i><b>(2)</b>
+<span class="tok-w">        </span><span class="tok-nt">name</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">docker</span><span class="tok-w">  </span><i class="conum" data-value="3"></i><b>(3)</b>
+<span class="tok-w">        </span><span class="tok-nt">state</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">latest</span>
+<span class="tok-w">        </span><span class="tok-nt">update_cache</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">true</span>
+<span class="tok-w">      </span><span class="tok-nt">become</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">true</span>
+
+<span class="tok-w">    </span><span class="tok-p tok-p-Indicator">-</span><span class="tok-w"> </span><span class="tok-nt">name</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">Run test container</span>
+<span class="tok-w">      </span><span class="tok-nt">community.docker.docker_container</span><span class="tok-p">:</span>
+<span class="tok-w">        </span><span class="tok-nt">name</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">testcontainer</span>
+<span class="tok-w">        </span><span class="tok-nt">state</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">started</span>
+<span class="tok-w">        </span><span class="tok-nt">image</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">busybox</span>
+<span class="tok-w">        </span><span class="tok-nt">command</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">echo hello world</span>
+<span class="tok-w">      </span><span class="tok-nt">become</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">true</span></code></pre>
 </div>
 </div>
 </div>
@@ -390,13 +397,13 @@ Each one usually has a human-readable <code>name</code> attribute.</td>
 <tr>
 <td><i class="conum" data-value="2"></i><b>2</b></td>
 <td>Each tasks uses an ansible "module" to do its work.
-This one uses the <code>builtin.apt</code> module which provides
+The next few use the <code>builtin.apt</code> module which provides
 a wrapper around the <code>apt</code> Debian &amp; Ubuntu package management tool.</td>
 </tr>
 <tr>
 <td><i class="conum" data-value="3"></i><b>3</b></td>
-<td>Each module then provides a bunch of parameters which control
-how it works.  Here we specify the <code>name</code> of the package we want to install ("docker")
+<td>Each module then provides a bunch of parameters which control how it works.
+Here we specify the <code>name</code> of the package we want to install ("docker")
 and tell it update its cache first, which is required on a fresh server.</td>
 </tr>
 </table>
@@ -404,28 +411,80 @@ and tell it update its cache first, which is required on a fresh server.</td>
 <div class="paragraph">
 <p>Most ansible modules have pretty good documentation,
 check out the <code>builtin.apt</code> one for example.
-I often skip to the <a href="https://docs.ansible.com/ansible/latest/collections/ansible/builtin/apt_module.html#examples">Examples section</a>.</p>
+I often skip to the
+<a href="https://docs.ansible.com/ansible/latest/collections/ansible/builtin/apt_module.html#examples">Examples section</a>.</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>$ <strong>ansible-playbook --user=elspeth -i 192.168.56.10, infra/ansible-provision.yaml -vv</strong></pre>
+<pre>$ <strong>ansible-playbook --user=elspeth -i staging.ottg.co.uk, infra/ansible-provision.yaml -vv</strong>
+ansible-playbook [core 2.16.3]
+  config file = None
+  [...]
+No config file found; using defaults
+Skipping callback <em>default</em>, as we already have a stdout callback.
+Skipping callback <em>minimal</em>, as we already have a stdout callback.
+Skipping callback <em>oneline</em>, as we already have a stdout callback.
+
+PLAYBOOK: ansible-provision.yaml <strong><strong></strong><strong></strong></strong><strong><strong></strong><strong></strong></strong><strong><strong></strong><strong></strong></strong><strong><strong></strong><strong></strong></strong><strong><strong></strong></strong>
+1 plays in infra/ansible-provision.yaml
+
+PLAY [all] <strong><strong></strong><strong></strong></strong><strong><strong></strong><strong></strong></strong><strong><strong></strong><strong></strong></strong><strong><strong></strong><strong></strong></strong><strong><strong></strong><strong></strong></strong><strong><strong></strong><strong></strong></strong><strong><strong></strong><strong></strong>
+
+TASK [Gathering Facts] </strong><strong><strong></strong><strong></strong></strong><strong><strong></strong><strong></strong></strong><strong><strong></strong><strong></strong></strong><strong><strong></strong><strong></strong></strong><strong><strong></strong><strong></strong></strong><strong><strong>*
+task path: ...goat-book/superlists/infra/ansible-provision.yaml:2
+ok: [staging.ottg.co.uk]
+PLAYBOOK: ansible-provision.yaml </strong><strong></strong></strong><strong><strong></strong><strong></strong></strong><strong><strong></strong><strong></strong></strong><strong><strong></strong><strong></strong></strong><strong><strong></strong><strong></strong>*
+1 plays in infra/ansible-provision.yaml
+
+TASK [Install docker] </strong><strong><strong></strong><strong></strong></strong><strong><strong></strong><strong></strong></strong><strong><strong></strong><strong></strong></strong><strong><strong></strong><strong></strong></strong><strong><strong></strong><strong></strong></strong><strong><strong></strong>
+task path: ...goat-book/superlists/infra/ansible-provision.yaml:6
+ok: [staging.ottg.co.uk] =&gt; {"cache_update_time": 1708981325, "cache_updated": true, "changed": false}
+
+
+TASK [Install docker] <strong></strong></strong><strong><strong></strong><strong></strong></strong><strong><strong></strong><strong></strong></strong><strong><strong></strong><strong></strong></strong><strong><strong></strong><strong></strong></strong><strong><strong></strong><strong></strong></strong><strong><strong></strong><strong></strong></strong><strong><strong></strong><strong></strong></strong><strong><strong></strong><strong></strong></strong><strong><strong></strong><strong></strong></strong><strong><strong></strong><strong></strong></strong><strong><strong>*
+task path: ...goat-book/superlists/infra/ansible-provision.yaml:6
+changed: [staging.ottg.co.uk] =&gt; {"cache_update_time": [...]
+"cache_updated": true, "changed": true, "stderr": "", "stderr_lines": [],
+"stdout": "Reading package lists...\nBuilding dependency tree...\nReading [...]
+information...\nThe following additional packages will be installed:\n
+wmdocker\nThe following NEW packages will be installed:\n  docker wmdocker\n0
+
+TASK [Run test container] </strong><strong></strong></strong><strong><strong></strong><strong></strong></strong><strong><strong></strong><strong></strong></strong><strong><strong></strong><strong></strong></strong><strong><strong></strong><strong></strong></strong><strong><strong></strong></strong>
+task path: ...goat-book/superlists/infra/ansible-provision.yaml:13
+changed: [staging.ottg.co.uk] =&gt; {"changed": true, "container":
+{"AppArmorProfile": "docker-default", "Args": ["hello", "world"], "Config":
+[...]
+
+PLAY RECAP <strong><strong></strong><strong></strong></strong><strong><strong></strong><strong></strong></strong><strong><strong></strong><strong></strong></strong><strong><strong></strong><strong></strong></strong><strong><strong></strong><strong></strong></strong><strong><strong></strong><strong></strong></strong><strong><strong></strong></strong>**
+staging.ottg.co.uk         : ok=3    changed=2    unreachable=0    failed=0
+skipped=0    rescued=0    ignored=0</pre>
 </div>
-</div>
-<div class="paragraph">
-<p>TODO: show ansible output.
-TODO: stop using local ip</p>
 </div>
 </div>
 <div class="sect2">
 <h3 id="_sshing_into_the_server_and_viewing_container_logs">SSHing Into the Server and Viewing Container Logs</h3>
 <div class="paragraph">
-<p>Now ssh into the server, check it worked</p>
+<p>Time to get into some good old-fashioned sysadmin!
+Let&#8217;s SSH in to our server and see if we can see any evidence that our container has run.</p>
+</div>
+<div class="paragraph">
+<p>We use <code>docker ps -a</code> to view all containers, including old/stopped ones,
+and we can use <code>docker logs</code> to view the output from one of them:</p>
 </div>
 <div class="listingblock server-commands">
 <div class="content">
-<pre>elspeth@server:$ <strong>podman ps -a</strong>
-elspeth@server:$ <strong>podman logs testcontainer</strong>
-hello, world</pre>
+<pre>$ <strong>ssh elspeth@staging.superlists.ottg.co.uk</strong>
+Welcome to Ubuntu 22.04.4 LTS (GNU/Linux 5.15.0-67-generic x86_64)
+ [...]
+
+elspeth@server$ <strong>docker ps -a</strong>
+CONTAINER ID   IMAGE     COMMAND              CREATED      STATUS
+PORTS     NAMES
+3a2e600fbe77   busybox   "echo hello world"   2 days ago   Exited (0) 10
+minutes ago             testcontainer
+
+elspeth@server:$ <strong>docker logs testcontainer</strong>
+hello world</pre>
 </div>
 </div>
 <div class="admonitionblock tip">
@@ -459,12 +518,11 @@ hosted by cloud providers like AWS.</p>
 </div>
 <div class="paragraph">
 <p>So your process of getting an image onto a server is usually
-* push the image from your machine to the registry
-* pull the image from the registry onto the server.
+* Push the image from your machine to the registry
+* Pull the image from the registry onto the server.
   Usually this step is implicit,
-    in that you just specifying the image name
-    in the format registry-url/image-name:tag,
-    and then <code>docker run</code> takes care of pulling down the image for you.</p>
+  in that you just specifying the image name in the format registry-url/image-name:tag,
+  and then <code>docker run</code> takes care of pulling down the image for you.</p>
 </div>
 <div class="paragraph">
 <p>But I don&#8217;t want to ask you to create a DockerHub account,
@@ -481,48 +539,150 @@ In ansible config, it looks like this:</p>
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="yaml"><span class="head"><span class="head">---</span></span>
-- <span class="string"><span class="content">hosts: all</span></span>
+<pre class="pygments highlight"><code data-lang="yaml"><span></span><span class="tok-nn">---</span>
+<span class="tok-p tok-p-Indicator">-</span><span class="tok-w"> </span><span class="tok-nt">hosts</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">all</span>
 
-  <span class="key">tasks</span>:
-    - <span class="string"><span class="content">name: Install podman</span></span>
-      <span class="key">ansible.builtin.apt</span>:
-        <span class="key">name</span>: <span class="string"><span class="content">podman</span></span>
-        <span class="key">update_cache</span>: <span class="string"><span class="content">yes</span></span>
-      <span class="key">become</span>: <span class="string"><span class="content">true</span></span>
+<span class="tok-w">  </span><span class="tok-nt">tasks</span><span class="tok-p">:</span>
+<span class="tok-w">    </span><span class="tok-p tok-p-Indicator">-</span><span class="tok-w"> </span><span class="tok-nt">name</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">Install docker</span>
+<span class="tok-w">      </span><span class="tok-nt">ansible.builtin.apt</span><span class="tok-p">:</span>
+<span class="tok-w">        </span><span class="tok-nt">name</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">docker</span>
+<span class="tok-w">        </span><span class="tok-nt">state</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">latest</span>
+<span class="tok-w">      </span><span class="tok-nt">become</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">true</span>
 
-    - <span class="string"><span class="content">name: Export container image locally</span></span>
-      <span class="key">containers.podman.podman_save</span>:
-        <span class="key">image</span>: <span class="string"><span class="content">superlists</span></span>
-        <span class="key">dest</span>: <span class="string"><span class="content">/tmp/superlists-img.oci</span></span>
-        <span class="key">format</span>: <span class="string"><span class="content">oci-archive</span></span>
-        <span class="key">force</span>: <span class="string"><span class="content">true</span></span>
-      <span class="key">delegate_to</span>: <span class="string"><span class="content">127.0.0.1</span></span>
+<span class="tok-w">    </span><span class="tok-p tok-p-Indicator">-</span><span class="tok-w"> </span><span class="tok-nt">name</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">Export container image locally</span><span class="tok-w">  </span><i class="conum" data-value="1"></i><b>(1)</b>
+<span class="tok-w">      </span><span class="tok-nt">community.docker.docker_image</span><span class="tok-p">:</span>
+<span class="tok-w">        </span><span class="tok-nt">name</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">superlists</span>
+<span class="tok-w">        </span><span class="tok-nt">archive_path</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">/tmp/superlists-img.tar</span>
+<span class="tok-w">        </span><span class="tok-nt">source</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">local</span>
+<span class="tok-w">      </span><span class="tok-nt">delegate_to</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">127.0.0.1</span>
 
-    - <span class="string"><span class="content">name: Upload image to server</span></span>
-      <span class="key">ansible.builtin.copy</span>:
-        <span class="key">src</span>: <span class="string"><span class="content">/tmp/superlists-img.oci</span></span>
-        <span class="key">dest</span>: <span class="string"><span class="content">/tmp/superlists-img.oci</span></span>
+<span class="tok-w">    </span><span class="tok-p tok-p-Indicator">-</span><span class="tok-w"> </span><span class="tok-nt">name</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">Upload image to server</span><span class="tok-w">  </span><i class="conum" data-value="2"></i><b>(2)</b>
+<span class="tok-w">      </span><span class="tok-nt">ansible.builtin.copy</span><span class="tok-p">:</span>
+<span class="tok-w">        </span><span class="tok-nt">src</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">/tmp/superlists-img.tar</span>
+<span class="tok-w">        </span><span class="tok-nt">dest</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">/tmp/superlists-img.tar</span>
 
-    - <span class="string"><span class="content">name: Import container image on server</span></span>
-      <span class="key">containers.podman.podman_load</span>:
-        <span class="key">input</span>: <span class="string"><span class="content">/tmp/superlists-img.oci</span></span>
+<span class="tok-w">    </span><span class="tok-p tok-p-Indicator">-</span><span class="tok-w"> </span><span class="tok-nt">name</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">Import container image on server</span><span class="tok-w">  </span><i class="conum" data-value="3"></i><b>(3)</b>
+<span class="tok-w">      </span><span class="tok-nt">community.docker.docker_image</span><span class="tok-p">:</span>
+<span class="tok-w">        </span><span class="tok-nt">name</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">superlists</span>
+<span class="tok-w">        </span><span class="tok-nt">load_path</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">/tmp/superlists-img.tar</span>
+<span class="tok-w">        </span><span class="tok-nt">source</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">load</span>
+<span class="tok-w">        </span><span class="tok-nt">state</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">present</span>
+<span class="tok-w">      </span><span class="tok-nt">become</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">true</span>
 
-    - <span class="string"><span class="content">name: Run container</span></span>
-      <span class="key">containers.podman.podman_container</span>:
-        <span class="key">name</span>: <span class="string"><span class="content">superlists</span></span>
-        <span class="key">image</span>: <span class="string"><span class="content">superlists</span></span>
-        <span class="key">state</span>: <span class="string"><span class="content">started</span></span>
-        <span class="key">recreate</span>: <span class="string"><span class="content">true</span></span></code></pre>
+<span class="tok-w">    </span><span class="tok-p tok-p-Indicator">-</span><span class="tok-w"> </span><span class="tok-nt">name</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">Run container</span>
+<span class="tok-w">      </span><span class="tok-nt">community.docker.docker_container</span><span class="tok-p">:</span>
+<span class="tok-w">        </span><span class="tok-nt">name</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">superlists</span>
+<span class="tok-w">        </span><span class="tok-nt">image</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">superlists</span>
+<span class="tok-w">        </span><span class="tok-nt">state</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">started</span>
+<span class="tok-w">        </span><span class="tok-nt">recreate</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">true</span></code></pre>
 </div>
 </div>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>We export the docker image to a <code>.tar</code> file by using the <code>docker_image</code> module
+with the <code>archive_path</code> set to temp file, and setting the <code>delegate_to</code> attribute
+to say we&#8217;re running that command on our local machine rather than the server.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>We then use the <code>copy</code> module to upload the tarfile to the server</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="3"></i><b>3</b></td>
+<td>And we use <code>docker_image</code> again but this time with <code>load_path</code> and <code>source: load</code>
+to import the image back on the server</td>
+</tr>
+</table>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>ansible-playbook --user=elspeth -i staging.ottg.co.uk, infra/ansible-provision.yaml -vv</strong>
+[...]
+
+PLAYBOOK: ansible-provision.yaml <strong><strong></strong><strong></strong></strong><strong><strong></strong><strong></strong></strong><strong><strong></strong><strong></strong></strong><strong><strong></strong><strong></strong></strong><strong><strong></strong></strong>
+1 plays in infra/ansible-provision.yaml
+
+PLAY [all] <strong><strong></strong><strong></strong></strong><strong><strong></strong><strong></strong></strong><strong><strong></strong><strong></strong></strong><strong><strong></strong><strong></strong></strong><strong><strong></strong><strong></strong></strong><strong><strong></strong><strong></strong></strong><strong><strong></strong><strong></strong>
+
+TASK [Gathering Facts] </strong><strong><strong></strong><strong></strong></strong><strong><strong></strong><strong></strong></strong><strong><strong></strong><strong></strong></strong><strong><strong></strong><strong></strong></strong><strong><strong></strong><strong></strong></strong><strong><strong>*
+task path: ...goat-book/superlists/infra/ansible-provision.yaml:2
+ok: [staging.ottg.co.uk]
+
+TASK [Install docker] </strong><strong></strong></strong><strong><strong></strong><strong></strong></strong><strong><strong></strong><strong></strong></strong><strong><strong></strong><strong></strong></strong><strong><strong></strong><strong></strong></strong><strong><strong></strong><strong></strong></strong>
+task path: ...goat-book/superlists/infra/ansible-provision.yaml:5
+ok: [staging.ottg.co.uk] =&gt; {"cache_update_time": 1708982855, "cache_updated": false, "changed": false}
+
+TASK [Export container image locally] <strong><strong></strong><strong></strong></strong><strong><strong></strong><strong></strong></strong><strong><strong></strong><strong></strong></strong><strong><strong></strong><strong></strong></strong>*
+task path: ...goat-book/superlists/infra/ansible-provision.yaml:11
+changed: [staging.ottg.co.uk -&gt; 127.0.0.1] =&gt; {"actions": ["Archived image
+superlists:latest to /tmp/superlists-img.tar, overwriting archive with image
+11ff3b83873f0fea93f8ed01bb4bf8b3a02afa15637ce45d71eca1fe98beab34 named
+superlists:latest"], "changed": true, "image": {"Architecture": "amd64",
+[...]
+
+TASK [Upload image to server] <strong><strong></strong><strong></strong></strong><strong><strong></strong><strong></strong></strong><strong><strong></strong><strong></strong></strong><strong><strong></strong><strong></strong></strong><strong><strong></strong><strong></strong>*
+task path: ...goat-book/superlists/infra/ansible-provision.yaml:18
+changed: [staging.ottg.co.uk] =&gt; {"changed": true, "checksum":
+"313602fc0c056c9255eec52e38283522745b612c", "dest": "/tmp/superlists-img.tar",
+[...]
+
+TASK [Import container image on server] </strong><strong><strong></strong><strong></strong></strong><strong><strong></strong><strong></strong></strong><strong><strong></strong><strong></strong></strong><strong><strong></strong><strong>
+task path: ...goat-book/superlists/infra/ansible-provision.yaml:23
+changed: [staging.ottg.co.uk] =&gt; {"actions": ["Loaded image superlists:latest
+from /tmp/superlists-img.tar"], "changed": true, "image": {"Architecture":
+"amd64", "Author": "", "Comment": "buildkit.dockerfile.v0", "Config":
+[...]
+
+TASK [Run container] </strong><strong></strong></strong><strong><strong></strong><strong></strong></strong><strong><strong></strong><strong></strong></strong><strong><strong></strong><strong></strong></strong><strong><strong></strong><strong></strong></strong><strong><strong></strong><strong></strong></strong>*
+task path: ...goat-book/superlists/infra/ansible-provision.yaml:32
+changed: [staging.ottg.co.uk] =&gt; {"changed": true, "container":
+{"AppArmorProfile": "docker-default", "Args": ["--bind", ":8888",
+"superlists.wsgi:application"], "Config": {"AttachStderr": true, "AttachStdin":
+false, "AttachStdout": true, "Cmd": ["gunicorn", "--bind", ":8888",
+"superlists.wsgi:application"], "Domainname": "", "Entrypoint": null, "Env":
+[...]</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>Let&#8217;s see if that worked!</p>
+<p>TODO: sort out macos M1/arch issues, <code>docker build --platform linux/amd64</code> etc.</p>
 </div>
 <div class="paragraph">
-<p>Nope.  TODO: debug, ssh into the server, show missing env vars.</p>
+<p>Looks ok! Let&#8217;s see if that worked?</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>ssh elspeth@staging.superlists.ottg.co.uk</strong>
+Welcome to Ubuntu 22.04.4 LTS (GNU/Linux 5.15.0-67-generic x86_64)
+ [...]
+
+elspeth@server$ <strong>docker ps -a</strong>
+CONTAINER ID   IMAGE     COMMAND              CREATED      STATUS
+PORTS     NAMES
+3a2e600fbe77   busybox   "echo hello world"   2 days ago   Exited (0) 10
+minutes ago             testcontainer
+
+elspeth@server:$ <strong>docker logs testcontainer</strong>
+[2024-02-26 22:19:15 +0000] [1] [INFO] Starting gunicorn 21.2.0
+[2024-02-26 22:19:15 +0000] [1] [INFO] Listening at: http://0.0.0.0:8888 (1)
+[2024-02-26 22:19:15 +0000] [1] [INFO] Using worker: sync
+[...]
+  File "/src/superlists/settings.py", line 22, in &lt;module&gt;
+    SECRET_KEY = os.environ["DJANGO_SECRET_KEY"]
+                 <sub>~</sub><sub>~</sub><sub>~</sub>~<sup>^</sup><sup>^</sup><sup>^</sup><sup>^</sup><sup>^</sup><sup>^</sup><sup>^</sup>
+  File "&lt;frozen os&gt;", line 685, in <em>getitem</em>
+KeyError: <em>DJANGO_SECRET_KEY</em>
+[2024-02-26 22:19:15 +0000] [7] [INFO] Worker exiting (pid: 7)
+[2024-02-26 22:19:15 +0000] [1] [ERROR] Worker (pid:7) exited with code 3
+[2024-02-26 22:19:15 +0000] [1] [ERROR] Shutting down: Master
+[2024-02-26 22:19:15 +0000] [1] [ERROR] Reason: Worker failed to boot.</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Ah woops, we need to set those environment variables on the server too.</p>
 </div>
 </div>
 <div class="sect2">
@@ -546,9 +706,9 @@ config either.</p>
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python">DJANGO_DEBUG_FALSE=<span class="integer">1</span>
-DJANGO_SECRET_KEY=<span class="string"><span class="delimiter">"</span><span class="content">{{ secret_key }}</span><span class="delimiter">"</span></span>
-DJANGO_ALLOWED_HOST=<span class="string"><span class="delimiter">"</span><span class="content">{{ host }}</span><span class="delimiter">"</span></span></code></pre>
+<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-n">DJANGO_DEBUG_FALSE</span><span class="tok-o">=</span><span class="tok-mi">1</span>
+<span class="tok-n">DJANGO_SECRET_KEY</span><span class="tok-o">=</span><span class="tok-s2">"{{ secret_key }}"</span>
+<span class="tok-n">DJANGO_ALLOWED_HOST</span><span class="tok-o">=</span><span class="tok-s2">"{{ host }}"</span></code></pre>
 </div>
 </div>
 </div>
@@ -558,14 +718,25 @@ DJANGO_ALLOWED_HOST=<span class="string"><span class="delimiter">"</span><span c
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="yaml">    - <span class="string"><span class="content">name: Ensure .env file exists</span></span>
-      <span class="key">ansible.builtin.template</span>:
-        <span class="key">src</span>: <span class="string"><span class="content">env.j2</span></span>
-        <span class="key">dest</span>: <span class="string"><span class="content">~/superlists.env</span></span>
-      <span class="key">vars</span>:
-        <span class="key">host</span>: <span class="string"><span class="delimiter">"</span><span class="content">{{ inventory_hostname }}</span><span class="delimiter">"</span></span>
-        <span class="key">secret_key</span>: <span class="string"><span class="delimiter">"</span><span class="content">{{ lookup('password', '/dev/null length=32 chars=ascii_letters,digits') }}</span><span class="delimiter">"</span></span>
-        <span class="key">force</span>: <span class="string"><span class="content">false</span></span>  <span class="comment"># do not recreate file if it already exists.</span></code></pre>
+<pre class="pygments highlight"><code data-lang="yaml"><span></span><span class="tok-w">    </span><span class="tok-p tok-p-Indicator">-</span><span class="tok-w"> </span><span class="tok-nt">name</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">Import container image on server</span>
+<span class="tok-w">      </span><span class="tok-p tok-p-Indicator">[</span><span class="tok-nv">...</span><span class="tok-p tok-p-Indicator">]</span>
+
+<span class="tok-w">    </span><span class="tok-p tok-p-Indicator">-</span><span class="tok-w"> </span><span class="tok-nt">name</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">Ensure .env file exists</span>
+<span class="tok-w">      </span><span class="tok-nt">ansible.builtin.template</span><span class="tok-p">:</span>
+<span class="tok-w">        </span><span class="tok-nt">src</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">env.j2</span>
+<span class="tok-w">        </span><span class="tok-nt">dest</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">~/superlists.env</span>
+<span class="tok-w">      </span><span class="tok-nt">vars</span><span class="tok-p">:</span>
+<span class="tok-w">        </span><span class="tok-nt">host</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-s">"{{</span><span class="tok-nv"> </span><span class="tok-s">inventory_hostname</span><span class="tok-nv"> </span><span class="tok-s">}}"</span>
+<span class="tok-w">        </span><span class="tok-nt">secret_key</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-s">"{{</span><span class="tok-nv"> </span><span class="tok-s">lookup('password',</span><span class="tok-nv"> </span><span class="tok-s">'/dev/null</span><span class="tok-nv"> </span><span class="tok-s">length=32</span><span class="tok-nv"> </span><span class="tok-s">chars=ascii_letters,digits')</span><span class="tok-nv"> </span><span class="tok-s">}}"</span>
+<span class="tok-w">        </span><span class="tok-nt">force</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">false</span><span class="tok-w">  </span><span class="tok-c1"># do not recreate file if it already exists.</span>
+
+<span class="tok-w">    </span><span class="tok-p tok-p-Indicator">-</span><span class="tok-w"> </span><span class="tok-nt">name</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">Run container</span>
+<span class="tok-w">      </span><span class="tok-nt">community.docker.docker_container</span><span class="tok-p">:</span>
+<span class="tok-w">        </span><span class="tok-nt">name</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">superlists</span>
+<span class="tok-w">        </span><span class="tok-nt">image</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">superlists</span>
+<span class="tok-w">        </span><span class="tok-nt">state</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">started</span>
+<span class="tok-w">        </span><span class="tok-nt">recreate</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">true</span>
+<span class="tok-w">        </span><span class="tok-nt">env_file</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">~/superlists.env</span></code></pre>
 </div>
 </div>
 </div>
@@ -597,103 +768,44 @@ I&#8217;m using the <code>vars</code> section to rename it to "host", just for c
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="yaml">    - <span class="string"><span class="content">name: Allow nonroot user to bind to port 80</span></span>
-      <span class="key">ansible.posix.sysctl</span>:
-        <span class="key">name</span>: <span class="string"><span class="content">net.ipv4.ip_unprivileged_port_start</span></span>
-        <span class="key">value</span>: <span class="string"><span class="content">80</span></span>
-        <span class="key">reload</span>: <span class="string"><span class="content">true</span></span>
-      <span class="key">become</span>: <span class="string"><span class="content">true</span></span>
-
-    - <span class="string"><span class="content">name: Run container</span></span>
-      <span class="key">containers.podman.podman_container</span>:
-        <span class="key">name</span>: <span class="string"><span class="content">superlists</span></span>
-        <span class="key">image</span>: <span class="string"><span class="content">superlists</span></span>
-        <span class="key">state</span>: <span class="string"><span class="content">started</span></span>
-        <span class="key">recreate</span>: <span class="string"><span class="content">true</span></span>
-        <span class="key">env_file</span>: <span class="string"><span class="content">/superlists.env</span></span>
-        <span class="key">ports</span>: <span class="string"><span class="content">80:8888</span></span></code></pre>
+<pre class="pygments highlight"><code data-lang="yaml"><span></span><span class="tok-w">    </span><span class="tok-p tok-p-Indicator">-</span><span class="tok-w"> </span><span class="tok-nt">name</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">Run container</span>
+<span class="tok-w">      </span><span class="tok-nt">community.docker.docker_container</span><span class="tok-p">:</span>
+<span class="tok-w">        </span><span class="tok-nt">name</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">superlists</span>
+<span class="tok-w">        </span><span class="tok-nt">image</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">superlists</span>
+<span class="tok-w">        </span><span class="tok-nt">state</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">started</span>
+<span class="tok-w">        </span><span class="tok-nt">recreate</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">true</span>
+<span class="tok-w">        </span><span class="tok-nt">env_file</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">~/superlists.env</span>
+<span class="tok-w">        </span><span class="tok-nt">ports</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">80:8888</span></code></pre>
 </div>
 </div>
 </div>
 </div>
 </div>
-<div class="sect3">
-<h4 id="_using_systemd_to_make_sure_our_container_starts_on_boot">Using Systemd to Make Sure Our Container Starts on Boot</h4>
+</div>
+<div class="sect2">
+<h3 id="_mounting_the_database_on_the_server_and_running_migrations">Mounting the database on the server and running migrations</h3>
 <div class="paragraph">
-<p>
-
-Our final step is to make sure
-that the server starts up our container automatically on boot,
-and reloads it automatically if it crashes.</p>
-</div>
-<div class="paragraph">
-<p>Ansible and the podman plugins have some modules for this:</p>
-</div>
-<div class="exampleblock sourcecode">
-<div class="title">infra/ansible-provision.yaml (ch11l006)</div>
-<div class="content">
-<div class="listingblock">
-<div class="content">
-<pre class="CodeRay highlight"><code data-lang="yaml">    - <span class="string"><span class="content">name: Create container</span></span>
-      <span class="key">containers.podman.podman_container</span>:
-        <span class="key">name</span>: <span class="string"><span class="content">superlists</span></span>
-        <span class="key">image</span>: <span class="string"><span class="content">superlists</span></span>
-        <span class="key">state</span>: <span class="string"><span class="content">stopped</span></span>
-        <span class="key">recreate</span>: <span class="string"><span class="content">true</span></span>
-        <span class="key">env_file</span>: <span class="string"><span class="content">~/superlists.env</span></span>
-        <span class="key">ports</span>: <span class="string"><span class="content">80:8888</span></span>
-
-    - <span class="string"><span class="content">name: Generate Systemd config file</span></span>
-      <span class="key">containers.podman.podman_generate_systemd</span>:
-        <span class="key">name</span>: <span class="string"><span class="content">superlists</span></span>
-        <span class="key">dest</span>: <span class="string"><span class="content">~/.config/systemd/user/</span></span>
-
-    - <span class="string"><span class="content">name: Container must be started and enabled on systemd</span></span>
-      <span class="key">ansible.builtin.systemd</span>:
-        <span class="key">name</span>: <span class="string"><span class="content">container-superlists</span></span>
-        <span class="key">daemon_reload</span>: <span class="string"><span class="content">true</span></span>
-        <span class="key">state</span>: <span class="string"><span class="content">started</span></span>
-        <span class="key">enabled</span>: <span class="string"><span class="content">true</span></span></code></pre>
-</div>
-</div>
-</div>
+<p>todo show test output and/or error page</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>vagrant@ubuntu-jammy:~$ cat ~/.config/systemd/user/container-superlists.service
-# container-superlists.service
-# autogenerated by Podman 3.4.4
-# Wed Oct 25 10:55:38 UTC 2023
-
-[Unit]
-Description=Podman container-superlists.service
-Documentation=man:podman-generate-systemd(1)
-Wants=network-online.target
-After=network-online.target
-RequiresMountsFor=/run/user/1000/containers
-
-[Service]
-Environment=PODMAN_SYSTEMD_UNIT=%n
-Restart=on-failure
-TimeoutStopSec=70
-ExecStart=/usr/bin/podman start superlists
-ExecStop=/usr/bin/podman stop -t 10 superlists
-ExecStopPost=/usr/bin/podman stop -t 10 superlists
-PIDFile=/run/user/1000/containers/overlay-containers/c058e368b446388cf3b3faecdf1d8186d14d8b0a01fbf64bfca5714ae56d42fe/userdata/conmon.pid
-Type=forking
-
-[Install]
-WantedBy=default.target</pre>
+<pre><strong>ssh elspeth@staging.ottg.co.uk docker logs superlists</strong>
+[...]
+django.db.utils.OperationalError: no such table: lists_list</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>Systemd is joyously simple to configure (especially if you&#8217;ve ever had the
-dubious pleasure of writing an <code>init.d</code> script), and is fairly
-self-explanatory.</p>
+<p>todo add db.sqlite mount and migrate</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_it_workssss">It workssss</h3>
+<div class="paragraph">
+<p>hooray</p>
 </div>
 <div class="listingblock small-code">
 <div class="content">
-<pre>$ <strong>TEST_SERVER=superlists-staging.ottg.eu python manage.py test functional_tests</strong>
+<pre>$ <strong>TEST_SERVER=staging.ottg.co.uk python manage.py test functional_tests</strong>
 [...]
 OK</pre>
 </div>
@@ -709,16 +821,18 @@ Podman and Systemd into the mix, should things not go according to plan:</p>
 <ul>
 <li>
 <p>You can check the Container logs using
-<code>podman logs superlists</code>.
-</p>
+<code>docker logs superlists</code>.</p>
 </li>
 <li>
-<p>You can check the Systemd logs using
-<code>journalctl --user -u container-superlists</code>.
+<p>You can get detailed info on the Container using
+<code>docker inspect superlists</code>.</p>
+</li>
+<li>
+<p>And you can inspect the image with
+  <code>docker image inspect superlists</code>.
 </p>
 </li>
 </ul>
-</div>
 </div>
 </div>
 </div>
@@ -729,10 +843,10 @@ Podman and Systemd into the mix, should things not go according to plan:</p>
 </div>
 <div class="listingblock small-code against-server">
 <div class="content">
-<pre>$ <strong>fab deploy:host=elspeth@superlists.ottg.eu</strong>
+<pre>$ <strong>fab deploy:host=elspeth@superlists.ottg.co.uk</strong>
 
 Done.
-Disconnecting from elspeth@superlists.ottg.eu... done.</pre>
+Disconnecting from elspeth@superlists.ottg.co.uk... done.</pre>
 </div>
 </div>
 <div class="paragraph">
@@ -857,7 +971,7 @@ wild place!
 </div>
 <div id="footer">
 <div id="footer-text">
-License: Creative Commons <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode">CC-BY-NC-ND</a>. Last updated: 2024-01-23 01:03:53 UTC
+License: Creative Commons <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode">CC-BY-NC-ND</a>. Last updated: 2024-02-26 23:51:53 UTC
 </div>
 </div>
 <div class="comments" style="padding: 20px">
