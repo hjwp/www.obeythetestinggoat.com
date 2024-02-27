@@ -7,7 +7,7 @@
 <title>Making our App Production-Ready</title>
 <link rel="stylesheet" href="./asciidoctor.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
-<link rel="stylesheet" href="./coderay-asciidoctor.css">
+<link rel="stylesheet" href="./pygments-default.css">
 <script>var httpRequest = new XMLHttpRequest();
 httpRequest.onreadystatechange = function() {
   if (httpRequest.readyState === XMLHttpRequest.DONE) {
@@ -63,8 +63,9 @@ I&#8217;m making big changes to the deployment chapters,
 and this is a very new draft.</p>
 </div>
 <div class="paragraph">
-<p>This chapter still has a couple of TODOS in,
-but its content is mostly there, so you should be able to follow along.</p>
+<p>This chapter is still very fresh,
+but the content is all there,
+so you should be able to follow along.</p>
 </div>
 <div class="paragraph">
 <p>But as always I really, really need fedback.
@@ -108,10 +109,16 @@ an ORM, all sorts of middleware, the admin site&#8230;&#8203;
 "What else do you want, a pony?" Well, Gunicorn stands for "Green Unicorn",
 which I guess is what you&#8217;d want next if you already had a pony&#8230;&#8203;</p>
 </div>
+<div class="paragraph">
+<p>cmdg</p>
+</div>
 <div class="listingblock">
 <div class="content">
-<pre>pip install gunicorn
-pip freeze | grep -i gunicorn== &gt;&gt; requirements.txt</pre>
+<pre>$ <strong>pip install gunicorn</strong>
+Collecting gunicorn
+[...]
+Successfully installed gunicorn-21.2.0
+$ <strong>pip freeze | grep -i gunicorn== &gt;&gt; requirements.txt</strong></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -119,9 +126,14 @@ pip freeze | grep -i gunicorn== &gt;&gt; requirements.txt</pre>
 which is usually a function called <code>application</code>.
 Django provides one in <em>superlists/wsgi.py</em>:</p>
 </div>
+<div class="exampleblock sourcecode">
+<div class="title">Dockerfile (ch10l002)</div>
+<div class="content">
 <div class="listingblock">
 <div class="content">
-<pre>CMD ["gunicorn", "--bind", ":8888", "superlists.wsgi:application"]</pre>
+<pre class="pygments highlight"><code data-lang="Dockerfile"><span></span>CMD gunicorn --bind :8888 superlists.wsgi:application</code></pre>
+</div>
+</div>
 </div>
 </div>
 <div class="paragraph">
@@ -130,10 +142,10 @@ pattern to try out our changes by rebuilding and rerunning our container:</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>$ *docker build -t superlists . &amp;&amp; docker run \
+<pre>$ <strong>docker build -t superlists . &amp;&amp; docker run \
   -p 8888:8888 \
   -v ./src/db.sqlite3:/src/db.sqlite3 \
-  -it superlists*</pre>
+  -it superlists</strong></pre>
 </div>
 </div>
 <div class="sect3">
@@ -156,7 +168,7 @@ FAILED (failures=1)</pre>
 as in <a href="#site-with-broken-css">Broken CSS</a>.</p>
 </div>
 <div class="paragraph">
-<p>The reason that the CSS is broken is that although the Django dev server will
+<p>The reason that we have no CSS is that although the Django dev server will
 serve static files magically for you, Gunicorn doesn&#8217;t.</p>
 </div>
 <div id="site-with-broken-css" class="imageblock">
@@ -181,7 +193,7 @@ There are many ways to serve them in production:
 you can use a web server like Nginx, or a CDN like Amazon S3,
 but in our case, the most straightforward thing to do
 is to use <a href="https://whitenoise.readthedocs.io/">Whitenoise</a>,
-a Python library for expressly designed serving static<sup class="footnote">[<a id="_footnoteref_1" class="footnote" href="#_footnotedef_1" title="View footnote.">1</a>]</sup>
+a Python library expressly designed for serving static<sup class="footnote">[<a id="_footnoteref_1" class="footnote" href="#_footnotedef_1" title="View footnote.">1</a>]</sup>
 files from Python.</p>
 </div>
 <div class="paragraph">
@@ -189,8 +201,8 @@ files from Python.</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>pip install whitenoise
-pip freeze | grep -i whitenoise== &gt;&gt; requirements.txt</pre>
+<pre>$ <strong>pip install whitenoise</strong>
+$ <strong>pip freeze | grep -i whitenoise== &gt;&gt; requirements.txt</strong></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -201,11 +213,11 @@ pip freeze | grep -i whitenoise== &gt;&gt; requirements.txt</pre>
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python">MIDDLEWARE = [
-    <span class="string"><span class="delimiter">"</span><span class="content">django.middleware.security.SecurityMiddleware</span><span class="delimiter">"</span></span>,
-    <span class="string"><span class="delimiter">"</span><span class="content">whitenoise.middleware.WhiteNoiseMiddleware</span><span class="delimiter">"</span></span>,
-    <span class="string"><span class="delimiter">"</span><span class="content">django.contrib.sessions.middleware.SessionMiddleware</span><span class="delimiter">"</span></span>,
-    [...]</code></pre>
+<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-n">MIDDLEWARE</span> <span class="tok-o">=</span> <span class="tok-p">[</span>
+    <span class="tok-s2">"django.middleware.security.SecurityMiddleware"</span><span class="tok-p">,</span>
+    <span class="tok-s2">"whitenoise.middleware.WhiteNoiseMiddleware"</span><span class="tok-p">,</span>
+    <span class="tok-s2">"django.contrib.sessions.middleware.SessionMiddleware"</span><span class="tok-p">,</span>
+    <span class="tok-p">[</span><span class="tok-o">...</span><span class="tok-p">]</span></code></pre>
 </div>
 </div>
 </div>
@@ -231,7 +243,7 @@ OK</pre>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>*git commit -am"Switch to Gunicorn and Whitenoise"*</pre>
+<pre>$ <strong>git commit -am"Switch to Gunicorn and Whitenoise"</strong></pre>
 </div>
 </div>
 </div>
@@ -266,7 +278,7 @@ but then keep it the same for the foreseeable future
 in their configuration.
 Environment variables are a good place to store those different settings.
 See <a href="http://www.clearlytech.com/2014/01/04/12-factor-apps-plain-english/">
-"the 12-factor app"</a>.<sup class="footnote">[<a id="_footnoteref_2" class="footnote" href="#_footnotedef_2" title="View footnote.">2</a>]</sup></p>
+"The 12-Factor App"</a>.<sup class="footnote">[<a id="_footnoteref_2" class="footnote" href="#_footnotedef_2" title="View footnote.">2</a>]</sup></p>
 </div>
 <div class="sect3">
 <h4 id="_setting_debugtrue_and_secret_key">Setting DEBUG=True and SECRET_KEY</h4>
@@ -281,15 +293,15 @@ Let them be an inspiration (but not a template) for your own choices!</p>
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">import</span> <span class="include">os</span>
-[...]
+<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-kn">import</span> <span class="tok-nn">os</span>
+<span class="tok-p">[</span><span class="tok-o">...</span><span class="tok-p">]</span>
 
-<span class="keyword">if</span> <span class="string"><span class="delimiter">"</span><span class="content">DJANGO_DEBUG_FALSE</span><span class="delimiter">"</span></span> <span class="keyword">in</span> os.environ:  <i class="conum" data-value="1"></i><b>(1)</b>
-    DEBUG = <span class="predefined-constant">False</span>
-    SECRET_KEY = os.environ[<span class="string"><span class="delimiter">"</span><span class="content">DJANGO_SECRET_KEY</span><span class="delimiter">"</span></span>]  <i class="conum" data-value="2"></i><b>(2)</b>
-<span class="keyword">else</span>:
-    DEBUG = <span class="predefined-constant">True</span>  <i class="conum" data-value="3"></i><b>(3)</b>
-    SECRET_KEY = <span class="string"><span class="delimiter">"</span><span class="content">insecure-key-for-dev</span><span class="delimiter">"</span></span></code></pre>
+<span class="tok-k">if</span> <span class="tok-s2">"DJANGO_DEBUG_FALSE"</span> <span class="tok-ow">in</span> <span class="tok-n">os</span><span class="tok-o">.</span><span class="tok-n">environ</span><span class="tok-p">:</span>  <i class="conum" data-value="1"></i><b>(1)</b>
+    <span class="tok-n">DEBUG</span> <span class="tok-o">=</span> <span class="tok-kc">False</span>
+    <span class="tok-n">SECRET_KEY</span> <span class="tok-o">=</span> <span class="tok-n">os</span><span class="tok-o">.</span><span class="tok-n">environ</span><span class="tok-p">[</span><span class="tok-s2">"DJANGO_SECRET_KEY"</span><span class="tok-p">]</span>  <i class="conum" data-value="2"></i><b>(2)</b>
+<span class="tok-k">else</span><span class="tok-p">:</span>
+    <span class="tok-n">DEBUG</span> <span class="tok-o">=</span> <span class="tok-kc">True</span>  <i class="conum" data-value="3"></i><b>(3)</b>
+    <span class="tok-n">SECRET_KEY</span> <span class="tok-o">=</span> <span class="tok-s2">"insecure-key-for-dev"</span></code></pre>
 </div>
 </div>
 </div>
@@ -345,10 +357,10 @@ Better to fail hard than allow a typo in an environment variable name to
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="dockerfile">WORKDIR /src
+<pre class="pygments highlight"><code data-lang="dockerfile"><span></span><span class="tok-k">WORKDIR</span><span class="tok-w"> </span><span class="tok-s">/src</span>
 
-ENV DJANGO_DEBUG_FALSE=1
-CMD ["gunicorn", "--bind", ":8888", "superlists.wsgi:application"]</code></pre>
+<span class="tok-k">ENV</span><span class="tok-w"> </span><span class="tok-nv">DJANGO_DEBUG_FALSE</span><span class="tok-o">=</span><span class="tok-m">1</span>
+<span class="tok-k">CMD</span><span class="tok-w"> </span>gunicorn<span class="tok-w"> </span>--bind<span class="tok-w"> </span>:8888<span class="tok-w"> </span>superlists.wsgi:application</code></pre>
 </div>
 </div>
 </div>
@@ -358,15 +370,17 @@ CMD ["gunicorn", "--bind", ":8888", "superlists.wsgi:application"]</code></pre>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>$ *docker build -t superlists . &amp;&amp; docker run \
+<pre>$ <strong>docker build -t superlists . &amp;&amp; docker run \
   -p 8888:8888 \
   -v ./src/db.sqlite3:/src/db.sqlite3 \
-  -it superlists*
+  -it superlists</strong>
 
 [...]
+  File "/src/superlists/settings.py", line 22, in &lt;module&gt;
     SECRET_KEY = os.environ["DJANGO_SECRET_KEY"]
                  ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
-# TODO: show more of traceback</pre>
+  File "&lt;frozen os&gt;", line 685, in __getitem__
+KeyError: 'DJANGO_SECRET_KEY'</pre>
 </div>
 </div>
 <div class="paragraph">
@@ -375,7 +389,7 @@ mere seconds after having dreamt it up!</p>
 </div>
 </div>
 <div class="sect3">
-<h4 id="_setting_environment_variables_at_the_docker_command_line">Setting environment variables at the docker command-line</h4>
+<h4 id="_setting_environment_variables_at_the_docker_command_line">Setting Environment Variables at the Docker Command Line</h4>
 <div class="paragraph">
 <p>We&#8217;ve said we can&#8217;t keep the secret key in our source code,
 so the Dockerfile isn&#8217;t an option; where else can we put it?</p>
@@ -461,14 +475,14 @@ Let&#8217;s use another environment variable for that:</p>
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">if</span> <span class="string"><span class="delimiter">"</span><span class="content">DJANGO_DEBUG_FALSE</span><span class="delimiter">"</span></span> <span class="keyword">in</span> os.environ:
-    DEBUG = <span class="predefined-constant">False</span>
-    SECRET_KEY = os.environ[<span class="string"><span class="delimiter">"</span><span class="content">DJANGO_SECRET_KEY</span><span class="delimiter">"</span></span>]
-    ALLOWED_HOSTS = [os.environ[<span class="string"><span class="delimiter">"</span><span class="content">DJANGO_ALLOWED_HOST</span><span class="delimiter">"</span></span>]]
-<span class="keyword">else</span>:
-    DEBUG = <span class="predefined-constant">True</span>
-    SECRET_KEY = <span class="string"><span class="delimiter">"</span><span class="content">insecure-key-for-dev</span><span class="delimiter">"</span></span>
-    ALLOWED_HOSTS = []</code></pre>
+<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-k">if</span> <span class="tok-s2">"DJANGO_DEBUG_FALSE"</span> <span class="tok-ow">in</span> <span class="tok-n">os</span><span class="tok-o">.</span><span class="tok-n">environ</span><span class="tok-p">:</span>
+    <span class="tok-n">DEBUG</span> <span class="tok-o">=</span> <span class="tok-kc">False</span>
+    <span class="tok-n">SECRET_KEY</span> <span class="tok-o">=</span> <span class="tok-n">os</span><span class="tok-o">.</span><span class="tok-n">environ</span><span class="tok-p">[</span><span class="tok-s2">"DJANGO_SECRET_KEY"</span><span class="tok-p">]</span>
+    <span class="tok-n">ALLOWED_HOSTS</span> <span class="tok-o">=</span> <span class="tok-p">[</span><span class="tok-n">os</span><span class="tok-o">.</span><span class="tok-n">environ</span><span class="tok-p">[</span><span class="tok-s2">"DJANGO_ALLOWED_HOST"</span><span class="tok-p">]]</span>
+<span class="tok-k">else</span><span class="tok-p">:</span>
+    <span class="tok-n">DEBUG</span> <span class="tok-o">=</span> <span class="tok-kc">True</span>
+    <span class="tok-n">SECRET_KEY</span> <span class="tok-o">=</span> <span class="tok-s2">"insecure-key-for-dev"</span>
+    <span class="tok-n">ALLOWED_HOSTS</span> <span class="tok-o">=</span> <span class="tok-p">[]</span></code></pre>
 </div>
 </div>
 </div>
@@ -514,12 +528,12 @@ and instead we need to run <code>collectstatic</code>:</p>
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="dockerfile">WORKDIR /src
+<pre class="pygments highlight"><code data-lang="dockerfile"><span></span><span class="tok-k">WORKDIR</span><span class="tok-w"> </span><span class="tok-s">/src</span>
 
-RUN python manage.py collectstatic
+<span class="tok-k">RUN</span><span class="tok-w"> </span>python<span class="tok-w"> </span>manage.py<span class="tok-w"> </span>collectstatic
 
-ENV DJANGO_DEBUG_FALSE=1
-CMD ["gunicorn", "--bind", ":8888", "superlists.wsgi:application"]</code></pre>
+<span class="tok-k">ENV</span><span class="tok-w"> </span><span class="tok-nv">DJANGO_DEBUG_FALSE</span><span class="tok-o">=</span><span class="tok-m">1</span>
+<span class="tok-k">CMD</span><span class="tok-w"> </span>gunicorn<span class="tok-w"> </span>--bind<span class="tok-w"> </span>:8888<span class="tok-w"> </span>superlists.wsgi:application</code></pre>
 </div>
 </div>
 </div>
@@ -538,14 +552,48 @@ OK</pre>
 <p>We have a container that we&#8217;re ready to ship to production!</p>
 </div>
 <div class="paragraph">
-<p>Find out how in the next exciting installment.</p>
+<p>Find out how in the next exciting installment&#8230;&#8203;</p>
 </div>
 </div>
 </div>
 <div class="sect2">
 <h3 id="_todo_log_files">TODO: log files</h3>
 <div class="paragraph">
-<p>provoke a 500 error somehow and make sure we see tracebacks for it</p>
+<p>provoke a 500 error somehow and make sure we see tracebacks for it.</p>
+</div>
+<div class="paragraph">
+<p>eg delete db.sqlite3</p>
+</div>
+<div class="paragraph">
+<p>Will show no logs, because by default when DEBUG=True logs are emailed to admins</p>
+</div>
+<div class="paragraph">
+<p><a href="https://docs.djangoproject.com/en/5.0/ref/logging/#default-logging-configuration" class="bare">https://docs.djangoproject.com/en/5.0/ref/logging/#default-logging-configuration</a></p>
+</div>
+<div class="paragraph">
+<p>simple logging config, send everything to stdout:</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">src/superlists/settings.py (ch10l009)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-n">LOGGING</span> <span class="tok-o">=</span> <span class="tok-p">{</span>
+    <span class="tok-s2">"version"</span><span class="tok-p">:</span> <span class="tok-mi">1</span><span class="tok-p">,</span>
+    <span class="tok-s2">"disable_existing_loggers"</span><span class="tok-p">:</span> <span class="tok-kc">False</span><span class="tok-p">,</span>
+    <span class="tok-s2">"handlers"</span><span class="tok-p">:</span> <span class="tok-p">{</span>
+        <span class="tok-s2">"console"</span><span class="tok-p">:</span> <span class="tok-p">{</span><span class="tok-s2">"class"</span><span class="tok-p">:</span> <span class="tok-s2">"logging.StreamHandler"</span><span class="tok-p">},</span>
+    <span class="tok-p">},</span>
+    <span class="tok-s2">"loggers"</span><span class="tok-p">:</span> <span class="tok-p">{</span>
+        <span class="tok-s2">"root"</span><span class="tok-p">:</span> <span class="tok-p">{</span><span class="tok-s2">"handlers"</span><span class="tok-p">:</span> <span class="tok-p">[</span><span class="tok-s2">"console"</span><span class="tok-p">],</span> <span class="tok-s2">"level"</span><span class="tok-p">:</span> <span class="tok-s2">"INFO"</span><span class="tok-p">},</span>
+    <span class="tok-p">},</span>
+<span class="tok-p">}</span></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>docker logs might be enough.</p>
 </div>
 <div class="sidebarblock pagebreak-before less_space">
 <div class="content">
@@ -568,7 +616,7 @@ it will let you run multiple workers, for example.
 that comes from Django and your webapp, so they need to be treated differently.
 WhiteNoise is just one example of how you might do that.</p>
 </dd>
-<dt class="hdlist1">Check your settings.py for dev-only settings</dt>
+<dt class="hdlist1">Check your settings.py for dev-only config</dt>
 <dd>
 <p><code>DEBUG=True</code>, <code>ALLOWED_HOSTS</code> and <code>SECRET_KEY</code> are the ones we came across,
 but you will probably have others
@@ -581,26 +629,7 @@ we can rerun the test suite,
 and either be confident that everything works as well as it did before,
 or find out immediately if we did something wrong.</p>
 </dd>
-<dt class="hdlist1">Security</dt>
-<dd>
-<p>A serious discussion of server security is beyond the scope of this book,
-and I&#8217;d warn against running your own servers
-without learning a good bit more about it.
-(One reason people choose to use a PaaS to host their code
-is that it means a slightly fewer security issues to worry about.)
-If you&#8217;d like a place to start, here&#8217;s as good a place as any:
-<a href="https://plusbryan.com/my-first-5-minutes-on-a-server-or-essential-security-for-linux-servers">My first 5 minutes on a server</a>.
-I can definitely recommend the eye-opening experience of installing
-fail2ban and watching its logfiles to see just how quickly it picks up on
-random drive-by attempts to brute force your SSH login.  The internet is a
-wild place!
-
-</p>
-</dd>
 </dl>
-</div>
-<div class="paragraph">
-<p>TODO: that last one probably belongs in the next chapter.</p>
 </div>
 </div>
 </div>
@@ -619,7 +648,7 @@ wild place!
 </div>
 <div id="footer">
 <div id="footer-text">
-License: Creative Commons <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode">CC-BY-NC-ND</a>. Last updated: 2024-01-22 06:53:07 UTC
+License: Creative Commons <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode">CC-BY-NC-ND</a>. Last updated: 2024-02-26 23:47:30 UTC
 </div>
 </div>
 <div class="comments" style="padding: 20px">
