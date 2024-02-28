@@ -460,6 +460,12 @@ staging.ottg.co.uk         : ok=3    changed=2    unreachable=0    failed=0
 skipped=0    rescued=0    ignored=0</pre>
 </div>
 </div>
+<div class="paragraph">
+<p>I don&#8217;t know about you, but whenever I make a terminal spew out a stream
+of output, I like to make little <em>brrp brrp brrp</em> noises, a bit like the
+computer Mother, in <em>Alien</em>.
+Ansible scripts are particularly satisfying in this regard.</p>
+</div>
 </div>
 <div class="sect2">
 <h3 id="_sshing_into_the_server_and_viewing_container_logs">SSHing Into the Server and Viewing Container Logs</h3>
@@ -648,10 +654,47 @@ false, "AttachStdout": true, "Cmd": ["gunicorn", "--bind", ":8888",
 </div>
 </div>
 <div class="paragraph">
-<p>TODO: sort out macos M1/arch issues, <code>docker build --platform linux/amd64</code> etc.</p>
+<p>For completeness, let&#8217;s also add a step to explicitly build the image locally.
+This means we don&#8217;t have a dependency on having run <code>docker build</code> locally.</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">infra/ansible-provision.yaml (ch11l003)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="yaml"><span></span><span class="tok-w">    </span><span class="tok-p tok-p-Indicator">-</span><span class="tok-w"> </span><span class="tok-nt">name</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">Install docker</span>
+<span class="tok-w">      </span><span class="tok-p tok-p-Indicator">[</span><span class="tok-nv">...</span><span class="tok-p tok-p-Indicator">]</span>
+
+<span class="tok-w">    </span><span class="tok-p tok-p-Indicator">-</span><span class="tok-w"> </span><span class="tok-nt">name</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">Build container image locally</span>
+<span class="tok-w">      </span><span class="tok-nt">community.docker.docker_image</span><span class="tok-p">:</span>
+<span class="tok-w">        </span><span class="tok-nt">name</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">superlists</span>
+<span class="tok-w">        </span><span class="tok-nt">source</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">build</span>
+<span class="tok-w">        </span><span class="tok-nt">state</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">present</span>
+<span class="tok-w">        </span><span class="tok-nt">build</span><span class="tok-p">:</span>
+<span class="tok-w">          </span><span class="tok-nt">path</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">..</span>
+<span class="tok-w">          </span><span class="tok-nt">platform</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">linux/amd64</span><span class="tok-w">  </span><i class="conum" data-value="1"></i><b>(1)</b>
+<span class="tok-w">        </span><span class="tok-nt">force_source</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">true</span>
+<span class="tok-w">      </span><span class="tok-nt">delegate_to</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">127.0.0.1</span>
+
+<span class="tok-w">    </span><span class="tok-p tok-p-Indicator">-</span><span class="tok-w"> </span><span class="tok-nt">name</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">Export container image locally</span></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>Having this step also allows us to work around an issue
+with compatility between Apple&#8217;s new ARM-based chips and
+our server&#8217;s x86/amd64 architecture.
+You could also use this <code>platform:</code> to cross-build docker images
+for a rasbperry pi from a regular PC, or vice-versa.</td>
+</tr>
+</table>
 </div>
 <div class="paragraph">
-<p>Looks ok! Let&#8217;s see if that worked?</p>
+<p>In any case, let&#8217;s see if it works!</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -688,18 +731,33 @@ KeyError: <em>DJANGO_SECRET_KEY</em>
 <div class="sect2">
 <h3 id="_using_an_env_file_to_store_our_environment_variables">Using an env File to Store Our Environment Variables</h3>
 <div class="paragraph">
-<p>We don&#8217;t want to save secrets like SECRET_KEY into our ansible
-config either.</p>
+<p>When we run our container manually locally, we can pass in environment variables with the <code>-e</code> flag.
+But we don&#8217;t want to hard-code secrets like SECRET_KEY into our ansible files
+and commit them to our repo!</p>
 </div>
-<div class="ulist">
-<ul>
-<li>
-<p>explain env files.</p>
-</li>
-<li>
-<p>explain jinja2.</p>
-</li>
-</ul>
+<div class="paragraph">
+<p>Instead, we can use ansible to automate the creation of a secret key,
+and then save it to a file on the server, where it will be relatively secure
+(better than saving it to version contorl and pushing it to GitHub in any case!)</p>
+</div>
+<div class="paragraph">
+<p>We can use a so-called "env file" to store environment variables,
+which are essentially a list of key-value pairs using shell syntax,
+a bit like you&#8217;d use with <code>export</code>.</p>
+</div>
+<div class="paragraph">
+<p>One extra subtlety is that we want to vary the actual contents of the env file,
+depending on where we&#8217;re deploying to.
+Each server should get its own unique secret key,
+adn we want different config for staging and prod, for example.</p>
+</div>
+<div class="paragraph">
+<p>So, just as we inject variables into our html templates in Django,
+we can use a templating language called "jinja2" to have variables in our env file.
+It&#8217;s a common tool in ansible scripts, and the syntax is very similar to Django&#8217;s.</p>
+</div>
+<div class="paragraph">
+<p>Here&#8217;s what our template for the env file will looks like:</p>
 </div>
 <div class="exampleblock sourcecode">
 <div class="title">infra/env.j2 (ch11l003)</div>
@@ -713,6 +771,9 @@ config either.</p>
 </div>
 </div>
 </div>
+<div class="paragraph">
+<p>And here&#8217;s how we use it in the provisioning script:</p>
+</div>
 <div class="exampleblock sourcecode">
 <div class="title">infra/ansible-provision.yaml (ch11l004)</div>
 <div class="content">
@@ -722,13 +783,13 @@ config either.</p>
 <span class="tok-w">      </span><span class="tok-p tok-p-Indicator">[</span><span class="tok-nv">...</span><span class="tok-p tok-p-Indicator">]</span>
 
 <span class="tok-w">    </span><span class="tok-p tok-p-Indicator">-</span><span class="tok-w"> </span><span class="tok-nt">name</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">Ensure .env file exists</span>
-<span class="tok-w">      </span><span class="tok-nt">ansible.builtin.template</span><span class="tok-p">:</span>
+<span class="tok-w">      </span><span class="tok-nt">ansible.builtin.template</span><span class="tok-p">:</span><span class="tok-w">  </span><i class="conum" data-value="1"></i><b>(1)</b>
 <span class="tok-w">        </span><span class="tok-nt">src</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">env.j2</span>
 <span class="tok-w">        </span><span class="tok-nt">dest</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">~/superlists.env</span>
-<span class="tok-w">      </span><span class="tok-nt">vars</span><span class="tok-p">:</span>
-<span class="tok-w">        </span><span class="tok-nt">host</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-s">"{{</span><span class="tok-nv"> </span><span class="tok-s">inventory_hostname</span><span class="tok-nv"> </span><span class="tok-s">}}"</span>
+<span class="tok-w">        </span><span class="tok-nt">force</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">false</span><span class="tok-w">  </span><span class="tok-c1"># do not recreate file if it already exists. </span><i class="conum" data-value="2"></i><b>(2)</b>
+<span class="tok-w">      </span><span class="tok-nt">vars</span><span class="tok-p">:</span><span class="tok-w">  </span><i class="conum" data-value="3"></i><b>(3)</b>
+<span class="tok-w">        </span><span class="tok-nt">host</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-s">"{{</span><span class="tok-nv"> </span><span class="tok-s">inventory_hostname</span><span class="tok-nv"> </span><span class="tok-s">}}"</span><span class="tok-w">  </span><i class="conum" data-value="4"></i><b>(4)</b>
 <span class="tok-w">        </span><span class="tok-nt">secret_key</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-s">"{{</span><span class="tok-nv"> </span><span class="tok-s">lookup('password',</span><span class="tok-nv"> </span><span class="tok-s">'/dev/null</span><span class="tok-nv"> </span><span class="tok-s">length=32</span><span class="tok-nv"> </span><span class="tok-s">chars=ascii_letters,digits')</span><span class="tok-nv"> </span><span class="tok-s">}}"</span>
-<span class="tok-w">        </span><span class="tok-nt">force</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">false</span><span class="tok-w">  </span><span class="tok-c1"># do not recreate file if it already exists.</span>
 
 <span class="tok-w">    </span><span class="tok-p tok-p-Indicator">-</span><span class="tok-w"> </span><span class="tok-nt">name</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">Run container</span>
 <span class="tok-w">      </span><span class="tok-nt">community.docker.docker_container</span><span class="tok-p">:</span>
@@ -741,27 +802,192 @@ config either.</p>
 </div>
 </div>
 </div>
-<div class="paragraph">
-<p>The <code>inventory_hostname</code> variable is the domain name of the server we&#8217;re running against.
-I&#8217;m using the <code>vars</code> section to rename it to "host", just for convenience.</p>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>We use <code>ansible.builtin.template</code> to specify the local template file to use (<code>src</code>),
+and the destination (<code>dst</code>) on the server</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td><code>force: false</code> means we will only write the file once.
+So after the first time we generate our secret key, it won&#8217;t change.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="3"></i><b>3</b></td>
+<td>The <code>vars</code> section defines the variables we&#8217;ll inject into our template.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="4"></i><b>4</b></td>
+<td>We actually use a built-in ansible variable called <code>inventory_hostname</code>.
+This variable woul actually be available in the template already,
+but I&#8217;m renaming it for clarity.</td>
+</tr>
+</table>
 </div>
-<div class="ulist">
-<ul>
-<li>
-<p>explain idempotency</p>
-</li>
-<li>
-<p>mention other secret management tools. vault??</p>
-</li>
-</ul>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+Using an env file to store secrets is definitely better than committing
+    it to version control, but it&#8217;s maybe not the state of the art either.
+    TODO: mention other secret management tools. vault
+</td>
+</tr>
+</table>
+</div>
+<div class="sidebarblock">
+<div class="content">
+<div class="title">Idempotency and Declarative Configuration</div>
+<div class="paragraph">
+<p>Infrastucture-as-code tools like Ansible aim to be "declarative",
+meaning that, as much as possible, you specify the desired state that you want,
+rather than specifying a series of steps to get there.</p>
+</div>
+<div class="paragraph">
+<p>This concept goes along with the idea of "idempotency",
+which means that you get the same result when you run something once,
+as when you run it multiple times.</p>
+</div>
+<div class="paragraph">
+<p>An example is the <code>apt</code> module that we used to install docker.
+It doesn&#8217;t crash if docker is already installed, and in fact,
+Ansible is smart enough to check first before trying to install anything.</p>
+</div>
+<div class="paragraph">
+<p>There is some subtlety here, for example, our templated env file
+will only be writen once, so the step is idempotent in the sense
+that it doesn&#8217;t overwrite the file with a new random secret key every time you run it.
+But that does come with the downside that you can&#8217;t easily add new variables to the file.</p>
+</div>
+<div class="paragraph">
+<p>Probably a more sophisticated solution involving separate files for the secret
+and other parts of the config would be better,
+but I wanted to keep this (already long) chapter as simple as possible.</p>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>Let&#8217;s run the latest version of our playbook and see how our tests get on:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>ansible-playbook --user=elspeth -i staging.ottg.co.uk, infra/ansible-provision.yaml -v</strong>
+[...]
+PLAYBOOK: ansible-provision.yaml <strong><strong></strong><strong></strong></strong><strong><strong></strong><strong></strong></strong><strong><strong></strong><strong></strong></strong><strong><strong></strong><strong></strong></strong><strong><strong></strong></strong>
+1 plays in infra/ansible-provision.yaml
+
+PLAY [all] <strong><strong></strong><strong></strong></strong><strong><strong></strong><strong></strong></strong><strong><strong></strong><strong></strong></strong><strong><strong></strong><strong></strong></strong><strong><strong></strong><strong></strong></strong><strong><strong></strong><strong></strong></strong><strong><strong></strong><strong></strong>
+
+TASK [Gathering Facts] </strong><strong><strong></strong><strong></strong></strong><strong><strong></strong><strong></strong></strong><strong><strong></strong><strong></strong></strong><strong><strong></strong><strong></strong></strong><strong><strong></strong><strong></strong></strong><strong><strong>*
+ok: [staging.ottg.co.uk]
+
+TASK [Install docker] </strong><strong></strong></strong><strong><strong></strong><strong></strong></strong><strong><strong></strong><strong></strong></strong><strong><strong></strong><strong></strong></strong><strong><strong></strong><strong></strong></strong><strong><strong></strong><strong></strong></strong>
+ok: [staging.ottg.co.uk] =&gt; {"cache_update_time": 1709136057, "cache_updated":
+false, "changed": false}
+
+TASK [Build container image locally] <strong><strong></strong><strong></strong></strong><strong><strong></strong><strong></strong></strong><strong><strong></strong><strong></strong></strong><strong><strong></strong><strong></strong></strong><strong>
+changed: [staging.ottg.co.uk -&gt; 127.0.0.1] =&gt; {"actions": ["Built image [...]
+
+TASK [Export container image locally] </strong><strong><strong></strong><strong></strong></strong><strong><strong></strong><strong></strong></strong><strong><strong></strong><strong></strong></strong><strong><strong></strong><strong></strong>*
+changed: [staging.ottg.co.uk -&gt; 127.0.0.1] =&gt; {"actions": ["Archived image [...]
+
+TASK [Upload image to server] </strong><strong><strong></strong><strong></strong></strong><strong><strong></strong><strong></strong></strong><strong><strong></strong><strong></strong></strong><strong><strong></strong><strong></strong></strong><strong><strong></strong><strong>
+changed: [staging.ottg.co.uk] =&gt; {"changed": true, [...]
+
+TASK [Import container image on server] </strong><strong></strong></strong><strong><strong></strong><strong></strong></strong><strong><strong></strong><strong></strong></strong><strong><strong></strong><strong></strong></strong><strong>
+changed: [staging.ottg.co.uk] =&gt; {"actions": ["Loaded image [...]
+
+TASK [Ensure .env file exists] </strong><strong><strong></strong><strong></strong></strong><strong><strong></strong><strong></strong></strong><strong><strong></strong><strong></strong></strong><strong><strong></strong><strong></strong></strong><strong><strong></strong></strong>
+changed: [staging.ottg.co.uk] =&gt; {"changed": true, [...]
+
+TASK [Run container] <strong><strong></strong><strong></strong></strong><strong><strong></strong><strong></strong></strong><strong><strong></strong><strong></strong></strong><strong><strong></strong><strong></strong></strong><strong><strong></strong><strong></strong></strong><strong><strong></strong><strong></strong>
+changed: [staging.ottg.co.uk] =&gt; {"changed": true, "container": [...]
+
+PLAY RECAP </strong><strong><strong></strong><strong></strong></strong><strong><strong></strong><strong></strong></strong><strong><strong></strong><strong></strong></strong><strong><strong></strong><strong></strong></strong><strong><strong></strong><strong></strong></strong><strong><strong></strong><strong></strong></strong><strong><strong></strong></strong>
+staging.ottg.co.uk         : ok=8    changed=6    unreachable=0    failed=0
+skipped=0    rescued=0    ignored=0</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Looks good!  What do our tests think?</p>
 </div>
 <div class="sect3">
 <h4 id="_more_debugging">More debugging</h4>
 <div class="paragraph">
-<p>forgot ports</p>
+<p>We run our tests as usual and run into a new problem:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>TEST_SERVER=staging.ottg.co.uk python manage.py test functional_tests</strong>
+[...]
+selenium.common.exceptions.WebDriverException: Message: Reached error page:
+about:neterror?e=connectionFailure&amp;u=http%3A//staging.ottg.co.uk/[...]</pre>
+</div>
 </div>
 <div class="paragraph">
-<p>show ssh, curl localhosts maybe.</p>
+<p>That <code>neterror</code> makes me think it&#8217;s another networking problem.
+Let&#8217;s try <code>curl</code> locally:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>curl -iv staging.ottg.co.uk</strong>
+[...]
+curl: (7) Failed to connect to staging.ottg.co.uk port 80 after 25 ms: Couldn't
+connect to server</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Now let&#8217;s ssh in and try <code>curl</code> from the server itself:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>elspeth@server$ <strong>docker logs superlists</strong>
+[2024-02-28 22:14:43 +0000] [7] [INFO] Starting gunicorn 21.2.0
+[2024-02-28 22:14:43 +0000] [7] [INFO] Listening at: http://0.0.0.0:8888 (7)
+[2024-02-28 22:14:43 +0000] [7] [INFO] Using worker: sync
+[2024-02-28 22:14:43 +0000] [8] [INFO] Booting worker with pid: 8</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>No errors in the logs&#8230;&#8203;</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>elspeth@server$ <strong>curl -iv localhost</strong>
+*   Trying 127.0.0.1:80...
+* connect to 127.0.0.1 port 80 failed: Connection refused
+*   Trying ::1:80...
+* connect to ::1 port 80 failed: Connection refused
+* Failed to connect to localhost port 80 after 0 ms: Connection refused
+* Closing connection 0
+curl: (7) Failed to connect to localhost port 80 after 0 ms: Connection refused</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Hmm, <code>curl</code> fails on the server too.
+But all this talk of <code>port 80</code>, both locally and on the server, might be giving us a clue.
+Let&#8217;s check <code>docker ps</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>docker ps</strong>
+CONTAINER ID   IMAGE        COMMAND                  CREATED         STATUS
+PORTS     NAMES
+1dd87cbfa874   superlists   "/bin/sh -c 'gunicor&#8230;"   9 minutes ago   Up 9
+minutes             superlists</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>This might be ringing a bell now&#8212;&#8203;we forgot the ports.</p>
+</div>
+<div class="paragraph">
+<p>We want to expose port 8888 inside the container as port 80 (the default web/http port)
+on the server:</p>
 </div>
 <div class="exampleblock sourcecode">
 <div class="title">infra/ansible-provision.yaml (ch11l005)</div>
@@ -780,33 +1006,116 @@ I&#8217;m using the <code>vars</code> section to rename it to "host", just for c
 </div>
 </div>
 </div>
+<div class="paragraph">
+<p>That gets us to</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>selenium.common.exceptions.NoSuchElementException: Message: Unable to locate
+element: [id="id_list_table"]; [...]</pre>
+</div>
+</div>
 </div>
 </div>
 <div class="sect2">
 <h3 id="_mounting_the_database_on_the_server_and_running_migrations">Mounting the database on the server and running migrations</h3>
 <div class="paragraph">
-<p>todo show test output and/or error page</p>
+<p>Taking a look at the logs from the server,
+we can see that the database is not initialised.</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre><strong>ssh elspeth@staging.ottg.co.uk docker logs superlists</strong>
+<pre>$ <strong>ssh elspeth@server docker logs superlists</strong>
 [...]
 django.db.utils.OperationalError: no such table: lists_list</pre>
 </div>
 </div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>ansible-playbook --user=elspeth -i staging.ottg.co.uk, infra/ansible-provision.yaml -v</strong>
+[...]
+TASK [Run migration inside container] <strong><strong></strong><strong></strong></strong><strong><strong></strong><strong></strong></strong><strong><strong></strong><strong></strong></strong><strong><strong></strong><strong></strong></strong>*
+changed: [staging.ottg.co.uk] =&gt; {"changed": true, "rc": 0, "stderr": "",
+"stderr_lines": [], "stdout": "Operations to perform:\n  Apply all migrations:
+auth, contenttypes, lists, sessions\nRunning migrations:\n  Applying
+contenttypes.0001_initial... OK\n  Applying
+contenttypes.0002_remove_content_type_name... OK\n  Applying
+auth.0001_initial... OK\n  Applying
+auth.0002_alter_permission_name_max_length... OK\n  Applying
+[...]
+PLAY RECAP <strong><strong></strong><strong></strong></strong><strong><strong></strong><strong></strong></strong><strong><strong></strong><strong></strong></strong><strong><strong></strong><strong></strong></strong><strong><strong></strong><strong></strong></strong><strong><strong></strong><strong></strong></strong><strong><strong></strong></strong>**
+staging.ottg.co.uk         : ok=9    changed=2    unreachable=0    failed=0
+skipped=0    rescued=0    ignored=0</pre>
+</div>
+</div>
 <div class="paragraph">
-<p>todo add db.sqlite mount and migrate</p>
+<p>Here&#8217;s how</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">infra/ansible-provision.yaml (ch11l006)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="python"><span></span>    <span class="tok-o">-</span> <span class="tok-n">name</span><span class="tok-p">:</span> <span class="tok-n">Ensure</span> <span class="tok-n">db</span><span class="tok-o">.</span><span class="tok-n">sqlite3</span> <span class="tok-n">file</span> <span class="tok-n">exists</span> <span class="tok-n">outside</span> <span class="tok-n">container</span>
+      <span class="tok-n">ansible</span><span class="tok-o">.</span><span class="tok-n">builtin</span><span class="tok-o">.</span><span class="tok-n">file</span><span class="tok-p">:</span>
+        <span class="tok-n">path</span><span class="tok-p">:</span> <span class="tok-o">/</span><span class="tok-n">home</span><span class="tok-o">/</span><span class="tok-n">elspeth</span><span class="tok-o">/</span><span class="tok-n">db</span><span class="tok-o">.</span><span class="tok-n">sqlite3</span>
+        <span class="tok-n">state</span><span class="tok-p">:</span> <span class="tok-n">touch</span>  <i class="conum" data-value="1"></i><b>(1)</b>
+
+    <span class="tok-o">-</span> <span class="tok-n">name</span><span class="tok-p">:</span> <span class="tok-n">Run</span> <span class="tok-n">container</span>
+      <span class="tok-n">community</span><span class="tok-o">.</span><span class="tok-n">docker</span><span class="tok-o">.</span><span class="tok-n">docker_container</span><span class="tok-p">:</span>
+        <span class="tok-n">name</span><span class="tok-p">:</span> <span class="tok-n">superlists</span>
+        <span class="tok-n">image</span><span class="tok-p">:</span> <span class="tok-n">superlists</span>
+        <span class="tok-n">state</span><span class="tok-p">:</span> <span class="tok-n">started</span>
+        <span class="tok-n">recreate</span><span class="tok-p">:</span> <span class="tok-n">true</span>
+        <span class="tok-n">env_file</span><span class="tok-p">:</span> <span class="tok-o">~/</span><span class="tok-n">superlists</span><span class="tok-o">.</span><span class="tok-n">env</span>
+        <span class="tok-n">mounts</span><span class="tok-p">:</span>  <i class="conum" data-value="2"></i><b>(2)</b>
+          <span class="tok-o">-</span> <span class="tok-nb">type</span><span class="tok-p">:</span> <span class="tok-n">bind</span>
+            <span class="tok-n">source</span><span class="tok-p">:</span> <span class="tok-o">/</span><span class="tok-n">home</span><span class="tok-o">/</span><span class="tok-n">elspeth</span><span class="tok-o">/</span><span class="tok-n">db</span><span class="tok-o">.</span><span class="tok-n">sqlite3</span>
+            <span class="tok-n">target</span><span class="tok-p">:</span> <span class="tok-o">/</span><span class="tok-n">src</span><span class="tok-o">/</span><span class="tok-n">db</span><span class="tok-o">.</span><span class="tok-n">sqlite3</span>
+        <span class="tok-n">ports</span><span class="tok-p">:</span> <span class="tok-mi">80</span><span class="tok-p">:</span><span class="tok-mi">8888</span>
+
+    <span class="tok-o">-</span> <span class="tok-n">name</span><span class="tok-p">:</span> <span class="tok-n">Run</span> <span class="tok-n">migration</span> <span class="tok-n">inside</span> <span class="tok-n">container</span>
+      <span class="tok-n">community</span><span class="tok-o">.</span><span class="tok-n">docker</span><span class="tok-o">.</span><span class="tok-n">docker_container_exec</span><span class="tok-p">:</span>  <i class="conum" data-value="3"></i><b>(3)</b>
+        <span class="tok-n">container</span><span class="tok-p">:</span> <span class="tok-n">superlists</span>
+        <span class="tok-n">command</span><span class="tok-p">:</span> <span class="tok-o">./</span><span class="tok-n">manage</span><span class="tok-o">.</span><span class="tok-n">py</span> <span class="tok-n">migrate</span></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>We use <code>file</code> with <code>state=touch</code> to make sure a placeholder file exists
+before we try and mount it in</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>Here is the <code>mounts</code> config, which works a lot like the <code>--mount</code> flag to
+<code>docker run</code>.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="3"></i><b>3</b></td>
+<td>And we use the API for <code>docker exec</code> to run the migration command inside
+the container.</td>
+</tr>
+</table>
 </div>
 </div>
 <div class="sect2">
 <h3 id="_it_workssss">It workssss</h3>
 <div class="paragraph">
-<p>hooray</p>
+<p>Hooray</p>
 </div>
 <div class="listingblock small-code">
 <div class="content">
 <pre>$ <strong>TEST_SERVER=staging.ottg.co.uk python manage.py test functional_tests</strong>
+Found 3 test(s).
 [...]
+
+...
+ ---------------------------------------------------------------------
+Ran 3 tests in 13.537s
 OK</pre>
 </div>
 </div>
@@ -838,6 +1147,9 @@ Podman and Systemd into the mix, should things not go according to plan:</p>
 </div>
 <div class="sect3">
 <h4 id="_deploying_to_live">Deploying to Live</h4>
+<div class="paragraph">
+<p>TODO update this</p>
+</div>
 <div class="paragraph">
 <p>So, let&#8217;s try using it for our live site!</p>
 </div>
@@ -921,19 +1233,50 @@ Greenfeld and Audrey Roy</p>
 <div class="sidebarblock pagebreak-before less_space">
 <div class="content">
 <div class="title">Automated Deployments</div>
+<div class="paragraph">
+<p>TODO Maybe recap the key steps of any deployment:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>installing docker (assuming that&#8217;s the only system dep)</p>
+</li>
+<li>
+<p>getting our image onto the server (normally just with docker push/pull)</p>
+</li>
+<li>
+<p>setting env vars &amp; secrets</p>
+</li>
+<li>
+<p>attaching a database (a mounted file in our case)</p>
+</li>
+<li>
+<p>configuring port</p>
+</li>
+<li>
+<p>running migrations</p>
+</li>
+<li>
+<p>and running or re-running the container</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>old content follows:</p>
+</div>
 <div class="dlist">
 <dl>
 <dt class="hdlist1">Idempotency</dt>
 <dd>
-<p>If your deployment script is deploying to existing servers, you need to
-design them so that they work against a fresh installation <em>and</em> against
+<p>If your deployment script is deploying to existing servers,
+you need to design them so that they work against a fresh installation <em>and</em> against
 a server that&#8217;s already configured.
 </p>
 </dd>
 <dt class="hdlist1">Automating provisioning</dt>
 <dd>
 <p>Ultimately, <em>everything</em> should be automated, and that includes spinning up
-brand new servers and ensuring they have all the right software installed.
+brand new servers.
 This will involve interacting with the API of your hosting provider.</p>
 </dd>
 <dt class="hdlist1">Security</dt>
@@ -971,7 +1314,7 @@ wild place!
 </div>
 <div id="footer">
 <div id="footer-text">
-License: Creative Commons <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode">CC-BY-NC-ND</a>. Last updated: 2024-02-26 23:51:53 UTC
+License: Creative Commons <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode">CC-BY-NC-ND</a>. Last updated: 2024-02-28 23:43:27 UTC
 </div>
 </div>
 <div class="comments" style="padding: 20px">
