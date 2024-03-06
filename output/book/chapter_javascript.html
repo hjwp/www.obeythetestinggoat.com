@@ -7,7 +7,7 @@
 <title>Dipping Our Toes, Very Tentatively, into JavaScript</title>
 <link rel="stylesheet" href="./asciidoctor.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
-<link rel="stylesheet" href="./coderay-asciidoctor.css">
+<link rel="stylesheet" href="./pygments-default.css">
 <script>var httpRequest = new XMLHttpRequest();
 httpRequest.onreadystatechange = function() {
   if (httpRequest.readyState === XMLHttpRequest.DONE) {
@@ -54,6 +54,30 @@ his precious gift of relentless misery.</p>
 &#8212; John Calvin (as portrayed in <a href="http://onemillionpoints.blogspot.co.uk/2008/08/calvin-and-chipmunks.html">Calvin and the Chipmunks</a>)
 </div>
 </div>
+<div class="sidebarblock">
+<div class="content">
+<div class="title">&#128679; Warning, this Chapter is the 2e version, and uses Django 1.11</div>
+<div class="paragraph">
+<p>This chapter and all the following ones are the second edition versions,
+so they still use Django 1.11, Python 3.8, and so on.</p>
+</div>
+<div class="paragraph">
+<p>To follow along with this chapter, it&#8217;s probably easiest to reset your code
+to match my example code as it was in the 2e, by resetting to:
+<a href="https://github.com/hjwp/book-example/tree/chapter_automate_deployment_with_fabric" class="bare">https://github.com/hjwp/book-example/tree/chapter_automate_deployment_with_fabric</a></p>
+</div>
+<div class="paragraph">
+<p>And you should also probably delete and re-create your virtualenv with
+* Python 3.8 or 3.9
+* and Django 1.11 (<code>pip install "django &lt;2"</code>)</p>
+</div>
+<div class="paragraph">
+<p>Alternatively, you can muddle through and try and figure out
+how to make things work with Django 4 etc, but be aware that
+the listings below won&#8217;t be quite right.</p>
+</div>
+</div>
+</div>
 <div class="paragraph">
 <p>Our new validation logic is good, but wouldn&#8217;t it be nice if the duplicate item
 error messages disappeared once the user started fixing the problem?  Just like
@@ -91,26 +115,26 @@ add a new functional test to the <code>ItemValidationTest</code> class:</p>
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">def</span> <span class="function">test_error_messages_are_cleared_on_input</span>(<span class="predefined-constant">self</span>):
-    <span class="comment"># Edith starts a list and causes a validation error:</span>
-    <span class="predefined-constant">self</span>.browser.get(<span class="predefined-constant">self</span>.live_server_url)
-    <span class="predefined-constant">self</span>.get_item_input_box().send_keys(<span class="string"><span class="delimiter">'</span><span class="content">Banter too thick</span><span class="delimiter">'</span></span>)
-    <span class="predefined-constant">self</span>.get_item_input_box().send_keys(Keys.ENTER)
-    <span class="predefined-constant">self</span>.wait_for_row_in_list_table(<span class="string"><span class="delimiter">'</span><span class="content">1: Banter too thick</span><span class="delimiter">'</span></span>)
-    <span class="predefined-constant">self</span>.get_item_input_box().send_keys(<span class="string"><span class="delimiter">'</span><span class="content">Banter too thick</span><span class="delimiter">'</span></span>)
-    <span class="predefined-constant">self</span>.get_item_input_box().send_keys(Keys.ENTER)
+<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-k">def</span> <span class="tok-nf">test_error_messages_are_cleared_on_input</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">):</span>
+    <span class="tok-c1"># Edith starts a list and causes a validation error:</span>
+    <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">browser</span><span class="tok-o">.</span><span class="tok-n">get</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">live_server_url</span><span class="tok-p">)</span>
+    <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">get_item_input_box</span><span class="tok-p">()</span><span class="tok-o">.</span><span class="tok-n">send_keys</span><span class="tok-p">(</span><span class="tok-s1">'Banter too thick'</span><span class="tok-p">)</span>
+    <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">get_item_input_box</span><span class="tok-p">()</span><span class="tok-o">.</span><span class="tok-n">send_keys</span><span class="tok-p">(</span><span class="tok-n">Keys</span><span class="tok-o">.</span><span class="tok-n">ENTER</span><span class="tok-p">)</span>
+    <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">wait_for_row_in_list_table</span><span class="tok-p">(</span><span class="tok-s1">'1: Banter too thick'</span><span class="tok-p">)</span>
+    <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">get_item_input_box</span><span class="tok-p">()</span><span class="tok-o">.</span><span class="tok-n">send_keys</span><span class="tok-p">(</span><span class="tok-s1">'Banter too thick'</span><span class="tok-p">)</span>
+    <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">get_item_input_box</span><span class="tok-p">()</span><span class="tok-o">.</span><span class="tok-n">send_keys</span><span class="tok-p">(</span><span class="tok-n">Keys</span><span class="tok-o">.</span><span class="tok-n">ENTER</span><span class="tok-p">)</span>
 
-    <span class="predefined-constant">self</span>.wait_for(<span class="keyword">lambda</span>: <span class="predefined-constant">self</span>.assertTrue(  <i class="conum" data-value="1"></i><b>(1)</b>
-        <span class="predefined-constant">self</span>.browser.find_element_by_css_selector(<span class="string"><span class="delimiter">'</span><span class="content">.has-error</span><span class="delimiter">'</span></span>).is_displayed()  <i class="conum" data-value="2"></i><b>(2)</b>
-    ))
+    <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">wait_for</span><span class="tok-p">(</span><span class="tok-k">lambda</span><span class="tok-p">:</span> <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertTrue</span><span class="tok-p">(</span>  <i class="conum" data-value="1"></i><b>(1)</b>
+        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">browser</span><span class="tok-o">.</span><span class="tok-n">find_element_by_css_selector</span><span class="tok-p">(</span><span class="tok-s1">'.has-error'</span><span class="tok-p">)</span><span class="tok-o">.</span><span class="tok-n">is_displayed</span><span class="tok-p">()</span>  <i class="conum" data-value="2"></i><b>(2)</b>
+    <span class="tok-p">))</span>
 
-    <span class="comment"># She starts typing in the input box to clear the error</span>
-    <span class="predefined-constant">self</span>.get_item_input_box().send_keys(<span class="string"><span class="delimiter">'</span><span class="content">a</span><span class="delimiter">'</span></span>)
+    <span class="tok-c1"># She starts typing in the input box to clear the error</span>
+    <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">get_item_input_box</span><span class="tok-p">()</span><span class="tok-o">.</span><span class="tok-n">send_keys</span><span class="tok-p">(</span><span class="tok-s1">'a'</span><span class="tok-p">)</span>
 
-    <span class="comment"># She is pleased to see that the error message disappears</span>
-    <span class="predefined-constant">self</span>.wait_for(<span class="keyword">lambda</span>: <span class="predefined-constant">self</span>.assertFalse(
-        <span class="predefined-constant">self</span>.browser.find_element_by_css_selector(<span class="string"><span class="delimiter">'</span><span class="content">.has-error</span><span class="delimiter">'</span></span>).is_displayed()  <i class="conum" data-value="2"></i><b>(2)</b>
-    ))</code></pre>
+    <span class="tok-c1"># She is pleased to see that the error message disappears</span>
+    <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">wait_for</span><span class="tok-p">(</span><span class="tok-k">lambda</span><span class="tok-p">:</span> <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertFalse</span><span class="tok-p">(</span>
+        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">browser</span><span class="tok-o">.</span><span class="tok-n">find_element_by_css_selector</span><span class="tok-p">(</span><span class="tok-s1">'.has-error'</span><span class="tok-p">)</span><span class="tok-o">.</span><span class="tok-n">is_displayed</span><span class="tok-p">()</span>  <i class="conum" data-value="2"></i><b>(2)</b>
+    <span class="tok-p">))</span></code></pre>
 </div>
 </div>
 </div>
@@ -139,12 +163,12 @@ move it to a helper function:</p>
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">class</span> <span class="class">ItemValidationTest</span>(FunctionalTest):
+<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-k">class</span> <span class="tok-nc">ItemValidationTest</span><span class="tok-p">(</span><span class="tok-n">FunctionalTest</span><span class="tok-p">):</span>
 
-    <span class="keyword">def</span> <span class="function">get_error_element</span>(<span class="predefined-constant">self</span>):
-        <span class="keyword">return</span> <span class="predefined-constant">self</span>.browser.find_element_by_css_selector(<span class="string"><span class="delimiter">'</span><span class="content">.has-error</span><span class="delimiter">'</span></span>)
+    <span class="tok-k">def</span> <span class="tok-nf">get_error_element</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">):</span>
+        <span class="tok-k">return</span> <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">browser</span><span class="tok-o">.</span><span class="tok-n">find_element_by_css_selector</span><span class="tok-p">(</span><span class="tok-s1">'.has-error'</span><span class="tok-p">)</span>
 
-    [...]</code></pre>
+    <span class="tok-p">[</span><span class="tok-o">...</span><span class="tok-p">]</span></code></pre>
 </div>
 </div>
 </div>
@@ -171,18 +195,18 @@ I like to keep helper functions in the FT class that&#8217;s using them, and
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python">    <span class="predefined-constant">self</span>.wait_for(<span class="keyword">lambda</span>: <span class="predefined-constant">self</span>.assertEqual(
-        <span class="predefined-constant">self</span>.get_error_element().text,
-        <span class="string"><span class="delimiter">"</span><span class="content">You've already got this in your list</span><span class="delimiter">"</span></span>
-    ))
-[...]
-    <span class="predefined-constant">self</span>.wait_for(<span class="keyword">lambda</span>: <span class="predefined-constant">self</span>.assertTrue(
-        <span class="predefined-constant">self</span>.get_error_element().is_displayed()
-    ))
-[...]
-    <span class="predefined-constant">self</span>.wait_for(<span class="keyword">lambda</span>: <span class="predefined-constant">self</span>.assertFalse(
-        <span class="predefined-constant">self</span>.get_error_element().is_displayed()
-    ))</code></pre>
+<pre class="pygments highlight"><code data-lang="python"><span></span>    <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">wait_for</span><span class="tok-p">(</span><span class="tok-k">lambda</span><span class="tok-p">:</span> <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertEqual</span><span class="tok-p">(</span>
+        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">get_error_element</span><span class="tok-p">()</span><span class="tok-o">.</span><span class="tok-n">text</span><span class="tok-p">,</span>
+        <span class="tok-s2">"You've already got this in your list"</span>
+    <span class="tok-p">))</span>
+<span class="tok-p">[</span><span class="tok-o">...</span><span class="tok-p">]</span>
+    <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">wait_for</span><span class="tok-p">(</span><span class="tok-k">lambda</span><span class="tok-p">:</span> <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertTrue</span><span class="tok-p">(</span>
+        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">get_error_element</span><span class="tok-p">()</span><span class="tok-o">.</span><span class="tok-n">is_displayed</span><span class="tok-p">()</span>
+    <span class="tok-p">))</span>
+<span class="tok-p">[</span><span class="tok-o">...</span><span class="tok-p">]</span>
+    <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">wait_for</span><span class="tok-p">(</span><span class="tok-k">lambda</span><span class="tok-p">:</span> <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertFalse</span><span class="tok-p">(</span>
+        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">get_error_element</span><span class="tok-p">()</span><span class="tok-o">.</span><span class="tok-n">is_displayed</span><span class="tok-p">()</span>
+    <span class="tok-p">))</span></code></pre>
 </div>
 </div>
 </div>
@@ -250,28 +274,28 @@ lists/static/tests/
 <div class="listingblock sourcecode">
 <div class="title">lists/static/tests/tests.html</div>
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="html"><span class="doctype">&lt;!DOCTYPE html&gt;</span>
-<span class="tag">&lt;html&gt;</span>
-<span class="tag">&lt;head&gt;</span>
-  <span class="tag">&lt;meta</span> <span class="attribute-name">charset</span>=<span class="string"><span class="delimiter">"</span><span class="content">utf-8</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>
-  <span class="tag">&lt;meta</span> <span class="attribute-name">name</span>=<span class="string"><span class="delimiter">"</span><span class="content">viewport</span><span class="delimiter">"</span></span> <span class="attribute-name">content</span>=<span class="string"><span class="delimiter">"</span><span class="content">width=device-width</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>
-  <span class="tag">&lt;title&gt;</span>Javascript tests<span class="tag">&lt;/title&gt;</span>
-  <span class="tag">&lt;link</span> <span class="attribute-name">rel</span>=<span class="string"><span class="delimiter">"</span><span class="content">stylesheet</span><span class="delimiter">"</span></span> <span class="attribute-name">href</span>=<span class="string"><span class="delimiter">"</span><span class="content">qunit-2.6.0.css</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>
-<span class="tag">&lt;/head&gt;</span>
-<span class="tag">&lt;body&gt;</span>
-  <span class="tag">&lt;div</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">"</span><span class="content">qunit</span><span class="delimiter">"</span></span><span class="tag">&gt;</span><span class="tag">&lt;/div&gt;</span>
-  <span class="tag">&lt;div</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">"</span><span class="content">qunit-fixture</span><span class="delimiter">"</span></span><span class="tag">&gt;</span><span class="tag">&lt;/div&gt;</span>
-  <span class="tag">&lt;script</span> <span class="attribute-name">src</span>=<span class="string"><span class="delimiter">"</span><span class="content">qunit-2.6.0.js</span><span class="delimiter">"</span></span><span class="tag">&gt;</span><span class="tag">&lt;/script&gt;</span>
+<pre class="pygments highlight"><code data-lang="html"><span></span><span class="tok-cp">&lt;!DOCTYPE html&gt;</span>
+<span class="tok-p">&lt;</span><span class="tok-nt">html</span><span class="tok-p">&gt;</span>
+<span class="tok-p">&lt;</span><span class="tok-nt">head</span><span class="tok-p">&gt;</span>
+  <span class="tok-p">&lt;</span><span class="tok-nt">meta</span> <span class="tok-na">charset</span><span class="tok-o">=</span><span class="tok-s">"utf-8"</span><span class="tok-p">&gt;</span>
+  <span class="tok-p">&lt;</span><span class="tok-nt">meta</span> <span class="tok-na">name</span><span class="tok-o">=</span><span class="tok-s">"viewport"</span> <span class="tok-na">content</span><span class="tok-o">=</span><span class="tok-s">"width=device-width"</span><span class="tok-p">&gt;</span>
+  <span class="tok-p">&lt;</span><span class="tok-nt">title</span><span class="tok-p">&gt;</span>Javascript tests<span class="tok-p">&lt;/</span><span class="tok-nt">title</span><span class="tok-p">&gt;</span>
+  <span class="tok-p">&lt;</span><span class="tok-nt">link</span> <span class="tok-na">rel</span><span class="tok-o">=</span><span class="tok-s">"stylesheet"</span> <span class="tok-na">href</span><span class="tok-o">=</span><span class="tok-s">"qunit-2.6.0.css"</span><span class="tok-p">&gt;</span>
+<span class="tok-p">&lt;/</span><span class="tok-nt">head</span><span class="tok-p">&gt;</span>
+<span class="tok-p">&lt;</span><span class="tok-nt">body</span><span class="tok-p">&gt;</span>
+  <span class="tok-p">&lt;</span><span class="tok-nt">div</span> <span class="tok-na">id</span><span class="tok-o">=</span><span class="tok-s">"qunit"</span><span class="tok-p">&gt;&lt;/</span><span class="tok-nt">div</span><span class="tok-p">&gt;</span>
+  <span class="tok-p">&lt;</span><span class="tok-nt">div</span> <span class="tok-na">id</span><span class="tok-o">=</span><span class="tok-s">"qunit-fixture"</span><span class="tok-p">&gt;&lt;/</span><span class="tok-nt">div</span><span class="tok-p">&gt;</span>
+  <span class="tok-p">&lt;</span><span class="tok-nt">script</span> <span class="tok-na">src</span><span class="tok-o">=</span><span class="tok-s">"qunit-2.6.0.js"</span><span class="tok-p">&gt;&lt;/</span><span class="tok-nt">script</span><span class="tok-p">&gt;</span>
 
-  <span class="tag">&lt;script&gt;</span>
-<span class="inline">
-QUnit.test(<span class="string"><span class="delimiter">"</span><span class="content">smoke test</span><span class="delimiter">"</span></span>, <span class="keyword">function</span> (assert) {
-  assert.equal(<span class="integer">1</span>, <span class="integer">1</span>, <span class="string"><span class="delimiter">"</span><span class="content">Maths works!</span><span class="delimiter">"</span></span>);
-});</span>
+  <span class="tok-p">&lt;</span><span class="tok-nt">script</span><span class="tok-p">&gt;</span>
 
-  <span class="tag">&lt;/script&gt;</span>
-<span class="tag">&lt;/body&gt;</span>
-<span class="tag">&lt;/html&gt;</span></code></pre>
+<span class="tok-nx">QUnit</span><span class="tok-p">.</span><span class="tok-nx">test</span><span class="tok-p">(</span><span class="tok-s2">"smoke test"</span><span class="tok-p">,</span><span class="tok-w"> </span><span class="tok-kd">function</span><span class="tok-w"> </span><span class="tok-p">(</span><span class="tok-nx">assert</span><span class="tok-p">)</span><span class="tok-w"> </span><span class="tok-p">{</span>
+<span class="tok-w">  </span><span class="tok-nx">assert</span><span class="tok-p">.</span><span class="tok-nx">equal</span><span class="tok-p">(</span><span class="tok-mf">1</span><span class="tok-p">,</span><span class="tok-w"> </span><span class="tok-mf">1</span><span class="tok-p">,</span><span class="tok-w"> </span><span class="tok-s2">"Maths works!"</span><span class="tok-p">);</span>
+<span class="tok-p">});</span>
+
+<span class="tok-w">  </span><span class="tok-p">&lt;/</span><span class="tok-nt">script</span><span class="tok-p">&gt;</span>
+<span class="tok-p">&lt;/</span><span class="tok-nt">body</span><span class="tok-p">&gt;</span>
+<span class="tok-p">&lt;/</span><span class="tok-nt">html</span><span class="tok-p">&gt;</span></code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -296,9 +320,9 @@ tests we&#8217;ve been writing so far:</p>
 </div>
 <div class="listingblock skipme">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="javascript">QUnit.test(<span class="string"><span class="delimiter">"</span><span class="content">smoke test</span><span class="delimiter">"</span></span>, <span class="keyword">function</span> (assert) { <i class="conum" data-value="1"></i><b>(1)</b>
-    assert.equal(<span class="integer">1</span>, <span class="integer">1</span>, <span class="string"><span class="delimiter">"</span><span class="content">Maths works!</span><span class="delimiter">"</span></span>); <i class="conum" data-value="2"></i><b>(2)</b>
-});</code></pre>
+<pre class="pygments highlight"><code data-lang="javascript"><span></span><span class="tok-nx">QUnit</span><span class="tok-p">.</span><span class="tok-nx">test</span><span class="tok-p">(</span><span class="tok-s2">"smoke test"</span><span class="tok-p">,</span><span class="tok-w"> </span><span class="tok-kd">function</span><span class="tok-w"> </span><span class="tok-p">(</span><span class="tok-nx">assert</span><span class="tok-p">)</span><span class="tok-w"> </span><span class="tok-p">{</span><span class="tok-w"> </span><i class="conum" data-value="1"></i><b>(1)</b>
+<span class="tok-w">    </span><span class="tok-nx">assert</span><span class="tok-p">.</span><span class="tok-nx">equal</span><span class="tok-p">(</span><span class="tok-mf">1</span><span class="tok-p">,</span><span class="tok-w"> </span><span class="tok-mf">1</span><span class="tok-p">,</span><span class="tok-w"> </span><span class="tok-s2">"Maths works!"</span><span class="tok-p">);</span><span class="tok-w"> </span><i class="conum" data-value="2"></i><b>(2)</b>
+<span class="tok-p">});</span></code></pre>
 </div>
 </div>
 <div class="colist arabic">
@@ -359,25 +383,25 @@ and write some assertions about its visibility:</p>
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="html">  <span class="tag">&lt;div</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">"</span><span class="content">qunit-fixture</span><span class="delimiter">"</span></span><span class="tag">&gt;</span><span class="tag">&lt;/div&gt;</span>
+<pre class="pygments highlight"><code data-lang="html"><span></span>  <span class="tok-p">&lt;</span><span class="tok-nt">div</span> <span class="tok-na">id</span><span class="tok-o">=</span><span class="tok-s">"qunit-fixture"</span><span class="tok-p">&gt;&lt;/</span><span class="tok-nt">div</span><span class="tok-p">&gt;</span>
 
-  <span class="tag">&lt;form&gt;</span>  <i class="conum" data-value="1"></i><b>(1)</b>
-    <span class="tag">&lt;input</span> <span class="attribute-name">name</span>=<span class="string"><span class="delimiter">"</span><span class="content">text</span><span class="delimiter">"</span></span> <span class="tag">/&gt;</span>
-    <span class="tag">&lt;div</span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">"</span><span class="content">has-error</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>Error text<span class="tag">&lt;/div&gt;</span>
-  <span class="tag">&lt;/form&gt;</span>
+  <span class="tok-p">&lt;</span><span class="tok-nt">form</span><span class="tok-p">&gt;</span>  <i class="conum" data-value="1"></i><b>(1)</b>
+    <span class="tok-p">&lt;</span><span class="tok-nt">input</span> <span class="tok-na">name</span><span class="tok-o">=</span><span class="tok-s">"text"</span> <span class="tok-p">/&gt;</span>
+    <span class="tok-p">&lt;</span><span class="tok-nt">div</span> <span class="tok-na">class</span><span class="tok-o">=</span><span class="tok-s">"has-error"</span><span class="tok-p">&gt;</span>Error text<span class="tok-p">&lt;/</span><span class="tok-nt">div</span><span class="tok-p">&gt;</span>
+  <span class="tok-p">&lt;/</span><span class="tok-nt">form</span><span class="tok-p">&gt;</span>
 
-  <span class="tag">&lt;script</span> <span class="attribute-name">src</span>=<span class="string"><span class="delimiter">"</span><span class="content">../jquery-3.3.1.min.js</span><span class="delimiter">"</span></span><span class="tag">&gt;</span><span class="tag">&lt;/script&gt;</span> <i class="conum" data-value="2"></i><b>(2)</b>
-  <span class="tag">&lt;script</span> <span class="attribute-name">src</span>=<span class="string"><span class="delimiter">"</span><span class="content">qunit-2.6.0.js</span><span class="delimiter">"</span></span><span class="tag">&gt;</span><span class="tag">&lt;/script&gt;</span>
+  <span class="tok-p">&lt;</span><span class="tok-nt">script</span> <span class="tok-na">src</span><span class="tok-o">=</span><span class="tok-s">"../jquery-3.3.1.min.js"</span><span class="tok-p">&gt;&lt;/</span><span class="tok-nt">script</span><span class="tok-p">&gt;</span> <i class="conum" data-value="2"></i><b>(2)</b>
+  <span class="tok-p">&lt;</span><span class="tok-nt">script</span> <span class="tok-na">src</span><span class="tok-o">=</span><span class="tok-s">"qunit-2.6.0.js"</span><span class="tok-p">&gt;&lt;/</span><span class="tok-nt">script</span><span class="tok-p">&gt;</span>
 
-  <span class="tag">&lt;script&gt;</span>
-<span class="inline">
-QUnit.test(<span class="string"><span class="delimiter">"</span><span class="content">smoke test</span><span class="delimiter">"</span></span>, <span class="keyword">function</span> (assert) {
-  assert.equal(<span class="predefined">$</span>(<span class="string"><span class="delimiter">'</span><span class="content">.has-error</span><span class="delimiter">'</span></span>).is(<span class="string"><span class="delimiter">'</span><span class="content">:visible</span><span class="delimiter">'</span></span>), <span class="predefined-constant">true</span>);  <i class="conum" data-value="3"></i><b>(3)</b> <i class="conum" data-value="4"></i><b>(4)</b>
-  <span class="predefined">$</span>(<span class="string"><span class="delimiter">'</span><span class="content">.has-error</span><span class="delimiter">'</span></span>).hide();  <i class="conum" data-value="5"></i><b>(5)</b>
-  assert.equal(<span class="predefined">$</span>(<span class="string"><span class="delimiter">'</span><span class="content">.has-error</span><span class="delimiter">'</span></span>).is(<span class="string"><span class="delimiter">'</span><span class="content">:visible</span><span class="delimiter">'</span></span>), <span class="predefined-constant">false</span>);  <i class="conum" data-value="6"></i><b>(6)</b>
-});</span>
+  <span class="tok-p">&lt;</span><span class="tok-nt">script</span><span class="tok-p">&gt;</span>
 
-  <span class="tag">&lt;/script&gt;</span></code></pre>
+<span class="tok-nx">QUnit</span><span class="tok-p">.</span><span class="tok-nx">test</span><span class="tok-p">(</span><span class="tok-s2">"smoke test"</span><span class="tok-p">,</span><span class="tok-w"> </span><span class="tok-kd">function</span><span class="tok-w"> </span><span class="tok-p">(</span><span class="tok-nx">assert</span><span class="tok-p">)</span><span class="tok-w"> </span><span class="tok-p">{</span>
+<span class="tok-w">  </span><span class="tok-nx">assert</span><span class="tok-p">.</span><span class="tok-nx">equal</span><span class="tok-p">(</span><span class="tok-nx">$</span><span class="tok-p">(</span><span class="tok-s1">'.has-error'</span><span class="tok-p">).</span><span class="tok-nx">is</span><span class="tok-p">(</span><span class="tok-s1">':visible'</span><span class="tok-p">),</span><span class="tok-w"> </span><span class="tok-kc">true</span><span class="tok-p">);</span><span class="tok-w">  </span><i class="conum" data-value="3"></i><b>(3)</b> <i class="conum" data-value="4"></i><b>(4)</b>
+<span class="tok-w">  </span><span class="tok-nx">$</span><span class="tok-p">(</span><span class="tok-s1">'.has-error'</span><span class="tok-p">).</span><span class="tok-nx">hide</span><span class="tok-p">();</span><span class="tok-w">  </span><i class="conum" data-value="5"></i><b>(5)</b>
+<span class="tok-w">  </span><span class="tok-nx">assert</span><span class="tok-p">.</span><span class="tok-nx">equal</span><span class="tok-p">(</span><span class="tok-nx">$</span><span class="tok-p">(</span><span class="tok-s1">'.has-error'</span><span class="tok-p">).</span><span class="tok-nx">is</span><span class="tok-p">(</span><span class="tok-s1">':visible'</span><span class="tok-p">),</span><span class="tok-w"> </span><span class="tok-kc">false</span><span class="tok-p">);</span><span class="tok-w">  </span><i class="conum" data-value="6"></i><b>(6)</b>
+<span class="tok-p">});</span>
+
+<span class="tok-w">  </span><span class="tok-p">&lt;/</span><span class="tok-nt">script</span><span class="tok-p">&gt;</span></code></pre>
 </div>
 </div>
 </div>
@@ -441,20 +465,20 @@ scenes, it dynamically sets a <code>style="display: none"</code> on the element.
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="html">  <span class="tag">&lt;script&gt;</span>
-<span class="inline">
-QUnit.test(<span class="string"><span class="delimiter">"</span><span class="content">smoke test</span><span class="delimiter">"</span></span>, <span class="keyword">function</span> (assert) {
-  assert.equal(<span class="predefined">$</span>(<span class="string"><span class="delimiter">'</span><span class="content">.has-error</span><span class="delimiter">'</span></span>).is(<span class="string"><span class="delimiter">'</span><span class="content">:visible</span><span class="delimiter">'</span></span>), <span class="predefined-constant">true</span>);
-  <span class="predefined">$</span>(<span class="string"><span class="delimiter">'</span><span class="content">.has-error</span><span class="delimiter">'</span></span>).hide();
-  assert.equal(<span class="predefined">$</span>(<span class="string"><span class="delimiter">'</span><span class="content">.has-error</span><span class="delimiter">'</span></span>).is(<span class="string"><span class="delimiter">'</span><span class="content">:visible</span><span class="delimiter">'</span></span>), <span class="predefined-constant">false</span>);
-});
-QUnit.test(<span class="string"><span class="delimiter">"</span><span class="content">smoke test 2</span><span class="delimiter">"</span></span>, <span class="keyword">function</span> (assert) {
-  assert.equal(<span class="predefined">$</span>(<span class="string"><span class="delimiter">'</span><span class="content">.has-error</span><span class="delimiter">'</span></span>).is(<span class="string"><span class="delimiter">'</span><span class="content">:visible</span><span class="delimiter">'</span></span>), <span class="predefined-constant">true</span>);
-  <span class="predefined">$</span>(<span class="string"><span class="delimiter">'</span><span class="content">.has-error</span><span class="delimiter">'</span></span>).hide();
-  assert.equal(<span class="predefined">$</span>(<span class="string"><span class="delimiter">'</span><span class="content">.has-error</span><span class="delimiter">'</span></span>).is(<span class="string"><span class="delimiter">'</span><span class="content">:visible</span><span class="delimiter">'</span></span>), <span class="predefined-constant">false</span>);
-});</span>
+<pre class="pygments highlight"><code data-lang="html"><span></span>  <span class="tok-p">&lt;</span><span class="tok-nt">script</span><span class="tok-p">&gt;</span>
 
-  <span class="tag">&lt;/script&gt;</span></code></pre>
+<span class="tok-nx">QUnit</span><span class="tok-p">.</span><span class="tok-nx">test</span><span class="tok-p">(</span><span class="tok-s2">"smoke test"</span><span class="tok-p">,</span><span class="tok-w"> </span><span class="tok-kd">function</span><span class="tok-w"> </span><span class="tok-p">(</span><span class="tok-nx">assert</span><span class="tok-p">)</span><span class="tok-w"> </span><span class="tok-p">{</span>
+<span class="tok-w">  </span><span class="tok-nx">assert</span><span class="tok-p">.</span><span class="tok-nx">equal</span><span class="tok-p">(</span><span class="tok-nx">$</span><span class="tok-p">(</span><span class="tok-s1">'.has-error'</span><span class="tok-p">).</span><span class="tok-nx">is</span><span class="tok-p">(</span><span class="tok-s1">':visible'</span><span class="tok-p">),</span><span class="tok-w"> </span><span class="tok-kc">true</span><span class="tok-p">);</span>
+<span class="tok-w">  </span><span class="tok-nx">$</span><span class="tok-p">(</span><span class="tok-s1">'.has-error'</span><span class="tok-p">).</span><span class="tok-nx">hide</span><span class="tok-p">();</span>
+<span class="tok-w">  </span><span class="tok-nx">assert</span><span class="tok-p">.</span><span class="tok-nx">equal</span><span class="tok-p">(</span><span class="tok-nx">$</span><span class="tok-p">(</span><span class="tok-s1">'.has-error'</span><span class="tok-p">).</span><span class="tok-nx">is</span><span class="tok-p">(</span><span class="tok-s1">':visible'</span><span class="tok-p">),</span><span class="tok-w"> </span><span class="tok-kc">false</span><span class="tok-p">);</span>
+<span class="tok-p">});</span>
+<span class="tok-nx">QUnit</span><span class="tok-p">.</span><span class="tok-nx">test</span><span class="tok-p">(</span><span class="tok-s2">"smoke test 2"</span><span class="tok-p">,</span><span class="tok-w"> </span><span class="tok-kd">function</span><span class="tok-w"> </span><span class="tok-p">(</span><span class="tok-nx">assert</span><span class="tok-p">)</span><span class="tok-w"> </span><span class="tok-p">{</span>
+<span class="tok-w">  </span><span class="tok-nx">assert</span><span class="tok-p">.</span><span class="tok-nx">equal</span><span class="tok-p">(</span><span class="tok-nx">$</span><span class="tok-p">(</span><span class="tok-s1">'.has-error'</span><span class="tok-p">).</span><span class="tok-nx">is</span><span class="tok-p">(</span><span class="tok-s1">':visible'</span><span class="tok-p">),</span><span class="tok-w"> </span><span class="tok-kc">true</span><span class="tok-p">);</span>
+<span class="tok-w">  </span><span class="tok-nx">$</span><span class="tok-p">(</span><span class="tok-s1">'.has-error'</span><span class="tok-p">).</span><span class="tok-nx">hide</span><span class="tok-p">();</span>
+<span class="tok-w">  </span><span class="tok-nx">assert</span><span class="tok-p">.</span><span class="tok-nx">equal</span><span class="tok-p">(</span><span class="tok-nx">$</span><span class="tok-p">(</span><span class="tok-s1">'.has-error'</span><span class="tok-p">).</span><span class="tok-nx">is</span><span class="tok-p">(</span><span class="tok-s1">':visible'</span><span class="tok-p">),</span><span class="tok-w"> </span><span class="tok-kc">false</span><span class="tok-p">);</span>
+<span class="tok-p">});</span>
+
+<span class="tok-w">  </span><span class="tok-p">&lt;/</span><span class="tok-nt">script</span><span class="tok-p">&gt;</span></code></pre>
 </div>
 </div>
 </div>
@@ -497,15 +521,15 @@ in there:</p>
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="html">  <span class="tag">&lt;div</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">"</span><span class="content">qunit</span><span class="delimiter">"</span></span><span class="tag">&gt;</span><span class="tag">&lt;/div&gt;</span>
-  <span class="tag">&lt;div</span> <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">"</span><span class="content">qunit-fixture</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>
-      <span class="tag">&lt;form&gt;</span>
-          <span class="tag">&lt;input</span> <span class="attribute-name">name</span>=<span class="string"><span class="delimiter">"</span><span class="content">text</span><span class="delimiter">"</span></span> <span class="tag">/&gt;</span>
-          <span class="tag">&lt;div</span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">"</span><span class="content">has-error</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>Error text<span class="tag">&lt;/div&gt;</span>
-      <span class="tag">&lt;/form&gt;</span>
-  <span class="tag">&lt;/div&gt;</span>
+<pre class="pygments highlight"><code data-lang="html"><span></span>  <span class="tok-p">&lt;</span><span class="tok-nt">div</span> <span class="tok-na">id</span><span class="tok-o">=</span><span class="tok-s">"qunit"</span><span class="tok-p">&gt;&lt;/</span><span class="tok-nt">div</span><span class="tok-p">&gt;</span>
+  <span class="tok-p">&lt;</span><span class="tok-nt">div</span> <span class="tok-na">id</span><span class="tok-o">=</span><span class="tok-s">"qunit-fixture"</span><span class="tok-p">&gt;</span>
+      <span class="tok-p">&lt;</span><span class="tok-nt">form</span><span class="tok-p">&gt;</span>
+          <span class="tok-p">&lt;</span><span class="tok-nt">input</span> <span class="tok-na">name</span><span class="tok-o">=</span><span class="tok-s">"text"</span> <span class="tok-p">/&gt;</span>
+          <span class="tok-p">&lt;</span><span class="tok-nt">div</span> <span class="tok-na">class</span><span class="tok-o">=</span><span class="tok-s">"has-error"</span><span class="tok-p">&gt;</span>Error text<span class="tok-p">&lt;/</span><span class="tok-nt">div</span><span class="tok-p">&gt;</span>
+      <span class="tok-p">&lt;/</span><span class="tok-nt">form</span><span class="tok-p">&gt;</span>
+  <span class="tok-p">&lt;/</span><span class="tok-nt">div</span><span class="tok-p">&gt;</span>
 
-  <span class="tag">&lt;script</span> <span class="attribute-name">src</span>=<span class="string"><span class="delimiter">"</span><span class="content">../jquery-3.3.1.min.js</span><span class="delimiter">"</span></span><span class="tag">&gt;</span><span class="tag">&lt;/script&gt;</span></code></pre>
+  <span class="tok-p">&lt;</span><span class="tok-nt">script</span> <span class="tok-na">src</span><span class="tok-o">=</span><span class="tok-s">"../jquery-3.3.1.min.js"</span><span class="tok-p">&gt;&lt;/</span><span class="tok-nt">script</span><span class="tok-p">&gt;</span></code></pre>
 </div>
 </div>
 </div>
@@ -535,14 +559,14 @@ back to just one test and start to write the real thing:</p>
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="html">  <span class="tag">&lt;script&gt;</span>
-<span class="inline">
-QUnit.test(<span class="string"><span class="delimiter">"</span><span class="content">errors should be hidden on keypress</span><span class="delimiter">"</span></span>, <span class="keyword">function</span> (assert) {
-  <span class="predefined">$</span>(<span class="string"><span class="delimiter">'</span><span class="content">input[name="text"]</span><span class="delimiter">'</span></span>).trigger(<span class="string"><span class="delimiter">'</span><span class="content">keypress</span><span class="delimiter">'</span></span>); <i class="conum" data-value="1"></i><b>(1)</b>
-  assert.equal(<span class="predefined">$</span>(<span class="string"><span class="delimiter">'</span><span class="content">.has-error</span><span class="delimiter">'</span></span>).is(<span class="string"><span class="delimiter">'</span><span class="content">:visible</span><span class="delimiter">'</span></span>), <span class="predefined-constant">false</span>);
-});</span>
+<pre class="pygments highlight"><code data-lang="html"><span></span>  <span class="tok-p">&lt;</span><span class="tok-nt">script</span><span class="tok-p">&gt;</span>
 
-  <span class="tag">&lt;/script&gt;</span></code></pre>
+<span class="tok-nx">QUnit</span><span class="tok-p">.</span><span class="tok-nx">test</span><span class="tok-p">(</span><span class="tok-s2">"errors should be hidden on keypress"</span><span class="tok-p">,</span><span class="tok-w"> </span><span class="tok-kd">function</span><span class="tok-w"> </span><span class="tok-p">(</span><span class="tok-nx">assert</span><span class="tok-p">)</span><span class="tok-w"> </span><span class="tok-p">{</span>
+<span class="tok-w">  </span><span class="tok-nx">$</span><span class="tok-p">(</span><span class="tok-s1">'input[name="text"]'</span><span class="tok-p">).</span><span class="tok-nx">trigger</span><span class="tok-p">(</span><span class="tok-s1">'keypress'</span><span class="tok-p">);</span><span class="tok-w"> </span><i class="conum" data-value="1"></i><b>(1)</b>
+<span class="tok-w">  </span><span class="tok-nx">assert</span><span class="tok-p">.</span><span class="tok-nx">equal</span><span class="tok-p">(</span><span class="tok-nx">$</span><span class="tok-p">(</span><span class="tok-s1">'.has-error'</span><span class="tok-p">).</span><span class="tok-nx">is</span><span class="tok-p">(</span><span class="tok-s1">':visible'</span><span class="tok-p">),</span><span class="tok-w"> </span><span class="tok-kc">false</span><span class="tok-p">);</span>
+<span class="tok-p">});</span>
+
+<span class="tok-w">  </span><span class="tok-p">&lt;/</span><span class="tok-nt">script</span><span class="tok-p">&gt;</span></code></pre>
 </div>
 </div>
 </div>
@@ -595,12 +619,12 @@ jQuery is hiding a lot of complexity behind the scenes here.  Check
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="html">  <span class="tag">&lt;script</span> <span class="attribute-name">src</span>=<span class="string"><span class="delimiter">"</span><span class="content">../jquery-3.3.1.min.js</span><span class="delimiter">"</span></span><span class="tag">&gt;</span><span class="tag">&lt;/script&gt;</span>
-  <span class="tag">&lt;script</span> <span class="attribute-name">src</span>=<span class="string"><span class="delimiter">"</span><span class="content">../list.js</span><span class="delimiter">"</span></span><span class="tag">&gt;</span><span class="tag">&lt;/script&gt;</span>
-  <span class="tag">&lt;script</span> <span class="attribute-name">src</span>=<span class="string"><span class="delimiter">"</span><span class="content">qunit-2.6.0.js</span><span class="delimiter">"</span></span><span class="tag">&gt;</span><span class="tag">&lt;/script&gt;</span>
+<pre class="pygments highlight"><code data-lang="html"><span></span>  <span class="tok-p">&lt;</span><span class="tok-nt">script</span> <span class="tok-na">src</span><span class="tok-o">=</span><span class="tok-s">"../jquery-3.3.1.min.js"</span><span class="tok-p">&gt;&lt;/</span><span class="tok-nt">script</span><span class="tok-p">&gt;</span>
+  <span class="tok-p">&lt;</span><span class="tok-nt">script</span> <span class="tok-na">src</span><span class="tok-o">=</span><span class="tok-s">"../list.js"</span><span class="tok-p">&gt;&lt;/</span><span class="tok-nt">script</span><span class="tok-p">&gt;</span>
+  <span class="tok-p">&lt;</span><span class="tok-nt">script</span> <span class="tok-na">src</span><span class="tok-o">=</span><span class="tok-s">"qunit-2.6.0.js"</span><span class="tok-p">&gt;&lt;/</span><span class="tok-nt">script</span><span class="tok-p">&gt;</span>
 
-  <span class="tag">&lt;script&gt;</span>
-<span class="inline">    [...]</span></code></pre>
+  <span class="tok-p">&lt;</span><span class="tok-nt">script</span><span class="tok-p">&gt;</span>
+<span class="tok-w">    </span><span class="tok-p">[...]</span></code></pre>
 </div>
 </div>
 </div>
@@ -613,7 +637,7 @@ jQuery is hiding a lot of complexity behind the scenes here.  Check
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="javascript"><span class="predefined">$</span>(<span class="string"><span class="delimiter">'</span><span class="content">.has-error</span><span class="delimiter">'</span></span>).hide();</code></pre>
+<pre class="pygments highlight"><code data-lang="javascript"><span></span><span class="tok-nx">$</span><span class="tok-p">(</span><span class="tok-s1">'.has-error'</span><span class="tok-p">).</span><span class="tok-nx">hide</span><span class="tok-p">();</span></code></pre>
 </div>
 </div>
 </div>
@@ -635,14 +659,14 @@ jQuery is hiding a lot of complexity behind the scenes here.  Check
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="javascript">QUnit.test(<span class="string"><span class="delimiter">"</span><span class="content">errors should be hidden on keypress</span><span class="delimiter">"</span></span>, <span class="keyword">function</span> (assert) {
-  <span class="predefined">$</span>(<span class="string"><span class="delimiter">'</span><span class="content">input[name="text"]</span><span class="delimiter">'</span></span>).trigger(<span class="string"><span class="delimiter">'</span><span class="content">keypress</span><span class="delimiter">'</span></span>);
-  assert.equal(<span class="predefined">$</span>(<span class="string"><span class="delimiter">'</span><span class="content">.has-error</span><span class="delimiter">'</span></span>).is(<span class="string"><span class="delimiter">'</span><span class="content">:visible</span><span class="delimiter">'</span></span>), <span class="predefined-constant">false</span>);
-});
+<pre class="pygments highlight"><code data-lang="javascript"><span></span><span class="tok-nx">QUnit</span><span class="tok-p">.</span><span class="tok-nx">test</span><span class="tok-p">(</span><span class="tok-s2">"errors should be hidden on keypress"</span><span class="tok-p">,</span><span class="tok-w"> </span><span class="tok-kd">function</span><span class="tok-w"> </span><span class="tok-p">(</span><span class="tok-nx">assert</span><span class="tok-p">)</span><span class="tok-w"> </span><span class="tok-p">{</span>
+<span class="tok-w">  </span><span class="tok-nx">$</span><span class="tok-p">(</span><span class="tok-s1">'input[name="text"]'</span><span class="tok-p">).</span><span class="tok-nx">trigger</span><span class="tok-p">(</span><span class="tok-s1">'keypress'</span><span class="tok-p">);</span>
+<span class="tok-w">  </span><span class="tok-nx">assert</span><span class="tok-p">.</span><span class="tok-nx">equal</span><span class="tok-p">(</span><span class="tok-nx">$</span><span class="tok-p">(</span><span class="tok-s1">'.has-error'</span><span class="tok-p">).</span><span class="tok-nx">is</span><span class="tok-p">(</span><span class="tok-s1">':visible'</span><span class="tok-p">),</span><span class="tok-w"> </span><span class="tok-kc">false</span><span class="tok-p">);</span>
+<span class="tok-p">});</span>
 
-QUnit.test(<span class="string"><span class="delimiter">"</span><span class="content">errors aren't hidden if there is no keypress</span><span class="delimiter">"</span></span>, <span class="keyword">function</span> (assert) {
-  assert.equal(<span class="predefined">$</span>(<span class="string"><span class="delimiter">'</span><span class="content">.has-error</span><span class="delimiter">'</span></span>).is(<span class="string"><span class="delimiter">'</span><span class="content">:visible</span><span class="delimiter">'</span></span>), <span class="predefined-constant">true</span>);
-});</code></pre>
+<span class="tok-nx">QUnit</span><span class="tok-p">.</span><span class="tok-nx">test</span><span class="tok-p">(</span><span class="tok-s2">"errors aren't hidden if there is no keypress"</span><span class="tok-p">,</span><span class="tok-w"> </span><span class="tok-kd">function</span><span class="tok-w"> </span><span class="tok-p">(</span><span class="tok-nx">assert</span><span class="tok-p">)</span><span class="tok-w"> </span><span class="tok-p">{</span>
+<span class="tok-w">  </span><span class="tok-nx">assert</span><span class="tok-p">.</span><span class="tok-nx">equal</span><span class="tok-p">(</span><span class="tok-nx">$</span><span class="tok-p">(</span><span class="tok-s1">'.has-error'</span><span class="tok-p">).</span><span class="tok-nx">is</span><span class="tok-p">(</span><span class="tok-s1">':visible'</span><span class="tok-p">),</span><span class="tok-w"> </span><span class="tok-kc">true</span><span class="tok-p">);</span>
+<span class="tok-p">});</span></code></pre>
 </div>
 </div>
 </div>
@@ -669,9 +693,9 @@ QUnit.test(<span class="string"><span class="delimiter">"</span><span class="con
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="javascript"><span class="predefined">$</span>(<span class="string"><span class="delimiter">'</span><span class="content">input[name="text"]</span><span class="delimiter">'</span></span>).on(<span class="string"><span class="delimiter">'</span><span class="content">keypress</span><span class="delimiter">'</span></span>, <span class="keyword">function</span> () { <i class="conum" data-value="1"></i><b>(1)</b>
-  <span class="predefined">$</span>(<span class="string"><span class="delimiter">'</span><span class="content">.has-error</span><span class="delimiter">'</span></span>).hide();
-});</code></pre>
+<pre class="pygments highlight"><code data-lang="javascript"><span></span><span class="tok-nx">$</span><span class="tok-p">(</span><span class="tok-s1">'input[name="text"]'</span><span class="tok-p">).</span><span class="tok-nx">on</span><span class="tok-p">(</span><span class="tok-s1">'keypress'</span><span class="tok-p">,</span><span class="tok-w"> </span><span class="tok-kd">function</span><span class="tok-w"> </span><span class="tok-p">()</span><span class="tok-w"> </span><span class="tok-p">{</span><span class="tok-w"> </span><i class="conum" data-value="1"></i><b>(1)</b>
+<span class="tok-w">  </span><span class="tok-nx">$</span><span class="tok-p">(</span><span class="tok-s1">'.has-error'</span><span class="tok-p">).</span><span class="tok-nx">hide</span><span class="tok-p">();</span>
+<span class="tok-p">});</span></code></pre>
 </div>
 </div>
 </div>
@@ -726,21 +750,21 @@ add a couple of debug prints, or "console.logs":</p>
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="html">  <span class="tag">&lt;script&gt;</span>
-<span class="inline">
-console.log(<span class="string"><span class="delimiter">'</span><span class="content">qunit tests start</span><span class="delimiter">'</span></span>);
+<pre class="pygments highlight"><code data-lang="html"><span></span>  <span class="tok-p">&lt;</span><span class="tok-nt">script</span><span class="tok-p">&gt;</span>
 
-QUnit.test(<span class="string"><span class="delimiter">"</span><span class="content">errors should be hidden on keypress</span><span class="delimiter">"</span></span>, <span class="keyword">function</span> (assert) {
-  console.log(<span class="string"><span class="delimiter">'</span><span class="content">in test 1</span><span class="delimiter">'</span></span>);
-  <span class="predefined">$</span>(<span class="string"><span class="delimiter">'</span><span class="content">input[name="text"]</span><span class="delimiter">'</span></span>).trigger(<span class="string"><span class="delimiter">'</span><span class="content">keypress</span><span class="delimiter">'</span></span>);
-  assert.equal(<span class="predefined">$</span>(<span class="string"><span class="delimiter">'</span><span class="content">.has-error</span><span class="delimiter">'</span></span>).is(<span class="string"><span class="delimiter">'</span><span class="content">:visible</span><span class="delimiter">'</span></span>), <span class="predefined-constant">false</span>);
-});
+<span class="tok-nx">console</span><span class="tok-p">.</span><span class="tok-nx">log</span><span class="tok-p">(</span><span class="tok-s1">'qunit tests start'</span><span class="tok-p">);</span>
 
-QUnit.test(<span class="string"><span class="delimiter">"</span><span class="content">errors aren't hidden if there is no keypress</span><span class="delimiter">"</span></span>, <span class="keyword">function</span> (assert) {
-  console.log(<span class="string"><span class="delimiter">'</span><span class="content">in test 2</span><span class="delimiter">'</span></span>);
-  assert.equal(<span class="predefined">$</span>(<span class="string"><span class="delimiter">'</span><span class="content">.has-error</span><span class="delimiter">'</span></span>).is(<span class="string"><span class="delimiter">'</span><span class="content">:visible</span><span class="delimiter">'</span></span>), <span class="predefined-constant">true</span>);
-});</span>
-  <span class="tag">&lt;/script&gt;</span></code></pre>
+<span class="tok-nx">QUnit</span><span class="tok-p">.</span><span class="tok-nx">test</span><span class="tok-p">(</span><span class="tok-s2">"errors should be hidden on keypress"</span><span class="tok-p">,</span><span class="tok-w"> </span><span class="tok-kd">function</span><span class="tok-w"> </span><span class="tok-p">(</span><span class="tok-nx">assert</span><span class="tok-p">)</span><span class="tok-w"> </span><span class="tok-p">{</span>
+<span class="tok-w">  </span><span class="tok-nx">console</span><span class="tok-p">.</span><span class="tok-nx">log</span><span class="tok-p">(</span><span class="tok-s1">'in test 1'</span><span class="tok-p">);</span>
+<span class="tok-w">  </span><span class="tok-nx">$</span><span class="tok-p">(</span><span class="tok-s1">'input[name="text"]'</span><span class="tok-p">).</span><span class="tok-nx">trigger</span><span class="tok-p">(</span><span class="tok-s1">'keypress'</span><span class="tok-p">);</span>
+<span class="tok-w">  </span><span class="tok-nx">assert</span><span class="tok-p">.</span><span class="tok-nx">equal</span><span class="tok-p">(</span><span class="tok-nx">$</span><span class="tok-p">(</span><span class="tok-s1">'.has-error'</span><span class="tok-p">).</span><span class="tok-nx">is</span><span class="tok-p">(</span><span class="tok-s1">':visible'</span><span class="tok-p">),</span><span class="tok-w"> </span><span class="tok-kc">false</span><span class="tok-p">);</span>
+<span class="tok-p">});</span>
+
+<span class="tok-nx">QUnit</span><span class="tok-p">.</span><span class="tok-nx">test</span><span class="tok-p">(</span><span class="tok-s2">"errors aren't hidden if there is no keypress"</span><span class="tok-p">,</span><span class="tok-w"> </span><span class="tok-kd">function</span><span class="tok-w"> </span><span class="tok-p">(</span><span class="tok-nx">assert</span><span class="tok-p">)</span><span class="tok-w"> </span><span class="tok-p">{</span>
+<span class="tok-w">  </span><span class="tok-nx">console</span><span class="tok-p">.</span><span class="tok-nx">log</span><span class="tok-p">(</span><span class="tok-s1">'in test 2'</span><span class="tok-p">);</span>
+<span class="tok-w">  </span><span class="tok-nx">assert</span><span class="tok-p">.</span><span class="tok-nx">equal</span><span class="tok-p">(</span><span class="tok-nx">$</span><span class="tok-p">(</span><span class="tok-s1">'.has-error'</span><span class="tok-p">).</span><span class="tok-nx">is</span><span class="tok-p">(</span><span class="tok-s1">':visible'</span><span class="tok-p">),</span><span class="tok-w"> </span><span class="tok-kc">true</span><span class="tok-p">);</span>
+<span class="tok-p">});</span>
+<span class="tok-w">  </span><span class="tok-p">&lt;/</span><span class="tok-nt">script</span><span class="tok-p">&gt;</span></code></pre>
 </div>
 </div>
 </div>
@@ -753,11 +777,11 @@ QUnit.test(<span class="string"><span class="delimiter">"</span><span class="con
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="javascript"><span class="predefined">$</span>(<span class="string"><span class="delimiter">'</span><span class="content">input[name="text"]</span><span class="delimiter">'</span></span>).on(<span class="string"><span class="delimiter">'</span><span class="content">keypress</span><span class="delimiter">'</span></span>, <span class="keyword">function</span> () {
-  console.log(<span class="string"><span class="delimiter">'</span><span class="content">in keypress handler</span><span class="delimiter">'</span></span>);
-  <span class="predefined">$</span>(<span class="string"><span class="delimiter">'</span><span class="content">.has-error</span><span class="delimiter">'</span></span>).hide();
-});
-console.log(<span class="string"><span class="delimiter">'</span><span class="content">list.js loaded</span><span class="delimiter">'</span></span>);</code></pre>
+<pre class="pygments highlight"><code data-lang="javascript"><span></span><span class="tok-nx">$</span><span class="tok-p">(</span><span class="tok-s1">'input[name="text"]'</span><span class="tok-p">).</span><span class="tok-nx">on</span><span class="tok-p">(</span><span class="tok-s1">'keypress'</span><span class="tok-p">,</span><span class="tok-w"> </span><span class="tok-kd">function</span><span class="tok-w"> </span><span class="tok-p">()</span><span class="tok-w"> </span><span class="tok-p">{</span>
+<span class="tok-w">  </span><span class="tok-nx">console</span><span class="tok-p">.</span><span class="tok-nx">log</span><span class="tok-p">(</span><span class="tok-s1">'in keypress handler'</span><span class="tok-p">);</span>
+<span class="tok-w">  </span><span class="tok-nx">$</span><span class="tok-p">(</span><span class="tok-s1">'.has-error'</span><span class="tok-p">).</span><span class="tok-nx">hide</span><span class="tok-p">();</span>
+<span class="tok-p">});</span>
+<span class="tok-nx">console</span><span class="tok-p">.</span><span class="tok-nx">log</span><span class="tok-p">(</span><span class="tok-s1">'list.js loaded'</span><span class="tok-p">);</span></code></pre>
 </div>
 </div>
 </div>
@@ -810,14 +834,14 @@ later in real life):</p>
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="javascript"><span class="keyword">var</span> <span class="function">initialize</span> = <span class="keyword">function</span> () {
-  console.log(<span class="string"><span class="delimiter">'</span><span class="content">initialize called</span><span class="delimiter">'</span></span>);
-  <span class="predefined">$</span>(<span class="string"><span class="delimiter">'</span><span class="content">input[name="text"]</span><span class="delimiter">'</span></span>).on(<span class="string"><span class="delimiter">'</span><span class="content">keypress</span><span class="delimiter">'</span></span>, <span class="keyword">function</span> () {
-    console.log(<span class="string"><span class="delimiter">'</span><span class="content">in keypress handler</span><span class="delimiter">'</span></span>);
-    <span class="predefined">$</span>(<span class="string"><span class="delimiter">'</span><span class="content">.has-error</span><span class="delimiter">'</span></span>).hide();
-  });
-};
-console.log(<span class="string"><span class="delimiter">'</span><span class="content">list.js loaded</span><span class="delimiter">'</span></span>);</code></pre>
+<pre class="pygments highlight"><code data-lang="javascript"><span></span><span class="tok-kd">var</span><span class="tok-w"> </span><span class="tok-nx">initialize</span><span class="tok-w"> </span><span class="tok-o">=</span><span class="tok-w"> </span><span class="tok-kd">function</span><span class="tok-w"> </span><span class="tok-p">()</span><span class="tok-w"> </span><span class="tok-p">{</span>
+<span class="tok-w">  </span><span class="tok-nx">console</span><span class="tok-p">.</span><span class="tok-nx">log</span><span class="tok-p">(</span><span class="tok-s1">'initialize called'</span><span class="tok-p">);</span>
+<span class="tok-w">  </span><span class="tok-nx">$</span><span class="tok-p">(</span><span class="tok-s1">'input[name="text"]'</span><span class="tok-p">).</span><span class="tok-nx">on</span><span class="tok-p">(</span><span class="tok-s1">'keypress'</span><span class="tok-p">,</span><span class="tok-w"> </span><span class="tok-kd">function</span><span class="tok-w"> </span><span class="tok-p">()</span><span class="tok-w"> </span><span class="tok-p">{</span>
+<span class="tok-w">    </span><span class="tok-nx">console</span><span class="tok-p">.</span><span class="tok-nx">log</span><span class="tok-p">(</span><span class="tok-s1">'in keypress handler'</span><span class="tok-p">);</span>
+<span class="tok-w">    </span><span class="tok-nx">$</span><span class="tok-p">(</span><span class="tok-s1">'.has-error'</span><span class="tok-p">).</span><span class="tok-nx">hide</span><span class="tok-p">();</span>
+<span class="tok-w">  </span><span class="tok-p">});</span>
+<span class="tok-p">};</span>
+<span class="tok-nx">console</span><span class="tok-p">.</span><span class="tok-nx">log</span><span class="tok-p">(</span><span class="tok-s1">'list.js loaded'</span><span class="tok-p">);</span></code></pre>
 </div>
 </div>
 </div>
@@ -830,18 +854,18 @@ console.log(<span class="string"><span class="delimiter">'</span><span class="co
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="javascript">QUnit.test(<span class="string"><span class="delimiter">"</span><span class="content">errors should be hidden on keypress</span><span class="delimiter">"</span></span>, <span class="keyword">function</span> (assert) {
-  console.log(<span class="string"><span class="delimiter">'</span><span class="content">in test 1</span><span class="delimiter">'</span></span>);
-  initialize();
-  <span class="predefined">$</span>(<span class="string"><span class="delimiter">'</span><span class="content">input[name="text"]</span><span class="delimiter">'</span></span>).trigger(<span class="string"><span class="delimiter">'</span><span class="content">keypress</span><span class="delimiter">'</span></span>);
-  assert.equal(<span class="predefined">$</span>(<span class="string"><span class="delimiter">'</span><span class="content">.has-error</span><span class="delimiter">'</span></span>).is(<span class="string"><span class="delimiter">'</span><span class="content">:visible</span><span class="delimiter">'</span></span>), <span class="predefined-constant">false</span>);
-});
+<pre class="pygments highlight"><code data-lang="javascript"><span></span><span class="tok-nx">QUnit</span><span class="tok-p">.</span><span class="tok-nx">test</span><span class="tok-p">(</span><span class="tok-s2">"errors should be hidden on keypress"</span><span class="tok-p">,</span><span class="tok-w"> </span><span class="tok-kd">function</span><span class="tok-w"> </span><span class="tok-p">(</span><span class="tok-nx">assert</span><span class="tok-p">)</span><span class="tok-w"> </span><span class="tok-p">{</span>
+<span class="tok-w">  </span><span class="tok-nx">console</span><span class="tok-p">.</span><span class="tok-nx">log</span><span class="tok-p">(</span><span class="tok-s1">'in test 1'</span><span class="tok-p">);</span>
+<span class="tok-w">  </span><span class="tok-nx">initialize</span><span class="tok-p">();</span>
+<span class="tok-w">  </span><span class="tok-nx">$</span><span class="tok-p">(</span><span class="tok-s1">'input[name="text"]'</span><span class="tok-p">).</span><span class="tok-nx">trigger</span><span class="tok-p">(</span><span class="tok-s1">'keypress'</span><span class="tok-p">);</span>
+<span class="tok-w">  </span><span class="tok-nx">assert</span><span class="tok-p">.</span><span class="tok-nx">equal</span><span class="tok-p">(</span><span class="tok-nx">$</span><span class="tok-p">(</span><span class="tok-s1">'.has-error'</span><span class="tok-p">).</span><span class="tok-nx">is</span><span class="tok-p">(</span><span class="tok-s1">':visible'</span><span class="tok-p">),</span><span class="tok-w"> </span><span class="tok-kc">false</span><span class="tok-p">);</span>
+<span class="tok-p">});</span>
 
-QUnit.test(<span class="string"><span class="delimiter">"</span><span class="content">errors aren't hidden if there is no keypress</span><span class="delimiter">"</span></span>, <span class="keyword">function</span> (assert) {
-  console.log(<span class="string"><span class="delimiter">'</span><span class="content">in test 2</span><span class="delimiter">'</span></span>);
-  initialize();
-  assert.equal(<span class="predefined">$</span>(<span class="string"><span class="delimiter">'</span><span class="content">.has-error</span><span class="delimiter">'</span></span>).is(<span class="string"><span class="delimiter">'</span><span class="content">:visible</span><span class="delimiter">'</span></span>), <span class="predefined-constant">true</span>);
-});</code></pre>
+<span class="tok-nx">QUnit</span><span class="tok-p">.</span><span class="tok-nx">test</span><span class="tok-p">(</span><span class="tok-s2">"errors aren't hidden if there is no keypress"</span><span class="tok-p">,</span><span class="tok-w"> </span><span class="tok-kd">function</span><span class="tok-w"> </span><span class="tok-p">(</span><span class="tok-nx">assert</span><span class="tok-p">)</span><span class="tok-w"> </span><span class="tok-p">{</span>
+<span class="tok-w">  </span><span class="tok-nx">console</span><span class="tok-p">.</span><span class="tok-nx">log</span><span class="tok-p">(</span><span class="tok-s1">'in test 2'</span><span class="tok-p">);</span>
+<span class="tok-w">  </span><span class="tok-nx">initialize</span><span class="tok-p">();</span>
+<span class="tok-w">  </span><span class="tok-nx">assert</span><span class="tok-p">.</span><span class="tok-nx">equal</span><span class="tok-p">(</span><span class="tok-nx">$</span><span class="tok-p">(</span><span class="tok-s1">'.has-error'</span><span class="tok-p">).</span><span class="tok-nx">is</span><span class="tok-p">(</span><span class="tok-s1">':visible'</span><span class="tok-p">),</span><span class="tok-w"> </span><span class="tok-kc">true</span><span class="tok-p">);</span>
+<span class="tok-p">});</span></code></pre>
 </div>
 </div>
 </div>
@@ -873,11 +897,11 @@ initialize called</pre>
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="javascript"><span class="keyword">var</span> <span class="function">initialize</span> = <span class="keyword">function</span> () {
-  <span class="predefined">$</span>(<span class="string"><span class="delimiter">'</span><span class="content">input[name="text"]</span><span class="delimiter">'</span></span>).on(<span class="string"><span class="delimiter">'</span><span class="content">keypress</span><span class="delimiter">'</span></span>, <span class="keyword">function</span> () {
-    <span class="predefined">$</span>(<span class="string"><span class="delimiter">'</span><span class="content">.has-error</span><span class="delimiter">'</span></span>).hide();
-  });
-};</code></pre>
+<pre class="pygments highlight"><code data-lang="javascript"><span></span><span class="tok-kd">var</span><span class="tok-w"> </span><span class="tok-nx">initialize</span><span class="tok-w"> </span><span class="tok-o">=</span><span class="tok-w"> </span><span class="tok-kd">function</span><span class="tok-w"> </span><span class="tok-p">()</span><span class="tok-w"> </span><span class="tok-p">{</span>
+<span class="tok-w">  </span><span class="tok-nx">$</span><span class="tok-p">(</span><span class="tok-s1">'input[name="text"]'</span><span class="tok-p">).</span><span class="tok-nx">on</span><span class="tok-p">(</span><span class="tok-s1">'keypress'</span><span class="tok-p">,</span><span class="tok-w"> </span><span class="tok-kd">function</span><span class="tok-w"> </span><span class="tok-p">()</span><span class="tok-w"> </span><span class="tok-p">{</span>
+<span class="tok-w">    </span><span class="tok-nx">$</span><span class="tok-p">(</span><span class="tok-s1">'.has-error'</span><span class="tok-p">).</span><span class="tok-nx">hide</span><span class="tok-p">();</span>
+<span class="tok-w">  </span><span class="tok-p">});</span>
+<span class="tok-p">};</span></code></pre>
 </div>
 </div>
 </div>
@@ -890,16 +914,16 @@ initialize called</pre>
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="javascript">QUnit.test(<span class="string"><span class="delimiter">"</span><span class="content">errors should be hidden on keypress</span><span class="delimiter">"</span></span>, <span class="keyword">function</span> (assert) {
-  initialize();
-  <span class="predefined">$</span>(<span class="string"><span class="delimiter">'</span><span class="content">input[name="text"]</span><span class="delimiter">'</span></span>).trigger(<span class="string"><span class="delimiter">'</span><span class="content">keypress</span><span class="delimiter">'</span></span>);
-  assert.equal(<span class="predefined">$</span>(<span class="string"><span class="delimiter">'</span><span class="content">.has-error</span><span class="delimiter">'</span></span>).is(<span class="string"><span class="delimiter">'</span><span class="content">:visible</span><span class="delimiter">'</span></span>), <span class="predefined-constant">false</span>);
-});
+<pre class="pygments highlight"><code data-lang="javascript"><span></span><span class="tok-nx">QUnit</span><span class="tok-p">.</span><span class="tok-nx">test</span><span class="tok-p">(</span><span class="tok-s2">"errors should be hidden on keypress"</span><span class="tok-p">,</span><span class="tok-w"> </span><span class="tok-kd">function</span><span class="tok-w"> </span><span class="tok-p">(</span><span class="tok-nx">assert</span><span class="tok-p">)</span><span class="tok-w"> </span><span class="tok-p">{</span>
+<span class="tok-w">  </span><span class="tok-nx">initialize</span><span class="tok-p">();</span>
+<span class="tok-w">  </span><span class="tok-nx">$</span><span class="tok-p">(</span><span class="tok-s1">'input[name="text"]'</span><span class="tok-p">).</span><span class="tok-nx">trigger</span><span class="tok-p">(</span><span class="tok-s1">'keypress'</span><span class="tok-p">);</span>
+<span class="tok-w">  </span><span class="tok-nx">assert</span><span class="tok-p">.</span><span class="tok-nx">equal</span><span class="tok-p">(</span><span class="tok-nx">$</span><span class="tok-p">(</span><span class="tok-s1">'.has-error'</span><span class="tok-p">).</span><span class="tok-nx">is</span><span class="tok-p">(</span><span class="tok-s1">':visible'</span><span class="tok-p">),</span><span class="tok-w"> </span><span class="tok-kc">false</span><span class="tok-p">);</span>
+<span class="tok-p">});</span>
 
-QUnit.test(<span class="string"><span class="delimiter">"</span><span class="content">errors aren't hidden if there is no keypress</span><span class="delimiter">"</span></span>, <span class="keyword">function</span> (assert) {
-  initialize();
-  assert.equal(<span class="predefined">$</span>(<span class="string"><span class="delimiter">'</span><span class="content">.has-error</span><span class="delimiter">'</span></span>).is(<span class="string"><span class="delimiter">'</span><span class="content">:visible</span><span class="delimiter">'</span></span>), <span class="predefined-constant">true</span>);
-});</code></pre>
+<span class="tok-nx">QUnit</span><span class="tok-p">.</span><span class="tok-nx">test</span><span class="tok-p">(</span><span class="tok-s2">"errors aren't hidden if there is no keypress"</span><span class="tok-p">,</span><span class="tok-w"> </span><span class="tok-kd">function</span><span class="tok-w"> </span><span class="tok-p">(</span><span class="tok-nx">assert</span><span class="tok-p">)</span><span class="tok-w"> </span><span class="tok-p">{</span>
+<span class="tok-w">  </span><span class="tok-nx">initialize</span><span class="tok-p">();</span>
+<span class="tok-w">  </span><span class="tok-nx">assert</span><span class="tok-p">.</span><span class="tok-nx">equal</span><span class="tok-p">(</span><span class="tok-nx">$</span><span class="tok-p">(</span><span class="tok-s1">'.has-error'</span><span class="tok-p">).</span><span class="tok-nx">is</span><span class="tok-p">(</span><span class="tok-s1">':visible'</span><span class="tok-p">),</span><span class="tok-w"> </span><span class="tok-kc">true</span><span class="tok-p">);</span>
+<span class="tok-p">});</span></code></pre>
 </div>
 </div>
 </div>
@@ -913,16 +937,16 @@ invoke our initialize function on our real pages:</p>
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="html">    <span class="tag">&lt;/div&gt;</span>
-    <span class="tag">&lt;script</span> <span class="attribute-name">src</span>=<span class="string"><span class="delimiter">"</span><span class="content">/static/jquery-3.3.1.min.js</span><span class="delimiter">"</span></span><span class="tag">&gt;</span><span class="tag">&lt;/script&gt;</span>
-    <span class="tag">&lt;script</span> <span class="attribute-name">src</span>=<span class="string"><span class="delimiter">"</span><span class="content">/static/list.js</span><span class="delimiter">"</span></span><span class="tag">&gt;</span><span class="tag">&lt;/script&gt;</span>
+<pre class="pygments highlight"><code data-lang="html"><span></span>    <span class="tok-p">&lt;/</span><span class="tok-nt">div</span><span class="tok-p">&gt;</span>
+    <span class="tok-p">&lt;</span><span class="tok-nt">script</span> <span class="tok-na">src</span><span class="tok-o">=</span><span class="tok-s">"/static/jquery-3.3.1.min.js"</span><span class="tok-p">&gt;&lt;/</span><span class="tok-nt">script</span><span class="tok-p">&gt;</span>
+    <span class="tok-p">&lt;</span><span class="tok-nt">script</span> <span class="tok-na">src</span><span class="tok-o">=</span><span class="tok-s">"/static/list.js"</span><span class="tok-p">&gt;&lt;/</span><span class="tok-nt">script</span><span class="tok-p">&gt;</span>
 
-    <span class="tag">&lt;script&gt;</span>
-<span class="inline">      initialize();</span>
-    <span class="tag">&lt;/script&gt;</span>
+    <span class="tok-p">&lt;</span><span class="tok-nt">script</span><span class="tok-p">&gt;</span>
+<span class="tok-w">      </span><span class="tok-nx">initialize</span><span class="tok-p">();</span>
+<span class="tok-w">    </span><span class="tok-p">&lt;/</span><span class="tok-nt">script</span><span class="tok-p">&gt;</span>
 
-  <span class="tag">&lt;/body&gt;</span>
-<span class="tag">&lt;/html&gt;</span></code></pre>
+  <span class="tok-p">&lt;/</span><span class="tok-nt">body</span><span class="tok-p">&gt;</span>
+<span class="tok-p">&lt;/</span><span class="tok-nt">html</span><span class="tok-p">&gt;</span></code></pre>
 </div>
 </div>
 </div>
@@ -981,12 +1005,12 @@ unlikely to be used by anyone else:</p>
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="javascript">window.Superlists = {}; <i class="conum" data-value="1"></i><b>(1)</b>
-window.Superlists.<span class="function">initialize</span> = <span class="keyword">function</span> () { <i class="conum" data-value="2"></i><b>(2)</b>
-  <span class="predefined">$</span>(<span class="string"><span class="delimiter">'</span><span class="content">input[name="text"]</span><span class="delimiter">'</span></span>).on(<span class="string"><span class="delimiter">'</span><span class="content">keypress</span><span class="delimiter">'</span></span>, <span class="keyword">function</span> () {
-    <span class="predefined">$</span>(<span class="string"><span class="delimiter">'</span><span class="content">.has-error</span><span class="delimiter">'</span></span>).hide();
-  });
-};</code></pre>
+<pre class="pygments highlight"><code data-lang="javascript"><span></span><span class="tok-nb">window</span><span class="tok-p">.</span><span class="tok-nx">Superlists</span><span class="tok-w"> </span><span class="tok-o">=</span><span class="tok-w"> </span><span class="tok-p">{};</span><span class="tok-w"> </span><i class="conum" data-value="1"></i><b>(1)</b>
+<span class="tok-nb">window</span><span class="tok-p">.</span><span class="tok-nx">Superlists</span><span class="tok-p">.</span><span class="tok-nx">initialize</span><span class="tok-w"> </span><span class="tok-o">=</span><span class="tok-w"> </span><span class="tok-kd">function</span><span class="tok-w"> </span><span class="tok-p">()</span><span class="tok-w"> </span><span class="tok-p">{</span><span class="tok-w"> </span><i class="conum" data-value="2"></i><b>(2)</b>
+<span class="tok-w">  </span><span class="tok-nx">$</span><span class="tok-p">(</span><span class="tok-s1">'input[name="text"]'</span><span class="tok-p">).</span><span class="tok-nx">on</span><span class="tok-p">(</span><span class="tok-s1">'keypress'</span><span class="tok-p">,</span><span class="tok-w"> </span><span class="tok-kd">function</span><span class="tok-w"> </span><span class="tok-p">()</span><span class="tok-w"> </span><span class="tok-p">{</span>
+<span class="tok-w">    </span><span class="tok-nx">$</span><span class="tok-p">(</span><span class="tok-s1">'.has-error'</span><span class="tok-p">).</span><span class="tok-nx">hide</span><span class="tok-p">();</span>
+<span class="tok-w">  </span><span class="tok-p">});</span>
+<span class="tok-p">};</span></code></pre>
 </div>
 </div>
 </div>
@@ -1026,18 +1050,18 @@ There are lots of other, much cleverer ways of dealing with namespaces in
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="html">  <span class="tag">&lt;script&gt;</span>
-<span class="inline">QUnit.test(<span class="string"><span class="delimiter">"</span><span class="content">errors should be hidden on keypress</span><span class="delimiter">"</span></span>, <span class="keyword">function</span> (assert) {
-  window.Superlists.initialize();
-  <span class="predefined">$</span>(<span class="string"><span class="delimiter">'</span><span class="content">input[name="text"]</span><span class="delimiter">'</span></span>).trigger(<span class="string"><span class="delimiter">'</span><span class="content">keypress</span><span class="delimiter">'</span></span>);
-  assert.equal(<span class="predefined">$</span>(<span class="string"><span class="delimiter">'</span><span class="content">.has-error</span><span class="delimiter">'</span></span>).is(<span class="string"><span class="delimiter">'</span><span class="content">:visible</span><span class="delimiter">'</span></span>), <span class="predefined-constant">false</span>);
-});
+<pre class="pygments highlight"><code data-lang="html"><span></span>  <span class="tok-p">&lt;</span><span class="tok-nt">script</span><span class="tok-p">&gt;</span>
+<span class="tok-nx">QUnit</span><span class="tok-p">.</span><span class="tok-nx">test</span><span class="tok-p">(</span><span class="tok-s2">"errors should be hidden on keypress"</span><span class="tok-p">,</span><span class="tok-w"> </span><span class="tok-kd">function</span><span class="tok-w"> </span><span class="tok-p">(</span><span class="tok-nx">assert</span><span class="tok-p">)</span><span class="tok-w"> </span><span class="tok-p">{</span>
+<span class="tok-w">  </span><span class="tok-nb">window</span><span class="tok-p">.</span><span class="tok-nx">Superlists</span><span class="tok-p">.</span><span class="tok-nx">initialize</span><span class="tok-p">();</span>
+<span class="tok-w">  </span><span class="tok-nx">$</span><span class="tok-p">(</span><span class="tok-s1">'input[name="text"]'</span><span class="tok-p">).</span><span class="tok-nx">trigger</span><span class="tok-p">(</span><span class="tok-s1">'keypress'</span><span class="tok-p">);</span>
+<span class="tok-w">  </span><span class="tok-nx">assert</span><span class="tok-p">.</span><span class="tok-nx">equal</span><span class="tok-p">(</span><span class="tok-nx">$</span><span class="tok-p">(</span><span class="tok-s1">'.has-error'</span><span class="tok-p">).</span><span class="tok-nx">is</span><span class="tok-p">(</span><span class="tok-s1">':visible'</span><span class="tok-p">),</span><span class="tok-w"> </span><span class="tok-kc">false</span><span class="tok-p">);</span>
+<span class="tok-p">});</span>
 
-QUnit.test(<span class="string"><span class="delimiter">"</span><span class="content">errors aren't hidden if there is no keypress</span><span class="delimiter">"</span></span>, <span class="keyword">function</span> (assert) {
-  window.Superlists.initialize();
-  assert.equal(<span class="predefined">$</span>(<span class="string"><span class="delimiter">'</span><span class="content">.has-error</span><span class="delimiter">'</span></span>).is(<span class="string"><span class="delimiter">'</span><span class="content">:visible</span><span class="delimiter">'</span></span>), <span class="predefined-constant">true</span>);
-});</span>
-  <span class="tag">&lt;/script&gt;</span></code></pre>
+<span class="tok-nx">QUnit</span><span class="tok-p">.</span><span class="tok-nx">test</span><span class="tok-p">(</span><span class="tok-s2">"errors aren't hidden if there is no keypress"</span><span class="tok-p">,</span><span class="tok-w"> </span><span class="tok-kd">function</span><span class="tok-w"> </span><span class="tok-p">(</span><span class="tok-nx">assert</span><span class="tok-p">)</span><span class="tok-w"> </span><span class="tok-p">{</span>
+<span class="tok-w">  </span><span class="tok-nb">window</span><span class="tok-p">.</span><span class="tok-nx">Superlists</span><span class="tok-p">.</span><span class="tok-nx">initialize</span><span class="tok-p">();</span>
+<span class="tok-w">  </span><span class="tok-nx">assert</span><span class="tok-p">.</span><span class="tok-nx">equal</span><span class="tok-p">(</span><span class="tok-nx">$</span><span class="tok-p">(</span><span class="tok-s1">'.has-error'</span><span class="tok-p">).</span><span class="tok-nx">is</span><span class="tok-p">(</span><span class="tok-s1">':visible'</span><span class="tok-p">),</span><span class="tok-w"> </span><span class="tok-kc">true</span><span class="tok-p">);</span>
+<span class="tok-p">});</span>
+<span class="tok-w">  </span><span class="tok-p">&lt;/</span><span class="tok-nt">script</span><span class="tok-p">&gt;</span></code></pre>
 </div>
 </div>
 </div>
@@ -1057,13 +1081,13 @@ page, but we shouldn&#8217;t rely on that.</p>
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="javascript">    <span class="tag">&lt;script&gt;</span>
-<span class="inline">
-<span class="predefined">$</span>(document).ready(<span class="keyword">function</span> () {
-  window.Superlists.initialize();
-});</span>
+<pre class="pygments highlight"><code data-lang="javascript"><span></span><span class="tok-w">    </span><span class="tok-o">&lt;</span><span class="tok-nx">script</span><span class="tok-o">&gt;</span>
 
-    <span class="tag">&lt;/script&gt;</span></code></pre>
+<span class="tok-nx">$</span><span class="tok-p">(</span><span class="tok-nb">document</span><span class="tok-p">).</span><span class="tok-nx">ready</span><span class="tok-p">(</span><span class="tok-kd">function</span><span class="tok-w"> </span><span class="tok-p">()</span><span class="tok-w"> </span><span class="tok-p">{</span>
+<span class="tok-w">  </span><span class="tok-nb">window</span><span class="tok-p">.</span><span class="tok-nx">Superlists</span><span class="tok-p">.</span><span class="tok-nx">initialize</span><span class="tok-p">();</span>
+<span class="tok-p">});</span>
+
+<span class="tok-w">    </span><span class="tok-o">&lt;</span><span class="tok-err">/script&gt;</span></code></pre>
 </div>
 </div>
 </div>
@@ -1222,7 +1246,7 @@ be quite fun.  But I&#8217;ll say it again: make sure you&#8217;ve read
 </div>
 <div id="footer">
 <div id="footer-text">
-License: Creative Commons <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode">CC-BY-NC-ND</a>. Last updated: 2023-11-21 12:30:56 UTC
+License: Creative Commons <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode">CC-BY-NC-ND</a>. Last updated: 2024-03-06 17:26:15 UTC
 </div>
 </div>
 <div class="comments" style="padding: 20px">
