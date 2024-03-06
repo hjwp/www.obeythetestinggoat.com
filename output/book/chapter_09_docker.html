@@ -1598,8 +1598,9 @@ which is a very useful thing to be able to do &#8482;.</p>
 </div>
 </div>
 <div class="paragraph">
-<p>The extra flag to add is <code>-v</code>, and it takes a similar <code>outside:inside</code> argument as <code>-p</code> did for ports.
-We specify a folder or file <em>outside</em> the container, and the path we want it to appear at <em>inside</em> the container.</p>
+<p>The extra flag to add is <code>--mount</code>,
+where we specify <code>type=bind</code>, the <code>source</code> path on our machine,
+and the <code>target</code> path <em>inside</em> the container:</p>
 </div>
 <div class="listingblock small-code">
 <div class="content">
@@ -1612,7 +1613,7 @@ Running migrations:
   Applying sessions.0001_initial... OK
 $ <strong>docker build -t superlists . &amp;&amp; docker run \
   -p 8888:8888 \
-  -v ./src/db.sqlite3:/src/db.sqlite3 \
+  --mount type=bind,source=./src/db.sqlite3,target=/src/db.sqlite3 \
   -it superlists</strong></pre>
 </div>
 </div>
@@ -1623,9 +1624,11 @@ $ <strong>docker build -t superlists . &amp;&amp; docker run \
 <i class="fa icon-tip" title="Tip"></i>
 </td>
 <td class="content">
-if you see an error saying: <code>django.db.utils.OperationalError</code>: "unable to open database file",
-    try stopping the container, <code>rm -rf src/db.sqlite3</code>, then re-run the migrate command
-    <em>outside</em> the container, and then rebuild and run your image.
+The old syntax for mounts was <code>-v</code>.
+    One of the advantages of the new <code>--mount</code> syntax is that it will fail hard
+    if the path you&#8217;re trying to mount into the container does not exist
+    (it says something like <code>bind source path does not exist</code>)
+    This avoids a lot of pain, ask me how I now this.
 </td>
 </tr>
 </table>
@@ -1677,9 +1680,6 @@ In the next chapter, we&#8217;ll make our hacky image more production-ready.</p>
 <div class="sidebarblock">
 <div class="content">
 <div class="title">Test-Driving Server Configuration and Deployment</div>
-<div class="paragraph">
-<p>TODO update this recap.</p>
-</div>
 <div class="dlist">
 <dl>
 <dt class="hdlist1">Tests and small steps some of the uncertainty out of deployment</dt>
@@ -1690,17 +1690,13 @@ My aim during this chapter was to show that a step-by-step approach
 helps to minimise risk, especially when allied to a functional test suite
 that can help us to catch errors early.</p>
 </dd>
-</dl>
-</div>
-<div class="dlist">
-<dl>
 <dt class="hdlist1">Some typical pain points&#8212;&#8203;networking, ports, static files, and the database</dt>
 <dd>
-<p>The things that you need to keep an eye out for on any deployment include
-making sure your database configuration, static files, software
-dependencies, and custom settings that differ between development and
-production.  You&#8217;ll need to think through each of these for your own
-deployments.</p>
+<p>Moving from the local django development server to a container
+is chance to rehearse the fiddliness of configuring networking
+in a deployed environment.
+It&#8217;s also a chance to think about persistence and the database,
+and some configuration issues like static files.</p>
 </dd>
 </dl>
 </div>
@@ -1727,7 +1723,7 @@ deployments.</p>
 </div>
 <div id="footer">
 <div id="footer-text">
-License: Creative Commons <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode">CC-BY-NC-ND</a>. Last updated: 2024-02-21 15:10:34 UTC
+License: Creative Commons <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode">CC-BY-NC-ND</a>. Last updated: 2024-02-28 23:10:16 UTC
 </div>
 </div>
 <div class="comments" style="padding: 20px">
