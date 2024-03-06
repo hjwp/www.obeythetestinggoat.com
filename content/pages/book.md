@@ -93,7 +93,7 @@ Table of contents follows:
 * [Chapter 12: Splitting Our Tests into Multiple Files, and a Generic Wait Helper](/book/chapter_12_organising_test_files.html)
 * [Chapter 13: Validation at the Database Layer](/book/chapter_13_database_layer_validation.html)
 * [Chapter 14: A Simple Form](/book/chapter_14_simple_form.html)
-* [Chapter 15: More Advanced Forms](/book/chapter_advanced_forms.html)
+* [Chapter 15: More Advanced Forms](/book/chapter_15_advanced_forms.html)
 * [Chapter 16: Dipping Our Toes, Very Tentatively, into JavaScript](/book/chapter_javascript.html)
 * [Chapter 17: Deploying Our New Code](/book/chapter_deploying_validation.html)
 
