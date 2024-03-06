@@ -55,13 +55,23 @@ def redirect_13():
 def redirect_14():
     return redirect("/book/chapter_14_simple_form.html", code=301)
 
+@app.route("/book/chapter_advanced_forms.html")
+def redirect_15():
+    return redirect("/book/chapter_15_advanced_forms.html", code=301)
 
 """
 TODO?
-        new file:   output/book/chapter_09_docker.html
-        new file:   output/book/chapter_10_production_readiness.html
-        new file:   output/book/chapter_11_ansible.html
-        deleted:    output/book/chapter_automate_deployment_with_fabric.html
-        deleted:    output/book/chapter_making_deployment_production_ready.html
-        deleted:    output/book/chapter_manual_deployment.html
+
+chapter_CI.html
+chapter_deploying_validation.html
+chapter_fixtures_and_wait_decorator.html
+chapter_hot_lava.html
+chapter_javascript.html
+chapter_mocking.html
+chapter_outside_in.html
+chapter_page_pattern.html
+chapter_prettification.html
+chapter_purist_unit_tests.html
+chapter_server_side_debugging.html
+chapter_spiking_custom_auth.html
 """
