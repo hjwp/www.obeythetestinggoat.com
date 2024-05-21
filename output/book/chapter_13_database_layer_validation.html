@@ -3,11 +3,11 @@
 <meta charset="UTF-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="generator" content="Asciidoctor 2.0.20">
+<meta name="generator" content="Asciidoctor 2.0.23">
 <title>Validation at the Database Layer</title>
 <link rel="stylesheet" href="./asciidoctor.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
-<link rel="stylesheet" href="./coderay-asciidoctor.css">
+<link rel="stylesheet" href="./pygments-default.css">
 <script>var httpRequest = new XMLHttpRequest();
 httpRequest.onreadystatechange = function() {
   if (httpRequest.readyState === XMLHttpRequest.DONE) {
@@ -141,17 +141,17 @@ because it&#8217;s testing that the code under test should raise an exception:</
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> <span class="include">django.core.exceptions</span> <span class="keyword">import</span> <span class="include">ValidationError</span>
-[...]
+<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-kn">from</span> <span class="tok-nn">django.core.exceptions</span> <span class="tok-kn">import</span> <span class="tok-n">ValidationError</span>
+<span class="tok-p">[</span><span class="tok-o">...</span><span class="tok-p">]</span>
 
-<span class="keyword">class</span> <span class="class">ListAndItemModelsTest</span>(TestCase):
-    [...]
+<span class="tok-k">class</span> <span class="tok-nc">ListAndItemModelsTest</span><span class="tok-p">(</span><span class="tok-n">TestCase</span><span class="tok-p">):</span>
+    <span class="tok-p">[</span><span class="tok-o">...</span><span class="tok-p">]</span>
 
-    <span class="keyword">def</span> <span class="function">test_cannot_save_empty_list_items</span>(<span class="predefined-constant">self</span>):
-        mylist = List.objects.create()
-        item = Item(list=mylist, text=<span class="string"><span class="delimiter">"</span><span class="delimiter">"</span></span>)
-        <span class="keyword">with</span> <span class="predefined-constant">self</span>.assertRaises(ValidationError):
-            item.save()</code></pre>
+    <span class="tok-k">def</span> <span class="tok-nf">test_cannot_save_empty_list_items</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">):</span>
+        <span class="tok-n">mylist</span> <span class="tok-o">=</span> <span class="tok-n">List</span><span class="tok-o">.</span><span class="tok-n">objects</span><span class="tok-o">.</span><span class="tok-n">create</span><span class="tok-p">()</span>
+        <span class="tok-n">item</span> <span class="tok-o">=</span> <span class="tok-n">Item</span><span class="tok-p">(</span><span class="tok-nb">list</span><span class="tok-o">=</span><span class="tok-n">mylist</span><span class="tok-p">,</span> <span class="tok-n">text</span><span class="tok-o">=</span><span class="tok-s2">""</span><span class="tok-p">)</span>
+        <span class="tok-k">with</span> <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertRaises</span><span class="tok-p">(</span><span class="tok-n">ValidationError</span><span class="tok-p">):</span>
+            <span class="tok-n">item</span><span class="tok-o">.</span><span class="tok-n">save</span><span class="tok-p">()</span></code></pre>
 </div>
 </div>
 </div>
@@ -167,7 +167,7 @@ If you&#8217;re new to Python, you may never have seen the <code>with</code> sta
     It&#8217;s used with what are called "context managers", which wrap a block of code,
     usually with some kind of setup, cleanup, or error-handling code.
     There&#8217;s a good write-up in the
-    <a href="http://docs.python.org/release/2.5/whatsnew/pep-343.html">Python 2.5 release notes</a>.
+    <a href="https://docs.python.org/release/2.5/whatsnew/pep-343.html">Python 2.5 release notes</a>.
     
     
 </td>
@@ -181,11 +181,11 @@ manager.  We could have used something like this instead:</p>
 </div>
 <div class="listingblock skipme">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">try</span>:
-    item.save()
-    <span class="predefined-constant">self</span>.fail(<span class="string"><span class="delimiter">'</span><span class="content">The save should have raised an exception</span><span class="delimiter">'</span></span>)
-<span class="keyword">except</span> ValidationError:
-    <span class="keyword">pass</span></code></pre>
+<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-k">try</span><span class="tok-p">:</span>
+    <span class="tok-n">item</span><span class="tok-o">.</span><span class="tok-n">save</span><span class="tok-p">()</span>
+    <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">fail</span><span class="tok-p">(</span><span class="tok-s1">'The save should have raised an exception'</span><span class="tok-p">)</span>
+<span class="tok-k">except</span> <span class="tok-n">ValidationError</span><span class="tok-p">:</span>
+    <span class="tok-k">pass</span></code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -205,10 +205,10 @@ AssertionError: ValidationError not raised</pre>
 <p>
 And now we discover one of Django&#8217;s little quirks.
 <em>This test should already pass</em>.
-f you take a look at the
-<a href="http://bit.ly/SuxPJO">docs for the Django model fields</a>,
-you&#8217;ll see that <code>TextField</code> actually defaults to <code>blank=False</code>, which means
-that it <em>should</em> disallow empty values.</p>
+If you take a look at the
+<a href="https://docs.djangoproject.com/en/4.2/ref/models/fields/#blank">docs for the Django model fields</a>,
+you&#8217;ll see under <em>Field options</em> that the default setting for <code>blank</code> is <code>False</code>. Which means,
+since TextField is a type of Field, it <em>should</em> disallow empty values.</p>
 </div>
 <div class="paragraph">
 <p>
@@ -238,7 +238,7 @@ No changes detected</pre>
 <p>Django
 does have a method to manually run full validation, however, called
 <code>full_clean</code> (more info in
-<a href="http://bit.ly/2u5SIxA">the docs</a>).
+<a href="https://docs.djangoproject.com/en/4.2/ref/models/instances/#django.db.models.Model.full_clean">the docs</a>).
 Let&#8217;s hack it in to see it work:</p>
 </div>
 <div class="exampleblock sourcecode">
@@ -246,9 +246,9 @@ Let&#8217;s hack it in to see it work:</p>
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python">    <span class="keyword">with</span> <span class="predefined-constant">self</span>.assertRaises(ValidationError):
-        item.save()
-        item.full_clean()</code></pre>
+<pre class="pygments highlight"><code data-lang="python"><span></span>    <span class="tok-k">with</span> <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertRaises</span><span class="tok-p">(</span><span class="tok-n">ValidationError</span><span class="tok-p">):</span>
+        <span class="tok-n">item</span><span class="tok-o">.</span><span class="tok-n">full_clean</span><span class="tok-p">()</span>
+        <span class="tok-n">item</span><span class="tok-o">.</span><span class="tok-n">save</span><span class="tok-p">()</span></code></pre>
 </div>
 </div>
 </div>
@@ -276,7 +276,7 @@ to appear in our actual app, outside of this one unit test.</p>
 <h3 id="_surfacing_model_validation_errors_in_the_view">Surfacing Model Validation Errors in the View</h3>
 <div class="paragraph">
 <p>
-Let"s try to enforce our model validation in the views layer
+Let&#8217;s try to enforce our model validation in the views layer
 and bring it up through into our templates, so the user can see them.
 Here&#8217;s how we can optionally display an error in our HTML&#8212;&#8203;we check whether the template has
 been passed an error variable, and if so, we do this:</p>
@@ -286,18 +286,18 @@ been passed an error variable, and if so, we do this:</p>
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="html">  <span class="tag">&lt;form</span> <span class="attribute-name">method</span>=<span class="string"><span class="delimiter">"</span><span class="content">POST</span><span class="delimiter">"</span></span> <span class="attribute-name">action</span>=<span class="string"><span class="delimiter">"</span><span class="content">{% block form_action %}{% endblock %}</span><span class="delimiter">"</span></span> <span class="tag">&gt;</span>
-    <span class="tag">&lt;input</span>
-      <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">"</span><span class="content">form-control form-control-lg {% if error %}is-invalid{% endif %}</span><span class="delimiter">"</span></span>  <i class="conum" data-value="1"></i><b>(1)</b>
-      <span class="attribute-name">name</span>=<span class="string"><span class="delimiter">"</span><span class="content">item_text</span><span class="delimiter">"</span></span>
-      <span class="attribute-name">id</span>=<span class="string"><span class="delimiter">"</span><span class="content">id_new_item</span><span class="delimiter">"</span></span>
-      <span class="attribute-name">placeholder</span>=<span class="string"><span class="delimiter">"</span><span class="content">Enter a to-do item</span><span class="delimiter">"</span></span>
-    <span class="tag">/&gt;</span>
+<pre class="pygments highlight"><code data-lang="html"><span></span>  <span class="tok-p">&lt;</span><span class="tok-nt">form</span> <span class="tok-na">method</span><span class="tok-o">=</span><span class="tok-s">"POST"</span> <span class="tok-na">action</span><span class="tok-o">=</span><span class="tok-s">"{% block form_action %}{% endblock %}"</span> <span class="tok-p">&gt;</span>
+    <span class="tok-p">&lt;</span><span class="tok-nt">input</span>
+      <span class="tok-na">class</span><span class="tok-o">=</span><span class="tok-s">"form-control form-control-lg {% if error %}is-invalid{% endif %}"</span>  <i class="conum" data-value="1"></i><b>(1)</b>
+      <span class="tok-na">name</span><span class="tok-o">=</span><span class="tok-s">"item_text"</span>
+      <span class="tok-na">id</span><span class="tok-o">=</span><span class="tok-s">"id_new_item"</span>
+      <span class="tok-na">placeholder</span><span class="tok-o">=</span><span class="tok-s">"Enter a to-do item"</span>
+    <span class="tok-p">/&gt;</span>
     {% csrf_token %}
     {% if error %}
-      <span class="tag">&lt;div</span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">"</span><span class="content">invalid-feedback</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>{{ error }}<span class="tag">&lt;/div&gt;</span>  <i class="conum" data-value="2"></i><b>(2)</b>
+      <span class="tok-p">&lt;</span><span class="tok-nt">div</span> <span class="tok-na">class</span><span class="tok-o">=</span><span class="tok-s">"invalid-feedback"</span><span class="tok-p">&gt;</span>{{ error }}<span class="tok-p">&lt;/</span><span class="tok-nt">div</span><span class="tok-p">&gt;</span>  <i class="conum" data-value="2"></i><b>(2)</b>
     {% endif %}
-  <span class="tag">&lt;/form&gt;</span></code></pre>
+  <span class="tok-p">&lt;/</span><span class="tok-nt">form</span><span class="tok-p">&gt;</span></code></pre>
 </div>
 </div>
 </div>
@@ -317,7 +317,7 @@ been passed an error variable, and if so, we do this:</p>
 <div class="paragraph">
 <p>
 
-Take a look at the <a href="http://getbootstrap.com/css/#forms">Bootstrap docs</a> for more
+Take a look at the <a href="https://getbootstrap.com/docs/5.3/forms/validation/#server-side">Bootstrap docs</a> for more
 info on form controls.</p>
 </div>
 <div class="paragraph">
@@ -335,15 +335,15 @@ Here&#8217;s a unit test for that:</p>
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">class</span> <span class="class">NewListTest</span>(TestCase):
-    [...]
+<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-k">class</span> <span class="tok-nc">NewListTest</span><span class="tok-p">(</span><span class="tok-n">TestCase</span><span class="tok-p">):</span>
+    <span class="tok-p">[</span><span class="tok-o">...</span><span class="tok-p">]</span>
 
-    <span class="keyword">def</span> <span class="function">test_validation_errors_are_sent_back_to_home_page_template</span>(<span class="predefined-constant">self</span>):
-        response = <span class="predefined-constant">self</span>.client.post(<span class="string"><span class="delimiter">"</span><span class="content">/lists/new</span><span class="delimiter">"</span></span>, data={<span class="string"><span class="delimiter">"</span><span class="content">item_text</span><span class="delimiter">"</span></span>: <span class="string"><span class="delimiter">"</span><span class="delimiter">"</span></span>})
-        <span class="predefined-constant">self</span>.assertEqual(response.status_code, <span class="integer">200</span>)
-        <span class="predefined-constant">self</span>.assertTemplateUsed(response, <span class="string"><span class="delimiter">"</span><span class="content">home.html</span><span class="delimiter">"</span></span>)
-        expected_error = <span class="string"><span class="delimiter">"</span><span class="content">You can't have an empty list item</span><span class="delimiter">"</span></span>
-        <span class="predefined-constant">self</span>.assertContains(response, expected_error)</code></pre>
+    <span class="tok-k">def</span> <span class="tok-nf">test_validation_errors_are_sent_back_to_home_page_template</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">):</span>
+        <span class="tok-n">response</span> <span class="tok-o">=</span> <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">client</span><span class="tok-o">.</span><span class="tok-n">post</span><span class="tok-p">(</span><span class="tok-s2">"/lists/new"</span><span class="tok-p">,</span> <span class="tok-n">data</span><span class="tok-o">=</span><span class="tok-p">{</span><span class="tok-s2">"item_text"</span><span class="tok-p">:</span> <span class="tok-s2">""</span><span class="tok-p">})</span>
+        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertEqual</span><span class="tok-p">(</span><span class="tok-n">response</span><span class="tok-o">.</span><span class="tok-n">status_code</span><span class="tok-p">,</span> <span class="tok-mi">200</span><span class="tok-p">)</span>
+        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertTemplateUsed</span><span class="tok-p">(</span><span class="tok-n">response</span><span class="tok-p">,</span> <span class="tok-s2">"home.html"</span><span class="tok-p">)</span>
+        <span class="tok-n">expected_error</span> <span class="tok-o">=</span> <span class="tok-s2">"You can't have an empty list item"</span>
+        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertContains</span><span class="tok-p">(</span><span class="tok-n">response</span><span class="tok-p">,</span> <span class="tok-n">expected_error</span><span class="tok-p">)</span></code></pre>
 </div>
 </div>
 </div>
@@ -375,11 +375,11 @@ to a working state first.</p>
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">def</span> <span class="function">new_list</span>(request):
-    nulist = List.objects.create()
-    item = Item.objects.create(text=request.POST[<span class="string"><span class="delimiter">"</span><span class="content">item_text</span><span class="delimiter">"</span></span>], list=nulist)
-    item.full_clean()
-    <span class="keyword">return</span> redirect(f<span class="string"><span class="delimiter">"</span><span class="content">/lists/{nulist.id}/</span><span class="delimiter">"</span></span>)</code></pre>
+<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-k">def</span> <span class="tok-nf">new_list</span><span class="tok-p">(</span><span class="tok-n">request</span><span class="tok-p">):</span>
+    <span class="tok-n">nulist</span> <span class="tok-o">=</span> <span class="tok-n">List</span><span class="tok-o">.</span><span class="tok-n">objects</span><span class="tok-o">.</span><span class="tok-n">create</span><span class="tok-p">()</span>
+    <span class="tok-n">item</span> <span class="tok-o">=</span> <span class="tok-n">Item</span><span class="tok-o">.</span><span class="tok-n">objects</span><span class="tok-o">.</span><span class="tok-n">create</span><span class="tok-p">(</span><span class="tok-n">text</span><span class="tok-o">=</span><span class="tok-n">request</span><span class="tok-o">.</span><span class="tok-n">POST</span><span class="tok-p">[</span><span class="tok-s2">"item_text"</span><span class="tok-p">],</span> <span class="tok-nb">list</span><span class="tok-o">=</span><span class="tok-n">nulist</span><span class="tok-p">)</span>
+    <span class="tok-n">item</span><span class="tok-o">.</span><span class="tok-n">full_clean</span><span class="tok-p">()</span>
+    <span class="tok-k">return</span> <span class="tok-n">redirect</span><span class="tok-p">(</span><span class="tok-sa">f</span><span class="tok-s2">"/lists/</span><span class="tok-si">{</span><span class="tok-n">nulist</span><span class="tok-o">.</span><span class="tok-n">id</span><span class="tok-si">}</span><span class="tok-s2">/"</span><span class="tok-p">)</span></code></pre>
 </div>
 </div>
 </div>
@@ -422,17 +422,17 @@ tests should tell us what to code next&#8230;&#8203;</p>
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> <span class="include">django.core.exceptions</span> <span class="keyword">import</span> <span class="include">ValidationError</span>
-[...]
+<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-kn">from</span> <span class="tok-nn">django.core.exceptions</span> <span class="tok-kn">import</span> <span class="tok-n">ValidationError</span>
+<span class="tok-p">[</span><span class="tok-o">...</span><span class="tok-p">]</span>
 
-<span class="keyword">def</span> <span class="function">new_list</span>(request):
-    nulist = List.objects.create()
-    item = Item.objects.create(text=request.POST[<span class="string"><span class="delimiter">"</span><span class="content">item_text</span><span class="delimiter">"</span></span>], list=nulist)
-    <span class="keyword">try</span>:
-        item.full_clean()
-    <span class="keyword">except</span> ValidationError:
-        <span class="keyword">pass</span>
-    <span class="keyword">return</span> redirect(f<span class="string"><span class="delimiter">"</span><span class="content">/lists/{nulist.id}/</span><span class="delimiter">"</span></span>)</code></pre>
+<span class="tok-k">def</span> <span class="tok-nf">new_list</span><span class="tok-p">(</span><span class="tok-n">request</span><span class="tok-p">):</span>
+    <span class="tok-n">nulist</span> <span class="tok-o">=</span> <span class="tok-n">List</span><span class="tok-o">.</span><span class="tok-n">objects</span><span class="tok-o">.</span><span class="tok-n">create</span><span class="tok-p">()</span>
+    <span class="tok-n">item</span> <span class="tok-o">=</span> <span class="tok-n">Item</span><span class="tok-o">.</span><span class="tok-n">objects</span><span class="tok-o">.</span><span class="tok-n">create</span><span class="tok-p">(</span><span class="tok-n">text</span><span class="tok-o">=</span><span class="tok-n">request</span><span class="tok-o">.</span><span class="tok-n">POST</span><span class="tok-p">[</span><span class="tok-s2">"item_text"</span><span class="tok-p">],</span> <span class="tok-nb">list</span><span class="tok-o">=</span><span class="tok-n">nulist</span><span class="tok-p">)</span>
+    <span class="tok-k">try</span><span class="tok-p">:</span>
+        <span class="tok-n">item</span><span class="tok-o">.</span><span class="tok-n">full_clean</span><span class="tok-p">()</span>
+    <span class="tok-k">except</span> <span class="tok-n">ValidationError</span><span class="tok-p">:</span>
+        <span class="tok-k">pass</span>
+    <span class="tok-k">return</span> <span class="tok-n">redirect</span><span class="tok-p">(</span><span class="tok-sa">f</span><span class="tok-s2">"/lists/</span><span class="tok-si">{</span><span class="tok-n">nulist</span><span class="tok-o">.</span><span class="tok-n">id</span><span class="tok-si">}</span><span class="tok-s2">/"</span><span class="tok-p">)</span></code></pre>
 </div>
 </div>
 </div>
@@ -454,8 +454,8 @@ check as well:</p>
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python">    <span class="keyword">except</span> ValidationError:
-        <span class="keyword">return</span> render(request, <span class="string"><span class="delimiter">"</span><span class="content">home.html</span><span class="delimiter">"</span></span>)</code></pre>
+<pre class="pygments highlight"><code data-lang="python"><span></span>    <span class="tok-k">except</span> <span class="tok-n">ValidationError</span><span class="tok-p">:</span>
+        <span class="tok-k">return</span> <span class="tok-n">render</span><span class="tok-p">(</span><span class="tok-n">request</span><span class="tok-p">,</span> <span class="tok-s2">"home.html"</span><span class="tok-p">)</span></code></pre>
 </div>
 </div>
 </div>
@@ -477,9 +477,9 @@ item' in response</pre>
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python">    <span class="keyword">except</span> ValidationError:
-        error = <span class="string"><span class="delimiter">"</span><span class="content">You can't have an empty list item</span><span class="delimiter">"</span></span>
-        <span class="keyword">return</span> render(request, <span class="string"><span class="delimiter">"</span><span class="content">home.html</span><span class="delimiter">"</span></span>, {<span class="string"><span class="delimiter">"</span><span class="content">error</span><span class="delimiter">"</span></span>: error})</code></pre>
+<pre class="pygments highlight"><code data-lang="python"><span></span>    <span class="tok-k">except</span> <span class="tok-n">ValidationError</span><span class="tok-p">:</span>
+        <span class="tok-n">error</span> <span class="tok-o">=</span> <span class="tok-s2">"You can't have an empty list item"</span>
+        <span class="tok-k">return</span> <span class="tok-n">render</span><span class="tok-p">(</span><span class="tok-n">request</span><span class="tok-p">,</span> <span class="tok-s2">"home.html"</span><span class="tok-p">,</span> <span class="tok-p">{</span><span class="tok-s2">"error"</span><span class="tok-p">:</span> <span class="tok-n">error</span><span class="tok-p">})</span></code></pre>
 </div>
 </div>
 </div>
@@ -501,16 +501,16 @@ item' in response</pre>
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python">expected_error = <span class="string"><span class="delimiter">"</span><span class="content">You can't have an empty list item</span><span class="delimiter">"</span></span>
-print(response.content.decode())
-<span class="predefined-constant">self</span>.assertContains(response, expected_error)</code></pre>
+<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-n">expected_error</span> <span class="tok-o">=</span> <span class="tok-s2">"You can't have an empty list item"</span>
+<span class="tok-nb">print</span><span class="tok-p">(</span><span class="tok-n">response</span><span class="tok-o">.</span><span class="tok-n">content</span><span class="tok-o">.</span><span class="tok-n">decode</span><span class="tok-p">())</span>
+<span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertContains</span><span class="tok-p">(</span><span class="tok-n">response</span><span class="tok-p">,</span> <span class="tok-n">expected_error</span><span class="tok-p">)</span></code></pre>
 </div>
 </div>
 </div>
 </div>
 <div class="paragraph">
 <p>&#8230;&#8203;will show us the cause&#8212;Django has
-<a href="https://docs.djangoproject.com/en/1.11/ref/templates/builtins/#autoescape">HTML-escaped</a>
+<a href="https://docs.djangoproject.com/en/4.2/ref/templates/builtins/#autoescape">HTML-escaped</a>
 the apostrophe:</p>
 </div>
 <div class="listingblock">
@@ -525,7 +525,7 @@ item&lt;/div&gt;</pre>
 </div>
 <div class="listingblock skipme">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python">    expected_error = <span class="string"><span class="delimiter">"</span><span class="content">You can&amp;#39;t have an empty list item</span><span class="delimiter">"</span></span></code></pre>
+<pre class="pygments highlight"><code data-lang="python"><span></span>    <span class="tok-n">expected_error</span> <span class="tok-o">=</span> <span class="tok-s2">"You can&amp;#39;t have an empty list item"</span></code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -536,11 +536,11 @@ item&lt;/div&gt;</pre>
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> <span class="include">django.utils.html</span> <span class="keyword">import</span> <span class="include">escape</span>
-[...]
+<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-kn">from</span> <span class="tok-nn">django.utils.html</span> <span class="tok-kn">import</span> <span class="tok-n">escape</span>
+<span class="tok-p">[</span><span class="tok-o">...</span><span class="tok-p">]</span>
 
-        expected_error = escape(<span class="string"><span class="delimiter">"</span><span class="content">You can't have an empty list item</span><span class="delimiter">"</span></span>)
-        <span class="predefined-constant">self</span>.assertContains(response, expected_error)</code></pre>
+        <span class="tok-n">expected_error</span> <span class="tok-o">=</span> <span class="tok-n">escape</span><span class="tok-p">(</span><span class="tok-s2">"You can't have an empty list item"</span><span class="tok-p">)</span>
+        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertContains</span><span class="tok-p">(</span><span class="tok-n">response</span><span class="tok-p">,</span> <span class="tok-n">expected_error</span><span class="tok-p">)</span></code></pre>
 </div>
 </div>
 </div>
@@ -568,11 +568,11 @@ if validation fails:</p>
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python">    item = Item.objects.create(text=request.POST[<span class="string"><span class="delimiter">"</span><span class="content">item_text</span><span class="delimiter">"</span></span>], list=nulist)
-    <span class="keyword">try</span>:
-        item.full_clean()
-    <span class="keyword">except</span> ValidationError:
-        [...]</code></pre>
+<pre class="pygments highlight"><code data-lang="python"><span></span>    <span class="tok-n">item</span> <span class="tok-o">=</span> <span class="tok-n">Item</span><span class="tok-o">.</span><span class="tok-n">objects</span><span class="tok-o">.</span><span class="tok-n">create</span><span class="tok-p">(</span><span class="tok-n">text</span><span class="tok-o">=</span><span class="tok-n">request</span><span class="tok-o">.</span><span class="tok-n">POST</span><span class="tok-p">[</span><span class="tok-s2">"item_text"</span><span class="tok-p">],</span> <span class="tok-nb">list</span><span class="tok-o">=</span><span class="tok-n">nulist</span><span class="tok-p">)</span>
+    <span class="tok-k">try</span><span class="tok-p">:</span>
+        <span class="tok-n">item</span><span class="tok-o">.</span><span class="tok-n">full_clean</span><span class="tok-p">()</span>
+    <span class="tok-k">except</span> <span class="tok-n">ValidationError</span><span class="tok-p">:</span>
+        <span class="tok-p">[</span><span class="tok-o">...</span><span class="tok-p">]</span></code></pre>
 </div>
 </div>
 </div>
@@ -586,16 +586,16 @@ saved:</p>
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">class</span> <span class="class">NewListTest</span>(TestCase):
-    [...]
+<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-k">class</span> <span class="tok-nc">NewListTest</span><span class="tok-p">(</span><span class="tok-n">TestCase</span><span class="tok-p">):</span>
+    <span class="tok-p">[</span><span class="tok-o">...</span><span class="tok-p">]</span>
 
-    <span class="keyword">def</span> <span class="function">test_validation_errors_are_sent_back_to_home_page_template</span>(<span class="predefined-constant">self</span>):
-        [...]
+    <span class="tok-k">def</span> <span class="tok-nf">test_validation_errors_are_sent_back_to_home_page_template</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">):</span>
+        <span class="tok-p">[</span><span class="tok-o">...</span><span class="tok-p">]</span>
 
-    <span class="keyword">def</span> <span class="function">test_invalid_list_items_arent_saved</span>(<span class="predefined-constant">self</span>):
-        <span class="predefined-constant">self</span>.client.post(<span class="string"><span class="delimiter">"</span><span class="content">/lists/new</span><span class="delimiter">"</span></span>, data={<span class="string"><span class="delimiter">"</span><span class="content">item_text</span><span class="delimiter">"</span></span>: <span class="string"><span class="delimiter">"</span><span class="delimiter">"</span></span>})
-        <span class="predefined-constant">self</span>.assertEqual(List.objects.count(), <span class="integer">0</span>)
-        <span class="predefined-constant">self</span>.assertEqual(Item.objects.count(), <span class="integer">0</span>)</code></pre>
+    <span class="tok-k">def</span> <span class="tok-nf">test_invalid_list_items_arent_saved</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">):</span>
+        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">client</span><span class="tok-o">.</span><span class="tok-n">post</span><span class="tok-p">(</span><span class="tok-s2">"/lists/new"</span><span class="tok-p">,</span> <span class="tok-n">data</span><span class="tok-o">=</span><span class="tok-p">{</span><span class="tok-s2">"item_text"</span><span class="tok-p">:</span> <span class="tok-s2">""</span><span class="tok-p">})</span>
+        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertEqual</span><span class="tok-p">(</span><span class="tok-n">List</span><span class="tok-o">.</span><span class="tok-n">objects</span><span class="tok-o">.</span><span class="tok-n">count</span><span class="tok-p">(),</span> <span class="tok-mi">0</span><span class="tok-p">)</span>
+        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertEqual</span><span class="tok-p">(</span><span class="tok-n">Item</span><span class="tok-o">.</span><span class="tok-n">objects</span><span class="tok-o">.</span><span class="tok-n">count</span><span class="tok-p">(),</span> <span class="tok-mi">0</span><span class="tok-p">)</span></code></pre>
 </div>
 </div>
 </div>
@@ -621,17 +621,17 @@ AssertionError: 1 != 0</pre>
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">def</span> <span class="function">new_list</span>(request):
-    nulist = List.objects.create()
-    item = Item(text=request.POST[<span class="string"><span class="delimiter">"</span><span class="content">item_text</span><span class="delimiter">"</span></span>], list=nulist)
-    <span class="keyword">try</span>:
-        item.full_clean()
-        item.save()
-    <span class="keyword">except</span> ValidationError:
-        nulist.delete()
-        error = <span class="string"><span class="delimiter">"</span><span class="content">You can't have an empty list item</span><span class="delimiter">"</span></span>
-        <span class="keyword">return</span> render(request, <span class="string"><span class="delimiter">"</span><span class="content">home.html</span><span class="delimiter">"</span></span>, {<span class="string"><span class="delimiter">"</span><span class="content">error</span><span class="delimiter">"</span></span>: error})
-    <span class="keyword">return</span> redirect(f<span class="string"><span class="delimiter">"</span><span class="content">/lists/{nulist.id}/</span><span class="delimiter">"</span></span>)</code></pre>
+<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-k">def</span> <span class="tok-nf">new_list</span><span class="tok-p">(</span><span class="tok-n">request</span><span class="tok-p">):</span>
+    <span class="tok-n">nulist</span> <span class="tok-o">=</span> <span class="tok-n">List</span><span class="tok-o">.</span><span class="tok-n">objects</span><span class="tok-o">.</span><span class="tok-n">create</span><span class="tok-p">()</span>
+    <span class="tok-n">item</span> <span class="tok-o">=</span> <span class="tok-n">Item</span><span class="tok-p">(</span><span class="tok-n">text</span><span class="tok-o">=</span><span class="tok-n">request</span><span class="tok-o">.</span><span class="tok-n">POST</span><span class="tok-p">[</span><span class="tok-s2">"item_text"</span><span class="tok-p">],</span> <span class="tok-nb">list</span><span class="tok-o">=</span><span class="tok-n">nulist</span><span class="tok-p">)</span>
+    <span class="tok-k">try</span><span class="tok-p">:</span>
+        <span class="tok-n">item</span><span class="tok-o">.</span><span class="tok-n">full_clean</span><span class="tok-p">()</span>
+        <span class="tok-n">item</span><span class="tok-o">.</span><span class="tok-n">save</span><span class="tok-p">()</span>
+    <span class="tok-k">except</span> <span class="tok-n">ValidationError</span><span class="tok-p">:</span>
+        <span class="tok-n">nulist</span><span class="tok-o">.</span><span class="tok-n">delete</span><span class="tok-p">()</span>
+        <span class="tok-n">error</span> <span class="tok-o">=</span> <span class="tok-s2">"You can't have an empty list item"</span>
+        <span class="tok-k">return</span> <span class="tok-n">render</span><span class="tok-p">(</span><span class="tok-n">request</span><span class="tok-p">,</span> <span class="tok-s2">"home.html"</span><span class="tok-p">,</span> <span class="tok-p">{</span><span class="tok-s2">"error"</span><span class="tok-p">:</span> <span class="tok-n">error</span><span class="tok-p">})</span>
+    <span class="tok-k">return</span> <span class="tok-n">redirect</span><span class="tok-p">(</span><span class="tok-sa">f</span><span class="tok-s2">"/lists/</span><span class="tok-si">{</span><span class="tok-n">nulist</span><span class="tok-o">.</span><span class="tok-n">id</span><span class="tok-si">}</span><span class="tok-s2">/"</span><span class="tok-p">)</span></code></pre>
 </div>
 </div>
 </div>
@@ -652,7 +652,8 @@ element: .invalid-feedback; [...]</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>Not quite, but they did get a little further.  Checking <em>line 31</em>, we can
+<p>Not quite, but they did get a little further.  Checking the line in which the
+error occurred&#8201;&#8212;&#8201;<em>line 31</em> in my case&#8201;&#8212;&#8201;, we can
 see that we&#8217;ve got past the first part of the test, and are now onto the second
 check&#8212;&#8203;that submitting a second empty item also shows an error.</p>
 </div>
@@ -692,7 +693,7 @@ target:</p>
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="html">{% block form_action %}/lists/{{ list.id }}/{% endblock %}</code></pre>
+<pre class="pygments highlight"><code data-lang="html"><span></span>{% block form_action %}/lists/{{ list.id }}/{% endblock %}</code></pre>
 </div>
 </div>
 </div>
@@ -761,38 +762,38 @@ As we do so, we also make them point at the base list URL, instead of <em>&#8230
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">class</span> <span class="class">ListViewTest</span>(TestCase):
-    <span class="keyword">def</span> <span class="function">test_uses_list_template</span>(<span class="predefined-constant">self</span>):
-        [...]
-    <span class="keyword">def</span> <span class="function">test_displays_only_items_for_that_list</span>(<span class="predefined-constant">self</span>):
-        [...]
-    <span class="keyword">def</span> <span class="function">test_passes_correct_list_to_template</span>(<span class="predefined-constant">self</span>):
-        [...]
+<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-k">class</span> <span class="tok-nc">ListViewTest</span><span class="tok-p">(</span><span class="tok-n">TestCase</span><span class="tok-p">):</span>
+    <span class="tok-k">def</span> <span class="tok-nf">test_uses_list_template</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">):</span>
+        <span class="tok-p">[</span><span class="tok-o">...</span><span class="tok-p">]</span>
+    <span class="tok-k">def</span> <span class="tok-nf">test_displays_only_items_for_that_list</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">):</span>
+        <span class="tok-p">[</span><span class="tok-o">...</span><span class="tok-p">]</span>
+    <span class="tok-k">def</span> <span class="tok-nf">test_passes_correct_list_to_template</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">):</span>
+        <span class="tok-p">[</span><span class="tok-o">...</span><span class="tok-p">]</span>
 
-    <span class="keyword">def</span> <span class="function">test_can_save_a_POST_request_to_an_existing_list</span>(<span class="predefined-constant">self</span>):
-        other_list = List.objects.create()
-        correct_list = List.objects.create()
+    <span class="tok-k">def</span> <span class="tok-nf">test_can_save_a_POST_request_to_an_existing_list</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">):</span>
+        <span class="tok-n">other_list</span> <span class="tok-o">=</span> <span class="tok-n">List</span><span class="tok-o">.</span><span class="tok-n">objects</span><span class="tok-o">.</span><span class="tok-n">create</span><span class="tok-p">()</span>
+        <span class="tok-n">correct_list</span> <span class="tok-o">=</span> <span class="tok-n">List</span><span class="tok-o">.</span><span class="tok-n">objects</span><span class="tok-o">.</span><span class="tok-n">create</span><span class="tok-p">()</span>
 
-        <span class="predefined-constant">self</span>.client.post(
-            f<span class="string"><span class="delimiter">"</span><span class="content">/lists/{correct_list.id}/</span><span class="delimiter">"</span></span>,  <i class="conum" data-value="1"></i><b>(1)</b>
-            data={<span class="string"><span class="delimiter">"</span><span class="content">item_text</span><span class="delimiter">"</span></span>: <span class="string"><span class="delimiter">"</span><span class="content">A new item for an existing list</span><span class="delimiter">"</span></span>},
-        )
+        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">client</span><span class="tok-o">.</span><span class="tok-n">post</span><span class="tok-p">(</span>
+            <span class="tok-sa">f</span><span class="tok-s2">"/lists/</span><span class="tok-si">{</span><span class="tok-n">correct_list</span><span class="tok-o">.</span><span class="tok-n">id</span><span class="tok-si">}</span><span class="tok-s2">/"</span><span class="tok-p">,</span>  <i class="conum" data-value="1"></i><b>(1)</b>
+            <span class="tok-n">data</span><span class="tok-o">=</span><span class="tok-p">{</span><span class="tok-s2">"item_text"</span><span class="tok-p">:</span> <span class="tok-s2">"A new item for an existing list"</span><span class="tok-p">},</span>
+        <span class="tok-p">)</span>
 
-        <span class="predefined-constant">self</span>.assertEqual(Item.objects.count(), <span class="integer">1</span>)
-        new_item = Item.objects.get()
-        <span class="predefined-constant">self</span>.assertEqual(new_item.text, <span class="string"><span class="delimiter">"</span><span class="content">A new item for an existing list</span><span class="delimiter">"</span></span>)
-        <span class="predefined-constant">self</span>.assertEqual(new_item.list, correct_list)
+        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertEqual</span><span class="tok-p">(</span><span class="tok-n">Item</span><span class="tok-o">.</span><span class="tok-n">objects</span><span class="tok-o">.</span><span class="tok-n">count</span><span class="tok-p">(),</span> <span class="tok-mi">1</span><span class="tok-p">)</span>
+        <span class="tok-n">new_item</span> <span class="tok-o">=</span> <span class="tok-n">Item</span><span class="tok-o">.</span><span class="tok-n">objects</span><span class="tok-o">.</span><span class="tok-n">get</span><span class="tok-p">()</span>
+        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertEqual</span><span class="tok-p">(</span><span class="tok-n">new_item</span><span class="tok-o">.</span><span class="tok-n">text</span><span class="tok-p">,</span> <span class="tok-s2">"A new item for an existing list"</span><span class="tok-p">)</span>
+        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertEqual</span><span class="tok-p">(</span><span class="tok-n">new_item</span><span class="tok-o">.</span><span class="tok-n">list</span><span class="tok-p">,</span> <span class="tok-n">correct_list</span><span class="tok-p">)</span>
 
-    <span class="keyword">def</span> <span class="function">test_POST_redirects_to_list_view</span>(<span class="predefined-constant">self</span>):
-        other_list = List.objects.create()
-        correct_list = List.objects.create()
+    <span class="tok-k">def</span> <span class="tok-nf">test_POST_redirects_to_list_view</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">):</span>
+        <span class="tok-n">other_list</span> <span class="tok-o">=</span> <span class="tok-n">List</span><span class="tok-o">.</span><span class="tok-n">objects</span><span class="tok-o">.</span><span class="tok-n">create</span><span class="tok-p">()</span>
+        <span class="tok-n">correct_list</span> <span class="tok-o">=</span> <span class="tok-n">List</span><span class="tok-o">.</span><span class="tok-n">objects</span><span class="tok-o">.</span><span class="tok-n">create</span><span class="tok-p">()</span>
 
-        response = <span class="predefined-constant">self</span>.client.post(
-            f<span class="string"><span class="delimiter">"</span><span class="content">/lists/{correct_list.id}/</span><span class="delimiter">"</span></span>,  <i class="conum" data-value="1"></i><b>(1)</b>
-            data={<span class="string"><span class="delimiter">"</span><span class="content">item_text</span><span class="delimiter">"</span></span>: <span class="string"><span class="delimiter">"</span><span class="content">A new item for an existing list</span><span class="delimiter">"</span></span>},
-        )
+        <span class="tok-n">response</span> <span class="tok-o">=</span> <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">client</span><span class="tok-o">.</span><span class="tok-n">post</span><span class="tok-p">(</span>
+            <span class="tok-sa">f</span><span class="tok-s2">"/lists/</span><span class="tok-si">{</span><span class="tok-n">correct_list</span><span class="tok-o">.</span><span class="tok-n">id</span><span class="tok-si">}</span><span class="tok-s2">/"</span><span class="tok-p">,</span>  <i class="conum" data-value="1"></i><b>(1)</b>
+            <span class="tok-n">data</span><span class="tok-o">=</span><span class="tok-p">{</span><span class="tok-s2">"item_text"</span><span class="tok-p">:</span> <span class="tok-s2">"A new item for an existing list"</span><span class="tok-p">},</span>
+        <span class="tok-p">)</span>
 
-        <span class="predefined-constant">self</span>.assertRedirects(response, f<span class="string"><span class="delimiter">"</span><span class="content">/lists/{correct_list.id}/</span><span class="delimiter">"</span></span>)</code></pre>
+        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertRedirects</span><span class="tok-p">(</span><span class="tok-n">response</span><span class="tok-p">,</span> <span class="tok-sa">f</span><span class="tok-s2">"/lists/</span><span class="tok-si">{</span><span class="tok-n">correct_list</span><span class="tok-o">.</span><span class="tok-n">id</span><span class="tok-si">}</span><span class="tok-s2">/"</span><span class="tok-p">)</span></code></pre>
 </div>
 </div>
 </div>
@@ -835,12 +836,12 @@ AssertionError: 0 != 1</pre>
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">def</span> <span class="function">view_list</span>(request, list_id):
-    our_list = List.objects.get(id=list_id)
-    <span class="keyword">if</span> request.method == <span class="string"><span class="delimiter">"</span><span class="content">POST</span><span class="delimiter">"</span></span>:
-        Item.objects.create(text=request.POST[<span class="string"><span class="delimiter">"</span><span class="content">item_text</span><span class="delimiter">"</span></span>], list=our_list)
-        <span class="keyword">return</span> redirect(f<span class="string"><span class="delimiter">"</span><span class="content">/lists/{our_list.id}/</span><span class="delimiter">"</span></span>)
-    <span class="keyword">return</span> render(request, <span class="string"><span class="delimiter">"</span><span class="content">list.html</span><span class="delimiter">"</span></span>, {<span class="string"><span class="delimiter">"</span><span class="content">list</span><span class="delimiter">"</span></span>: our_list})</code></pre>
+<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-k">def</span> <span class="tok-nf">view_list</span><span class="tok-p">(</span><span class="tok-n">request</span><span class="tok-p">,</span> <span class="tok-n">list_id</span><span class="tok-p">):</span>
+    <span class="tok-n">our_list</span> <span class="tok-o">=</span> <span class="tok-n">List</span><span class="tok-o">.</span><span class="tok-n">objects</span><span class="tok-o">.</span><span class="tok-n">get</span><span class="tok-p">(</span><span class="tok-nb">id</span><span class="tok-o">=</span><span class="tok-n">list_id</span><span class="tok-p">)</span>
+    <span class="tok-k">if</span> <span class="tok-n">request</span><span class="tok-o">.</span><span class="tok-n">method</span> <span class="tok-o">==</span> <span class="tok-s2">"POST"</span><span class="tok-p">:</span>
+        <span class="tok-n">Item</span><span class="tok-o">.</span><span class="tok-n">objects</span><span class="tok-o">.</span><span class="tok-n">create</span><span class="tok-p">(</span><span class="tok-n">text</span><span class="tok-o">=</span><span class="tok-n">request</span><span class="tok-o">.</span><span class="tok-n">POST</span><span class="tok-p">[</span><span class="tok-s2">"item_text"</span><span class="tok-p">],</span> <span class="tok-nb">list</span><span class="tok-o">=</span><span class="tok-n">our_list</span><span class="tok-p">)</span>
+        <span class="tok-k">return</span> <span class="tok-n">redirect</span><span class="tok-p">(</span><span class="tok-sa">f</span><span class="tok-s2">"/lists/</span><span class="tok-si">{</span><span class="tok-n">our_list</span><span class="tok-o">.</span><span class="tok-n">id</span><span class="tok-si">}</span><span class="tok-s2">/"</span><span class="tok-p">)</span>
+    <span class="tok-k">return</span> <span class="tok-n">render</span><span class="tok-p">(</span><span class="tok-n">request</span><span class="tok-p">,</span> <span class="tok-s2">"list.html"</span><span class="tok-p">,</span> <span class="tok-p">{</span><span class="tok-s2">"list"</span><span class="tok-p">:</span> <span class="tok-n">our_list</span><span class="tok-p">})</span></code></pre>
 </div>
 </div>
 </div>
@@ -874,10 +875,10 @@ AttributeError: module 'lists.views' has no attribute 'add_item'</pre>
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python">urlpatterns = [
-    path(<span class="string"><span class="delimiter">"</span><span class="content">new</span><span class="delimiter">"</span></span>, views.new_list, name=<span class="string"><span class="delimiter">"</span><span class="content">new_list</span><span class="delimiter">"</span></span>),
-    path(<span class="string"><span class="delimiter">"</span><span class="content">&lt;int:list_id&gt;/</span><span class="delimiter">"</span></span>, views.view_list, name=<span class="string"><span class="delimiter">"</span><span class="content">view_list</span><span class="delimiter">"</span></span>),
-]</code></pre>
+<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-n">urlpatterns</span> <span class="tok-o">=</span> <span class="tok-p">[</span>
+    <span class="tok-n">path</span><span class="tok-p">(</span><span class="tok-s2">"new"</span><span class="tok-p">,</span> <span class="tok-n">views</span><span class="tok-o">.</span><span class="tok-n">new_list</span><span class="tok-p">,</span> <span class="tok-n">name</span><span class="tok-o">=</span><span class="tok-s2">"new_list"</span><span class="tok-p">),</span>
+    <span class="tok-n">path</span><span class="tok-p">(</span><span class="tok-s2">"&lt;int:list_id&gt;/"</span><span class="tok-p">,</span> <span class="tok-n">views</span><span class="tok-o">.</span><span class="tok-n">view_list</span><span class="tok-p">,</span> <span class="tok-n">name</span><span class="tok-o">=</span><span class="tok-s2">"view_list"</span><span class="tok-p">),</span>
+<span class="tok-p">]</span></code></pre>
 </div>
 </div>
 </div>
@@ -945,19 +946,19 @@ it&#8217;s very similar to the one for the home page, with just a couple of twea
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">class</span> <span class="class">ListViewTest</span>(TestCase):
-    [...]
+<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-k">class</span> <span class="tok-nc">ListViewTest</span><span class="tok-p">(</span><span class="tok-n">TestCase</span><span class="tok-p">):</span>
+    <span class="tok-p">[</span><span class="tok-o">...</span><span class="tok-p">]</span>
 
-    <span class="keyword">def</span> <span class="function">test_validation_errors_end_up_on_lists_page</span>(<span class="predefined-constant">self</span>):
-        list_ = List.objects.create()
-        response = <span class="predefined-constant">self</span>.client.post(
-            f<span class="string"><span class="delimiter">"</span><span class="content">/lists/{list_.id}/</span><span class="delimiter">"</span></span>,
-            data={<span class="string"><span class="delimiter">"</span><span class="content">item_text</span><span class="delimiter">"</span></span>: <span class="string"><span class="delimiter">"</span><span class="delimiter">"</span></span>},
-        )
-        <span class="predefined-constant">self</span>.assertEqual(response.status_code, <span class="integer">200</span>)
-        <span class="predefined-constant">self</span>.assertTemplateUsed(response, <span class="string"><span class="delimiter">"</span><span class="content">list.html</span><span class="delimiter">"</span></span>)
-        expected_error = escape(<span class="string"><span class="delimiter">"</span><span class="content">You can't have an empty list item</span><span class="delimiter">"</span></span>)
-        <span class="predefined-constant">self</span>.assertContains(response, expected_error)</code></pre>
+    <span class="tok-k">def</span> <span class="tok-nf">test_validation_errors_end_up_on_lists_page</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">):</span>
+        <span class="tok-n">list_</span> <span class="tok-o">=</span> <span class="tok-n">List</span><span class="tok-o">.</span><span class="tok-n">objects</span><span class="tok-o">.</span><span class="tok-n">create</span><span class="tok-p">()</span>
+        <span class="tok-n">response</span> <span class="tok-o">=</span> <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">client</span><span class="tok-o">.</span><span class="tok-n">post</span><span class="tok-p">(</span>
+            <span class="tok-sa">f</span><span class="tok-s2">"/lists/</span><span class="tok-si">{</span><span class="tok-n">list_</span><span class="tok-o">.</span><span class="tok-n">id</span><span class="tok-si">}</span><span class="tok-s2">/"</span><span class="tok-p">,</span>
+            <span class="tok-n">data</span><span class="tok-o">=</span><span class="tok-p">{</span><span class="tok-s2">"item_text"</span><span class="tok-p">:</span> <span class="tok-s2">""</span><span class="tok-p">},</span>
+        <span class="tok-p">)</span>
+        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertEqual</span><span class="tok-p">(</span><span class="tok-n">response</span><span class="tok-o">.</span><span class="tok-n">status_code</span><span class="tok-p">,</span> <span class="tok-mi">200</span><span class="tok-p">)</span>
+        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertTemplateUsed</span><span class="tok-p">(</span><span class="tok-n">response</span><span class="tok-p">,</span> <span class="tok-s2">"list.html"</span><span class="tok-p">)</span>
+        <span class="tok-n">expected_error</span> <span class="tok-o">=</span> <span class="tok-n">escape</span><span class="tok-p">(</span><span class="tok-s2">"You can't have an empty list item"</span><span class="tok-p">)</span>
+        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertContains</span><span class="tok-p">(</span><span class="tok-n">response</span><span class="tok-p">,</span> <span class="tok-n">expected_error</span><span class="tok-p">)</span></code></pre>
 </div>
 </div>
 </div>
@@ -980,20 +981,20 @@ AssertionError: 302 != 200</pre>
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">def</span> <span class="function">view_list</span>(request, list_id):
-    our_list = List.objects.get(id=list_id)
-    error = <span class="predefined-constant">None</span>
+<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-k">def</span> <span class="tok-nf">view_list</span><span class="tok-p">(</span><span class="tok-n">request</span><span class="tok-p">,</span> <span class="tok-n">list_id</span><span class="tok-p">):</span>
+    <span class="tok-n">our_list</span> <span class="tok-o">=</span> <span class="tok-n">List</span><span class="tok-o">.</span><span class="tok-n">objects</span><span class="tok-o">.</span><span class="tok-n">get</span><span class="tok-p">(</span><span class="tok-nb">id</span><span class="tok-o">=</span><span class="tok-n">list_id</span><span class="tok-p">)</span>
+    <span class="tok-n">error</span> <span class="tok-o">=</span> <span class="tok-kc">None</span>
 
-    <span class="keyword">if</span> request.method == <span class="string"><span class="delimiter">"</span><span class="content">POST</span><span class="delimiter">"</span></span>:
-        <span class="keyword">try</span>:
-            item = Item(text=request.POST[<span class="string"><span class="delimiter">"</span><span class="content">item_text</span><span class="delimiter">"</span></span>], list=our_list)
-            item.full_clean()
-            item.save()
-            <span class="keyword">return</span> redirect(f<span class="string"><span class="delimiter">"</span><span class="content">/lists/{our_list.id}/</span><span class="delimiter">"</span></span>)
-        <span class="keyword">except</span> ValidationError:
-            error = <span class="string"><span class="delimiter">"</span><span class="content">You can't have an empty list item</span><span class="delimiter">"</span></span>
+    <span class="tok-k">if</span> <span class="tok-n">request</span><span class="tok-o">.</span><span class="tok-n">method</span> <span class="tok-o">==</span> <span class="tok-s2">"POST"</span><span class="tok-p">:</span>
+        <span class="tok-k">try</span><span class="tok-p">:</span>
+            <span class="tok-n">item</span> <span class="tok-o">=</span> <span class="tok-n">Item</span><span class="tok-p">(</span><span class="tok-n">text</span><span class="tok-o">=</span><span class="tok-n">request</span><span class="tok-o">.</span><span class="tok-n">POST</span><span class="tok-p">[</span><span class="tok-s2">"item_text"</span><span class="tok-p">],</span> <span class="tok-nb">list</span><span class="tok-o">=</span><span class="tok-n">our_list</span><span class="tok-p">)</span>
+            <span class="tok-n">item</span><span class="tok-o">.</span><span class="tok-n">full_clean</span><span class="tok-p">()</span>
+            <span class="tok-n">item</span><span class="tok-o">.</span><span class="tok-n">save</span><span class="tok-p">()</span>
+            <span class="tok-k">return</span> <span class="tok-n">redirect</span><span class="tok-p">(</span><span class="tok-sa">f</span><span class="tok-s2">"/lists/</span><span class="tok-si">{</span><span class="tok-n">our_list</span><span class="tok-o">.</span><span class="tok-n">id</span><span class="tok-si">}</span><span class="tok-s2">/"</span><span class="tok-p">)</span>
+        <span class="tok-k">except</span> <span class="tok-n">ValidationError</span><span class="tok-p">:</span>
+            <span class="tok-n">error</span> <span class="tok-o">=</span> <span class="tok-s2">"You can't have an empty list item"</span>
 
-    <span class="keyword">return</span> render(request, <span class="string"><span class="delimiter">"</span><span class="content">list.html</span><span class="delimiter">"</span></span>, {<span class="string"><span class="delimiter">"</span><span class="content">list</span><span class="delimiter">"</span></span>: our_list, <span class="string"><span class="delimiter">"</span><span class="content">error</span><span class="delimiter">"</span></span>: error})</code></pre>
+    <span class="tok-k">return</span> <span class="tok-n">render</span><span class="tok-p">(</span><span class="tok-n">request</span><span class="tok-p">,</span> <span class="tok-s2">"list.html"</span><span class="tok-p">,</span> <span class="tok-p">{</span><span class="tok-s2">"list"</span><span class="tok-p">:</span> <span class="tok-n">our_list</span><span class="tok-p">,</span> <span class="tok-s2">"error"</span><span class="tok-p">:</span> <span class="tok-n">error</span><span class="tok-p">})</span></code></pre>
 </div>
 </div>
 </div>
@@ -1087,8 +1088,8 @@ them some reasonably descriptive names. Now we find out what they&#8217;re for:<
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python">    path(<span class="string"><span class="delimiter">"</span><span class="content">new</span><span class="delimiter">"</span></span>, views.new_list, name=<span class="string"><span class="delimiter">"</span><span class="content">new_list</span><span class="delimiter">"</span></span>),
-    path(<span class="string"><span class="delimiter">"</span><span class="content">&lt;int:list_id&gt;/</span><span class="delimiter">"</span></span>, views.view_list, name=<span class="string"><span class="delimiter">"</span><span class="content">view_list</span><span class="delimiter">"</span></span>),</code></pre>
+<pre class="pygments highlight"><code data-lang="python"><span></span>    <span class="tok-n">path</span><span class="tok-p">(</span><span class="tok-s2">"new"</span><span class="tok-p">,</span> <span class="tok-n">views</span><span class="tok-o">.</span><span class="tok-n">new_list</span><span class="tok-p">,</span> <span class="tok-n">name</span><span class="tok-o">=</span><span class="tok-s2">"new_list"</span><span class="tok-p">),</span>
+    <span class="tok-n">path</span><span class="tok-p">(</span><span class="tok-s2">"&lt;int:list_id&gt;/"</span><span class="tok-p">,</span> <span class="tok-n">views</span><span class="tok-o">.</span><span class="tok-n">view_list</span><span class="tok-p">,</span> <span class="tok-n">name</span><span class="tok-o">=</span><span class="tok-s2">"view_list"</span><span class="tok-p">),</span></code></pre>
 </div>
 </div>
 </div>
@@ -1104,7 +1105,7 @@ which refers to the URL&#8217;s "name":</p>
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="html">{% block form_action %}{% url 'new_list' %}{% endblock %}</code></pre>
+<pre class="pygments highlight"><code data-lang="html"><span></span>{% block form_action %}{% url 'new_list' %}{% endblock %}</code></pre>
 </div>
 </div>
 </div>
@@ -1127,14 +1128,14 @@ a <span class="keep-together">parameter</span>:</p>
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="html">{% block form_action %}{% url 'view_list' list.id %}{% endblock %}</code></pre>
+<pre class="pygments highlight"><code data-lang="html"><span></span>{% block form_action %}{% url 'view_list' list.id %}{% endblock %}</code></pre>
 </div>
 </div>
 </div>
 </div>
 <div class="paragraph">
 <p>See the
-<a href="http://bit.ly/2uKaMzA">Django
+<a href="https://docs.djangoproject.com/en/4.2/topics/http/urls/#reverse-resolution-of-urls">Django
 docs on reverse URL resolution</a> for more info. We run the tests again, and check that they all pass:</p>
 </div>
 <div class="listingblock">
@@ -1183,9 +1184,9 @@ template, passing in the name of the URL and a positional argument:</p>
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">def</span> <span class="function">new_list</span>(request):
-    [...]
-    <span class="keyword">return</span> redirect(<span class="string"><span class="delimiter">"</span><span class="content">view_list</span><span class="delimiter">"</span></span>, nulist.id)</code></pre>
+<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-k">def</span> <span class="tok-nf">new_list</span><span class="tok-p">(</span><span class="tok-n">request</span><span class="tok-p">):</span>
+    <span class="tok-p">[</span><span class="tok-o">...</span><span class="tok-p">]</span>
+    <span class="tok-k">return</span> <span class="tok-n">redirect</span><span class="tok-p">(</span><span class="tok-s2">"view_list"</span><span class="tok-p">,</span> <span class="tok-n">nulist</span><span class="tok-o">.</span><span class="tok-n">id</span><span class="tok-p">)</span></code></pre>
 </div>
 </div>
 </div>
@@ -1209,9 +1210,9 @@ there is one that makes sense; it takes no time at all.</p>
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python">    <span class="keyword">def</span> <span class="function">test_get_absolute_url</span>(<span class="predefined-constant">self</span>):
-        mylist = List.objects.create()
-        <span class="predefined-constant">self</span>.assertEqual(mylist.get_absolute_url(), f<span class="string"><span class="delimiter">"</span><span class="content">/lists/{mylist.id}/</span><span class="delimiter">"</span></span>)</code></pre>
+<pre class="pygments highlight"><code data-lang="python"><span></span>    <span class="tok-k">def</span> <span class="tok-nf">test_get_absolute_url</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">):</span>
+        <span class="tok-n">mylist</span> <span class="tok-o">=</span> <span class="tok-n">List</span><span class="tok-o">.</span><span class="tok-n">objects</span><span class="tok-o">.</span><span class="tok-n">create</span><span class="tok-p">()</span>
+        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertEqual</span><span class="tok-p">(</span><span class="tok-n">mylist</span><span class="tok-o">.</span><span class="tok-n">get_absolute_url</span><span class="tok-p">(),</span> <span class="tok-sa">f</span><span class="tok-s2">"/lists/</span><span class="tok-si">{</span><span class="tok-n">mylist</span><span class="tok-o">.</span><span class="tok-n">id</span><span class="tok-si">}</span><span class="tok-s2">/"</span><span class="tok-p">)</span></code></pre>
 </div>
 </div>
 </div>
@@ -1228,19 +1229,19 @@ there is one that makes sense; it takes no time at all.</p>
 <p>The implementation is to use Django&#8217;s <code>reverse</code> function, which
 essentially does the reverse of what Django normally does with <em>urls.py</em>
 (see the
-<a href="https://docs.djangoproject.com/en/1.11/topics/http/urls/#reverse-resolution-of-urls">docs</a>):</p>
+<a href="https://docs.djangoproject.com/en/4.2/topics/http/urls/#reverse-resolution-of-urls">docs</a>):</p>
 </div>
 <div class="exampleblock sourcecode">
 <div class="title">src/lists/models.py (ch11l036-5)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> <span class="include">django.urls</span> <span class="keyword">import</span> <span class="include">reverse</span>
+<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-kn">from</span> <span class="tok-nn">django.urls</span> <span class="tok-kn">import</span> <span class="tok-n">reverse</span>
 
 
-<span class="keyword">class</span> <span class="class">List</span>(models.Model):
-    <span class="keyword">def</span> <span class="function">get_absolute_url</span>(<span class="predefined-constant">self</span>):
-        <span class="keyword">return</span> reverse(<span class="string"><span class="delimiter">"</span><span class="content">view_list</span><span class="delimiter">"</span></span>, args=[<span class="predefined-constant">self</span>.id])</code></pre>
+<span class="tok-k">class</span> <span class="tok-nc">List</span><span class="tok-p">(</span><span class="tok-n">models</span><span class="tok-o">.</span><span class="tok-n">Model</span><span class="tok-p">):</span>
+    <span class="tok-k">def</span> <span class="tok-nf">get_absolute_url</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">):</span>
+        <span class="tok-k">return</span> <span class="tok-n">reverse</span><span class="tok-p">(</span><span class="tok-s2">"view_list"</span><span class="tok-p">,</span> <span class="tok-n">args</span><span class="tok-o">=</span><span class="tok-p">[</span><span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">id</span><span class="tok-p">])</span></code></pre>
 </div>
 </div>
 </div>
@@ -1255,16 +1256,16 @@ hood automagically!</p>
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">def</span> <span class="function">new_list</span>(request):
-    [...]
-    <span class="keyword">return</span> redirect(nulist)</code></pre>
+<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-k">def</span> <span class="tok-nf">new_list</span><span class="tok-p">(</span><span class="tok-n">request</span><span class="tok-p">):</span>
+    <span class="tok-p">[</span><span class="tok-o">...</span><span class="tok-p">]</span>
+    <span class="tok-k">return</span> <span class="tok-n">redirect</span><span class="tok-p">(</span><span class="tok-n">nulist</span><span class="tok-p">)</span></code></pre>
 </div>
 </div>
 </div>
 </div>
 <div class="paragraph">
 <p>There&#8217;s more info in the
-<a href="https://docs.djangoproject.com/en/1.11/topics/http/shortcuts/#redirect">Django
+<a href="https://docs.djangoproject.com/en/4.2/topics/http/shortcuts/#redirect">Django
 docs</a>.  Quick check that the unit tests still pass:</p>
 </div>
 <div class="listingblock">
@@ -1280,13 +1281,13 @@ docs</a>.  Quick check that the unit tests still pass:</p>
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">def</span> <span class="function">view_list</span>(request, list_id):
-    [...]
+<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-k">def</span> <span class="tok-nf">view_list</span><span class="tok-p">(</span><span class="tok-n">request</span><span class="tok-p">,</span> <span class="tok-n">list_id</span><span class="tok-p">):</span>
+    <span class="tok-p">[</span><span class="tok-o">...</span><span class="tok-p">]</span>
 
-            item.save()
-            <span class="keyword">return</span> redirect(our_list)
-        <span class="keyword">except</span> ValidationError:
-            error = <span class="string"><span class="delimiter">"</span><span class="content">You can't have an empty list item</span><span class="delimiter">"</span></span></code></pre>
+            <span class="tok-n">item</span><span class="tok-o">.</span><span class="tok-n">save</span><span class="tok-p">()</span>
+            <span class="tok-k">return</span> <span class="tok-n">redirect</span><span class="tok-p">(</span><span class="tok-n">our_list</span><span class="tok-p">)</span>
+        <span class="tok-k">except</span> <span class="tok-n">ValidationError</span><span class="tok-p">:</span>
+            <span class="tok-n">error</span> <span class="tok-o">=</span> <span class="tok-s2">"You can't have an empty list item"</span></code></pre>
 </div>
 </div>
 </div>
@@ -1391,7 +1392,7 @@ send them.
 </div>
 <div id="footer">
 <div id="footer-text">
-License: Creative Commons <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode">CC-BY-NC-ND</a>. Last updated: 2023-11-21 12:30:56 UTC
+License: Creative Commons <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode">CC-BY-NC-ND</a>. Last updated: 2024-05-20 17:54:12 +0100
 </div>
 </div>
 <div class="comments" style="padding: 20px">
