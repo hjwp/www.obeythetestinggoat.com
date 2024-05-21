@@ -3,8 +3,8 @@
 <meta charset="UTF-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="generator" content="Asciidoctor 2.0.20">
-<title>Making our App Production-Ready</title>
+<meta name="generator" content="Asciidoctor 2.0.23">
+<title>Making Our App Production-Ready</title>
 <link rel="stylesheet" href="./asciidoctor.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
 <link rel="stylesheet" href="./pygments-default.css">
@@ -41,8 +41,22 @@ httpRequest.send();
 </div>
 <div id="content">
 <div class="sect1">
-<h2 id="chapter_10_production_readiness">Making our App Production-Ready</h2>
+<h2 id="chapter_10_production_readiness">Making Our App Production-Ready</h2>
 <div class="sectionbody">
+<div class="sidebarblock">
+<div class="content">
+<div class="title">A Note for Early Release Readers</div>
+<div class="paragraph">
+<p>With Early Release ebooks, you get books in their earliest form&#8212;the author&#8217;s raw and unedited content as they write&#8212;so you can take advantage of these technologies long before the official release of these titles.</p>
+</div>
+<div class="paragraph">
+<p>This will be the 10th chapter of the final book. The GitHub repo is available at <a href="https://github.com/hjwp/book-example" class="bare">https://github.com/hjwp/book-example</a>.</p>
+</div>
+<div class="paragraph">
+<p>If you have comments about how we might improve the content and/or examples in this book, or if you notice missing material within this chapter, please reach out to the author at <a href="mailto:obeythetestinggoat@gmail.com">obeythetestinggoat@gmail.com</a>.</p>
+</div>
+</div>
+</div>
 <div class="paragraph">
 <p>Our container is working fine but it&#8217;s not production-ready.
 Let&#8217;s try to get it there, using the tests to keep us safe.</p>
@@ -56,19 +70,15 @@ and using the FTs to detect any regressions.</p>
 </div>
 <div class="sidebarblock">
 <div class="content">
-<div class="title">&#128679; Warning, chapter under construction &#128679;</div>
+<div class="title">Warning, chapter under construction</div>
 <div class="paragraph">
 <p>As part of my work on the third edition of the book,
-I&#8217;m making big changes to the deployment chapters,
-and this is a very new draft.</p>
-</div>
-<div class="paragraph">
-<p>This chapter is still very fresh,
-but the content is all there,
+I&#8217;m making big changes to the deployment chapters.
+This chapter is still very fresh, but the content is all there,
 so you should be able to follow along.</p>
 </div>
 <div class="paragraph">
-<p>But as always I really, really need fedback.
+<p>But as always I really, really need feedback.
 So please hit me up at <a href="mailto:obeythetestinggoat@gmail.com">obeythetestinggoat@gmail.com</a>, or via
 <a href="https://github.com/hjwp/Book-TDD-Web-Dev-Python/issues">GitHub Issues</a>
 and Pull Requests.</p>
@@ -85,14 +95,44 @@ so that people can access it using a regular URL.</p>
 <div class="paragraph">
 <p>Perhaps more importantly, we shouldn&#8217;t use the Django dev server for production;
 it&#8217;s not designed for real-life workloads.
-Instead, we&#8217;ll use the popular Gunicorn Python/WSGI server.</p>
+Instead, we&#8217;ll use the popular Gunicorn Python WSGI HTTP server.</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+Django&#8217;s <code>runserver</code> is built and optimised for local development and debugging.
+  It&#8217;s designed to handle one user at a time,
+  it handles automatic reloading upon saving of the source code,
+  but it isn&#8217;t optimised for performance,
+  nor has it been hardened against security vulnerabilities.
+</td>
+</tr>
+</table>
 </div>
 <div class="paragraph">
 <p>
 In addition, several options in <em>settings.py</em> are currently unacceptable.
-<code>DEBUG=True</code>, is strongly recommended against for production,
+<code>DEBUG=True</code>, is strongly discouraged for production,
 we&#8217;ll want to set a unique <code>SECRET_KEY</code>,
-and as we&#8217;ll see, other things will come up.</p>
+and, as we&#8217;ll see, other things will come up.</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+DEBUG=True is considered a security risk,
+  because the django debug page will display sensitive information like
+  the values of variables, and most of the settings in settings.py.
+</td>
+</tr>
+</table>
 </div>
 <div class="paragraph">
 <p>Let&#8217;s go through and see if we can fix things one by one.</p>
@@ -110,31 +150,85 @@ an ORM, all sorts of middleware, the admin site&#8230;&#8203;
 which I guess is what you&#8217;d want next if you already had a pony&#8230;&#8203;</p>
 </div>
 <div class="paragraph">
-<p>cmdg</p>
+<p>We&#8217;ll need to first install Gunicorn into our container,
+and then use it instead of <code>runserver</code>:</p>
 </div>
 <div class="listingblock">
 <div class="content">
 <pre>$ <strong>pip install gunicorn</strong>
 Collecting gunicorn
 [...]
-Successfully installed gunicorn-21.2.0
-$ <strong>pip freeze | grep -i gunicorn== &gt;&gt; requirements.txt</strong></pre>
+Successfully installed gunicorn-21.2.0</pre>
+</div>
+</div>
+<div id="what-is-wsgi" class="sidebarblock">
+<div class="content">
+<div class="title">What is WSGI?</div>
+<div class="paragraph">
+<p>Gunicorn is a WSGI (usually pronounced as whizgee) HTTP server.
+Let&#8217;s go through what this means:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>An HTTP server handles incoming HTTP requests and sends back responses to the
+clients.</p>
+</li>
+<li>
+<p>WSGI, the Web Server Gateway Interface, is a set of rules defining how an HTTP
+server (which can be Gunicorn itself, or Nginx, Apache, etc) and a Python
+program should communicate.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>So, Gunicorn is an HTTP server that knows and uses the WSGI to "talk" to Python programs.
+And these Python programs are likewise expected to work in a specific way.
+You can check out a simple example <a href="https://gunicorn.org/">on Gunicorn&#8217;s website</a> under "Installation".</p>
+</div>
+<div class="paragraph">
+<p><a href="https://peps.python.org/pep-3333">If you are interested, you can read the entire
+specification here</a>.</p>
+</div>
 </div>
 </div>
 <div class="paragraph">
-<p>Gunicorn will need to know a path to a WSGI server,
+<p>Gunicorn will need to know a path to a "WSGI server" (see <a href="#what-is-wsgi">What is WSGI?</a>),
 which is usually a function called <code>application</code>.
-Django provides one in <em>superlists/wsgi.py</em>:</p>
+Django provides one in <em>superlists/wsgi.py</em>.
+Let&#8217;s change the command our image runs:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">Dockerfile (ch10l002)</div>
+<div class="title">Dockerfile (ch10l001)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="pygments highlight"><code data-lang="Dockerfile"><span></span>CMD gunicorn --bind :8888 superlists.wsgi:application</code></pre>
+<pre class="pygments highlight"><code data-lang="dockerfile"><span></span><span class="tok-o">[</span>...<span class="tok-o">]</span>
+<span class="tok-k">RUN</span><span class="tok-w"> </span>pip<span class="tok-w"> </span>install<span class="tok-w"> </span><span class="tok-s2">"django&lt;5"</span><span class="tok-w"> </span>gunicorn<span class="tok-w">  </span><i class="conum" data-value="1"></i><b>(1)</b>
+
+<span class="tok-k">COPY</span><span class="tok-w"> </span>src<span class="tok-w"> </span>/src
+
+<span class="tok-k">WORKDIR</span><span class="tok-w"> </span><span class="tok-s">/src</span>
+
+<span class="tok-k">CMD</span><span class="tok-w"> </span>gunicorn<span class="tok-w"> </span>--bind<span class="tok-w"> </span>:8888<span class="tok-w"> </span>superlists.wsgi:application<span class="tok-w">  </span><i class="conum" data-value="2"></i><b>(2)</b></code></pre>
 </div>
 </div>
 </div>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>Installation is a standard pip install.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>Gunicorn has its own command line, <code>gunicorn</code>.
+It needs to know a path to a WSGI server,
+which is usually a function called <code>application</code>.
+Django provides one in <em>superlists/wsgi.py</em>.</td>
+</tr>
+</table>
 </div>
 <div class="paragraph">
 <p>As in the previous chapter, we can use the <code>docker build &amp;&amp; docker run</code>
@@ -157,7 +251,8 @@ but the test for layout + styling fails. Good job, tests!</p>
 </div>
 <div class="listingblock small-code">
 <div class="content">
-<pre>$ <strong>TEST_SERVER=localhost:8888 python manage.py test functional_tests</strong>
+<pre>$ <strong>TEST_SERVER=localhost:8888 python src/manage.py test functional_tests \
+  --failfast</strong>
 [...]
 AssertionError: 102.5 != 512 within 10 delta (409.5 difference)
 FAILED (failures=1)</pre>
@@ -197,19 +292,10 @@ a Python library expressly designed for serving static<sup class="footnote">[<a 
 files from Python.</p>
 </div>
 <div class="paragraph">
-<p>Let&#8217;s install it first:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>$ <strong>pip install whitenoise</strong>
-$ <strong>pip freeze | grep -i whitenoise== &gt;&gt; requirements.txt</strong></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Then we tell Django to enable it:</p>
+<p>This is how we tell Django to enable it, in <em>settings.py</em>:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">src/superlists/settings.py (ch10l003)</div>
+<div class="title">src/superlists/settings.py (ch10l002)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
@@ -223,12 +309,43 @@ $ <strong>pip freeze | grep -i whitenoise== &gt;&gt; requirements.txt</strong></
 </div>
 </div>
 <div class="paragraph">
+<p>And if you take another manual look at your site after rebuilding the
+container, things should look much healthier.</p>
+</div>
+<div class="paragraph">
+<p>And then we need to add it to our pip installs in the Dockerfile:</p>
+</div>
+<div class="exampleblock">
+<div class="title">Dockerfile (ch10l003)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="dockerfile"><span></span><span class="tok-k">RUN</span><span class="tok-w"> </span>pip<span class="tok-w"> </span>install<span class="tok-w"> </span><span class="tok-s2">"django&lt;5"</span><span class="tok-w"> </span>gunicorn<span class="tok-w"> </span>whitenoise</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>This manual list of pip installs is getting a little fiddly!
+We&#8217;ll come back to that in a moment.
+First let&#8217;s rebuild and try re-running our FTs:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>docker build -t superlists . &amp;&amp; docker run \
+  -p 8888:8888 \
+  --mount type=bind,source=./src/db.sqlite3,target=/src/db.sqlite3 \
+  -it superlists</strong></pre>
+</div>
+</div>
+<div class="paragraph">
 <p>And if you take another manual look at your site, things should look much healthier.
 Let&#8217;s rerun our FTs to confirm:</p>
 </div>
 <div class="listingblock small-code">
 <div class="content">
-<pre>$ <strong>TEST_SERVER=localhost:8888 python manage.py test functional_tests --failfast</strong>
+<pre>$ <strong>TEST_SERVER=localhost:8888 python src/manage.py test functional_tests \
+  --failfast</strong>
 [...]
 
 ...
@@ -239,11 +356,188 @@ OK</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>Phew.  Let&#8217;s commit that</p>
+<p>Phew.  Let&#8217;s commit that:</p>
 </div>
 <div class="listingblock">
 <div class="content">
 <pre>$ <strong>git commit -am"Switch to Gunicorn and Whitenoise"</strong></pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_using_requirements_txt">Using requirements.txt</h3>
+<div class="paragraph">
+<p>Let&#8217;s deal with that fiddly list of pip installs.</p>
+</div>
+<div class="paragraph">
+<p>To reproduce our local virtualenv,
+rather than just manually pip installing things
+one by one, and having to remember to sync things
+between local dev and docker,
+we can "save" the list of packages we&#8217;re using
+by creating a <em>requirements.txt</em> file.<sup class="footnote">[<a id="_footnoteref_2" class="footnote" href="#_footnotedef_2" title="View footnote.">2</a>]</sup></p>
+</div>
+<div class="paragraph">
+<p>The <code>pip freeze</code> command will show us everything that&#8217;s installed in our virtualenv at the moment:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>pip freeze</strong>
+asgiref==3.8.1
+attrs==23.2.0
+certifi==2024.2.2
+django==4.2.11
+gunicorn==21.2.0
+h11==0.14.0
+idna==3.6
+outcome==1.3.0.post0
+packaging==24.0
+pysocks==1.7.1
+selenium==4.18.1
+sniffio==1.3.1
+sortedcontainers==2.4.0
+sqlparse==0.4.4
+trio==0.25.0
+trio-websocket==0.11.1
+typing-extensions==4.10.0
+urllib3==2.2.1
+whitenoise==6.6.0
+wsproto==1.2.0</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>That shows <em>all</em> the packages in our virtualenv,
+along with their version numbers.
+Let&#8217;s pull out just the "top-level" dependencies,
+Django, Gunicorn and Whitenoise:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>pip freeze | grep -i django</strong>
+Django==4.2.11
+
+$ <strong>pip freeze | grep -i django &gt;&gt; requirements.txt</strong>
+$ <strong>pip freeze | grep -i gunicorn &gt;&gt; requirements.txt</strong>
+$ <strong>pip freeze | grep -i whitenoise &gt;&gt; requirements.txt</strong></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>That should give us a requirements.txt file that looks like this:</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">requirements.txt (ch10l004)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-n">django</span><span class="tok-o">==</span><span class="tok-mf">4.2.11</span>
+<span class="tok-n">gunicorn</span><span class="tok-o">==</span><span class="tok-mf">21.2.0</span>
+<span class="tok-n">whitenoise</span><span class="tok-o">==</span><span class="tok-mf">6.6.0</span></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>That&#8217;s a good first cut, let&#8217;s commit it:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ *git add requirements.txt*
+$ *git commit -m "Add a requirements.txt with Django, gunicorn and whitenoise"*</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>You may be wondering why we didn&#8217;t add our other dependency,
+Selenium, to our requirements,
+or why we didn&#8217;t just add <em>all</em> the dependencies,
+including the "transitive" ones
+(eg, Django has its own dependencies like <code>asgiref</code> and <code>sqlparse</code> etc).</p>
+</div>
+<div class="paragraph">
+<p>As always, I have to gloss over some nuance and tradeoffs,
+but the short answer is first, Selenium is only a dependency for the tests,
+not the application code;
+we&#8217;re never going to run the tests directly on our production servers.
+As to transitive dependencies, they&#8217;re fiddly to manage without bringing
+in more tools, and I didn&#8217;t want to do that for this book.<sup class="footnote">[<a id="_footnoteref_3" class="footnote" href="#_footnotedef_3" title="View footnote.">3</a>]</sup></p>
+</div>
+<div class="admonitionblock tip">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-tip" title="Tip"></i>
+</td>
+<td class="content">
+Itamar Turner-Traurig has a great guide to
+    <a href="https://pythonspeed.com/docker/">Docker Packaging for Python Developers</a>,
+    which I cannot recommend highly enough.  Read that before you&#8217;re too much older.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>Now let&#8217;s see how we use that requirements file in our Dockerfile:</p>
+</div>
+<div class="exampleblock">
+<div class="title">Dockerfile (ch10l005)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="dockerfile"><span></span><span class="tok-k">FROM</span><span class="tok-w"> </span><span class="tok-s">python:slim</span>
+
+<span class="tok-k">RUN</span><span class="tok-w"> </span>python<span class="tok-w"> </span>-m<span class="tok-w"> </span>venv<span class="tok-w"> </span>/venv
+<span class="tok-k">ENV</span><span class="tok-w"> </span><span class="tok-nv">PATH</span><span class="tok-o">=</span><span class="tok-s2">"/venv/bin:</span><span class="tok-nv">$PATH</span><span class="tok-s2">"</span>
+
+<span class="tok-k">COPY</span><span class="tok-w"> </span>requirements.txt<span class="tok-w"> </span>requirements.txt<span class="tok-w">  </span><i class="conum" data-value="1"></i><b>(1)</b>
+<span class="tok-k">RUN</span><span class="tok-w"> </span>pip<span class="tok-w"> </span>install<span class="tok-w"> </span>-r<span class="tok-w"> </span>requirements.txt<span class="tok-w">  </span><i class="conum" data-value="2"></i><b>(2)</b>
+
+<span class="tok-k">COPY</span><span class="tok-w"> </span>src<span class="tok-w"> </span>/src
+
+<span class="tok-k">WORKDIR</span><span class="tok-w"> </span><span class="tok-s">/src</span>
+
+<span class="tok-k">CMD</span><span class="tok-w"> </span>python<span class="tok-w"> </span>manage.py<span class="tok-w"> </span>runserver</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>We COPY our requirements file in, just like the src folder.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>Now instead of just installing Django, we install all our dependencies
+by pointing pip at the <em>requirements.txt</em> using the <code>-r</code> flag.
+Notice the <code>-r</code>.</td>
+</tr>
+</table>
+</div>
+<div class="admonitionblock tip">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-tip" title="Tip"></i>
+</td>
+<td class="content">
+Forgetting the <code>-r</code> and running <code>pip install requirements.txt</code>
+    is such a common error, that I recommend you do it <em>right now</em>
+    and get familiar with the error message
+    (which is thankfully much more helpful than it used to be).
+    It&#8217;s a mistake I still make, <em>all the time</em>.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>Let&#8217;s do a build &amp; run &amp; test to check everything still works:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>docker build -t superlists . &amp;&amp; docker run \
+  -p 8888:8888 \
+  --mount type=bind,source=./src/db.sqlite3,target=/src/db.sqlite3 \
+  -it superlists</strong></pre>
 </div>
 </div>
 </div>
@@ -278,18 +572,20 @@ but then keep it the same for the foreseeable future
 in their configuration.
 Environment variables are a good place to store those different settings.
 See <a href="http://www.clearlytech.com/2014/01/04/12-factor-apps-plain-english/">
-"The 12-Factor App"</a>.<sup class="footnote">[<a id="_footnoteref_2" class="footnote" href="#_footnotedef_2" title="View footnote.">2</a>]</sup></p>
+"The 12-Factor App"</a>.<sup class="footnote">[<a id="_footnoteref_4" class="footnote" href="#_footnotedef_4" title="View footnote.">4</a>]</sup></p>
 </div>
 <div class="sect3">
 <h4 id="_setting_debugtrue_and_secret_key">Setting DEBUG=True and SECRET_KEY</h4>
 <div class="paragraph">
-<p>There&#8217;s lots of ways you might do this.
-Here&#8217;s what I propose; it may seem a little fiddly,
+<p>There are lots of ways you might do this.</p>
+</div>
+<div class="paragraph">
+<p>Here&#8217;s what I propose; it may seem a little fiddly,
 but I&#8217;ll provide a little justification for each choice.
 Let them be an inspiration (but not a template) for your own choices!</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">superlists/settings.py (ch10l005)</div>
+<div class="title">superlists/settings.py (ch10l006)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
@@ -350,10 +646,10 @@ Better to fail hard than allow a typo in an environment variable name to
 <div class="sect3">
 <h4 id="_setting_environment_variables_inside_the_dockerfile">Setting environment variables inside the Dockerfile</h4>
 <div class="paragraph">
-<p>Now let&#8217;s set that environment variable in our Dockerfile using then <code>ENV</code> directive:</p>
+<p>Now let&#8217;s set that environment variable in our Dockerfile using the <code>ENV</code> directive:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">Dockerfile (ch10l006)</div>
+<div class="title">Dockerfile (ch10l007)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
@@ -384,7 +680,7 @@ KeyError: 'DJANGO_SECRET_KEY'</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>Ooops, and I forgot to set said secret key env var,
+<p>Oops. I forgot to set said secret key env var,
 mere seconds after having dreamt it up!</p>
 </div>
 </div>
@@ -411,7 +707,8 @@ so the Dockerfile isn&#8217;t an option; where else can we put it?</p>
 </div>
 <div class="listingblock small-code">
 <div class="content">
-<pre>$ <strong>TEST_SERVER=localhost:8888 ./manage.py test functional_tests --failfast</strong>
+<pre>$ <strong>TEST_SERVER=localhost:8888 python src/manage.py test functional_tests \
+  --failfast</strong>
 [...]
 AssertionError: 'To-Do' not found in 'Bad Request (400)'</pre>
 </div>
@@ -420,7 +717,7 @@ AssertionError: 'To-Do' not found in 'Bad Request (400)'</pre>
 <div class="sect3">
 <h4 id="_allowed_hosts_is_required_when_debug_mode_is_turned_off">ALLOWED_HOSTS is Required When Debug Mode is Turned Off</h4>
 <div class="paragraph">
-<p>Not quite!  Let&#8217;s take a look manually: <a href="#django-400-error">An ugly 400 error</a>.</p>
+<p>It&#8217;s not quite working yet!  Let&#8217;s take a look manually: <a href="#django-400-error">An ugly 400 error</a>.</p>
 </div>
 <div id="django-400-error" class="imageblock">
 <div class="content">
@@ -456,7 +753,7 @@ which takes a bit more scrolling, but confirms it
 <p><code>ALLOWED_HOSTS</code> is a security setting
 designed to reject requests that are likely to be forged, broken or malicious
 because they don&#8217;t appear to be asking for your site
-(HTTP request contain the address they were intended for in a header called "Host").</p>
+(HTTP requests contain the address they were intended for in a header called "Host").</p>
 </div>
 <div class="paragraph">
 <p>By default, when DEBUG=True, <code>ALLOWED_HOSTS</code> effectively allows <em>localhost</em>,
@@ -471,7 +768,7 @@ our own machine, so that&#8217;s why it was working OK until now.</p>
 Let&#8217;s use another environment variable for that:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">superlists/settings.py (ch10l007)</div>
+<div class="title">superlists/settings.py (ch10l008)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
@@ -489,7 +786,7 @@ Let&#8217;s use another environment variable for that:</p>
 </div>
 <div class="paragraph">
 <p>This is a setting that we want to change,
-depending on whether our docker image is running locally,
+depending on whether our Docker image is running locally,
 or on a server, so we&#8217;ll use the <code>-e</code> flag again:</p>
 </div>
 <div class="listingblock">
@@ -507,11 +804,12 @@ or on a server, so we&#8217;ll use the <code>-e</code> flag again:</p>
 <h4 id="_collectstatic_is_required_when_debug_is_turned_off">Collectstatic is Required when Debug is Turned Off</h4>
 <div class="paragraph">
 <p>An FT run (or just looking at the site) reveals that we&#8217;ve had a regression
-in our static files.</p>
+in our static files:</p>
 </div>
 <div class="listingblock small-code">
 <div class="content">
-<pre>$ <strong>TEST_SERVER=localhost:8888 python manage.py test functional_tests</strong>
+<pre>$ <strong>TEST_SERVER=localhost:8888 python src/manage.py test functional_tests \
+  --failfast</strong>
 [...]
 AssertionError: 102.5 != 512 within 10 delta (409.5 difference)
 FAILED (failures=1)</pre>
@@ -525,7 +823,7 @@ Whitenoise stops automagically finding static files in our code,
 and instead we need to run <code>collectstatic</code>:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">Dockerfile (ch10l008)</div>
+<div class="title">Dockerfile (ch10l009)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
@@ -544,16 +842,48 @@ and instead we need to run <code>collectstatic</code>:</p>
 </div>
 <div class="listingblock small-code">
 <div class="content">
-<pre>$ <strong>TEST_SERVER=localhost:8888 python manage.py test functional_tests</strong>
+<pre>$ <strong>TEST_SERVER=localhost:8888 python src/manage.py test functional_tests \
+  --failfast</strong>
 [...]
 OK</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>We have a container that we&#8217;re ready to ship to production!</p>
+<p>We&#8217;re nearly ready to ship to production!</p>
 </div>
 <div class="paragraph">
-<p>Find out how in the next exciting installment&#8230;&#8203;</p>
+<p>Let&#8217;s quickly adjust our gitignore, since the static folder is in a new place:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>git status</strong>
+# should show dockerfile and untracked src/static folder
+$ <strong>echo src/static &gt;&gt; .gitignore</strong>
+$ <strong>git status</strong>
+# should now be clean
+$ <strong>git commit -am "Add collectstatic to dockerfile, and new location to gitignore"</strong></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_switching_to_a_nonroot_user">Switching to a nonroot user</h3>
+<div class="paragraph">
+<p>TODO: WIP, this is definitely a good idea for security, needs writing up.</p>
+</div>
+<div class="paragraph">
+<p>Dockerfile should gain some lines a bit like this:</p>
+</div>
+<div class="exampleblock">
+<div class="title">Dockerfile (ch10l0XX)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="dockerfile"><span></span><span class="tok-k">RUN</span><span class="tok-w"> </span>addgroup<span class="tok-w"> </span>--system<span class="tok-w"> </span>nonroot<span class="tok-w"> </span><span class="tok-o">&amp;&amp;</span><span class="tok-w"> </span>adduser<span class="tok-w"> </span>--system<span class="tok-w"> </span>--group<span class="tok-w"> </span>nonroot
+
+<span class="tok-k">USER</span><span class="tok-w"> </span><span class="tok-s">nonroot</span></code></pre>
+</div>
+</div>
 </div>
 </div>
 </div>
@@ -571,33 +901,17 @@ switching DEBUG off means that Django&#8217;s default logging configuration chan
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>$ <strong>rm src/db.sqlite3 &amp;&amp; touch src/db.sqlite3</strong></pre>
+<pre>$ <strong>rm src/db.sqlite3</strong>
+$ <strong>touch src/db.sqlite3</strong>  # otherwise the --mount type=bind will complain</pre>
 </div>
-</div>
-<div class="admonitionblock tip">
-<table>
-<tr>
-<td class="icon">
-<i class="fa icon-tip" title="Tip"></i>
-</td>
-<td class="content">
-If you use the <code>-v</code> option for docker run to mount a nonexistent path,
-    Docker will create a new folder at that path.
-    This is why we do the <code>touch db.sqlite3</code>
-    so that we have a placeholder empty file where the datbase should be.
-    Otherwise we get a folder instead of an empty file and django gets even more confused;
-    if you ever see an error saying <code>chown: permission denied</code>, that&#8217;s probably it.
-    Do a <code>rm -rf src/db.sqlite3 &amp;&amp; touch src/db.sqlite3</code> to fix it.
-</td>
-</tr>
-</table>
 </div>
 <div class="paragraph">
 <p>Now if you run the tests, you&#8217;ll see they fail;</p>
 </div>
 <div class="listingblock small-code">
 <div class="content">
-<pre>$ <strong>TEST_SERVER=localhost:8888 ./src/manage.py test functional_tests --failfast</strong>
+<pre>$ <strong>TEST_SERVER=localhost:8888 python src/manage.py test functional_tests \
+  --failfast</strong>
 [...]
 
 selenium.common.exceptions.NoSuchElementException: Message: Unable to locate
@@ -633,19 +947,19 @@ but it&#8217;s more of shock to see that they are no longer appearing in the ter
 If you&#8217;re like me you might find yourself wondering if we really <em>did</em> see them earlier
 and starting to doubt your own sanity.
 But the explanation is that Django&#8217;s
-<a href="https://docs.djangoproject.com/en/5.0/ref/logging/#default-logging-configuration">default logging configuration</a>
+<a href="https://docs.djangoproject.com/en/4.2/ref/logging/#default-logging-configuration">default logging configuration</a>
 changes when DEBUG is turned off:</p>
 </div>
 <div class="paragraph">
 <p>This means we need to interact with the standard library&#8217;s <code>logging</code> module,
-unfortunately one of the most fiddly parts of the Python standard library<sup class="footnote">[<a id="_footnoteref_3" class="footnote" href="#_footnotedef_3" title="View footnote.">3</a>]</sup>.</p>
+unfortunately one of the most fiddly parts of the Python standard library<sup class="footnote">[<a id="_footnoteref_5" class="footnote" href="#_footnotedef_5" title="View footnote.">5</a>]</sup>.</p>
 </div>
 <div class="paragraph">
 <p>Here&#8217;s pretty much the simplest possible logging config
-which just prints everything to the console (ie standard out).</p>
+which just prints everything to the console (i.e. standard out).</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">src/superlists/settings.py (ch10l009)</div>
+<div class="title">src/superlists/settings.py (ch10l011)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
@@ -685,15 +999,18 @@ django.db.utils.OperationalError: no such table: lists_list</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>Re-create the datase with <code>./src/manage.py migrate</code> and we&#8217;ll be back to a working state.</p>
+<p>Re-create the database with <code>./src/manage.py migrate</code> and we&#8217;ll be back to a working state.</p>
 </div>
 <div class="paragraph">
-<p>Don&#8217;t forget to commit our changes to <em>settings.py</em>,
+<p>Don&#8217;t forget to commit our changes to <em>settings.py</em> and <em>Dockerfile</em>,
 and I think we can call it job done!
 We&#8217;ve at least touched on many or most of the things you might need to think about
 when considering production-readiness,
 we&#8217;ve worked in small steps and used our tests all the way along,
 and we&#8217;re now ready to deploy our container to a real server!</p>
+</div>
+<div class="paragraph">
+<p>Find out how, in our next exciting installment&#8230;&#8203;</p>
 </div>
 <div class="sidebarblock pagebreak-before less_space">
 <div class="content">
@@ -751,15 +1068,21 @@ But we can&#8217;t cover all that in this book!</p>
 <a href="#_footnoteref_1">1</a>. Believe it or not, this pun didn&#8217;t actually hit me until I was rewriting this chapter. For 10 years it was right under my nose. I think that makes it funnier actually.
 </div>
 <div class="footnote" id="_footnotedef_2">
-<a href="#_footnoteref_2">2</a>. Another common way of handling this is to have different versions of <em>settings.py</em> for dev and prod. That can work fine too, but it can get confusing to manage. Environment variables also have the advantage of working for non-Django stuff too&#8230;&#8203;
+<a href="#_footnoteref_2">2</a>. There are many other dependency management tools these days so requirements.txt is not the only way to do it, although it is one of the oldest and best established. As you continue your Python adventures I&#8217;m sure you&#8217;ll come across many others.
 </div>
 <div class="footnote" id="_footnotedef_3">
-<a href="#_footnoteref_3">3</a>. It&#8217;s not necessarily for bad reasons, but it is all very Java-ey and enterprisey. I mean, yes, separating the concepts of handlers and loggers and filters, and making it all configurable in a nested hierarchy is all well and good and covers every possible use case, but sometimes you just wanna say "just print stuff to stdout pls", and you wish that configuring the simplest thing was a little easier
+<a href="#_footnoteref_3">3</a>. When you have a moment, you might want to do some further reading on "lockfiles", pyproject.toml, hard pinning vs soft pining, and immediate vs transitive dependencies.  If I absolutely <em>had</em> to recommend a python dependency management tool, it would be <a href="https://github.com/jazzband/pip-tools">pip-tools</a>, which is a fairly minimal one.
+</div>
+<div class="footnote" id="_footnotedef_4">
+<a href="#_footnoteref_4">4</a>. Another common way of handling this is to have different versions of <em>settings.py</em> for dev and prod. That can work fine too, but it can get confusing to manage. Environment variables also have the advantage of working for non-Django stuff too.
+</div>
+<div class="footnote" id="_footnotedef_5">
+<a href="#_footnoteref_5">5</a>. It&#8217;s not necessarily for bad reasons, but it is all very Java-ey and enterprisey. I mean, yes, separating the concepts of handlers and loggers and filters, and making it all configurable in a nested hierarchy is all well and good and covers every possible use case, but sometimes you just wanna say "just print stuff to stdout pls", and you wish that configuring the simplest thing was a little easier.
 </div>
 </div>
 <div id="footer">
 <div id="footer-text">
-License: Creative Commons <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode">CC-BY-NC-ND</a>. Last updated: 2024-02-28 23:11:37 UTC
+License: Creative Commons <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode">CC-BY-NC-ND</a>. Last updated: 2024-05-20 17:54:12 +0100
 </div>
 </div>
 <div class="comments" style="padding: 20px">

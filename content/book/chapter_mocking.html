@@ -3,11 +3,11 @@
 <meta charset="UTF-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="generator" content="Asciidoctor 2.0.20">
+<meta name="generator" content="Asciidoctor 2.0.23">
 <title>Using Mocks to Test External Dependencies or Reduce Duplication</title>
 <link rel="stylesheet" href="./asciidoctor.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
-<link rel="stylesheet" href="./coderay-asciidoctor.css">
+<link rel="stylesheet" href="./pygments-default.css">
 <script>var httpRequest = new XMLHttpRequest();
 httpRequest.onreadystatechange = function() {
   if (httpRequest.readyState === XMLHttpRequest.DONE) {
@@ -88,16 +88,16 @@ back to the home page:</p>
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> <span class="include">django.test</span> <span class="keyword">import</span> <span class="include">TestCase</span>
+<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-kn">from</span> <span class="tok-nn">django.test</span> <span class="tok-kn">import</span> <span class="tok-n">TestCase</span>
 
 
-<span class="keyword">class</span> <span class="class">SendLoginEmailViewTest</span>(TestCase):
+<span class="tok-k">class</span> <span class="tok-nc">SendLoginEmailViewTest</span><span class="tok-p">(</span><span class="tok-n">TestCase</span><span class="tok-p">):</span>
 
-    <span class="keyword">def</span> <span class="function">test_redirects_to_home_page</span>(<span class="predefined-constant">self</span>):
-        response = <span class="predefined-constant">self</span>.client.post(<span class="string"><span class="delimiter">'</span><span class="content">/accounts/send_login_email</span><span class="delimiter">'</span></span>, data={
-            <span class="string"><span class="delimiter">'</span><span class="content">email</span><span class="delimiter">'</span></span>: <span class="string"><span class="delimiter">'</span><span class="content">edith@example.com</span><span class="delimiter">'</span></span>
-        })
-        <span class="predefined-constant">self</span>.assertRedirects(response, <span class="string"><span class="delimiter">'</span><span class="content">/</span><span class="delimiter">'</span></span>)</code></pre>
+    <span class="tok-k">def</span> <span class="tok-nf">test_redirects_to_home_page</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">):</span>
+        <span class="tok-n">response</span> <span class="tok-o">=</span> <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">client</span><span class="tok-o">.</span><span class="tok-n">post</span><span class="tok-p">(</span><span class="tok-s1">'/accounts/send_login_email'</span><span class="tok-p">,</span> <span class="tok-n">data</span><span class="tok-o">=</span><span class="tok-p">{</span>
+            <span class="tok-s1">'email'</span><span class="tok-p">:</span> <span class="tok-s1">'edith@example.com'</span>
+        <span class="tok-p">})</span>
+        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertRedirects</span><span class="tok-p">(</span><span class="tok-n">response</span><span class="tok-p">,</span> <span class="tok-s1">'/'</span><span class="tok-p">)</span></code></pre>
 </div>
 </div>
 </div>
@@ -111,11 +111,11 @@ back to the home page:</p>
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> <span class="include">django.core.mail</span> <span class="keyword">import</span> <span class="include">send_mail</span>
-<span class="keyword">from</span> <span class="include">django.shortcuts</span> <span class="keyword">import</span> <span class="include">redirect</span>
+<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-kn">from</span> <span class="tok-nn">django.core.mail</span> <span class="tok-kn">import</span> <span class="tok-n">send_mail</span>
+<span class="tok-kn">from</span> <span class="tok-nn">django.shortcuts</span> <span class="tok-kn">import</span> <span class="tok-n">redirect</span>
 
-<span class="keyword">def</span> <span class="function">send_login_email</span>(request):
-    <span class="keyword">return</span> redirect(<span class="string"><span class="delimiter">'</span><span class="content">/</span><span class="delimiter">'</span></span>)</code></pre>
+<span class="tok-k">def</span> <span class="tok-nf">send_login_email</span><span class="tok-p">(</span><span class="tok-n">request</span><span class="tok-p">):</span>
+    <span class="tok-k">return</span> <span class="tok-n">redirect</span><span class="tok-p">(</span><span class="tok-s1">'/'</span><span class="tok-p">)</span></code></pre>
 </div>
 </div>
 </div>
@@ -163,15 +163,15 @@ something like this:</p>
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">def</span> <span class="function">send_login_email</span>(request):
-    email = request.POST[<span class="string"><span class="delimiter">'</span><span class="content">email</span><span class="delimiter">'</span></span>]
-    <span class="comment"># send_mail(</span>
-    <span class="comment">#     'Your login link for Superlists',</span>
-    <span class="comment">#     'body text tbc',</span>
-    <span class="comment">#     'noreply@superlists',</span>
-    <span class="comment">#     [email],</span>
-    <span class="comment"># )</span>
-    <span class="keyword">return</span> redirect(<span class="string"><span class="delimiter">'</span><span class="content">/</span><span class="delimiter">'</span></span>)</code></pre>
+<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-k">def</span> <span class="tok-nf">send_login_email</span><span class="tok-p">(</span><span class="tok-n">request</span><span class="tok-p">):</span>
+    <span class="tok-n">email</span> <span class="tok-o">=</span> <span class="tok-n">request</span><span class="tok-o">.</span><span class="tok-n">POST</span><span class="tok-p">[</span><span class="tok-s1">'email'</span><span class="tok-p">]</span>
+    <span class="tok-c1"># send_mail(</span>
+    <span class="tok-c1">#     'Your login link for Superlists',</span>
+    <span class="tok-c1">#     'body text tbc',</span>
+    <span class="tok-c1">#     'noreply@superlists',</span>
+    <span class="tok-c1">#     [email],</span>
+    <span class="tok-c1"># )</span>
+    <span class="tok-k">return</span> <span class="tok-n">redirect</span><span class="tok-p">(</span><span class="tok-s1">'/'</span><span class="tok-p">)</span></code></pre>
 </div>
 </div>
 </div>
@@ -187,33 +187,33 @@ Check this out:</p>
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> <span class="include">django.test</span> <span class="keyword">import</span> <span class="include">TestCase</span>
-<span class="keyword">import</span> <span class="include">accounts.views</span>  <i class="conum" data-value="2"></i><b>(2)</b>
+<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-kn">from</span> <span class="tok-nn">django.test</span> <span class="tok-kn">import</span> <span class="tok-n">TestCase</span>
+<span class="tok-kn">import</span> <span class="tok-nn">accounts.views</span>  <i class="conum" data-value="2"></i><b>(2)</b>
 
-<span class="keyword">class</span> <span class="class">SendLoginEmailViewTest</span>(TestCase):
-    [...]
+<span class="tok-k">class</span> <span class="tok-nc">SendLoginEmailViewTest</span><span class="tok-p">(</span><span class="tok-n">TestCase</span><span class="tok-p">):</span>
+    <span class="tok-p">[</span><span class="tok-o">...</span><span class="tok-p">]</span>
 
-    <span class="keyword">def</span> <span class="function">test_sends_mail_to_address_from_post</span>(<span class="predefined-constant">self</span>):
-        <span class="predefined-constant">self</span>.send_mail_called = <span class="predefined-constant">False</span>
+    <span class="tok-k">def</span> <span class="tok-nf">test_sends_mail_to_address_from_post</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">):</span>
+        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">send_mail_called</span> <span class="tok-o">=</span> <span class="tok-kc">False</span>
 
-        <span class="keyword">def</span> <span class="function">fake_send_mail</span>(subject, body, from_email, to_list):  <i class="conum" data-value="1"></i><b>(1)</b>
-            <span class="predefined-constant">self</span>.send_mail_called = <span class="predefined-constant">True</span>
-            <span class="predefined-constant">self</span>.subject = subject
-            <span class="predefined-constant">self</span>.body = body
-            <span class="predefined-constant">self</span>.from_email = from_email
-            <span class="predefined-constant">self</span>.to_list = to_list
+        <span class="tok-k">def</span> <span class="tok-nf">fake_send_mail</span><span class="tok-p">(</span><span class="tok-n">subject</span><span class="tok-p">,</span> <span class="tok-n">body</span><span class="tok-p">,</span> <span class="tok-n">from_email</span><span class="tok-p">,</span> <span class="tok-n">to_list</span><span class="tok-p">):</span>  <i class="conum" data-value="1"></i><b>(1)</b>
+            <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">send_mail_called</span> <span class="tok-o">=</span> <span class="tok-kc">True</span>
+            <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">subject</span> <span class="tok-o">=</span> <span class="tok-n">subject</span>
+            <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">body</span> <span class="tok-o">=</span> <span class="tok-n">body</span>
+            <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">from_email</span> <span class="tok-o">=</span> <span class="tok-n">from_email</span>
+            <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">to_list</span> <span class="tok-o">=</span> <span class="tok-n">to_list</span>
 
-        accounts.views.send_mail = fake_send_mail  <i class="conum" data-value="2"></i><b>(2)</b>
+        <span class="tok-n">accounts</span><span class="tok-o">.</span><span class="tok-n">views</span><span class="tok-o">.</span><span class="tok-n">send_mail</span> <span class="tok-o">=</span> <span class="tok-n">fake_send_mail</span>  <i class="conum" data-value="2"></i><b>(2)</b>
 
-        <span class="predefined-constant">self</span>.client.post(<span class="string"><span class="delimiter">'</span><span class="content">/accounts/send_login_email</span><span class="delimiter">'</span></span>, data={
-            <span class="string"><span class="delimiter">'</span><span class="content">email</span><span class="delimiter">'</span></span>: <span class="string"><span class="delimiter">'</span><span class="content">edith@example.com</span><span class="delimiter">'</span></span>
-        })
+        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">client</span><span class="tok-o">.</span><span class="tok-n">post</span><span class="tok-p">(</span><span class="tok-s1">'/accounts/send_login_email'</span><span class="tok-p">,</span> <span class="tok-n">data</span><span class="tok-o">=</span><span class="tok-p">{</span>
+            <span class="tok-s1">'email'</span><span class="tok-p">:</span> <span class="tok-s1">'edith@example.com'</span>
+        <span class="tok-p">})</span>
 
 
-        <span class="predefined-constant">self</span>.assertTrue(<span class="predefined-constant">self</span>.send_mail_called)
-        <span class="predefined-constant">self</span>.assertEqual(<span class="predefined-constant">self</span>.subject, <span class="string"><span class="delimiter">'</span><span class="content">Your login link for Superlists</span><span class="delimiter">'</span></span>)
-        <span class="predefined-constant">self</span>.assertEqual(<span class="predefined-constant">self</span>.from_email, <span class="string"><span class="delimiter">'</span><span class="content">noreply@superlists</span><span class="delimiter">'</span></span>)
-        <span class="predefined-constant">self</span>.assertEqual(<span class="predefined-constant">self</span>.to_list, [<span class="string"><span class="delimiter">'</span><span class="content">edith@example.com</span><span class="delimiter">'</span></span>])</code></pre>
+        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertTrue</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">send_mail_called</span><span class="tok-p">)</span>
+        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertEqual</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">subject</span><span class="tok-p">,</span> <span class="tok-s1">'Your login link for Superlists'</span><span class="tok-p">)</span>
+        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertEqual</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">from_email</span><span class="tok-p">,</span> <span class="tok-s1">'noreply@superlists'</span><span class="tok-p">)</span>
+        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertEqual</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">to_list</span><span class="tok-p">,</span> <span class="tok-p">[</span><span class="tok-s1">'edith@example.com'</span><span class="tok-p">])</span></code></pre>
 </div>
 </div>
 </div>
@@ -288,9 +288,9 @@ AssertionError: False is not true</pre>
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">def</span> <span class="function">send_login_email</span>(request):
-    send_mail()
-    <span class="keyword">return</span> redirect(<span class="string"><span class="delimiter">'</span><span class="content">/</span><span class="delimiter">'</span></span>)</code></pre>
+<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-k">def</span> <span class="tok-nf">send_login_email</span><span class="tok-p">(</span><span class="tok-n">request</span><span class="tok-p">):</span>
+    <span class="tok-n">send_mail</span><span class="tok-p">()</span>
+    <span class="tok-k">return</span> <span class="tok-n">redirect</span><span class="tok-p">(</span><span class="tok-s1">'/'</span><span class="tok-p">)</span></code></pre>
 </div>
 </div>
 </div>
@@ -314,9 +314,9 @@ this:</p>
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">def</span> <span class="function">send_login_email</span>(request):
-    send_mail(<span class="string"><span class="delimiter">'</span><span class="content">subject</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">body</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">from_email</span><span class="delimiter">'</span></span>, [<span class="string"><span class="delimiter">'</span><span class="content">to email</span><span class="delimiter">'</span></span>])
-    <span class="keyword">return</span> redirect(<span class="string"><span class="delimiter">'</span><span class="content">/</span><span class="delimiter">'</span></span>)</code></pre>
+<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-k">def</span> <span class="tok-nf">send_login_email</span><span class="tok-p">(</span><span class="tok-n">request</span><span class="tok-p">):</span>
+    <span class="tok-n">send_mail</span><span class="tok-p">(</span><span class="tok-s1">'subject'</span><span class="tok-p">,</span> <span class="tok-s1">'body'</span><span class="tok-p">,</span> <span class="tok-s1">'from_email'</span><span class="tok-p">,</span> <span class="tok-p">[</span><span class="tok-s1">'to email'</span><span class="tok-p">])</span>
+    <span class="tok-k">return</span> <span class="tok-n">redirect</span><span class="tok-p">(</span><span class="tok-s1">'/'</span><span class="tok-p">)</span></code></pre>
 </div>
 </div>
 </div>
@@ -339,15 +339,15 @@ something like this:</p>
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">def</span> <span class="function">send_login_email</span>(request):
-    email = request.POST[<span class="string"><span class="delimiter">'</span><span class="content">email</span><span class="delimiter">'</span></span>]
-    send_mail(
-        <span class="string"><span class="delimiter">'</span><span class="content">Your login link for Superlists</span><span class="delimiter">'</span></span>,
-        <span class="string"><span class="delimiter">'</span><span class="content">body text tbc</span><span class="delimiter">'</span></span>,
-        <span class="string"><span class="delimiter">'</span><span class="content">noreply@superlists</span><span class="delimiter">'</span></span>,
-        [email]
-    )
-    <span class="keyword">return</span> redirect(<span class="string"><span class="delimiter">'</span><span class="content">/</span><span class="delimiter">'</span></span>)</code></pre>
+<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-k">def</span> <span class="tok-nf">send_login_email</span><span class="tok-p">(</span><span class="tok-n">request</span><span class="tok-p">):</span>
+    <span class="tok-n">email</span> <span class="tok-o">=</span> <span class="tok-n">request</span><span class="tok-o">.</span><span class="tok-n">POST</span><span class="tok-p">[</span><span class="tok-s1">'email'</span><span class="tok-p">]</span>
+    <span class="tok-n">send_mail</span><span class="tok-p">(</span>
+        <span class="tok-s1">'Your login link for Superlists'</span><span class="tok-p">,</span>
+        <span class="tok-s1">'body text tbc'</span><span class="tok-p">,</span>
+        <span class="tok-s1">'noreply@superlists'</span><span class="tok-p">,</span>
+        <span class="tok-p">[</span><span class="tok-n">email</span><span class="tok-p">]</span>
+    <span class="tok-p">)</span>
+    <span class="tok-k">return</span> <span class="tok-n">redirect</span><span class="tok-p">(</span><span class="tok-s1">'/'</span><span class="tok-p">)</span></code></pre>
 </div>
 </div>
 </div>
@@ -381,25 +381,25 @@ It provides a magical object called a <code>Mock</code>; try this out in a Pytho
 </div>
 <div class="listingblock skipme">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python">&gt;&gt;&gt; <span class="keyword">from</span> <span class="include">unittest.mock</span> <span class="keyword">import</span> <span class="include">Mock</span>
-&gt;&gt;&gt; m = Mock()
-&gt;&gt;&gt; m.any_attribute
-&lt;Mock name=<span class="string"><span class="delimiter">'</span><span class="content">mock.any_attribute</span><span class="delimiter">'</span></span> id=<span class="string"><span class="delimiter">'</span><span class="content">140716305179152</span><span class="delimiter">'</span></span>&gt;
-&gt;&gt;&gt; <span class="predefined">type</span>(m.any_attribute)
-&lt;<span class="keyword">class</span> <span class="string"><span class="delimiter">'</span><span class="content">unittest.mock.Mock</span><span class="delimiter">'</span></span>&gt;
-&gt;&gt;&gt; m.any_method()
-&lt;Mock name=<span class="string"><span class="delimiter">'</span><span class="content">mock.any_method()</span><span class="delimiter">'</span></span> id=<span class="string"><span class="delimiter">'</span><span class="content">140716331211856</span><span class="delimiter">'</span></span>&gt;
-&gt;&gt;&gt; m.foo()
-&lt;Mock name=<span class="string"><span class="delimiter">'</span><span class="content">mock.foo()</span><span class="delimiter">'</span></span> id=<span class="string"><span class="delimiter">'</span><span class="content">140716331251600</span><span class="delimiter">'</span></span>&gt;
-&gt;&gt;&gt; m.called
-<span class="predefined-constant">False</span>
-&gt;&gt;&gt; m.foo.called
-<span class="predefined-constant">True</span>
-&gt;&gt;&gt; m.bar.return_value = <span class="integer">1</span>
-&gt;&gt;&gt; m.bar(<span class="integer">42</span>, var=<span class="string"><span class="delimiter">'</span><span class="content">thing</span><span class="delimiter">'</span></span>)
-<span class="integer">1</span>
-&gt;&gt;&gt; m.bar.call_args
-call(<span class="integer">42</span>, var=<span class="string"><span class="delimiter">'</span><span class="content">thing</span><span class="delimiter">'</span></span>)</code></pre>
+<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-o">&gt;&gt;&gt;</span> <span class="tok-kn">from</span> <span class="tok-nn">unittest.mock</span> <span class="tok-kn">import</span> <span class="tok-n">Mock</span>
+<span class="tok-o">&gt;&gt;&gt;</span> <span class="tok-n">m</span> <span class="tok-o">=</span> <span class="tok-n">Mock</span><span class="tok-p">()</span>
+<span class="tok-o">&gt;&gt;&gt;</span> <span class="tok-n">m</span><span class="tok-o">.</span><span class="tok-n">any_attribute</span>
+<span class="tok-o">&lt;</span><span class="tok-n">Mock</span> <span class="tok-n">name</span><span class="tok-o">=</span><span class="tok-s1">'mock.any_attribute'</span> <span class="tok-nb">id</span><span class="tok-o">=</span><span class="tok-s1">'140716305179152'</span><span class="tok-o">&gt;</span>
+<span class="tok-o">&gt;&gt;&gt;</span> <span class="tok-nb">type</span><span class="tok-p">(</span><span class="tok-n">m</span><span class="tok-o">.</span><span class="tok-n">any_attribute</span><span class="tok-p">)</span>
+<span class="tok-o">&lt;</span><span class="tok-k">class</span> <span class="tok-err">'</span><span class="tok-nc">unittest</span><span class="tok-o">.</span><span class="tok-n">mock</span><span class="tok-o">.</span><span class="tok-n">Mock</span><span class="tok-s1">'&gt;</span>
+<span class="tok-o">&gt;&gt;&gt;</span> <span class="tok-n">m</span><span class="tok-o">.</span><span class="tok-n">any_method</span><span class="tok-p">()</span>
+<span class="tok-o">&lt;</span><span class="tok-n">Mock</span> <span class="tok-n">name</span><span class="tok-o">=</span><span class="tok-s1">'mock.any_method()'</span> <span class="tok-nb">id</span><span class="tok-o">=</span><span class="tok-s1">'140716331211856'</span><span class="tok-o">&gt;</span>
+<span class="tok-o">&gt;&gt;&gt;</span> <span class="tok-n">m</span><span class="tok-o">.</span><span class="tok-n">foo</span><span class="tok-p">()</span>
+<span class="tok-o">&lt;</span><span class="tok-n">Mock</span> <span class="tok-n">name</span><span class="tok-o">=</span><span class="tok-s1">'mock.foo()'</span> <span class="tok-nb">id</span><span class="tok-o">=</span><span class="tok-s1">'140716331251600'</span><span class="tok-o">&gt;</span>
+<span class="tok-o">&gt;&gt;&gt;</span> <span class="tok-n">m</span><span class="tok-o">.</span><span class="tok-n">called</span>
+<span class="tok-kc">False</span>
+<span class="tok-o">&gt;&gt;&gt;</span> <span class="tok-n">m</span><span class="tok-o">.</span><span class="tok-n">foo</span><span class="tok-o">.</span><span class="tok-n">called</span>
+<span class="tok-kc">True</span>
+<span class="tok-o">&gt;&gt;&gt;</span> <span class="tok-n">m</span><span class="tok-o">.</span><span class="tok-n">bar</span><span class="tok-o">.</span><span class="tok-n">return_value</span> <span class="tok-o">=</span> <span class="tok-mi">1</span>
+<span class="tok-o">&gt;&gt;&gt;</span> <span class="tok-n">m</span><span class="tok-o">.</span><span class="tok-n">bar</span><span class="tok-p">(</span><span class="tok-mi">42</span><span class="tok-p">,</span> <span class="tok-n">var</span><span class="tok-o">=</span><span class="tok-s1">'thing'</span><span class="tok-p">)</span>
+<span class="tok-mi">1</span>
+<span class="tok-o">&gt;&gt;&gt;</span> <span class="tok-n">m</span><span class="tok-o">.</span><span class="tok-n">bar</span><span class="tok-o">.</span><span class="tok-n">call_args</span>
+<span class="tok-n">call</span><span class="tok-p">(</span><span class="tok-mi">42</span><span class="tok-p">,</span> <span class="tok-n">var</span><span class="tok-o">=</span><span class="tok-s1">'thing'</span><span class="tok-p">)</span></code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -424,21 +424,21 @@ by hand earlier.</p>
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> <span class="include">django.test</span> <span class="keyword">import</span> <span class="include">TestCase</span>
-<span class="keyword">from</span> <span class="include">unittest.mock</span> <span class="keyword">import</span> <span class="include">patch</span>
-[...]
+<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-kn">from</span> <span class="tok-nn">django.test</span> <span class="tok-kn">import</span> <span class="tok-n">TestCase</span>
+<span class="tok-kn">from</span> <span class="tok-nn">unittest.mock</span> <span class="tok-kn">import</span> <span class="tok-n">patch</span>
+<span class="tok-p">[</span><span class="tok-o">...</span><span class="tok-p">]</span>
 
-    <span class="decorator">@patch</span>(<span class="string"><span class="delimiter">'</span><span class="content">accounts.views.send_mail</span><span class="delimiter">'</span></span>)
-    <span class="keyword">def</span> <span class="function">test_sends_mail_to_address_from_post</span>(<span class="predefined-constant">self</span>, mock_send_mail):
-        <span class="predefined-constant">self</span>.client.post(<span class="string"><span class="delimiter">'</span><span class="content">/accounts/send_login_email</span><span class="delimiter">'</span></span>, data={
-            <span class="string"><span class="delimiter">'</span><span class="content">email</span><span class="delimiter">'</span></span>: <span class="string"><span class="delimiter">'</span><span class="content">edith@example.com</span><span class="delimiter">'</span></span>
-        })
+    <span class="tok-nd">@patch</span><span class="tok-p">(</span><span class="tok-s1">'accounts.views.send_mail'</span><span class="tok-p">)</span>
+    <span class="tok-k">def</span> <span class="tok-nf">test_sends_mail_to_address_from_post</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">,</span> <span class="tok-n">mock_send_mail</span><span class="tok-p">):</span>
+        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">client</span><span class="tok-o">.</span><span class="tok-n">post</span><span class="tok-p">(</span><span class="tok-s1">'/accounts/send_login_email'</span><span class="tok-p">,</span> <span class="tok-n">data</span><span class="tok-o">=</span><span class="tok-p">{</span>
+            <span class="tok-s1">'email'</span><span class="tok-p">:</span> <span class="tok-s1">'edith@example.com'</span>
+        <span class="tok-p">})</span>
 
-        <span class="predefined-constant">self</span>.assertEqual(mock_send_mail.called, <span class="predefined-constant">True</span>)
-        (subject, body, from_email, to_list), kwargs = mock_send_mail.call_args
-        <span class="predefined-constant">self</span>.assertEqual(subject, <span class="string"><span class="delimiter">'</span><span class="content">Your login link for Superlists</span><span class="delimiter">'</span></span>)
-        <span class="predefined-constant">self</span>.assertEqual(from_email, <span class="string"><span class="delimiter">'</span><span class="content">noreply@superlists</span><span class="delimiter">'</span></span>)
-        <span class="predefined-constant">self</span>.assertEqual(to_list, [<span class="string"><span class="delimiter">'</span><span class="content">edith@example.com</span><span class="delimiter">'</span></span>])</code></pre>
+        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertEqual</span><span class="tok-p">(</span><span class="tok-n">mock_send_mail</span><span class="tok-o">.</span><span class="tok-n">called</span><span class="tok-p">,</span> <span class="tok-kc">True</span><span class="tok-p">)</span>
+        <span class="tok-p">(</span><span class="tok-n">subject</span><span class="tok-p">,</span> <span class="tok-n">body</span><span class="tok-p">,</span> <span class="tok-n">from_email</span><span class="tok-p">,</span> <span class="tok-n">to_list</span><span class="tok-p">),</span> <span class="tok-n">kwargs</span> <span class="tok-o">=</span> <span class="tok-n">mock_send_mail</span><span class="tok-o">.</span><span class="tok-n">call_args</span>
+        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertEqual</span><span class="tok-p">(</span><span class="tok-n">subject</span><span class="tok-p">,</span> <span class="tok-s1">'Your login link for Superlists'</span><span class="tok-p">)</span>
+        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertEqual</span><span class="tok-p">(</span><span class="tok-n">from_email</span><span class="tok-p">,</span> <span class="tok-s1">'noreply@superlists'</span><span class="tok-p">)</span>
+        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertEqual</span><span class="tok-p">(</span><span class="tok-n">to_list</span><span class="tok-p">,</span> <span class="tok-p">[</span><span class="tok-s1">'edith@example.com'</span><span class="tok-p">])</span></code></pre>
 </div>
 </div>
 </div>
@@ -453,7 +453,7 @@ break it just to see:</p>
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python">        <span class="predefined-constant">self</span>.assertEqual(to_list, [<span class="string"><span class="delimiter">'</span><span class="content">schmedith@example.com</span><span class="delimiter">'</span></span>])</code></pre>
+<pre class="pygments highlight"><code data-lang="python"><span></span>        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertEqual</span><span class="tok-p">(</span><span class="tok-n">to_list</span><span class="tok-p">,</span> <span class="tok-p">[</span><span class="tok-s1">'schmedith@example.com'</span><span class="tok-p">])</span></code></pre>
 </div>
 </div>
 </div>
@@ -466,11 +466,11 @@ break it just to see:</p>
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">def</span> <span class="function">send_login_email</span>(request):
-    email = request.POST[<span class="string"><span class="delimiter">'</span><span class="content">email</span><span class="delimiter">'</span></span>]
-    print(<span class="predefined">type</span>(send_mail))
-    send_mail(
-        [...]</code></pre>
+<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-k">def</span> <span class="tok-nf">send_login_email</span><span class="tok-p">(</span><span class="tok-n">request</span><span class="tok-p">):</span>
+    <span class="tok-n">email</span> <span class="tok-o">=</span> <span class="tok-n">request</span><span class="tok-o">.</span><span class="tok-n">POST</span><span class="tok-p">[</span><span class="tok-s1">'email'</span><span class="tok-p">]</span>
+    <span class="tok-nb">print</span><span class="tok-p">(</span><span class="tok-nb">type</span><span class="tok-p">(</span><span class="tok-n">send_mail</span><span class="tok-p">))</span>
+    <span class="tok-n">send_mail</span><span class="tok-p">(</span>
+        <span class="tok-p">[</span><span class="tok-o">...</span><span class="tok-p">]</span></code></pre>
 </div>
 </div>
 </div>
@@ -508,17 +508,17 @@ test we&#8217;re seeing a mock object.</p>
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="decorator">@patch</span>(<span class="string"><span class="delimiter">'</span><span class="content">accounts.views.send_mail</span><span class="delimiter">'</span></span>)  <i class="conum" data-value="1"></i><b>(1)</b>
-<span class="keyword">def</span> <span class="function">test_sends_mail_to_address_from_post</span>(<span class="predefined-constant">self</span>, mock_send_mail):  <i class="conum" data-value="2"></i><b>(2)</b>
-    <span class="predefined-constant">self</span>.client.post(<span class="string"><span class="delimiter">'</span><span class="content">/accounts/send_login_email</span><span class="delimiter">'</span></span>, data={
-        <span class="string"><span class="delimiter">'</span><span class="content">email</span><span class="delimiter">'</span></span>: <span class="string"><span class="delimiter">'</span><span class="content">edith@example.com</span><span class="delimiter">'</span></span>  <i class="conum" data-value="3"></i><b>(3)</b>
-    })
+<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-nd">@patch</span><span class="tok-p">(</span><span class="tok-s1">'accounts.views.send_mail'</span><span class="tok-p">)</span>  <i class="conum" data-value="1"></i><b>(1)</b>
+<span class="tok-k">def</span> <span class="tok-nf">test_sends_mail_to_address_from_post</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">,</span> <span class="tok-n">mock_send_mail</span><span class="tok-p">):</span>  <i class="conum" data-value="2"></i><b>(2)</b>
+    <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">client</span><span class="tok-o">.</span><span class="tok-n">post</span><span class="tok-p">(</span><span class="tok-s1">'/accounts/send_login_email'</span><span class="tok-p">,</span> <span class="tok-n">data</span><span class="tok-o">=</span><span class="tok-p">{</span>
+        <span class="tok-s1">'email'</span><span class="tok-p">:</span> <span class="tok-s1">'edith@example.com'</span>  <i class="conum" data-value="3"></i><b>(3)</b>
+    <span class="tok-p">})</span>
 
-    <span class="predefined-constant">self</span>.assertEqual(mock_send_mail.called, <span class="predefined-constant">True</span>)  <i class="conum" data-value="4"></i><b>(4)</b>
-    (subject, body, from_email, to_list), kwargs = mock_send_mail.call_args  <i class="conum" data-value="5"></i><b>(5)</b>
-    <span class="predefined-constant">self</span>.assertEqual(subject, <span class="string"><span class="delimiter">'</span><span class="content">Your login link for Superlists</span><span class="delimiter">'</span></span>)
-    <span class="predefined-constant">self</span>.assertEqual(from_email, <span class="string"><span class="delimiter">'</span><span class="content">noreply@superlists</span><span class="delimiter">'</span></span>)
-    <span class="predefined-constant">self</span>.assertEqual(to_list, [<span class="string"><span class="delimiter">'</span><span class="content">edith@example.com</span><span class="delimiter">'</span></span>])</code></pre>
+    <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertEqual</span><span class="tok-p">(</span><span class="tok-n">mock_send_mail</span><span class="tok-o">.</span><span class="tok-n">called</span><span class="tok-p">,</span> <span class="tok-kc">True</span><span class="tok-p">)</span>  <i class="conum" data-value="4"></i><b>(4)</b>
+    <span class="tok-p">(</span><span class="tok-n">subject</span><span class="tok-p">,</span> <span class="tok-n">body</span><span class="tok-p">,</span> <span class="tok-n">from_email</span><span class="tok-p">,</span> <span class="tok-n">to_list</span><span class="tok-p">),</span> <span class="tok-n">kwargs</span> <span class="tok-o">=</span> <span class="tok-n">mock_send_mail</span><span class="tok-o">.</span><span class="tok-n">call_args</span>  <i class="conum" data-value="5"></i><b>(5)</b>
+    <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertEqual</span><span class="tok-p">(</span><span class="tok-n">subject</span><span class="tok-p">,</span> <span class="tok-s1">'Your login link for Superlists'</span><span class="tok-p">)</span>
+    <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertEqual</span><span class="tok-p">(</span><span class="tok-n">from_email</span><span class="tok-p">,</span> <span class="tok-s1">'noreply@superlists'</span><span class="tok-p">)</span>
+    <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertEqual</span><span class="tok-p">(</span><span class="tok-n">to_list</span><span class="tok-p">,</span> <span class="tok-p">[</span><span class="tok-s1">'edith@example.com'</span><span class="tok-p">])</span></code></pre>
 </div>
 </div>
 </div>
@@ -589,9 +589,9 @@ sending the data anywhere.  Let&#8217;s wire it up in
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="html"><span class="tag">&lt;form</span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">"</span><span class="content">navbar-form navbar-right</span><span class="delimiter">"</span></span>
-      <span class="attribute-name">method</span>=<span class="string"><span class="delimiter">"</span><span class="content">POST</span><span class="delimiter">"</span></span>
-      <span class="attribute-name">action</span>=<span class="string"><span class="delimiter">"</span><span class="content">{% url 'send_login_email' %}</span><span class="delimiter">"</span></span><span class="tag">&gt;</span></code></pre>
+<pre class="pygments highlight"><code data-lang="html"><span></span><span class="tok-p">&lt;</span><span class="tok-nt">form</span> <span class="tok-na">class</span><span class="tok-o">=</span><span class="tok-s">"navbar-form navbar-right"</span>
+      <span class="tok-na">method</span><span class="tok-o">=</span><span class="tok-s">"POST"</span>
+      <span class="tok-na">action</span><span class="tok-o">=</span><span class="tok-s">"{% url 'send_login_email' %}"</span><span class="tok-p">&gt;</span></code></pre>
 </div>
 </div>
 </div>
@@ -622,17 +622,17 @@ play nicely).  Here&#8217;s what it looks like:</p>
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python">    <span class="keyword">def</span> <span class="function">test_adds_success_message</span>(<span class="predefined-constant">self</span>):
-        response = <span class="predefined-constant">self</span>.client.post(<span class="string"><span class="delimiter">'</span><span class="content">/accounts/send_login_email</span><span class="delimiter">'</span></span>, data={
-            <span class="string"><span class="delimiter">'</span><span class="content">email</span><span class="delimiter">'</span></span>: <span class="string"><span class="delimiter">'</span><span class="content">edith@example.com</span><span class="delimiter">'</span></span>
-        }, follow=<span class="predefined-constant">True</span>)
+<pre class="pygments highlight"><code data-lang="python"><span></span>    <span class="tok-k">def</span> <span class="tok-nf">test_adds_success_message</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">):</span>
+        <span class="tok-n">response</span> <span class="tok-o">=</span> <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">client</span><span class="tok-o">.</span><span class="tok-n">post</span><span class="tok-p">(</span><span class="tok-s1">'/accounts/send_login_email'</span><span class="tok-p">,</span> <span class="tok-n">data</span><span class="tok-o">=</span><span class="tok-p">{</span>
+            <span class="tok-s1">'email'</span><span class="tok-p">:</span> <span class="tok-s1">'edith@example.com'</span>
+        <span class="tok-p">},</span> <span class="tok-n">follow</span><span class="tok-o">=</span><span class="tok-kc">True</span><span class="tok-p">)</span>
 
-        message = <span class="predefined">list</span>(response.context[<span class="string"><span class="delimiter">'</span><span class="content">messages</span><span class="delimiter">'</span></span>])[<span class="integer">0</span>]
-        <span class="predefined-constant">self</span>.assertEqual(
-            message.message,
-            <span class="string"><span class="delimiter">"</span><span class="content">Check your email, we've sent you a link you can use to log in.</span><span class="delimiter">"</span></span>
-        )
-        <span class="predefined-constant">self</span>.assertEqual(message.tags, <span class="string"><span class="delimiter">"</span><span class="content">success</span><span class="delimiter">"</span></span>)</code></pre>
+        <span class="tok-n">message</span> <span class="tok-o">=</span> <span class="tok-nb">list</span><span class="tok-p">(</span><span class="tok-n">response</span><span class="tok-o">.</span><span class="tok-n">context</span><span class="tok-p">[</span><span class="tok-s1">'messages'</span><span class="tok-p">])[</span><span class="tok-mi">0</span><span class="tok-p">]</span>
+        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertEqual</span><span class="tok-p">(</span>
+            <span class="tok-n">message</span><span class="tok-o">.</span><span class="tok-n">message</span><span class="tok-p">,</span>
+            <span class="tok-s2">"Check your email, we've sent you a link you can use to log in."</span>
+        <span class="tok-p">)</span>
+        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertEqual</span><span class="tok-p">(</span><span class="tok-n">message</span><span class="tok-o">.</span><span class="tok-n">tags</span><span class="tok-p">,</span> <span class="tok-s2">"success"</span><span class="tok-p">)</span></code></pre>
 </div>
 </div>
 </div>
@@ -656,16 +656,16 @@ IndexError: list index out of range</pre>
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> <span class="include">django.contrib</span> <span class="keyword">import</span> <span class="include">messages</span>
-[...]
+<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-kn">from</span> <span class="tok-nn">django.contrib</span> <span class="tok-kn">import</span> <span class="tok-n">messages</span>
+<span class="tok-p">[</span><span class="tok-o">...</span><span class="tok-p">]</span>
 
-<span class="keyword">def</span> <span class="function">send_login_email</span>(request):
-    [...]
-    messages.success(
-        request,
-        <span class="string"><span class="delimiter">"</span><span class="content">Check your email, we've sent you a link you can use to log in.</span><span class="delimiter">"</span></span>
-    )
-    <span class="keyword">return</span> redirect(<span class="string"><span class="delimiter">'</span><span class="content">/</span><span class="delimiter">'</span></span>)</code></pre>
+<span class="tok-k">def</span> <span class="tok-nf">send_login_email</span><span class="tok-p">(</span><span class="tok-n">request</span><span class="tok-p">):</span>
+    <span class="tok-p">[</span><span class="tok-o">...</span><span class="tok-p">]</span>
+    <span class="tok-n">messages</span><span class="tok-o">.</span><span class="tok-n">success</span><span class="tok-p">(</span>
+        <span class="tok-n">request</span><span class="tok-p">,</span>
+        <span class="tok-s2">"Check your email, we've sent you a link you can use to log in."</span>
+    <span class="tok-p">)</span>
+    <span class="tok-k">return</span> <span class="tok-n">redirect</span><span class="tok-p">(</span><span class="tok-s1">'/'</span><span class="tok-p">)</span></code></pre>
 </div>
 </div>
 </div>
@@ -697,20 +697,20 @@ decided to just use mocks.  Let&#8217;s see what that would look like in this ca
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> <span class="include">unittest.mock</span> <span class="keyword">import</span> <span class="include">patch</span>, <span class="include">call</span>
-[...]
+<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-kn">from</span> <span class="tok-nn">unittest.mock</span> <span class="tok-kn">import</span> <span class="tok-n">patch</span><span class="tok-p">,</span> <span class="tok-n">call</span>
+<span class="tok-p">[</span><span class="tok-o">...</span><span class="tok-p">]</span>
 
-    <span class="decorator">@patch</span>(<span class="string"><span class="delimiter">'</span><span class="content">accounts.views.messages</span><span class="delimiter">'</span></span>)
-    <span class="keyword">def</span> <span class="function">test_adds_success_message_with_mocks</span>(<span class="predefined-constant">self</span>, mock_messages):
-        response = <span class="predefined-constant">self</span>.client.post(<span class="string"><span class="delimiter">'</span><span class="content">/accounts/send_login_email</span><span class="delimiter">'</span></span>, data={
-            <span class="string"><span class="delimiter">'</span><span class="content">email</span><span class="delimiter">'</span></span>: <span class="string"><span class="delimiter">'</span><span class="content">edith@example.com</span><span class="delimiter">'</span></span>
-        })
+    <span class="tok-nd">@patch</span><span class="tok-p">(</span><span class="tok-s1">'accounts.views.messages'</span><span class="tok-p">)</span>
+    <span class="tok-k">def</span> <span class="tok-nf">test_adds_success_message_with_mocks</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">,</span> <span class="tok-n">mock_messages</span><span class="tok-p">):</span>
+        <span class="tok-n">response</span> <span class="tok-o">=</span> <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">client</span><span class="tok-o">.</span><span class="tok-n">post</span><span class="tok-p">(</span><span class="tok-s1">'/accounts/send_login_email'</span><span class="tok-p">,</span> <span class="tok-n">data</span><span class="tok-o">=</span><span class="tok-p">{</span>
+            <span class="tok-s1">'email'</span><span class="tok-p">:</span> <span class="tok-s1">'edith@example.com'</span>
+        <span class="tok-p">})</span>
 
-        expected = <span class="string"><span class="delimiter">"</span><span class="content">Check your email, we've sent you a link you can use to log in.</span><span class="delimiter">"</span></span>
-        <span class="predefined-constant">self</span>.assertEqual(
-            mock_messages.success.call_args,
-            call(response.wsgi_request, expected),
-        )</code></pre>
+        <span class="tok-n">expected</span> <span class="tok-o">=</span> <span class="tok-s2">"Check your email, we've sent you a link you can use to log in."</span>
+        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertEqual</span><span class="tok-p">(</span>
+            <span class="tok-n">mock_messages</span><span class="tok-o">.</span><span class="tok-n">success</span><span class="tok-o">.</span><span class="tok-n">call_args</span><span class="tok-p">,</span>
+            <span class="tok-n">call</span><span class="tok-p">(</span><span class="tok-n">response</span><span class="tok-o">.</span><span class="tok-n">wsgi_request</span><span class="tok-p">,</span> <span class="tok-n">expected</span><span class="tok-p">),</span>
+        <span class="tok-p">)</span></code></pre>
 </div>
 </div>
 </div>
@@ -729,11 +729,11 @@ achieve the same result.  I could write the code like this:</p>
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python">    messages.add_message(
-        request,
-        messages.SUCCESS,
-        <span class="string"><span class="delimiter">"</span><span class="content">Check your email, we've sent you a link you can use to log in.</span><span class="delimiter">"</span></span>
-    )</code></pre>
+<pre class="pygments highlight"><code data-lang="python"><span></span>    <span class="tok-n">messages</span><span class="tok-o">.</span><span class="tok-n">add_message</span><span class="tok-p">(</span>
+        <span class="tok-n">request</span><span class="tok-p">,</span>
+        <span class="tok-n">messages</span><span class="tok-o">.</span><span class="tok-n">SUCCESS</span><span class="tok-p">,</span>
+        <span class="tok-s2">"Check your email, we've sent you a link you can use to log in."</span>
+    <span class="tok-p">)</span></code></pre>
 </div>
 </div>
 </div>
@@ -768,21 +768,21 @@ need to actually add the messages to the page.  Something like this:</p>
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="html">      [...]
-      <span class="tag">&lt;/nav&gt;</span>
+<pre class="pygments highlight"><code data-lang="html"><span></span>      [...]
+      <span class="tok-p">&lt;/</span><span class="tok-nt">nav</span><span class="tok-p">&gt;</span>
 
       {% if messages %}
-        <span class="tag">&lt;div</span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">"</span><span class="content">row</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>
-          <span class="tag">&lt;div</span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">"</span><span class="content">col-md-8</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>
+        <span class="tok-p">&lt;</span><span class="tok-nt">div</span> <span class="tok-na">class</span><span class="tok-o">=</span><span class="tok-s">"row"</span><span class="tok-p">&gt;</span>
+          <span class="tok-p">&lt;</span><span class="tok-nt">div</span> <span class="tok-na">class</span><span class="tok-o">=</span><span class="tok-s">"col-md-8"</span><span class="tok-p">&gt;</span>
             {% for message in messages %}
               {% if message.level_tag == 'success' %}
-                <span class="tag">&lt;div</span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">"</span><span class="content">alert alert-success</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>{{ message }}<span class="tag">&lt;/div&gt;</span>
+                <span class="tok-p">&lt;</span><span class="tok-nt">div</span> <span class="tok-na">class</span><span class="tok-o">=</span><span class="tok-s">"alert alert-success"</span><span class="tok-p">&gt;</span>{{ message }}<span class="tok-p">&lt;/</span><span class="tok-nt">div</span><span class="tok-p">&gt;</span>
               {% else %}
-                <span class="tag">&lt;div</span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">"</span><span class="content">alert alert-warning</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>{{ message }}<span class="tag">&lt;/div&gt;</span>
+                <span class="tok-p">&lt;</span><span class="tok-nt">div</span> <span class="tok-na">class</span><span class="tok-o">=</span><span class="tok-s">"alert alert-warning"</span><span class="tok-p">&gt;</span>{{ message }}<span class="tok-p">&lt;/</span><span class="tok-nt">div</span><span class="tok-p">&gt;</span>
               {% endif %}
             {% endfor %}
-          <span class="tag">&lt;/div&gt;</span>
-        <span class="tag">&lt;/div&gt;</span>
+          <span class="tok-p">&lt;/</span><span class="tok-nt">div</span><span class="tok-p">&gt;</span>
+        <span class="tok-p">&lt;/</span><span class="tok-nt">div</span><span class="tok-p">&gt;</span>
       {% endif %}</code></pre>
 </div>
 </div>
@@ -816,12 +816,12 @@ user can use to log in.</p>
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python">    send_mail(
-        <span class="string"><span class="delimiter">'</span><span class="content">Your login link for Superlists</span><span class="delimiter">'</span></span>,
-        <span class="string"><span class="delimiter">'</span><span class="content">Use this link to log in</span><span class="delimiter">'</span></span>,
-        <span class="string"><span class="delimiter">'</span><span class="content">noreply@superlists</span><span class="delimiter">'</span></span>,
-        [email]
-    )</code></pre>
+<pre class="pygments highlight"><code data-lang="python"><span></span>    <span class="tok-n">send_mail</span><span class="tok-p">(</span>
+        <span class="tok-s1">'Your login link for Superlists'</span><span class="tok-p">,</span>
+        <span class="tok-s1">'Use this link to log in'</span><span class="tok-p">,</span>
+        <span class="tok-s1">'noreply@superlists'</span><span class="tok-p">,</span>
+        <span class="tok-p">[</span><span class="tok-n">email</span><span class="tok-p">]</span>
+    <span class="tok-p">)</span></code></pre>
 </div>
 </div>
 </div>
@@ -849,11 +849,11 @@ just cheats:</p>
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">class</span> <span class="class">LoginViewTest</span>(TestCase):
+<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-k">class</span> <span class="tok-nc">LoginViewTest</span><span class="tok-p">(</span><span class="tok-n">TestCase</span><span class="tok-p">):</span>
 
-    <span class="keyword">def</span> <span class="function">test_redirects_to_home_page</span>(<span class="predefined-constant">self</span>):
-        response = <span class="predefined-constant">self</span>.client.get(<span class="string"><span class="delimiter">'</span><span class="content">/accounts/login?token=abcd123</span><span class="delimiter">'</span></span>)
-        <span class="predefined-constant">self</span>.assertRedirects(response, <span class="string"><span class="delimiter">'</span><span class="content">/</span><span class="delimiter">'</span></span>)</code></pre>
+    <span class="tok-k">def</span> <span class="tok-nf">test_redirects_to_home_page</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">):</span>
+        <span class="tok-n">response</span> <span class="tok-o">=</span> <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">client</span><span class="tok-o">.</span><span class="tok-n">get</span><span class="tok-p">(</span><span class="tok-s1">'/accounts/login?token=abcd123'</span><span class="tok-p">)</span>
+        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertRedirects</span><span class="tok-p">(</span><span class="tok-n">response</span><span class="tok-p">,</span> <span class="tok-s1">'/'</span><span class="tok-p">)</span></code></pre>
 </div>
 </div>
 </div>
@@ -925,27 +925,27 @@ can use to log in.  Let&#8217;s spec out two tests for that:</p>
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> <span class="include">accounts.models</span> <span class="keyword">import</span> <span class="include">Token</span>
-[...]
+<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-kn">from</span> <span class="tok-nn">accounts.models</span> <span class="tok-kn">import</span> <span class="tok-n">Token</span>
+<span class="tok-p">[</span><span class="tok-o">...</span><span class="tok-p">]</span>
 
-    <span class="keyword">def</span> <span class="function">test_creates_token_associated_with_email</span>(<span class="predefined-constant">self</span>):
-        <span class="predefined-constant">self</span>.client.post(<span class="string"><span class="delimiter">'</span><span class="content">/accounts/send_login_email</span><span class="delimiter">'</span></span>, data={
-            <span class="string"><span class="delimiter">'</span><span class="content">email</span><span class="delimiter">'</span></span>: <span class="string"><span class="delimiter">'</span><span class="content">edith@example.com</span><span class="delimiter">'</span></span>
-        })
-        token = Token.objects.first()
-        <span class="predefined-constant">self</span>.assertEqual(token.email, <span class="string"><span class="delimiter">'</span><span class="content">edith@example.com</span><span class="delimiter">'</span></span>)
+    <span class="tok-k">def</span> <span class="tok-nf">test_creates_token_associated_with_email</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">):</span>
+        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">client</span><span class="tok-o">.</span><span class="tok-n">post</span><span class="tok-p">(</span><span class="tok-s1">'/accounts/send_login_email'</span><span class="tok-p">,</span> <span class="tok-n">data</span><span class="tok-o">=</span><span class="tok-p">{</span>
+            <span class="tok-s1">'email'</span><span class="tok-p">:</span> <span class="tok-s1">'edith@example.com'</span>
+        <span class="tok-p">})</span>
+        <span class="tok-n">token</span> <span class="tok-o">=</span> <span class="tok-n">Token</span><span class="tok-o">.</span><span class="tok-n">objects</span><span class="tok-o">.</span><span class="tok-n">first</span><span class="tok-p">()</span>
+        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertEqual</span><span class="tok-p">(</span><span class="tok-n">token</span><span class="tok-o">.</span><span class="tok-n">email</span><span class="tok-p">,</span> <span class="tok-s1">'edith@example.com'</span><span class="tok-p">)</span>
 
 
-    <span class="decorator">@patch</span>(<span class="string"><span class="delimiter">'</span><span class="content">accounts.views.send_mail</span><span class="delimiter">'</span></span>)
-    <span class="keyword">def</span> <span class="function">test_sends_link_to_login_using_token_uid</span>(<span class="predefined-constant">self</span>, mock_send_mail):
-        <span class="predefined-constant">self</span>.client.post(<span class="string"><span class="delimiter">'</span><span class="content">/accounts/send_login_email</span><span class="delimiter">'</span></span>, data={
-            <span class="string"><span class="delimiter">'</span><span class="content">email</span><span class="delimiter">'</span></span>: <span class="string"><span class="delimiter">'</span><span class="content">edith@example.com</span><span class="delimiter">'</span></span>
-        })
+    <span class="tok-nd">@patch</span><span class="tok-p">(</span><span class="tok-s1">'accounts.views.send_mail'</span><span class="tok-p">)</span>
+    <span class="tok-k">def</span> <span class="tok-nf">test_sends_link_to_login_using_token_uid</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">,</span> <span class="tok-n">mock_send_mail</span><span class="tok-p">):</span>
+        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">client</span><span class="tok-o">.</span><span class="tok-n">post</span><span class="tok-p">(</span><span class="tok-s1">'/accounts/send_login_email'</span><span class="tok-p">,</span> <span class="tok-n">data</span><span class="tok-o">=</span><span class="tok-p">{</span>
+            <span class="tok-s1">'email'</span><span class="tok-p">:</span> <span class="tok-s1">'edith@example.com'</span>
+        <span class="tok-p">})</span>
 
-        token = Token.objects.first()
-        expected_url = f<span class="string"><span class="delimiter">'</span><span class="content">http://testserver/accounts/login?token={token.uid}</span><span class="delimiter">'</span></span>
-        (subject, body, from_email, to_list), kwargs = mock_send_mail.call_args
-        <span class="predefined-constant">self</span>.assertIn(expected_url, body)</code></pre>
+        <span class="tok-n">token</span> <span class="tok-o">=</span> <span class="tok-n">Token</span><span class="tok-o">.</span><span class="tok-n">objects</span><span class="tok-o">.</span><span class="tok-n">first</span><span class="tok-p">()</span>
+        <span class="tok-n">expected_url</span> <span class="tok-o">=</span> <span class="tok-sa">f</span><span class="tok-s1">'http://testserver/accounts/login?token=</span><span class="tok-si">{</span><span class="tok-n">token</span><span class="tok-o">.</span><span class="tok-n">uid</span><span class="tok-si">}</span><span class="tok-s1">'</span>
+        <span class="tok-p">(</span><span class="tok-n">subject</span><span class="tok-p">,</span> <span class="tok-n">body</span><span class="tok-p">,</span> <span class="tok-n">from_email</span><span class="tok-p">,</span> <span class="tok-n">to_list</span><span class="tok-p">),</span> <span class="tok-n">kwargs</span> <span class="tok-o">=</span> <span class="tok-n">mock_send_mail</span><span class="tok-o">.</span><span class="tok-n">call_args</span>
+        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertIn</span><span class="tok-p">(</span><span class="tok-n">expected_url</span><span class="tok-p">,</span> <span class="tok-n">body</span><span class="tok-p">)</span></code></pre>
 </div>
 </div>
 </div>
@@ -980,14 +980,14 @@ AttributeError: 'NoneType' object has no attribute 'uid'</pre>
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> <span class="include">accounts.models</span> <span class="keyword">import</span> <span class="include">Token</span>
-[...]
+<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-kn">from</span> <span class="tok-nn">accounts.models</span> <span class="tok-kn">import</span> <span class="tok-n">Token</span>
+<span class="tok-p">[</span><span class="tok-o">...</span><span class="tok-p">]</span>
 
-<span class="keyword">def</span> <span class="function">send_login_email</span>(request):
-    email = request.POST[<span class="string"><span class="delimiter">'</span><span class="content">email</span><span class="delimiter">'</span></span>]
-    token = Token.objects.create(email=email)
-    send_mail(
-        [...]</code></pre>
+<span class="tok-k">def</span> <span class="tok-nf">send_login_email</span><span class="tok-p">(</span><span class="tok-n">request</span><span class="tok-p">):</span>
+    <span class="tok-n">email</span> <span class="tok-o">=</span> <span class="tok-n">request</span><span class="tok-o">.</span><span class="tok-n">POST</span><span class="tok-p">[</span><span class="tok-s1">'email'</span><span class="tok-p">]</span>
+    <span class="tok-n">token</span> <span class="tok-o">=</span> <span class="tok-n">Token</span><span class="tok-o">.</span><span class="tok-n">objects</span><span class="tok-o">.</span><span class="tok-n">create</span><span class="tok-p">(</span><span class="tok-n">email</span><span class="tok-o">=</span><span class="tok-n">email</span><span class="tok-p">)</span>
+    <span class="tok-n">send_mail</span><span class="tok-p">(</span>
+        <span class="tok-p">[</span><span class="tok-o">...</span><span class="tok-p">]</span></code></pre>
 </div>
 </div>
 </div>
@@ -1014,23 +1014,23 @@ FAILED (failures=1)</pre>
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> <span class="include">django.core.urlresolvers</span> <span class="keyword">import</span> <span class="include">reverse</span>
-[...]
+<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-kn">from</span> <span class="tok-nn">django.core.urlresolvers</span> <span class="tok-kn">import</span> <span class="tok-n">reverse</span>
+<span class="tok-p">[</span><span class="tok-o">...</span><span class="tok-p">]</span>
 
-<span class="keyword">def</span> <span class="function">send_login_email</span>(request):
-    email = request.POST[<span class="string"><span class="delimiter">'</span><span class="content">email</span><span class="delimiter">'</span></span>]
-    token = Token.objects.create(email=email)
-    url = request.build_absolute_uri(  <i class="conum" data-value="1"></i><b>(1)</b>
-        reverse(<span class="string"><span class="delimiter">'</span><span class="content">login</span><span class="delimiter">'</span></span>) + <span class="string"><span class="delimiter">'</span><span class="content">?token=</span><span class="delimiter">'</span></span> + <span class="predefined">str</span>(token.uid)
-    )
-    message_body = f<span class="string"><span class="delimiter">'</span><span class="content">Use this link to log in:</span><span class="char">\n</span><span class="char">\n</span><span class="content">{url}</span><span class="delimiter">'</span></span>
-    send_mail(
-        <span class="string"><span class="delimiter">'</span><span class="content">Your login link for Superlists</span><span class="delimiter">'</span></span>,
-        message_body,
-        <span class="string"><span class="delimiter">'</span><span class="content">noreply@superlists</span><span class="delimiter">'</span></span>,
-        [email]
-    )
-    [...]</code></pre>
+<span class="tok-k">def</span> <span class="tok-nf">send_login_email</span><span class="tok-p">(</span><span class="tok-n">request</span><span class="tok-p">):</span>
+    <span class="tok-n">email</span> <span class="tok-o">=</span> <span class="tok-n">request</span><span class="tok-o">.</span><span class="tok-n">POST</span><span class="tok-p">[</span><span class="tok-s1">'email'</span><span class="tok-p">]</span>
+    <span class="tok-n">token</span> <span class="tok-o">=</span> <span class="tok-n">Token</span><span class="tok-o">.</span><span class="tok-n">objects</span><span class="tok-o">.</span><span class="tok-n">create</span><span class="tok-p">(</span><span class="tok-n">email</span><span class="tok-o">=</span><span class="tok-n">email</span><span class="tok-p">)</span>
+    <span class="tok-n">url</span> <span class="tok-o">=</span> <span class="tok-n">request</span><span class="tok-o">.</span><span class="tok-n">build_absolute_uri</span><span class="tok-p">(</span>  <i class="conum" data-value="1"></i><b>(1)</b>
+        <span class="tok-n">reverse</span><span class="tok-p">(</span><span class="tok-s1">'login'</span><span class="tok-p">)</span> <span class="tok-o">+</span> <span class="tok-s1">'?token='</span> <span class="tok-o">+</span> <span class="tok-nb">str</span><span class="tok-p">(</span><span class="tok-n">token</span><span class="tok-o">.</span><span class="tok-n">uid</span><span class="tok-p">)</span>
+    <span class="tok-p">)</span>
+    <span class="tok-n">message_body</span> <span class="tok-o">=</span> <span class="tok-sa">f</span><span class="tok-s1">'Use this link to log in:</span><span class="tok-se">\n\n</span><span class="tok-si">{</span><span class="tok-n">url</span><span class="tok-si">}</span><span class="tok-s1">'</span>
+    <span class="tok-n">send_mail</span><span class="tok-p">(</span>
+        <span class="tok-s1">'Your login link for Superlists'</span><span class="tok-p">,</span>
+        <span class="tok-n">message_body</span><span class="tok-p">,</span>
+        <span class="tok-s1">'noreply@superlists'</span><span class="tok-p">,</span>
+        <span class="tok-p">[</span><span class="tok-n">email</span><span class="tok-p">]</span>
+    <span class="tok-p">)</span>
+    <span class="tok-p">[</span><span class="tok-o">...</span><span class="tok-p">]</span></code></pre>
 </div>
 </div>
 </div>
@@ -1063,26 +1063,26 @@ custom authentication backend is next.  Here&#8217;s how it looked in the spike:
 </div>
 <div id="spike-reminder" class="listingblock skipme small-code">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">class</span> <span class="class">PasswordlessAuthenticationBackend</span>(<span class="predefined">object</span>):
+<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-k">class</span> <span class="tok-nc">PasswordlessAuthenticationBackend</span><span class="tok-p">(</span><span class="tok-nb">object</span><span class="tok-p">):</span>
 
-    <span class="keyword">def</span> <span class="function">authenticate</span>(<span class="predefined-constant">self</span>, uid):
-        print(<span class="string"><span class="delimiter">'</span><span class="content">uid</span><span class="delimiter">'</span></span>, uid, file=sys.stderr)
-        <span class="keyword">if</span> <span class="keyword">not</span> Token.objects.filter(uid=uid).exists():
-            print(<span class="string"><span class="delimiter">'</span><span class="content">no token found</span><span class="delimiter">'</span></span>, file=sys.stderr)
-            <span class="keyword">return</span> <span class="predefined-constant">None</span>
-        token = Token.objects.get(uid=uid)
-        print(<span class="string"><span class="delimiter">'</span><span class="content">got token</span><span class="delimiter">'</span></span>, file=sys.stderr)
-        <span class="keyword">try</span>:
-            user = ListUser.objects.get(email=token.email)
-            print(<span class="string"><span class="delimiter">'</span><span class="content">got user</span><span class="delimiter">'</span></span>, file=sys.stderr)
-            <span class="keyword">return</span> user
-        <span class="keyword">except</span> ListUser.DoesNotExist:
-            print(<span class="string"><span class="delimiter">'</span><span class="content">new user</span><span class="delimiter">'</span></span>, file=sys.stderr)
-            <span class="keyword">return</span> ListUser.objects.create(email=token.email)
+    <span class="tok-k">def</span> <span class="tok-nf">authenticate</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">,</span> <span class="tok-n">uid</span><span class="tok-p">):</span>
+        <span class="tok-nb">print</span><span class="tok-p">(</span><span class="tok-s1">'uid'</span><span class="tok-p">,</span> <span class="tok-n">uid</span><span class="tok-p">,</span> <span class="tok-n">file</span><span class="tok-o">=</span><span class="tok-n">sys</span><span class="tok-o">.</span><span class="tok-n">stderr</span><span class="tok-p">)</span>
+        <span class="tok-k">if</span> <span class="tok-ow">not</span> <span class="tok-n">Token</span><span class="tok-o">.</span><span class="tok-n">objects</span><span class="tok-o">.</span><span class="tok-n">filter</span><span class="tok-p">(</span><span class="tok-n">uid</span><span class="tok-o">=</span><span class="tok-n">uid</span><span class="tok-p">)</span><span class="tok-o">.</span><span class="tok-n">exists</span><span class="tok-p">():</span>
+            <span class="tok-nb">print</span><span class="tok-p">(</span><span class="tok-s1">'no token found'</span><span class="tok-p">,</span> <span class="tok-n">file</span><span class="tok-o">=</span><span class="tok-n">sys</span><span class="tok-o">.</span><span class="tok-n">stderr</span><span class="tok-p">)</span>
+            <span class="tok-k">return</span> <span class="tok-kc">None</span>
+        <span class="tok-n">token</span> <span class="tok-o">=</span> <span class="tok-n">Token</span><span class="tok-o">.</span><span class="tok-n">objects</span><span class="tok-o">.</span><span class="tok-n">get</span><span class="tok-p">(</span><span class="tok-n">uid</span><span class="tok-o">=</span><span class="tok-n">uid</span><span class="tok-p">)</span>
+        <span class="tok-nb">print</span><span class="tok-p">(</span><span class="tok-s1">'got token'</span><span class="tok-p">,</span> <span class="tok-n">file</span><span class="tok-o">=</span><span class="tok-n">sys</span><span class="tok-o">.</span><span class="tok-n">stderr</span><span class="tok-p">)</span>
+        <span class="tok-k">try</span><span class="tok-p">:</span>
+            <span class="tok-n">user</span> <span class="tok-o">=</span> <span class="tok-n">ListUser</span><span class="tok-o">.</span><span class="tok-n">objects</span><span class="tok-o">.</span><span class="tok-n">get</span><span class="tok-p">(</span><span class="tok-n">email</span><span class="tok-o">=</span><span class="tok-n">token</span><span class="tok-o">.</span><span class="tok-n">email</span><span class="tok-p">)</span>
+            <span class="tok-nb">print</span><span class="tok-p">(</span><span class="tok-s1">'got user'</span><span class="tok-p">,</span> <span class="tok-n">file</span><span class="tok-o">=</span><span class="tok-n">sys</span><span class="tok-o">.</span><span class="tok-n">stderr</span><span class="tok-p">)</span>
+            <span class="tok-k">return</span> <span class="tok-n">user</span>
+        <span class="tok-k">except</span> <span class="tok-n">ListUser</span><span class="tok-o">.</span><span class="tok-n">DoesNotExist</span><span class="tok-p">:</span>
+            <span class="tok-nb">print</span><span class="tok-p">(</span><span class="tok-s1">'new user'</span><span class="tok-p">,</span> <span class="tok-n">file</span><span class="tok-o">=</span><span class="tok-n">sys</span><span class="tok-o">.</span><span class="tok-n">stderr</span><span class="tok-p">)</span>
+            <span class="tok-k">return</span> <span class="tok-n">ListUser</span><span class="tok-o">.</span><span class="tok-n">objects</span><span class="tok-o">.</span><span class="tok-n">create</span><span class="tok-p">(</span><span class="tok-n">email</span><span class="tok-o">=</span><span class="tok-n">token</span><span class="tok-o">.</span><span class="tok-n">email</span><span class="tok-p">)</span>
 
 
-    <span class="keyword">def</span> <span class="function">get_user</span>(<span class="predefined-constant">self</span>, email):
-        <span class="keyword">return</span> ListUser.objects.get(email=email)</code></pre>
+    <span class="tok-k">def</span> <span class="tok-nf">get_user</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">,</span> <span class="tok-n">email</span><span class="tok-p">):</span>
+        <span class="tok-k">return</span> <span class="tok-n">ListUser</span><span class="tok-o">.</span><span class="tok-n">objects</span><span class="tok-o">.</span><span class="tok-n">get</span><span class="tok-p">(</span><span class="tok-n">email</span><span class="tok-o">=</span><span class="tok-n">email</span><span class="tok-p">)</span></code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -1114,36 +1114,36 @@ How about something like this?</p>
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> <span class="include">django.test</span> <span class="keyword">import</span> <span class="include">TestCase</span>
-<span class="keyword">from</span> <span class="include">django.contrib.auth</span> <span class="keyword">import</span> <span class="include">get_user_model</span>
-<span class="keyword">from</span> <span class="include">accounts.authentication</span> <span class="keyword">import</span> <span class="include">PasswordlessAuthenticationBackend</span>
-<span class="keyword">from</span> <span class="include">accounts.models</span> <span class="keyword">import</span> <span class="include">Token</span>
-User = get_user_model()
+<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-kn">from</span> <span class="tok-nn">django.test</span> <span class="tok-kn">import</span> <span class="tok-n">TestCase</span>
+<span class="tok-kn">from</span> <span class="tok-nn">django.contrib.auth</span> <span class="tok-kn">import</span> <span class="tok-n">get_user_model</span>
+<span class="tok-kn">from</span> <span class="tok-nn">accounts.authentication</span> <span class="tok-kn">import</span> <span class="tok-n">PasswordlessAuthenticationBackend</span>
+<span class="tok-kn">from</span> <span class="tok-nn">accounts.models</span> <span class="tok-kn">import</span> <span class="tok-n">Token</span>
+<span class="tok-n">User</span> <span class="tok-o">=</span> <span class="tok-n">get_user_model</span><span class="tok-p">()</span>
 
 
-<span class="keyword">class</span> <span class="class">AuthenticateTest</span>(TestCase):
+<span class="tok-k">class</span> <span class="tok-nc">AuthenticateTest</span><span class="tok-p">(</span><span class="tok-n">TestCase</span><span class="tok-p">):</span>
 
-    <span class="keyword">def</span> <span class="function">test_returns_None_if_no_such_token</span>(<span class="predefined-constant">self</span>):
-        result = PasswordlessAuthenticationBackend().authenticate(
-            <span class="string"><span class="delimiter">'</span><span class="content">no-such-token</span><span class="delimiter">'</span></span>
-        )
-        <span class="predefined-constant">self</span>.assertIsNone(result)
-
-
-    <span class="keyword">def</span> <span class="function">test_returns_new_user_with_correct_email_if_token_exists</span>(<span class="predefined-constant">self</span>):
-        email = <span class="string"><span class="delimiter">'</span><span class="content">edith@example.com</span><span class="delimiter">'</span></span>
-        token = Token.objects.create(email=email)
-        user = PasswordlessAuthenticationBackend().authenticate(token.uid)
-        new_user = User.objects.get(email=email)
-        <span class="predefined-constant">self</span>.assertEqual(user, new_user)
+    <span class="tok-k">def</span> <span class="tok-nf">test_returns_None_if_no_such_token</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">):</span>
+        <span class="tok-n">result</span> <span class="tok-o">=</span> <span class="tok-n">PasswordlessAuthenticationBackend</span><span class="tok-p">()</span><span class="tok-o">.</span><span class="tok-n">authenticate</span><span class="tok-p">(</span>
+            <span class="tok-s1">'no-such-token'</span>
+        <span class="tok-p">)</span>
+        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertIsNone</span><span class="tok-p">(</span><span class="tok-n">result</span><span class="tok-p">)</span>
 
 
-    <span class="keyword">def</span> <span class="function">test_returns_existing_user_with_correct_email_if_token_exists</span>(<span class="predefined-constant">self</span>):
-        email = <span class="string"><span class="delimiter">'</span><span class="content">edith@example.com</span><span class="delimiter">'</span></span>
-        existing_user = User.objects.create(email=email)
-        token = Token.objects.create(email=email)
-        user = PasswordlessAuthenticationBackend().authenticate(token.uid)
-        <span class="predefined-constant">self</span>.assertEqual(user, existing_user)</code></pre>
+    <span class="tok-k">def</span> <span class="tok-nf">test_returns_new_user_with_correct_email_if_token_exists</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">):</span>
+        <span class="tok-n">email</span> <span class="tok-o">=</span> <span class="tok-s1">'edith@example.com'</span>
+        <span class="tok-n">token</span> <span class="tok-o">=</span> <span class="tok-n">Token</span><span class="tok-o">.</span><span class="tok-n">objects</span><span class="tok-o">.</span><span class="tok-n">create</span><span class="tok-p">(</span><span class="tok-n">email</span><span class="tok-o">=</span><span class="tok-n">email</span><span class="tok-p">)</span>
+        <span class="tok-n">user</span> <span class="tok-o">=</span> <span class="tok-n">PasswordlessAuthenticationBackend</span><span class="tok-p">()</span><span class="tok-o">.</span><span class="tok-n">authenticate</span><span class="tok-p">(</span><span class="tok-n">token</span><span class="tok-o">.</span><span class="tok-n">uid</span><span class="tok-p">)</span>
+        <span class="tok-n">new_user</span> <span class="tok-o">=</span> <span class="tok-n">User</span><span class="tok-o">.</span><span class="tok-n">objects</span><span class="tok-o">.</span><span class="tok-n">get</span><span class="tok-p">(</span><span class="tok-n">email</span><span class="tok-o">=</span><span class="tok-n">email</span><span class="tok-p">)</span>
+        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertEqual</span><span class="tok-p">(</span><span class="tok-n">user</span><span class="tok-p">,</span> <span class="tok-n">new_user</span><span class="tok-p">)</span>
+
+
+    <span class="tok-k">def</span> <span class="tok-nf">test_returns_existing_user_with_correct_email_if_token_exists</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">):</span>
+        <span class="tok-n">email</span> <span class="tok-o">=</span> <span class="tok-s1">'edith@example.com'</span>
+        <span class="tok-n">existing_user</span> <span class="tok-o">=</span> <span class="tok-n">User</span><span class="tok-o">.</span><span class="tok-n">objects</span><span class="tok-o">.</span><span class="tok-n">create</span><span class="tok-p">(</span><span class="tok-n">email</span><span class="tok-o">=</span><span class="tok-n">email</span><span class="tok-p">)</span>
+        <span class="tok-n">token</span> <span class="tok-o">=</span> <span class="tok-n">Token</span><span class="tok-o">.</span><span class="tok-n">objects</span><span class="tok-o">.</span><span class="tok-n">create</span><span class="tok-p">(</span><span class="tok-n">email</span><span class="tok-o">=</span><span class="tok-n">email</span><span class="tok-p">)</span>
+        <span class="tok-n">user</span> <span class="tok-o">=</span> <span class="tok-n">PasswordlessAuthenticationBackend</span><span class="tok-p">()</span><span class="tok-o">.</span><span class="tok-n">authenticate</span><span class="tok-p">(</span><span class="tok-n">token</span><span class="tok-o">.</span><span class="tok-n">uid</span><span class="tok-p">)</span>
+        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertEqual</span><span class="tok-p">(</span><span class="tok-n">user</span><span class="tok-p">,</span> <span class="tok-n">existing_user</span><span class="tok-p">)</span></code></pre>
 </div>
 </div>
 </div>
@@ -1156,10 +1156,10 @@ User = get_user_model()
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">class</span> <span class="class">PasswordlessAuthenticationBackend</span>(<span class="predefined">object</span>):
+<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-k">class</span> <span class="tok-nc">PasswordlessAuthenticationBackend</span><span class="tok-p">(</span><span class="tok-nb">object</span><span class="tok-p">):</span>
 
-    <span class="keyword">def</span> <span class="function">authenticate</span>(<span class="predefined-constant">self</span>, uid):
-        <span class="keyword">pass</span></code></pre>
+    <span class="tok-k">def</span> <span class="tok-nf">authenticate</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">,</span> <span class="tok-n">uid</span><span class="tok-p">):</span>
+        <span class="tok-k">pass</span></code></pre>
 </div>
 </div>
 </div>
@@ -1207,13 +1207,13 @@ FAILED (failures=1, errors=1)</pre>
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> <span class="include">accounts.models</span> <span class="keyword">import</span> <span class="include">User</span>, <span class="include">Token</span>
+<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-kn">from</span> <span class="tok-nn">accounts.models</span> <span class="tok-kn">import</span> <span class="tok-n">User</span><span class="tok-p">,</span> <span class="tok-n">Token</span>
 
-<span class="keyword">class</span> <span class="class">PasswordlessAuthenticationBackend</span>(<span class="predefined">object</span>):
+<span class="tok-k">class</span> <span class="tok-nc">PasswordlessAuthenticationBackend</span><span class="tok-p">(</span><span class="tok-nb">object</span><span class="tok-p">):</span>
 
-    <span class="keyword">def</span> <span class="function">authenticate</span>(<span class="predefined-constant">self</span>, uid):
-        token = Token.objects.get(uid=uid)
-        <span class="keyword">return</span> User.objects.get(email=token.email)</code></pre>
+    <span class="tok-k">def</span> <span class="tok-nf">authenticate</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">,</span> <span class="tok-n">uid</span><span class="tok-p">):</span>
+        <span class="tok-n">token</span> <span class="tok-o">=</span> <span class="tok-n">Token</span><span class="tok-o">.</span><span class="tok-n">objects</span><span class="tok-o">.</span><span class="tok-n">get</span><span class="tok-p">(</span><span class="tok-n">uid</span><span class="tok-o">=</span><span class="tok-n">uid</span><span class="tok-p">)</span>
+        <span class="tok-k">return</span> <span class="tok-n">User</span><span class="tok-o">.</span><span class="tok-n">objects</span><span class="tok-o">.</span><span class="tok-n">get</span><span class="tok-p">(</span><span class="tok-n">email</span><span class="tok-o">=</span><span class="tok-n">token</span><span class="tok-o">.</span><span class="tok-n">email</span><span class="tok-p">)</span></code></pre>
 </div>
 </div>
 </div>
@@ -1243,12 +1243,12 @@ accounts.models.DoesNotExist: User matching query does not exist.</pre>
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python">    <span class="keyword">def</span> <span class="function">authenticate</span>(<span class="predefined-constant">self</span>, uid):
-        <span class="keyword">try</span>:
-            token = Token.objects.get(uid=uid)
-            <span class="keyword">return</span> User.objects.get(email=token.email)
-        <span class="keyword">except</span> Token.DoesNotExist:
-            <span class="keyword">return</span> <span class="predefined-constant">None</span></code></pre>
+<pre class="pygments highlight"><code data-lang="python"><span></span>    <span class="tok-k">def</span> <span class="tok-nf">authenticate</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">,</span> <span class="tok-n">uid</span><span class="tok-p">):</span>
+        <span class="tok-k">try</span><span class="tok-p">:</span>
+            <span class="tok-n">token</span> <span class="tok-o">=</span> <span class="tok-n">Token</span><span class="tok-o">.</span><span class="tok-n">objects</span><span class="tok-o">.</span><span class="tok-n">get</span><span class="tok-p">(</span><span class="tok-n">uid</span><span class="tok-o">=</span><span class="tok-n">uid</span><span class="tok-p">)</span>
+            <span class="tok-k">return</span> <span class="tok-n">User</span><span class="tok-o">.</span><span class="tok-n">objects</span><span class="tok-o">.</span><span class="tok-n">get</span><span class="tok-p">(</span><span class="tok-n">email</span><span class="tok-o">=</span><span class="tok-n">token</span><span class="tok-o">.</span><span class="tok-n">email</span><span class="tok-p">)</span>
+        <span class="tok-k">except</span> <span class="tok-n">Token</span><span class="tok-o">.</span><span class="tok-n">DoesNotExist</span><span class="tok-p">:</span>
+            <span class="tok-k">return</span> <span class="tok-kc">None</span></code></pre>
 </div>
 </div>
 </div>
@@ -1274,14 +1274,14 @@ FAILED (errors=1)</pre>
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python">    <span class="keyword">def</span> <span class="function">authenticate</span>(<span class="predefined-constant">self</span>, uid):
-        <span class="keyword">try</span>:
-            token = Token.objects.get(uid=uid)
-            <span class="keyword">return</span> User.objects.get(email=token.email)
-        <span class="keyword">except</span> User.DoesNotExist:
-            <span class="keyword">return</span> User.objects.create(email=token.email)
-        <span class="keyword">except</span> Token.DoesNotExist:
-            <span class="keyword">return</span> <span class="predefined-constant">None</span></code></pre>
+<pre class="pygments highlight"><code data-lang="python"><span></span>    <span class="tok-k">def</span> <span class="tok-nf">authenticate</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">,</span> <span class="tok-n">uid</span><span class="tok-p">):</span>
+        <span class="tok-k">try</span><span class="tok-p">:</span>
+            <span class="tok-n">token</span> <span class="tok-o">=</span> <span class="tok-n">Token</span><span class="tok-o">.</span><span class="tok-n">objects</span><span class="tok-o">.</span><span class="tok-n">get</span><span class="tok-p">(</span><span class="tok-n">uid</span><span class="tok-o">=</span><span class="tok-n">uid</span><span class="tok-p">)</span>
+            <span class="tok-k">return</span> <span class="tok-n">User</span><span class="tok-o">.</span><span class="tok-n">objects</span><span class="tok-o">.</span><span class="tok-n">get</span><span class="tok-p">(</span><span class="tok-n">email</span><span class="tok-o">=</span><span class="tok-n">token</span><span class="tok-o">.</span><span class="tok-n">email</span><span class="tok-p">)</span>
+        <span class="tok-k">except</span> <span class="tok-n">User</span><span class="tok-o">.</span><span class="tok-n">DoesNotExist</span><span class="tok-p">:</span>
+            <span class="tok-k">return</span> <span class="tok-n">User</span><span class="tok-o">.</span><span class="tok-n">objects</span><span class="tok-o">.</span><span class="tok-n">create</span><span class="tok-p">(</span><span class="tok-n">email</span><span class="tok-o">=</span><span class="tok-n">token</span><span class="tok-o">.</span><span class="tok-n">email</span><span class="tok-p">)</span>
+        <span class="tok-k">except</span> <span class="tok-n">Token</span><span class="tok-o">.</span><span class="tok-n">DoesNotExist</span><span class="tok-p">:</span>
+            <span class="tok-k">return</span> <span class="tok-kc">None</span></code></pre>
 </div>
 </div>
 </div>
@@ -1309,21 +1309,21 @@ reminder).</p>
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">class</span> <span class="class">GetUserTest</span>(TestCase):
+<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-k">class</span> <span class="tok-nc">GetUserTest</span><span class="tok-p">(</span><span class="tok-n">TestCase</span><span class="tok-p">):</span>
 
-    <span class="keyword">def</span> <span class="function">test_gets_user_by_email</span>(<span class="predefined-constant">self</span>):
-        User.objects.create(email=<span class="string"><span class="delimiter">'</span><span class="content">another@example.com</span><span class="delimiter">'</span></span>)
-        desired_user = User.objects.create(email=<span class="string"><span class="delimiter">'</span><span class="content">edith@example.com</span><span class="delimiter">'</span></span>)
-        found_user = PasswordlessAuthenticationBackend().get_user(
-            <span class="string"><span class="delimiter">'</span><span class="content">edith@example.com</span><span class="delimiter">'</span></span>
-        )
-        <span class="predefined-constant">self</span>.assertEqual(found_user, desired_user)
+    <span class="tok-k">def</span> <span class="tok-nf">test_gets_user_by_email</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">):</span>
+        <span class="tok-n">User</span><span class="tok-o">.</span><span class="tok-n">objects</span><span class="tok-o">.</span><span class="tok-n">create</span><span class="tok-p">(</span><span class="tok-n">email</span><span class="tok-o">=</span><span class="tok-s1">'another@example.com'</span><span class="tok-p">)</span>
+        <span class="tok-n">desired_user</span> <span class="tok-o">=</span> <span class="tok-n">User</span><span class="tok-o">.</span><span class="tok-n">objects</span><span class="tok-o">.</span><span class="tok-n">create</span><span class="tok-p">(</span><span class="tok-n">email</span><span class="tok-o">=</span><span class="tok-s1">'edith@example.com'</span><span class="tok-p">)</span>
+        <span class="tok-n">found_user</span> <span class="tok-o">=</span> <span class="tok-n">PasswordlessAuthenticationBackend</span><span class="tok-p">()</span><span class="tok-o">.</span><span class="tok-n">get_user</span><span class="tok-p">(</span>
+            <span class="tok-s1">'edith@example.com'</span>
+        <span class="tok-p">)</span>
+        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertEqual</span><span class="tok-p">(</span><span class="tok-n">found_user</span><span class="tok-p">,</span> <span class="tok-n">desired_user</span><span class="tok-p">)</span>
 
 
-    <span class="keyword">def</span> <span class="function">test_returns_None_if_no_user_with_that_email</span>(<span class="predefined-constant">self</span>):
-        <span class="predefined-constant">self</span>.assertIsNone(
-            PasswordlessAuthenticationBackend().get_user(<span class="string"><span class="delimiter">'</span><span class="content">edith@example.com</span><span class="delimiter">'</span></span>)
-        )</code></pre>
+    <span class="tok-k">def</span> <span class="tok-nf">test_returns_None_if_no_user_with_that_email</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">):</span>
+        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertIsNone</span><span class="tok-p">(</span>
+            <span class="tok-n">PasswordlessAuthenticationBackend</span><span class="tok-p">()</span><span class="tok-o">.</span><span class="tok-n">get_user</span><span class="tok-p">(</span><span class="tok-s1">'edith@example.com'</span><span class="tok-p">)</span>
+        <span class="tok-p">)</span></code></pre>
 </div>
 </div>
 </div>
@@ -1345,13 +1345,13 @@ reminder).</p>
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">class</span> <span class="class">PasswordlessAuthenticationBackend</span>(<span class="predefined">object</span>):
+<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-k">class</span> <span class="tok-nc">PasswordlessAuthenticationBackend</span><span class="tok-p">(</span><span class="tok-nb">object</span><span class="tok-p">):</span>
 
-    <span class="keyword">def</span> <span class="function">authenticate</span>(<span class="predefined-constant">self</span>, uid):
-        [...]
+    <span class="tok-k">def</span> <span class="tok-nf">authenticate</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">,</span> <span class="tok-n">uid</span><span class="tok-p">):</span>
+        <span class="tok-p">[</span><span class="tok-o">...</span><span class="tok-p">]</span>
 
-    <span class="keyword">def</span> <span class="function">get_user</span>(<span class="predefined-constant">self</span>, email):
-        <span class="keyword">pass</span></code></pre>
+    <span class="tok-k">def</span> <span class="tok-nf">get_user</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">,</span> <span class="tok-n">email</span><span class="tok-p">):</span>
+        <span class="tok-k">pass</span></code></pre>
 </div>
 </div>
 </div>
@@ -1373,8 +1373,8 @@ AssertionError: None != &lt;User: User object&gt;</pre>
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python">    <span class="keyword">def</span> <span class="function">get_user</span>(<span class="predefined-constant">self</span>, email):
-        <span class="keyword">return</span> User.objects.first()</code></pre>
+<pre class="pygments highlight"><code data-lang="python"><span></span>    <span class="tok-k">def</span> <span class="tok-nf">get_user</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">,</span> <span class="tok-n">email</span><span class="tok-p">):</span>
+        <span class="tok-k">return</span> <span class="tok-n">User</span><span class="tok-o">.</span><span class="tok-n">objects</span><span class="tok-o">.</span><span class="tok-n">first</span><span class="tok-p">()</span></code></pre>
 </div>
 </div>
 </div>
@@ -1396,8 +1396,8 @@ AssertionError: &lt;User: User object&gt; != &lt;User: User object&gt;</pre>
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python">    <span class="keyword">def</span> <span class="function">get_user</span>(<span class="predefined-constant">self</span>, email):
-        <span class="keyword">return</span> User.objects.get(email=email)</code></pre>
+<pre class="pygments highlight"><code data-lang="python"><span></span>    <span class="tok-k">def</span> <span class="tok-nf">get_user</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">,</span> <span class="tok-n">email</span><span class="tok-p">):</span>
+        <span class="tok-k">return</span> <span class="tok-n">User</span><span class="tok-o">.</span><span class="tok-n">objects</span><span class="tok-o">.</span><span class="tok-n">get</span><span class="tok-p">(</span><span class="tok-n">email</span><span class="tok-o">=</span><span class="tok-n">email</span><span class="tok-p">)</span></code></pre>
 </div>
 </div>
 </div>
@@ -1420,11 +1420,11 @@ accounts.models.DoesNotExist: User matching query does not exist.</pre>
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python">    <span class="keyword">def</span> <span class="function">get_user</span>(<span class="predefined-constant">self</span>, email):
-        <span class="keyword">try</span>:
-            <span class="keyword">return</span> User.objects.get(email=email)
-        <span class="keyword">except</span> User.DoesNotExist:
-            <span class="keyword">return</span> <span class="predefined-constant">None</span>  <i class="conum" data-value="1"></i><b>(1)</b></code></pre>
+<pre class="pygments highlight"><code data-lang="python"><span></span>    <span class="tok-k">def</span> <span class="tok-nf">get_user</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">,</span> <span class="tok-n">email</span><span class="tok-p">):</span>
+        <span class="tok-k">try</span><span class="tok-p">:</span>
+            <span class="tok-k">return</span> <span class="tok-n">User</span><span class="tok-o">.</span><span class="tok-n">objects</span><span class="tok-o">.</span><span class="tok-n">get</span><span class="tok-p">(</span><span class="tok-n">email</span><span class="tok-o">=</span><span class="tok-n">email</span><span class="tok-p">)</span>
+        <span class="tok-k">except</span> <span class="tok-n">User</span><span class="tok-o">.</span><span class="tok-n">DoesNotExist</span><span class="tok-p">:</span>
+            <span class="tok-k">return</span> <span class="tok-kc">None</span>  <i class="conum" data-value="1"></i><b>(1)</b></code></pre>
 </div>
 </div>
 </div>
@@ -1462,12 +1462,12 @@ to <em>settings.py</em>:</p>
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python">AUTH_USER_MODEL = <span class="string"><span class="delimiter">'</span><span class="content">accounts.User</span><span class="delimiter">'</span></span>
-AUTHENTICATION_BACKENDS = [
-    <span class="string"><span class="delimiter">'</span><span class="content">accounts.authentication.PasswordlessAuthenticationBackend</span><span class="delimiter">'</span></span>,
-]
+<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-n">AUTH_USER_MODEL</span> <span class="tok-o">=</span> <span class="tok-s1">'accounts.User'</span>
+<span class="tok-n">AUTHENTICATION_BACKENDS</span> <span class="tok-o">=</span> <span class="tok-p">[</span>
+    <span class="tok-s1">'accounts.authentication.PasswordlessAuthenticationBackend'</span><span class="tok-p">,</span>
+<span class="tok-p">]</span>
 
-[...]</code></pre>
+<span class="tok-p">[</span><span class="tok-o">...</span><span class="tok-p">]</span></code></pre>
 </div>
 </div>
 </div>
@@ -1481,13 +1481,13 @@ back at the spike again:</p>
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">def</span> <span class="function">login</span>(request):
-    print(<span class="string"><span class="delimiter">'</span><span class="content">login view</span><span class="delimiter">'</span></span>, file=sys.stderr)
-    uid = request.GET.get(<span class="string"><span class="delimiter">'</span><span class="content">uid</span><span class="delimiter">'</span></span>)
-    user = auth.authenticate(uid=uid)
-    <span class="keyword">if</span> user <span class="keyword">is</span> <span class="keyword">not</span> <span class="predefined-constant">None</span>:
-        auth.login(request, user)
-    <span class="keyword">return</span> redirect(<span class="string"><span class="delimiter">'</span><span class="content">/</span><span class="delimiter">'</span></span>)</code></pre>
+<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-k">def</span> <span class="tok-nf">login</span><span class="tok-p">(</span><span class="tok-n">request</span><span class="tok-p">):</span>
+    <span class="tok-nb">print</span><span class="tok-p">(</span><span class="tok-s1">'login view'</span><span class="tok-p">,</span> <span class="tok-n">file</span><span class="tok-o">=</span><span class="tok-n">sys</span><span class="tok-o">.</span><span class="tok-n">stderr</span><span class="tok-p">)</span>
+    <span class="tok-n">uid</span> <span class="tok-o">=</span> <span class="tok-n">request</span><span class="tok-o">.</span><span class="tok-n">GET</span><span class="tok-o">.</span><span class="tok-n">get</span><span class="tok-p">(</span><span class="tok-s1">'uid'</span><span class="tok-p">)</span>
+    <span class="tok-n">user</span> <span class="tok-o">=</span> <span class="tok-n">auth</span><span class="tok-o">.</span><span class="tok-n">authenticate</span><span class="tok-p">(</span><span class="tok-n">uid</span><span class="tok-o">=</span><span class="tok-n">uid</span><span class="tok-p">)</span>
+    <span class="tok-k">if</span> <span class="tok-n">user</span> <span class="tok-ow">is</span> <span class="tok-ow">not</span> <span class="tok-kc">None</span><span class="tok-p">:</span>
+        <span class="tok-n">auth</span><span class="tok-o">.</span><span class="tok-n">login</span><span class="tok-p">(</span><span class="tok-n">request</span><span class="tok-p">,</span> <span class="tok-n">user</span><span class="tok-p">)</span>
+    <span class="tok-k">return</span> <span class="tok-n">redirect</span><span class="tok-p">(</span><span class="tok-s1">'/'</span><span class="tok-p">)</span></code></pre>
 </div>
 </div>
 </div>
@@ -1568,16 +1568,16 @@ duplication in our tests.  Let&#8217;s see how it looks:</p>
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> <span class="include">unittest.mock</span> <span class="keyword">import</span> <span class="include">patch</span>, <span class="include">call</span>
-[...]
+<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-kn">from</span> <span class="tok-nn">unittest.mock</span> <span class="tok-kn">import</span> <span class="tok-n">patch</span><span class="tok-p">,</span> <span class="tok-n">call</span>
+<span class="tok-p">[</span><span class="tok-o">...</span><span class="tok-p">]</span>
 
-    <span class="decorator">@patch</span>(<span class="string"><span class="delimiter">'</span><span class="content">accounts.views.auth</span><span class="delimiter">'</span></span>)  <i class="conum" data-value="1"></i><b>(1)</b>
-    <span class="keyword">def</span> <span class="function">test_calls_authenticate_with_uid_from_get_request</span>(<span class="predefined-constant">self</span>, mock_auth):  <i class="conum" data-value="2"></i><b>(2)</b>
-        <span class="predefined-constant">self</span>.client.get(<span class="string"><span class="delimiter">'</span><span class="content">/accounts/login?token=abcd123</span><span class="delimiter">'</span></span>)
-        <span class="predefined-constant">self</span>.assertEqual(
-            mock_auth.authenticate.call_args,  <i class="conum" data-value="3"></i><b>(3)</b>
-            call(uid=<span class="string"><span class="delimiter">'</span><span class="content">abcd123</span><span class="delimiter">'</span></span>)  <i class="conum" data-value="4"></i><b>(4)</b>
-        )</code></pre>
+    <span class="tok-nd">@patch</span><span class="tok-p">(</span><span class="tok-s1">'accounts.views.auth'</span><span class="tok-p">)</span>  <i class="conum" data-value="1"></i><b>(1)</b>
+    <span class="tok-k">def</span> <span class="tok-nf">test_calls_authenticate_with_uid_from_get_request</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">,</span> <span class="tok-n">mock_auth</span><span class="tok-p">):</span>  <i class="conum" data-value="2"></i><b>(2)</b>
+        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">client</span><span class="tok-o">.</span><span class="tok-n">get</span><span class="tok-p">(</span><span class="tok-s1">'/accounts/login?token=abcd123'</span><span class="tok-p">)</span>
+        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertEqual</span><span class="tok-p">(</span>
+            <span class="tok-n">mock_auth</span><span class="tok-o">.</span><span class="tok-n">authenticate</span><span class="tok-o">.</span><span class="tok-n">call_args</span><span class="tok-p">,</span>  <i class="conum" data-value="3"></i><b>(3)</b>
+            <span class="tok-n">call</span><span class="tok-p">(</span><span class="tok-n">uid</span><span class="tok-o">=</span><span class="tok-s1">'abcd123'</span><span class="tok-p">)</span>  <i class="conum" data-value="4"></i><b>(4)</b>
+        <span class="tok-p">)</span></code></pre>
 </div>
 </div>
 </div>
@@ -1624,18 +1624,18 @@ arguments.  <code>keyword_args</code> is a dictionary.</p>
 </div>
 <div class="listingblock small-code skipme">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python">&gt;&gt;&gt; <span class="keyword">from</span> <span class="include">unittest.mock</span> <span class="keyword">import</span> <span class="include">Mock</span>, <span class="include">call</span>
-&gt;&gt;&gt; m = Mock()
-&gt;&gt;&gt; m(<span class="integer">42</span>, <span class="integer">43</span>, <span class="string"><span class="delimiter">'</span><span class="content">positional arg 3</span><span class="delimiter">'</span></span>, key=<span class="string"><span class="delimiter">'</span><span class="content">val</span><span class="delimiter">'</span></span>, thing=<span class="integer">666</span>)
-&lt;Mock name=<span class="string"><span class="delimiter">'</span><span class="content">mock()</span><span class="delimiter">'</span></span> id=<span class="string"><span class="delimiter">'</span><span class="content">139909729163528</span><span class="delimiter">'</span></span>&gt;
+<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-o">&gt;&gt;&gt;</span> <span class="tok-kn">from</span> <span class="tok-nn">unittest.mock</span> <span class="tok-kn">import</span> <span class="tok-n">Mock</span><span class="tok-p">,</span> <span class="tok-n">call</span>
+<span class="tok-o">&gt;&gt;&gt;</span> <span class="tok-n">m</span> <span class="tok-o">=</span> <span class="tok-n">Mock</span><span class="tok-p">()</span>
+<span class="tok-o">&gt;&gt;&gt;</span> <span class="tok-n">m</span><span class="tok-p">(</span><span class="tok-mi">42</span><span class="tok-p">,</span> <span class="tok-mi">43</span><span class="tok-p">,</span> <span class="tok-s1">'positional arg 3'</span><span class="tok-p">,</span> <span class="tok-n">key</span><span class="tok-o">=</span><span class="tok-s1">'val'</span><span class="tok-p">,</span> <span class="tok-n">thing</span><span class="tok-o">=</span><span class="tok-mi">666</span><span class="tok-p">)</span>
+<span class="tok-o">&lt;</span><span class="tok-n">Mock</span> <span class="tok-n">name</span><span class="tok-o">=</span><span class="tok-s1">'mock()'</span> <span class="tok-nb">id</span><span class="tok-o">=</span><span class="tok-s1">'139909729163528'</span><span class="tok-o">&gt;</span>
 
-&gt;&gt;&gt; m.call_args
-call(<span class="integer">42</span>, <span class="integer">43</span>, <span class="string"><span class="delimiter">'</span><span class="content">positional arg 3</span><span class="delimiter">'</span></span>, key=<span class="string"><span class="delimiter">'</span><span class="content">val</span><span class="delimiter">'</span></span>, thing=<span class="integer">666</span>)
+<span class="tok-o">&gt;&gt;&gt;</span> <span class="tok-n">m</span><span class="tok-o">.</span><span class="tok-n">call_args</span>
+<span class="tok-n">call</span><span class="tok-p">(</span><span class="tok-mi">42</span><span class="tok-p">,</span> <span class="tok-mi">43</span><span class="tok-p">,</span> <span class="tok-s1">'positional arg 3'</span><span class="tok-p">,</span> <span class="tok-n">key</span><span class="tok-o">=</span><span class="tok-s1">'val'</span><span class="tok-p">,</span> <span class="tok-n">thing</span><span class="tok-o">=</span><span class="tok-mi">666</span><span class="tok-p">)</span>
 
-&gt;&gt;&gt; m.call_args == ((<span class="integer">42</span>, <span class="integer">43</span>, <span class="string"><span class="delimiter">'</span><span class="content">positional arg 3</span><span class="delimiter">'</span></span>), {<span class="string"><span class="delimiter">'</span><span class="content">key</span><span class="delimiter">'</span></span>: <span class="string"><span class="delimiter">'</span><span class="content">val</span><span class="delimiter">'</span></span>, <span class="string"><span class="delimiter">'</span><span class="content">thing</span><span class="delimiter">'</span></span>: <span class="integer">666</span>})
-<span class="predefined-constant">True</span>
-&gt;&gt;&gt; m.call_args == call(<span class="integer">42</span>, <span class="integer">43</span>, <span class="string"><span class="delimiter">'</span><span class="content">positional arg 3</span><span class="delimiter">'</span></span>, key=<span class="string"><span class="delimiter">'</span><span class="content">val</span><span class="delimiter">'</span></span>, thing=<span class="integer">666</span>)
-<span class="predefined-constant">True</span></code></pre>
+<span class="tok-o">&gt;&gt;&gt;</span> <span class="tok-n">m</span><span class="tok-o">.</span><span class="tok-n">call_args</span> <span class="tok-o">==</span> <span class="tok-p">((</span><span class="tok-mi">42</span><span class="tok-p">,</span> <span class="tok-mi">43</span><span class="tok-p">,</span> <span class="tok-s1">'positional arg 3'</span><span class="tok-p">),</span> <span class="tok-p">{</span><span class="tok-s1">'key'</span><span class="tok-p">:</span> <span class="tok-s1">'val'</span><span class="tok-p">,</span> <span class="tok-s1">'thing'</span><span class="tok-p">:</span> <span class="tok-mi">666</span><span class="tok-p">})</span>
+<span class="tok-kc">True</span>
+<span class="tok-o">&gt;&gt;&gt;</span> <span class="tok-n">m</span><span class="tok-o">.</span><span class="tok-n">call_args</span> <span class="tok-o">==</span> <span class="tok-n">call</span><span class="tok-p">(</span><span class="tok-mi">42</span><span class="tok-p">,</span> <span class="tok-mi">43</span><span class="tok-p">,</span> <span class="tok-s1">'positional arg 3'</span><span class="tok-p">,</span> <span class="tok-n">key</span><span class="tok-o">=</span><span class="tok-s1">'val'</span><span class="tok-p">,</span> <span class="tok-n">thing</span><span class="tok-o">=</span><span class="tok-mi">666</span><span class="tok-p">)</span>
+<span class="tok-kc">True</span></code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -1646,14 +1646,14 @@ call(<span class="integer">42</span>, <span class="integer">43</span>, <span cla
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python">    <span class="predefined-constant">self</span>.assertEqual(
-        mock_auth.authenticate.call_args,
-        ((,), {<span class="string"><span class="delimiter">'</span><span class="content">uid</span><span class="delimiter">'</span></span>: <span class="string"><span class="delimiter">'</span><span class="content">abcd123</span><span class="delimiter">'</span></span>})
-    )
-    <span class="comment"># or this</span>
-    args, kwargs = mock_auth.authenticate.call_args
-    <span class="predefined-constant">self</span>.assertEqual(args, (,))
-    <span class="predefined-constant">self</span>.assertEqual(kwargs, {<span class="string"><span class="delimiter">'</span><span class="content">uid</span><span class="delimiter">'</span></span>: <span class="string"><span class="delimiter">'</span><span class="content">abcd123</span><span class="delimiter">'</span></span>})</code></pre>
+<pre class="pygments highlight"><code data-lang="python"><span></span>    <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertEqual</span><span class="tok-p">(</span>
+        <span class="tok-n">mock_auth</span><span class="tok-o">.</span><span class="tok-n">authenticate</span><span class="tok-o">.</span><span class="tok-n">call_args</span><span class="tok-p">,</span>
+        <span class="tok-p">((,),</span> <span class="tok-p">{</span><span class="tok-s1">'uid'</span><span class="tok-p">:</span> <span class="tok-s1">'abcd123'</span><span class="tok-p">})</span>
+    <span class="tok-p">)</span>
+    <span class="tok-c1"># or this</span>
+    <span class="tok-n">args</span><span class="tok-p">,</span> <span class="tok-n">kwargs</span> <span class="tok-o">=</span> <span class="tok-n">mock_auth</span><span class="tok-o">.</span><span class="tok-n">authenticate</span><span class="tok-o">.</span><span class="tok-n">call_args</span>
+    <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertEqual</span><span class="tok-p">(</span><span class="tok-n">args</span><span class="tok-p">,</span> <span class="tok-p">(,))</span>
+    <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertEqual</span><span class="tok-p">(</span><span class="tok-n">kwargs</span><span class="tok-p">,</span> <span class="tok-p">{</span><span class="tok-s1">'uid'</span><span class="tok-p">:</span> <span class="tok-s1">'abcd123'</span><span class="tok-p">})</span></code></pre>
 </div>
 </div>
 </div>
@@ -1697,8 +1697,8 @@ AttributeError: &lt;module 'accounts.views' from
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> <span class="include">django.contrib</span> <span class="keyword">import</span> <span class="include">auth</span>, <span class="include">messages</span>
-[...]</code></pre>
+<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-kn">from</span> <span class="tok-nn">django.contrib</span> <span class="tok-kn">import</span> <span class="tok-n">auth</span><span class="tok-p">,</span> <span class="tok-n">messages</span>
+<span class="tok-p">[</span><span class="tok-o">...</span><span class="tok-p">]</span></code></pre>
 </div>
 </div>
 </div>
@@ -1720,9 +1720,9 @@ function at all.  Let&#8217;s fix that, but get it deliberately wrong, just to s
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">def</span> <span class="function">login</span>(request):
-    auth.authenticate(<span class="string"><span class="delimiter">'</span><span class="content">bang!</span><span class="delimiter">'</span></span>)
-    <span class="keyword">return</span> redirect(<span class="string"><span class="delimiter">'</span><span class="content">/</span><span class="delimiter">'</span></span>)</code></pre>
+<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-k">def</span> <span class="tok-nf">login</span><span class="tok-p">(</span><span class="tok-n">request</span><span class="tok-p">):</span>
+    <span class="tok-n">auth</span><span class="tok-o">.</span><span class="tok-n">authenticate</span><span class="tok-p">(</span><span class="tok-s1">'bang!'</span><span class="tok-p">)</span>
+    <span class="tok-k">return</span> <span class="tok-n">redirect</span><span class="tok-p">(</span><span class="tok-s1">'/'</span><span class="tok-p">)</span></code></pre>
 </div>
 </div>
 </div>
@@ -1747,9 +1747,9 @@ FAILED (failures=1)</pre>
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">def</span> <span class="function">login</span>(request):
-    auth.authenticate(uid=request.GET.get(<span class="string"><span class="delimiter">'</span><span class="content">token</span><span class="delimiter">'</span></span>))
-    <span class="keyword">return</span> redirect(<span class="string"><span class="delimiter">'</span><span class="content">/</span><span class="delimiter">'</span></span>)</code></pre>
+<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-k">def</span> <span class="tok-nf">login</span><span class="tok-p">(</span><span class="tok-n">request</span><span class="tok-p">):</span>
+    <span class="tok-n">auth</span><span class="tok-o">.</span><span class="tok-n">authenticate</span><span class="tok-p">(</span><span class="tok-n">uid</span><span class="tok-o">=</span><span class="tok-n">request</span><span class="tok-o">.</span><span class="tok-n">GET</span><span class="tok-o">.</span><span class="tok-n">get</span><span class="tok-p">(</span><span class="tok-s1">'token'</span><span class="tok-p">))</span>
+    <span class="tok-k">return</span> <span class="tok-n">redirect</span><span class="tok-p">(</span><span class="tok-s1">'/'</span><span class="tok-p">)</span></code></pre>
 </div>
 </div>
 </div>
@@ -1778,13 +1778,13 @@ we pass that into <code>auth.login</code>.  Let&#8217;s see how that test looks:
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="decorator">@patch</span>(<span class="string"><span class="delimiter">'</span><span class="content">accounts.views.auth</span><span class="delimiter">'</span></span>)  <i class="conum" data-value="1"></i><b>(1)</b>
-<span class="keyword">def</span> <span class="function">test_calls_auth_login_with_user_if_there_is_one</span>(<span class="predefined-constant">self</span>, mock_auth):
-    response = <span class="predefined-constant">self</span>.client.get(<span class="string"><span class="delimiter">'</span><span class="content">/accounts/login?token=abcd123</span><span class="delimiter">'</span></span>)
-    <span class="predefined-constant">self</span>.assertEqual(
-        mock_auth.login.call_args,  <i class="conum" data-value="2"></i><b>(2)</b>
-        call(response.wsgi_request, mock_auth.authenticate.return_value)  <i class="conum" data-value="3"></i><b>(3)</b>
-    )</code></pre>
+<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-nd">@patch</span><span class="tok-p">(</span><span class="tok-s1">'accounts.views.auth'</span><span class="tok-p">)</span>  <i class="conum" data-value="1"></i><b>(1)</b>
+<span class="tok-k">def</span> <span class="tok-nf">test_calls_auth_login_with_user_if_there_is_one</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">,</span> <span class="tok-n">mock_auth</span><span class="tok-p">):</span>
+    <span class="tok-n">response</span> <span class="tok-o">=</span> <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">client</span><span class="tok-o">.</span><span class="tok-n">get</span><span class="tok-p">(</span><span class="tok-s1">'/accounts/login?token=abcd123'</span><span class="tok-p">)</span>
+    <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertEqual</span><span class="tok-p">(</span>
+        <span class="tok-n">mock_auth</span><span class="tok-o">.</span><span class="tok-n">login</span><span class="tok-o">.</span><span class="tok-n">call_args</span><span class="tok-p">,</span>  <i class="conum" data-value="2"></i><b>(2)</b>
+        <span class="tok-n">call</span><span class="tok-p">(</span><span class="tok-n">response</span><span class="tok-o">.</span><span class="tok-n">wsgi_request</span><span class="tok-p">,</span> <span class="tok-n">mock_auth</span><span class="tok-o">.</span><span class="tok-n">authenticate</span><span class="tok-o">.</span><span class="tok-n">return_value</span><span class="tok-p">)</span>  <i class="conum" data-value="3"></i><b>(3)</b>
+    <span class="tok-p">)</span></code></pre>
 </div>
 </div>
 </div>
@@ -1816,14 +1816,14 @@ console illustration might help here:</p>
 </div>
 <div class="listingblock skipme">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python">&gt;&gt;&gt; m = Mock()
-&gt;&gt;&gt; thing = m()
-&gt;&gt;&gt; thing
-&lt;Mock name=<span class="string"><span class="delimiter">'</span><span class="content">mock()</span><span class="delimiter">'</span></span> id=<span class="string"><span class="delimiter">'</span><span class="content">140652722034952</span><span class="delimiter">'</span></span>&gt;
-&gt;&gt;&gt; m.return_value
-&lt;Mock name=<span class="string"><span class="delimiter">'</span><span class="content">mock()</span><span class="delimiter">'</span></span> id=<span class="string"><span class="delimiter">'</span><span class="content">140652722034952</span><span class="delimiter">'</span></span>&gt;
-&gt;&gt;&gt; thing == m.return_value
-<span class="predefined-constant">True</span></code></pre>
+<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-o">&gt;&gt;&gt;</span> <span class="tok-n">m</span> <span class="tok-o">=</span> <span class="tok-n">Mock</span><span class="tok-p">()</span>
+<span class="tok-o">&gt;&gt;&gt;</span> <span class="tok-n">thing</span> <span class="tok-o">=</span> <span class="tok-n">m</span><span class="tok-p">()</span>
+<span class="tok-o">&gt;&gt;&gt;</span> <span class="tok-n">thing</span>
+<span class="tok-o">&lt;</span><span class="tok-n">Mock</span> <span class="tok-n">name</span><span class="tok-o">=</span><span class="tok-s1">'mock()'</span> <span class="tok-nb">id</span><span class="tok-o">=</span><span class="tok-s1">'140652722034952'</span><span class="tok-o">&gt;</span>
+<span class="tok-o">&gt;&gt;&gt;</span> <span class="tok-n">m</span><span class="tok-o">.</span><span class="tok-n">return_value</span>
+<span class="tok-o">&lt;</span><span class="tok-n">Mock</span> <span class="tok-n">name</span><span class="tok-o">=</span><span class="tok-s1">'mock()'</span> <span class="tok-nb">id</span><span class="tok-o">=</span><span class="tok-s1">'140652722034952'</span><span class="tok-o">&gt;</span>
+<span class="tok-o">&gt;&gt;&gt;</span> <span class="tok-n">thing</span> <span class="tok-o">==</span> <span class="tok-n">m</span><span class="tok-o">.</span><span class="tok-n">return_value</span>
+<span class="tok-kc">True</span></code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -1846,10 +1846,10 @@ yet.  Let&#8217;s try doing that.  Deliberately wrong as usual first!</p>
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">def</span> <span class="function">login</span>(request):
-    auth.authenticate(uid=request.GET.get(<span class="string"><span class="delimiter">'</span><span class="content">token</span><span class="delimiter">'</span></span>))
-    auth.login(<span class="string"><span class="delimiter">'</span><span class="content">ack!</span><span class="delimiter">'</span></span>)
-    <span class="keyword">return</span> redirect(<span class="string"><span class="delimiter">'</span><span class="content">/</span><span class="delimiter">'</span></span>)</code></pre>
+<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-k">def</span> <span class="tok-nf">login</span><span class="tok-p">(</span><span class="tok-n">request</span><span class="tok-p">):</span>
+    <span class="tok-n">auth</span><span class="tok-o">.</span><span class="tok-n">authenticate</span><span class="tok-p">(</span><span class="tok-n">uid</span><span class="tok-o">=</span><span class="tok-n">request</span><span class="tok-o">.</span><span class="tok-n">GET</span><span class="tok-o">.</span><span class="tok-n">get</span><span class="tok-p">(</span><span class="tok-s1">'token'</span><span class="tok-p">))</span>
+    <span class="tok-n">auth</span><span class="tok-o">.</span><span class="tok-n">login</span><span class="tok-p">(</span><span class="tok-s1">'ack!'</span><span class="tok-p">)</span>
+    <span class="tok-k">return</span> <span class="tok-n">redirect</span><span class="tok-p">(</span><span class="tok-s1">'/'</span><span class="tok-p">)</span></code></pre>
 </div>
 </div>
 </div>
@@ -1873,10 +1873,10 @@ AssertionError: call('ack!') != call(&lt;WSGIRequest: GET
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">def</span> <span class="function">login</span>(request):
-    user = auth.authenticate(uid=request.GET.get(<span class="string"><span class="delimiter">'</span><span class="content">token</span><span class="delimiter">'</span></span>))
-    auth.login(request, user)
-    <span class="keyword">return</span> redirect(<span class="string"><span class="delimiter">'</span><span class="content">/</span><span class="delimiter">'</span></span>)</code></pre>
+<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-k">def</span> <span class="tok-nf">login</span><span class="tok-p">(</span><span class="tok-n">request</span><span class="tok-p">):</span>
+    <span class="tok-n">user</span> <span class="tok-o">=</span> <span class="tok-n">auth</span><span class="tok-o">.</span><span class="tok-n">authenticate</span><span class="tok-p">(</span><span class="tok-n">uid</span><span class="tok-o">=</span><span class="tok-n">request</span><span class="tok-o">.</span><span class="tok-n">GET</span><span class="tok-o">.</span><span class="tok-n">get</span><span class="tok-p">(</span><span class="tok-s1">'token'</span><span class="tok-p">))</span>
+    <span class="tok-n">auth</span><span class="tok-o">.</span><span class="tok-n">login</span><span class="tok-p">(</span><span class="tok-n">request</span><span class="tok-p">,</span> <span class="tok-n">user</span><span class="tok-p">)</span>
+    <span class="tok-k">return</span> <span class="tok-n">redirect</span><span class="tok-p">(</span><span class="tok-s1">'/'</span><span class="tok-p">)</span></code></pre>
 </div>
 </div>
 </div>
@@ -1915,23 +1915,23 @@ now also have the <code>mock_auth</code> variable injected:</p>
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="decorator">@patch</span>(<span class="string"><span class="delimiter">'</span><span class="content">accounts.views.auth</span><span class="delimiter">'</span></span>)  <i class="conum" data-value="1"></i><b>(1)</b>
-<span class="keyword">class</span> <span class="class">LoginViewTest</span>(TestCase):
+<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-nd">@patch</span><span class="tok-p">(</span><span class="tok-s1">'accounts.views.auth'</span><span class="tok-p">)</span>  <i class="conum" data-value="1"></i><b>(1)</b>
+<span class="tok-k">class</span> <span class="tok-nc">LoginViewTest</span><span class="tok-p">(</span><span class="tok-n">TestCase</span><span class="tok-p">):</span>
 
-    <span class="keyword">def</span> <span class="function">test_redirects_to_home_page</span>(<span class="predefined-constant">self</span>, mock_auth):  <i class="conum" data-value="2"></i><b>(2)</b>
-        [...]
+    <span class="tok-k">def</span> <span class="tok-nf">test_redirects_to_home_page</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">,</span> <span class="tok-n">mock_auth</span><span class="tok-p">):</span>  <i class="conum" data-value="2"></i><b>(2)</b>
+        <span class="tok-p">[</span><span class="tok-o">...</span><span class="tok-p">]</span>
 
-    <span class="keyword">def</span> <span class="function">test_calls_authenticate_with_uid_from_get_request</span>(<span class="predefined-constant">self</span>, mock_auth):  <i class="conum" data-value="3"></i><b>(3)</b>
-        [...]
+    <span class="tok-k">def</span> <span class="tok-nf">test_calls_authenticate_with_uid_from_get_request</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">,</span> <span class="tok-n">mock_auth</span><span class="tok-p">):</span>  <i class="conum" data-value="3"></i><b>(3)</b>
+        <span class="tok-p">[</span><span class="tok-o">...</span><span class="tok-p">]</span>
 
-    <span class="keyword">def</span> <span class="function">test_calls_auth_login_with_user_if_there_is_one</span>(<span class="predefined-constant">self</span>, mock_auth):  <i class="conum" data-value="3"></i><b>(3)</b>
-        [...]
+    <span class="tok-k">def</span> <span class="tok-nf">test_calls_auth_login_with_user_if_there_is_one</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">,</span> <span class="tok-n">mock_auth</span><span class="tok-p">):</span>  <i class="conum" data-value="3"></i><b>(3)</b>
+        <span class="tok-p">[</span><span class="tok-o">...</span><span class="tok-p">]</span>
 
 
-    <span class="keyword">def</span> <span class="function">test_does_not_login_if_user_is_not_authenticated</span>(<span class="predefined-constant">self</span>, mock_auth):
-        mock_auth.authenticate.return_value = <span class="predefined-constant">None</span>  <i class="conum" data-value="4"></i><b>(4)</b>
-        <span class="predefined-constant">self</span>.client.get(<span class="string"><span class="delimiter">'</span><span class="content">/accounts/login?token=abcd123</span><span class="delimiter">'</span></span>)
-        <span class="predefined-constant">self</span>.assertEqual(mock_auth.login.called, <span class="predefined-constant">False</span>)  <i class="conum" data-value="5"></i><b>(5)</b></code></pre>
+    <span class="tok-k">def</span> <span class="tok-nf">test_does_not_login_if_user_is_not_authenticated</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">,</span> <span class="tok-n">mock_auth</span><span class="tok-p">):</span>
+        <span class="tok-n">mock_auth</span><span class="tok-o">.</span><span class="tok-n">authenticate</span><span class="tok-o">.</span><span class="tok-n">return_value</span> <span class="tok-o">=</span> <span class="tok-kc">None</span>  <i class="conum" data-value="4"></i><b>(4)</b>
+        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">client</span><span class="tok-o">.</span><span class="tok-n">get</span><span class="tok-p">(</span><span class="tok-s1">'/accounts/login?token=abcd123'</span><span class="tok-p">)</span>
+        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertEqual</span><span class="tok-p">(</span><span class="tok-n">mock_auth</span><span class="tok-o">.</span><span class="tok-n">login</span><span class="tok-o">.</span><span class="tok-n">called</span><span class="tok-p">,</span> <span class="tok-kc">False</span><span class="tok-p">)</span>  <i class="conum" data-value="5"></i><b>(5)</b></code></pre>
 </div>
 </div>
 </div>
@@ -1980,11 +1980,11 @@ AssertionError: True != False</pre>
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">def</span> <span class="function">login</span>(request):
-    user = auth.authenticate(uid=request.GET.get(<span class="string"><span class="delimiter">'</span><span class="content">token</span><span class="delimiter">'</span></span>))
-    <span class="keyword">if</span> user:
-        auth.login(request, user)
-    <span class="keyword">return</span> redirect(<span class="string"><span class="delimiter">'</span><span class="content">/</span><span class="delimiter">'</span></span>)</code></pre>
+<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-k">def</span> <span class="tok-nf">login</span><span class="tok-p">(</span><span class="tok-n">request</span><span class="tok-p">):</span>
+    <span class="tok-n">user</span> <span class="tok-o">=</span> <span class="tok-n">auth</span><span class="tok-o">.</span><span class="tok-n">authenticate</span><span class="tok-p">(</span><span class="tok-n">uid</span><span class="tok-o">=</span><span class="tok-n">request</span><span class="tok-o">.</span><span class="tok-n">GET</span><span class="tok-o">.</span><span class="tok-n">get</span><span class="tok-p">(</span><span class="tok-s1">'token'</span><span class="tok-p">))</span>
+    <span class="tok-k">if</span> <span class="tok-n">user</span><span class="tok-p">:</span>
+        <span class="tok-n">auth</span><span class="tok-o">.</span><span class="tok-n">login</span><span class="tok-p">(</span><span class="tok-n">request</span><span class="tok-p">,</span> <span class="tok-n">user</span><span class="tok-p">)</span>
+    <span class="tok-k">return</span> <span class="tok-n">redirect</span><span class="tok-p">(</span><span class="tok-s1">'/'</span><span class="tok-p">)</span></code></pre>
 </div>
 </div>
 </div>
@@ -2002,7 +2002,7 @@ AssertionError: True != False</pre>
 </div>
 <div class="listingblock skipme">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="predefined-constant">self</span>.assertEqual(a_mock.call_args, call(foo, bar))</code></pre>
+<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertEqual</span><span class="tok-p">(</span><span class="tok-n">a_mock</span><span class="tok-o">.</span><span class="tok-n">call_args</span><span class="tok-p">,</span> <span class="tok-n">call</span><span class="tok-p">(</span><span class="tok-n">foo</span><span class="tok-p">,</span> <span class="tok-n">bar</span><span class="tok-p">))</span></code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -2010,7 +2010,7 @@ AssertionError: True != False</pre>
 </div>
 <div class="listingblock skipme">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python">a_mock.assert_called_with(foo, bar)</code></pre>
+<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-n">a_mock</span><span class="tok-o">.</span><span class="tok-n">assert_called_with</span><span class="tok-p">(</span><span class="tok-n">foo</span><span class="tok-p">,</span> <span class="tok-n">bar</span><span class="tok-p">)</span></code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -2023,7 +2023,7 @@ easy to make a silly typo and end up with a test that always passes:</p>
 </div>
 <div class="listingblock skipme">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python">a_mock.asssert_called_with(foo, bar)  <span class="comment"># will always pass</span></code></pre>
+<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-n">a_mock</span><span class="tok-o">.</span><span class="tok-n">asssert_called_with</span><span class="tok-p">(</span><span class="tok-n">foo</span><span class="tok-p">,</span> <span class="tok-n">bar</span><span class="tok-p">)</span>  <span class="tok-c1"># will always pass</span></code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -2054,25 +2054,25 @@ and non&#8211;logged-in users (which our FT relies on):</p>
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="html"><span class="tag">&lt;nav</span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">"</span><span class="content">navbar navbar-default</span><span class="delimiter">"</span></span> <span class="attribute-name">role</span>=<span class="string"><span class="delimiter">"</span><span class="content">navigation</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>
-  <span class="tag">&lt;div</span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">"</span><span class="content">container-fluid</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>
-    <span class="tag">&lt;a</span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">"</span><span class="content">navbar-brand</span><span class="delimiter">"</span></span> <span class="attribute-name">href</span>=<span class="string"><span class="delimiter">"</span><span class="content">/</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>Superlists<span class="tag">&lt;/a&gt;</span>
+<pre class="pygments highlight"><code data-lang="html"><span></span><span class="tok-p">&lt;</span><span class="tok-nt">nav</span> <span class="tok-na">class</span><span class="tok-o">=</span><span class="tok-s">"navbar navbar-default"</span> <span class="tok-na">role</span><span class="tok-o">=</span><span class="tok-s">"navigation"</span><span class="tok-p">&gt;</span>
+  <span class="tok-p">&lt;</span><span class="tok-nt">div</span> <span class="tok-na">class</span><span class="tok-o">=</span><span class="tok-s">"container-fluid"</span><span class="tok-p">&gt;</span>
+    <span class="tok-p">&lt;</span><span class="tok-nt">a</span> <span class="tok-na">class</span><span class="tok-o">=</span><span class="tok-s">"navbar-brand"</span> <span class="tok-na">href</span><span class="tok-o">=</span><span class="tok-s">"/"</span><span class="tok-p">&gt;</span>Superlists<span class="tok-p">&lt;/</span><span class="tok-nt">a</span><span class="tok-p">&gt;</span>
     {% if user.email %}
-      <span class="tag">&lt;ul</span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">"</span><span class="content">nav navbar-nav navbar-right</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>
-        <span class="tag">&lt;li</span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">"</span><span class="content">navbar-text</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>Logged in as {{ user.email }}<span class="tag">&lt;/li&gt;</span>
-        <span class="tag">&lt;li&gt;</span><span class="tag">&lt;a</span> <span class="attribute-name">href</span>=<span class="string"><span class="delimiter">"</span><span class="content">#</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>Log out<span class="tag">&lt;/a&gt;</span><span class="tag">&lt;/li&gt;</span>
-      <span class="tag">&lt;/ul&gt;</span>
+      <span class="tok-p">&lt;</span><span class="tok-nt">ul</span> <span class="tok-na">class</span><span class="tok-o">=</span><span class="tok-s">"nav navbar-nav navbar-right"</span><span class="tok-p">&gt;</span>
+        <span class="tok-p">&lt;</span><span class="tok-nt">li</span> <span class="tok-na">class</span><span class="tok-o">=</span><span class="tok-s">"navbar-text"</span><span class="tok-p">&gt;</span>Logged in as {{ user.email }}<span class="tok-p">&lt;/</span><span class="tok-nt">li</span><span class="tok-p">&gt;</span>
+        <span class="tok-p">&lt;</span><span class="tok-nt">li</span><span class="tok-p">&gt;&lt;</span><span class="tok-nt">a</span> <span class="tok-na">href</span><span class="tok-o">=</span><span class="tok-s">"#"</span><span class="tok-p">&gt;</span>Log out<span class="tok-p">&lt;/</span><span class="tok-nt">a</span><span class="tok-p">&gt;&lt;/</span><span class="tok-nt">li</span><span class="tok-p">&gt;</span>
+      <span class="tok-p">&lt;/</span><span class="tok-nt">ul</span><span class="tok-p">&gt;</span>
     {% else %}
-      <span class="tag">&lt;form</span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">"</span><span class="content">navbar-form navbar-right</span><span class="delimiter">"</span></span>
-            <span class="attribute-name">method</span>=<span class="string"><span class="delimiter">"</span><span class="content">POST</span><span class="delimiter">"</span></span>
-            <span class="attribute-name">action</span>=<span class="string"><span class="delimiter">"</span><span class="content">{% url 'send_login_email' %}</span><span class="delimiter">"</span></span><span class="tag">&gt;</span>
-        <span class="tag">&lt;span&gt;</span>Enter email to log in:<span class="tag">&lt;/span&gt;</span>
-        <span class="tag">&lt;input</span> <span class="attribute-name">class</span>=<span class="string"><span class="delimiter">"</span><span class="content">form-control</span><span class="delimiter">"</span></span> <span class="attribute-name">name</span>=<span class="string"><span class="delimiter">"</span><span class="content">email</span><span class="delimiter">"</span></span> <span class="attribute-name">type</span>=<span class="string"><span class="delimiter">"</span><span class="content">text</span><span class="delimiter">"</span></span> <span class="tag">/&gt;</span>
+      <span class="tok-p">&lt;</span><span class="tok-nt">form</span> <span class="tok-na">class</span><span class="tok-o">=</span><span class="tok-s">"navbar-form navbar-right"</span>
+            <span class="tok-na">method</span><span class="tok-o">=</span><span class="tok-s">"POST"</span>
+            <span class="tok-na">action</span><span class="tok-o">=</span><span class="tok-s">"{% url 'send_login_email' %}"</span><span class="tok-p">&gt;</span>
+        <span class="tok-p">&lt;</span><span class="tok-nt">span</span><span class="tok-p">&gt;</span>Enter email to log in:<span class="tok-p">&lt;/</span><span class="tok-nt">span</span><span class="tok-p">&gt;</span>
+        <span class="tok-p">&lt;</span><span class="tok-nt">input</span> <span class="tok-na">class</span><span class="tok-o">=</span><span class="tok-s">"form-control"</span> <span class="tok-na">name</span><span class="tok-o">=</span><span class="tok-s">"email"</span> <span class="tok-na">type</span><span class="tok-o">=</span><span class="tok-s">"text"</span> <span class="tok-p">/&gt;</span>
         {% csrf_token %}
-      <span class="tag">&lt;/form&gt;</span>
+      <span class="tok-p">&lt;/</span><span class="tok-nt">form</span><span class="tok-p">&gt;</span>
     {% endif %}
-  <span class="tag">&lt;/div&gt;</span>
-<span class="tag">&lt;/nav&gt;</span></code></pre>
+  <span class="tok-p">&lt;/</span><span class="tok-nt">div</span><span class="tok-p">&gt;</span>
+<span class="tok-p">&lt;/</span><span class="tok-nt">nav</span><span class="tok-p">&gt;</span></code></pre>
 </div>
 </div>
 </div>
@@ -2116,24 +2116,24 @@ with our custom user model, as good a place to have it as any might be
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> <span class="include">django.test</span> <span class="keyword">import</span> <span class="include">TestCase</span>
-<span class="keyword">from</span> <span class="include">django.contrib</span> <span class="keyword">import</span> <span class="include">auth</span>
-<span class="keyword">from</span> <span class="include">accounts.models</span> <span class="keyword">import</span> <span class="include">Token</span>
-User = auth.get_user_model()
+<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-kn">from</span> <span class="tok-nn">django.test</span> <span class="tok-kn">import</span> <span class="tok-n">TestCase</span>
+<span class="tok-kn">from</span> <span class="tok-nn">django.contrib</span> <span class="tok-kn">import</span> <span class="tok-n">auth</span>
+<span class="tok-kn">from</span> <span class="tok-nn">accounts.models</span> <span class="tok-kn">import</span> <span class="tok-n">Token</span>
+<span class="tok-n">User</span> <span class="tok-o">=</span> <span class="tok-n">auth</span><span class="tok-o">.</span><span class="tok-n">get_user_model</span><span class="tok-p">()</span>
 
 
-<span class="keyword">class</span> <span class="class">UserModelTest</span>(TestCase):
+<span class="tok-k">class</span> <span class="tok-nc">UserModelTest</span><span class="tok-p">(</span><span class="tok-n">TestCase</span><span class="tok-p">):</span>
 
-    <span class="keyword">def</span> <span class="function">test_user_is_valid_with_email_only</span>(<span class="predefined-constant">self</span>):
-        [...]
-    <span class="keyword">def</span> <span class="function">test_email_is_primary_key</span>(<span class="predefined-constant">self</span>):
-        [...]
+    <span class="tok-k">def</span> <span class="tok-nf">test_user_is_valid_with_email_only</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">):</span>
+        <span class="tok-p">[</span><span class="tok-o">...</span><span class="tok-p">]</span>
+    <span class="tok-k">def</span> <span class="tok-nf">test_email_is_primary_key</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">):</span>
+        <span class="tok-p">[</span><span class="tok-o">...</span><span class="tok-p">]</span>
 
-    <span class="keyword">def</span> <span class="function">test_no_problem_with_auth_login</span>(<span class="predefined-constant">self</span>):
-        user = User.objects.create(email=<span class="string"><span class="delimiter">'</span><span class="content">edith@example.com</span><span class="delimiter">'</span></span>)
-        user.backend = <span class="string"><span class="delimiter">'</span><span class="delimiter">'</span></span>
-        request = <span class="predefined-constant">self</span>.client.request().wsgi_request
-        auth.login(request, user)  <span class="comment"># should not raise</span></code></pre>
+    <span class="tok-k">def</span> <span class="tok-nf">test_no_problem_with_auth_login</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">):</span>
+        <span class="tok-n">user</span> <span class="tok-o">=</span> <span class="tok-n">User</span><span class="tok-o">.</span><span class="tok-n">objects</span><span class="tok-o">.</span><span class="tok-n">create</span><span class="tok-p">(</span><span class="tok-n">email</span><span class="tok-o">=</span><span class="tok-s1">'edith@example.com'</span><span class="tok-p">)</span>
+        <span class="tok-n">user</span><span class="tok-o">.</span><span class="tok-n">backend</span> <span class="tok-o">=</span> <span class="tok-s1">''</span>
+        <span class="tok-n">request</span> <span class="tok-o">=</span> <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">client</span><span class="tok-o">.</span><span class="tok-n">request</span><span class="tok-p">()</span><span class="tok-o">.</span><span class="tok-n">wsgi_request</span>
+        <span class="tok-n">auth</span><span class="tok-o">.</span><span class="tok-n">login</span><span class="tok-p">(</span><span class="tok-n">request</span><span class="tok-p">,</span> <span class="tok-n">user</span><span class="tok-p">)</span>  <span class="tok-c1"># should not raise</span></code></pre>
 </div>
 </div>
 </div>
@@ -2168,15 +2168,15 @@ signals</a>.</p>
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">import</span> <span class="include">uuid</span>
-<span class="keyword">from</span> <span class="include">django.contrib</span> <span class="keyword">import</span> <span class="include">auth</span>
-<span class="keyword">from</span> <span class="include">django.db</span> <span class="keyword">import</span> <span class="include">models</span>
+<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-kn">import</span> <span class="tok-nn">uuid</span>
+<span class="tok-kn">from</span> <span class="tok-nn">django.contrib</span> <span class="tok-kn">import</span> <span class="tok-n">auth</span>
+<span class="tok-kn">from</span> <span class="tok-nn">django.db</span> <span class="tok-kn">import</span> <span class="tok-n">models</span>
 
-auth.signals.user_logged_in.disconnect(auth.models.update_last_login)
+<span class="tok-n">auth</span><span class="tok-o">.</span><span class="tok-n">signals</span><span class="tok-o">.</span><span class="tok-n">user_logged_in</span><span class="tok-o">.</span><span class="tok-n">disconnect</span><span class="tok-p">(</span><span class="tok-n">auth</span><span class="tok-o">.</span><span class="tok-n">models</span><span class="tok-o">.</span><span class="tok-n">update_last_login</span><span class="tok-p">)</span>
 
 
-<span class="keyword">class</span> <span class="class">User</span>(models.Model):
-    [...]</code></pre>
+<span class="tok-k">class</span> <span class="tok-nc">User</span><span class="tok-p">(</span><span class="tok-n">models</span><span class="tok-o">.</span><span class="tok-n">Model</span><span class="tok-p">):</span>
+    <span class="tok-p">[</span><span class="tok-o">...</span><span class="tok-p">]</span></code></pre>
 </div>
 </div>
 </div>
@@ -2232,11 +2232,11 @@ It&#8217;s because of two things:</p>
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python">EMAIL_HOST = <span class="string"><span class="delimiter">'</span><span class="content">smtp.gmail.com</span><span class="delimiter">'</span></span>
-EMAIL_HOST_USER = <span class="string"><span class="delimiter">'</span><span class="content">obeythetestinggoat@gmail.com</span><span class="delimiter">'</span></span>
-EMAIL_HOST_PASSWORD = os.environ.get(<span class="string"><span class="delimiter">'</span><span class="content">EMAIL_PASSWORD</span><span class="delimiter">'</span></span>)
-EMAIL_PORT = <span class="integer">587</span>
-EMAIL_USE_TLS = <span class="predefined-constant">True</span></code></pre>
+<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-n">EMAIL_HOST</span> <span class="tok-o">=</span> <span class="tok-s1">'smtp.gmail.com'</span>
+<span class="tok-n">EMAIL_HOST_USER</span> <span class="tok-o">=</span> <span class="tok-s1">'obeythetestinggoat@gmail.com'</span>
+<span class="tok-n">EMAIL_HOST_PASSWORD</span> <span class="tok-o">=</span> <span class="tok-n">os</span><span class="tok-o">.</span><span class="tok-n">environ</span><span class="tok-o">.</span><span class="tok-n">get</span><span class="tok-p">(</span><span class="tok-s1">'EMAIL_PASSWORD'</span><span class="tok-p">)</span>
+<span class="tok-n">EMAIL_PORT</span> <span class="tok-o">=</span> <span class="tok-mi">587</span>
+<span class="tok-n">EMAIL_USE_TLS</span> <span class="tok-o">=</span> <span class="tok-kc">True</span></code></pre>
 </div>
 </div>
 </div>
@@ -2348,23 +2348,23 @@ link.  We extend the FT with a couple more steps:</p>
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python">        [...]
-        <span class="comment"># she is logged in!</span>
-        <span class="predefined-constant">self</span>.wait_for(
-            <span class="keyword">lambda</span>: <span class="predefined-constant">self</span>.browser.find_element_by_link_text(<span class="string"><span class="delimiter">'</span><span class="content">Log out</span><span class="delimiter">'</span></span>)
-        )
-        navbar = <span class="predefined-constant">self</span>.browser.find_element_by_css_selector(<span class="string"><span class="delimiter">'</span><span class="content">.navbar</span><span class="delimiter">'</span></span>)
-        <span class="predefined-constant">self</span>.assertIn(TEST_EMAIL, navbar.text)
+<pre class="pygments highlight"><code data-lang="python"><span></span>        <span class="tok-p">[</span><span class="tok-o">...</span><span class="tok-p">]</span>
+        <span class="tok-c1"># she is logged in!</span>
+        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">wait_for</span><span class="tok-p">(</span>
+            <span class="tok-k">lambda</span><span class="tok-p">:</span> <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">browser</span><span class="tok-o">.</span><span class="tok-n">find_element_by_link_text</span><span class="tok-p">(</span><span class="tok-s1">'Log out'</span><span class="tok-p">)</span>
+        <span class="tok-p">)</span>
+        <span class="tok-n">navbar</span> <span class="tok-o">=</span> <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">browser</span><span class="tok-o">.</span><span class="tok-n">find_element_by_css_selector</span><span class="tok-p">(</span><span class="tok-s1">'.navbar'</span><span class="tok-p">)</span>
+        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertIn</span><span class="tok-p">(</span><span class="tok-n">TEST_EMAIL</span><span class="tok-p">,</span> <span class="tok-n">navbar</span><span class="tok-o">.</span><span class="tok-n">text</span><span class="tok-p">)</span>
 
-        <span class="comment"># Now she logs out</span>
-        <span class="predefined-constant">self</span>.browser.find_element_by_link_text(<span class="string"><span class="delimiter">'</span><span class="content">Log out</span><span class="delimiter">'</span></span>).click()
+        <span class="tok-c1"># Now she logs out</span>
+        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">browser</span><span class="tok-o">.</span><span class="tok-n">find_element_by_link_text</span><span class="tok-p">(</span><span class="tok-s1">'Log out'</span><span class="tok-p">)</span><span class="tok-o">.</span><span class="tok-n">click</span><span class="tok-p">()</span>
 
-        <span class="comment"># She is logged out</span>
-        <span class="predefined-constant">self</span>.wait_for(
-            <span class="keyword">lambda</span>: <span class="predefined-constant">self</span>.browser.find_element_by_name(<span class="string"><span class="delimiter">'</span><span class="content">email</span><span class="delimiter">'</span></span>)
-        )
-        navbar = <span class="predefined-constant">self</span>.browser.find_element_by_css_selector(<span class="string"><span class="delimiter">'</span><span class="content">.navbar</span><span class="delimiter">'</span></span>)
-        <span class="predefined-constant">self</span>.assertNotIn(TEST_EMAIL, navbar.text)</code></pre>
+        <span class="tok-c1"># She is logged out</span>
+        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">wait_for</span><span class="tok-p">(</span>
+            <span class="tok-k">lambda</span><span class="tok-p">:</span> <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">browser</span><span class="tok-o">.</span><span class="tok-n">find_element_by_name</span><span class="tok-p">(</span><span class="tok-s1">'email'</span><span class="tok-p">)</span>
+        <span class="tok-p">)</span>
+        <span class="tok-n">navbar</span> <span class="tok-o">=</span> <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">browser</span><span class="tok-o">.</span><span class="tok-n">find_element_by_css_selector</span><span class="tok-p">(</span><span class="tok-s1">'.navbar'</span><span class="tok-p">)</span>
+        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertNotIn</span><span class="tok-p">(</span><span class="tok-n">TEST_EMAIL</span><span class="tok-p">,</span> <span class="tok-n">navbar</span><span class="tok-o">.</span><span class="tok-n">text</span><span class="tok-p">)</span></code></pre>
 </div>
 </div>
 </div>
@@ -2391,14 +2391,14 @@ session and redirects them to a page of our choice:</p>
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python"><span class="keyword">from</span> <span class="include">django.contrib.auth.views</span> <span class="keyword">import</span> <span class="include">logout</span>
-[...]
+<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-kn">from</span> <span class="tok-nn">django.contrib.auth.views</span> <span class="tok-kn">import</span> <span class="tok-n">logout</span>
+<span class="tok-p">[</span><span class="tok-o">...</span><span class="tok-p">]</span>
 
-urlpatterns = [
-    url(<span class="string"><span class="modifier">r</span><span class="delimiter">'</span><span class="content">^send_login_email$</span><span class="delimiter">'</span></span>, views.send_login_email, name=<span class="string"><span class="delimiter">'</span><span class="content">send_login_email</span><span class="delimiter">'</span></span>),
-    url(<span class="string"><span class="modifier">r</span><span class="delimiter">'</span><span class="content">^login$</span><span class="delimiter">'</span></span>, views.login, name=<span class="string"><span class="delimiter">'</span><span class="content">login</span><span class="delimiter">'</span></span>),
-    url(<span class="string"><span class="modifier">r</span><span class="delimiter">'</span><span class="content">^logout$</span><span class="delimiter">'</span></span>, logout, {<span class="string"><span class="delimiter">'</span><span class="content">next_page</span><span class="delimiter">'</span></span>: <span class="string"><span class="delimiter">'</span><span class="content">/</span><span class="delimiter">'</span></span>}, name=<span class="string"><span class="delimiter">'</span><span class="content">logout</span><span class="delimiter">'</span></span>),
-]</code></pre>
+<span class="tok-n">urlpatterns</span> <span class="tok-o">=</span> <span class="tok-p">[</span>
+    <span class="tok-n">url</span><span class="tok-p">(</span><span class="tok-sa">r</span><span class="tok-s1">'^send_login_email$'</span><span class="tok-p">,</span> <span class="tok-n">views</span><span class="tok-o">.</span><span class="tok-n">send_login_email</span><span class="tok-p">,</span> <span class="tok-n">name</span><span class="tok-o">=</span><span class="tok-s1">'send_login_email'</span><span class="tok-p">),</span>
+    <span class="tok-n">url</span><span class="tok-p">(</span><span class="tok-sa">r</span><span class="tok-s1">'^login$'</span><span class="tok-p">,</span> <span class="tok-n">views</span><span class="tok-o">.</span><span class="tok-n">login</span><span class="tok-p">,</span> <span class="tok-n">name</span><span class="tok-o">=</span><span class="tok-s1">'login'</span><span class="tok-p">),</span>
+    <span class="tok-n">url</span><span class="tok-p">(</span><span class="tok-sa">r</span><span class="tok-s1">'^logout$'</span><span class="tok-p">,</span> <span class="tok-n">logout</span><span class="tok-p">,</span> <span class="tok-p">{</span><span class="tok-s1">'next_page'</span><span class="tok-p">:</span> <span class="tok-s1">'/'</span><span class="tok-p">},</span> <span class="tok-n">name</span><span class="tok-o">=</span><span class="tok-s1">'logout'</span><span class="tok-p">),</span>
+<span class="tok-p">]</span></code></pre>
 </div>
 </div>
 </div>
@@ -2411,7 +2411,7 @@ urlpatterns = [
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="CodeRay highlight"><code data-lang="python">    &lt;li&gt;&lt;a href=<span class="string"><span class="delimiter">"</span><span class="content">{% url 'logout' %}</span><span class="delimiter">"</span></span>&gt;Log out&lt;/a&gt;&lt;/li&gt;</code></pre>
+<pre class="pygments highlight"><code data-lang="python"><span></span>    <span class="tok-o">&lt;</span><span class="tok-n">li</span><span class="tok-o">&gt;&lt;</span><span class="tok-n">a</span> <span class="tok-n">href</span><span class="tok-o">=</span><span class="tok-s2">"{</span><span class="tok-si">% u</span><span class="tok-s2">rl 'logout' %}"</span><span class="tok-o">&gt;</span><span class="tok-n">Log</span> <span class="tok-n">out</span><span class="tok-o">&lt;/</span><span class="tok-n">a</span><span class="tok-o">&gt;&lt;/</span><span class="tok-n">li</span><span class="tok-o">&gt;</span></code></pre>
 </div>
 </div>
 </div>
@@ -2533,7 +2533,7 @@ function.  Using a mock in this case reduces duplication.</p>
 </div>
 <div id="footer">
 <div id="footer-text">
-License: Creative Commons <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode">CC-BY-NC-ND</a>. Last updated: 2023-11-21 12:30:56 UTC
+License: Creative Commons <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode">CC-BY-NC-ND</a>. Last updated: 2024-05-20 17:54:12 +0100
 </div>
 </div>
 <div class="comments" style="padding: 20px">

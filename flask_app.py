@@ -59,6 +59,10 @@ def redirect_14():
 def redirect_15():
     return redirect("/book/chapter_15_advanced_forms.html", code=301)
 
+@app.route("/book/chapter_javascript.html")
+def redirect_16():
+    return redirect("/book/chapter_16_javascript.html", code=301)
+
 """
 TODO?
 
