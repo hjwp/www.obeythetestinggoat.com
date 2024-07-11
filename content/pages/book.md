@@ -98,8 +98,8 @@ Table of contents follows:
 * [Chapter 17: Deploying Our New Code](/book/chapter_deploying_validation.html)
 
 ### [Part 3: More Advanced Topics in Testing](/book/part3.forbook.html)
-* [Chapter 18: User Authentication, Spiking, and De-Spiking](/book/chapter_spiking_custom_auth.html)
-* [Chapter 19: Using Mocks to Test External Dependencies or Reduce Duplication](/book/chapter_mocking.html)
+* [Chapter 18: User Authentication, Spiking, and De-Spiking](/book/chapter_18_spiking_custom_auth.html)
+* [Chapter 19: Using Mocks to Test External Dependencies or Reduce Duplication](/book/chapter_19_mocking.html)
 * [Chapter 20: Test Fixtures and a Decorator for Explicit Waits](/book/chapter_fixtures_and_wait_decorator.html)
 * [Chapter 21: Server-Side Debugging](/book/chapter_server_side_debugging.html)
 * [Chapter 22: Finishing "My Lists": Outside-In TDD](/book/chapter_outside_in.html)

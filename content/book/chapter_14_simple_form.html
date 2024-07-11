@@ -43,19 +43,6 @@ httpRequest.send();
 <div class="sect1">
 <h2 id="chapter_14_simple_form">A Simple Form</h2>
 <div class="sectionbody">
-<div class="sidebarblock">
-<div class="content">
-<div class="title">&#128679; Warning, Chapter update in progress</div>
-<div class="paragraph">
-<p>This chapter is currently in the process of being rewritten for the 3e.</p>
-</div>
-<div class="paragraph">
-<p>The code listings should all be valid,
-and work with Python3.12 + Django 4,
-but I haven&#8217;t reviewed the chapter text in detail yet.</p>
-</div>
-</div>
-</div>
 <div class="paragraph">
 <p>At the end of the last chapter,
 we were left with the thought that there was too much duplication
@@ -259,8 +246,6 @@ Doing this sort of widget customisation would get tedious
     if we had a much larger, more complex form.
     Check out
     <a href="https://django-crispy-forms.readthedocs.org/">django-crispy-forms</a>
-    and <a href="http://bit.ly/1rR5eyD">django-floppyforms</a> for some help.
-    
     
 </td>
 </tr>
@@ -657,7 +642,7 @@ the logic change:</p>
 <div class="listingblock">
 <div class="content">
 <pre>$ <strong>git diff</strong> # review changes in base.html, views.py and its tests
-$ <strong>git commit -am "use new form in home_page, simplify tests. NB breaks stuff"</strong></pre>
+$ <strong>git commit -am "use new form in home_page. NB breaks stuff"</strong></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -741,7 +726,8 @@ with <code>id_text</code> and <code>text</code>, respectively:</p>
 </div>
 </div>
 <div class="paragraph">
-<p>Good, there are no references to <code>id_new_item</code> left.
+<p>Good, there are no references to <code>id_new_item</code> left&#8212;&#8203;except maybe in some
+<code>*.pyc</code> files, which are safe to ignore.
 What about <code>name</code>/ <code>item_text</code>?</p>
 </div>
 <div class="listingblock">
@@ -776,36 +762,40 @@ OK</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>And the functional tests too:</p>
+<p>And the functional tests too, where we can see three errors:</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>$ <strong>python src/manage.py test functional_tests</strong>
-[...]
-  File "...goat-book/src/functional_tests/test_layout_and_styling.py", line 27,
-in test_layout_and_styling
-    inputbox = self.get_item_input_box()
-               ^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "...goat-book/src/functional_tests/base.py", line 45, in
-get_item_input_box
-    return self.browser.find_element(By.ID, "id_text")
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+<pre>ERROR: test_layout_and_styling (functional_tests.test_layout_and_styling.Layout
+AndStylingTest.test_layout_and_styling)
 [...]
 selenium.common.exceptions.NoSuchElementException: Message: Unable to locate
 element: [id="id_text"]; [...]
-
 [...]
-FAILED (errors=3)</pre>
+ERROR: test_can_start_a_todo_list (functional_tests.test_simple_list_creation.N
+ewVisitorTest.test_can_start_a_todo_list)
+[...]
+selenium.common.exceptions.NoSuchElementException: Message: Unable to locate
+element: [id="id_text"]; [...]
+[...]</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>Not quite!  Let&#8217;s look at where this is happening&#8212;&#8203;if
-you check the line number from one of the failures,
-you&#8217;ll see that each time after we&#8217;ve submitted a first item,
-the input box has disappeared from the lists page.</p>
+<p>and</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>ERROR: test_cannot_add_empty_list_items (functional_tests.test_list_item_valida
+tion.ItemValidationTest.test_cannot_add_empty_list_items)
+[...]
+selenium.common.exceptions.NoSuchElementException: Message: Unable to locate
+element: .invalid-feedback; [...]
+[...]</pre>
+</div>
 </div>
 <div class="paragraph">
-<p>Checking <em>views.py</em> and the <code>new_list</code> view we can see
+<p>Let&#8217;s start with the latter.
+Checking <em>views.py</em> and the <code>new_list</code> view we can see
 it&#8217;s because if we detect a validation error,
 we&#8217;re not actually passing the form to the <em>home.html</em> template:</p>
 </div>
@@ -1576,7 +1566,15 @@ OK</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>Great!  Our two views are now looking very much like "normal" Django views:
+<p>Great!  Let&#8217;s commit our changes:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>git commit -am "implement custom save method for the form"</strong></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Our two views are now looking very much like "normal" Django views:
 they take information from a user&#8217;s request,
 combine it with some custom logic or information from the URL (<code>list_id</code>),
 pass it to a form for validation and possible saving,
@@ -1629,7 +1627,7 @@ can keep them from getting too bloated.
 </div>
 <div id="footer">
 <div id="footer-text">
-License: Creative Commons <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode">CC-BY-NC-ND</a>. Last updated: 2024-05-20 17:54:12 +0100
+License: Creative Commons <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode">CC-BY-NC-ND</a>. Last updated: 2024-06-25 14:44:58 +0100
 </div>
 </div>
 <div class="comments" style="padding: 20px">
