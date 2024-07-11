@@ -63,19 +63,27 @@ def redirect_15():
 def redirect_16():
     return redirect("/book/chapter_16_javascript.html", code=301)
 
+@app.route("/book/chapter_deploying_validation.html")
+def redirect_17():
+    return redirect("/book/chapter_17_second_deploy.html", code=301)
+
+@app.route("/book/chapter_spiking_custom_auth.html")
+def redirect_18():
+    return redirect("/book/chapter_18_spiking_custom_auth.html", code=301)
+
+@app.route("/book/chapter_mocking.html")
+def redirect_19():
+    return redirect("/book/chapter_19_mocking.html", code=301)
+
 """
 TODO?
 
 chapter_CI.html
-chapter_deploying_validation.html
 chapter_fixtures_and_wait_decorator.html
 chapter_hot_lava.html
-chapter_javascript.html
-chapter_mocking.html
 chapter_outside_in.html
 chapter_page_pattern.html
 chapter_prettification.html
 chapter_purist_unit_tests.html
 chapter_server_side_debugging.html
-chapter_spiking_custom_auth.html
 """
