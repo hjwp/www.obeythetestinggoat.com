@@ -41,50 +41,58 @@ httpRequest.send();
 </div>
 <div id="content">
 <div class="sect1">
-<h2 id="chapter_server_side_debugging">Server-Side Debugging</h2>
+<h2 id="chapter_21_server_side_debugging">Server-Side Debugging</h2>
 <div class="sectionbody">
+<div class="sidebarblock">
+<div class="content">
+<div class="title">Warning, Chapter Update in Progress</div>
 <div class="paragraph">
-<p>Popping a few layers off the stack of things we&#8217;re working on: we have nice
-wait-for helpers; what were we using them for?  Oh yes, waiting to be logged
-in. And why was that?  Ah yes, we had just built a way of pre-authenticating
-a user.</p>
+<p>&#128679; Warning, Chapter update for 3e in progress.</p>
+</div>
+<div class="paragraph">
+<p>This chapter has only been partially updated to Django 4, Ansible+Docker, etc.</p>
+</div>
+<div class="paragraph">
+<p>Following along may be tricky, but I hope to have it in better shape soon!</p>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>Popping a few layers off the stack of things we&#8217;re working on:
+we have nice wait-for helpers; what were we using them for?
+Oh yes, waiting to be logged in. And why was that?
+Ah yes, we had just built a way of pre-authenticating a user.</p>
 </div>
 <div class="sect2">
 <h3 id="_the_proof_is_in_the_pudding_using_staging_to_catch_final_bugs">The Proof Is in the Pudding: Using Staging to Catch Final Bugs</h3>
 <div class="paragraph">
-<p>They&#8217;re
-all very well for running the FTs locally, but how would they work
-against the staging server?  Let&#8217;s try to deploy our site.  Along the way
-we&#8217;ll catch an unexpected bug (that&#8217;s what staging is for!), and then we&#8217;ll
-have to figure out a way of managing the database on the test server:</p>
+<p>
+
+They&#8217;re all very well for running the FTs locally,
+but how would they work against the staging server?
+Let&#8217;s try to deploy our site.
+Along the way we&#8217;ll catch an unexpected bug (that&#8217;s what staging is for!),
+and then we&#8217;ll have to figure out a way of managing the database on the test server:</p>
 </div>
-<div class="listingblock against-server">
+<div class="listingblock against-server small-code">
 <div class="content">
-<pre>$ <strong>git push</strong>  # if you haven't already
-$ <strong>cd deploy_tools</strong>
-$ <strong>fab deploy:host=elspeth@staging.ottg.co.uk</strong>
+<pre>$ pass:quotes[<strong>ansible-playbook --user=elspeth -i staging.ottg.co.uk, infra/ansible-provision.yaml -vv</strong>]
+
+PLAYBOOK: ansible-provision.yaml <strong><strong></strong><strong></strong></strong><strong><strong></strong><strong></strong></strong><strong><strong></strong><strong></strong></strong><strong><strong></strong><strong></strong></strong><strong><strong></strong></strong>*
+1 plays in infra/ansible-provision.yaml
 [...]</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>And restart Gunicorn&#8230;&#8203;</p>
-</div>
-<div class="listingblock server-commands">
-<div class="content">
-<pre>elspeth@server:$ <strong>sudo systemctl daemon-reload</strong>
-elspeth@server:$ <strong>sudo systemctl restart gunicorn-staging.ottg.co.uk</strong></pre>
 </div>
 </div>
 <div class="paragraph">
 <p>Here&#8217;s what happens when we run the functional tests:</p>
 </div>
-<div class="listingblock small-code">
+<div class="listingblock against-server small-code">
 <div class="content">
-<pre>$ <strong>STAGING_SERVER=staging.ottg.co.uk python manage.py test functional_tests</strong>
+<pre>$ <strong>TEST_SERVER=staging.ottg.co.uk python src/manage.py test functional_tests</strong>
 
 ======================================================================
-ERROR: test_logged_in_users_lists_are_saved_as_my_lists
-(functional_tests.test_my_lists.MyListsTest)
+ERROR: test_logged_in_users_lists_are_saved_as_my_lists (functional_tests.test_
+my_lists.MyListsTest.test_logged_in_users_lists_are_saved_as_my_lists)
  ---------------------------------------------------------------------
 Traceback (most recent call last):
   File "...goat-book/functional_tests/test_my_lists.py", line 34, in
@@ -119,51 +127,53 @@ system is crashing the server.</p>
 <div class="paragraph">
 <p>Let&#8217;s practice a bit of server-side debugging!</p>
 </div>
+<div class="ulist">
+<ul>
+<li>
+<p>TODO: show we can actually repro this with Docker.</p>
+</li>
+</ul>
+</div>
 </div>
 <div class="sect2">
 <h3 id="_inspecting_logs_on_the_server">Inspecting Logs on the Server</h3>
 <div class="paragraph">
-<p>In
-order to track this problem down, we need to get some logging information
-out of Django.</p>
+<p>
+
+In order to track this problem down,
+we need to get some logging information out of Django.</p>
 </div>
 <div class="paragraph">
 <p>First, make sure your <em>settings.py</em> still contains the <code>LOGGING</code>
 settings which will actually send stuff to the console:</p>
 </div>
 <div class="exampleblock sourcecode currentcontents">
-<div class="title">superlists/settings.py</div>
+<div class="title">src/superlists/settings.py</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
 <pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-n">LOGGING</span> <span class="tok-o">=</span> <span class="tok-p">{</span>
-    <span class="tok-s1">'version'</span><span class="tok-p">:</span> <span class="tok-mi">1</span><span class="tok-p">,</span>
-    <span class="tok-s1">'disable_existing_loggers'</span><span class="tok-p">:</span> <span class="tok-kc">False</span><span class="tok-p">,</span>
-    <span class="tok-s1">'handlers'</span><span class="tok-p">:</span> <span class="tok-p">{</span>
-        <span class="tok-s1">'console'</span><span class="tok-p">:</span> <span class="tok-p">{</span>
-            <span class="tok-s1">'level'</span><span class="tok-p">:</span> <span class="tok-s1">'DEBUG'</span><span class="tok-p">,</span>
-            <span class="tok-s1">'class'</span><span class="tok-p">:</span> <span class="tok-s1">'logging.StreamHandler'</span><span class="tok-p">,</span>
-        <span class="tok-p">},</span>
+    <span class="tok-s2">"version"</span><span class="tok-p">:</span> <span class="tok-mi">1</span><span class="tok-p">,</span>
+    <span class="tok-s2">"disable_existing_loggers"</span><span class="tok-p">:</span> <span class="tok-kc">False</span><span class="tok-p">,</span>
+    <span class="tok-s2">"handlers"</span><span class="tok-p">:</span> <span class="tok-p">{</span>
+        <span class="tok-s2">"console"</span><span class="tok-p">:</span> <span class="tok-p">{</span><span class="tok-s2">"class"</span><span class="tok-p">:</span> <span class="tok-s2">"logging.StreamHandler"</span><span class="tok-p">},</span>
     <span class="tok-p">},</span>
-    <span class="tok-s1">'loggers'</span><span class="tok-p">:</span> <span class="tok-p">{</span>
-        <span class="tok-s1">'django'</span><span class="tok-p">:</span> <span class="tok-p">{</span>
-            <span class="tok-s1">'handlers'</span><span class="tok-p">:</span> <span class="tok-p">[</span><span class="tok-s1">'console'</span><span class="tok-p">],</span>
-        <span class="tok-p">},</span>
+    <span class="tok-s2">"loggers"</span><span class="tok-p">:</span> <span class="tok-p">{</span>
+        <span class="tok-s2">"root"</span><span class="tok-p">:</span> <span class="tok-p">{</span><span class="tok-s2">"handlers"</span><span class="tok-p">:</span> <span class="tok-p">[</span><span class="tok-s2">"console"</span><span class="tok-p">],</span> <span class="tok-s2">"level"</span><span class="tok-p">:</span> <span class="tok-s2">"INFO"</span><span class="tok-p">},</span>
     <span class="tok-p">},</span>
-    <span class="tok-s1">'root'</span><span class="tok-p">:</span> <span class="tok-p">{</span><span class="tok-s1">'level'</span><span class="tok-p">:</span> <span class="tok-s1">'INFO'</span><span class="tok-p">},</span>
 <span class="tok-p">}</span></code></pre>
 </div>
 </div>
 </div>
 </div>
 <div class="paragraph">
-<p>Restart Gunicorn again if necessary, and then either rerun the FT, or just try
-to log in manually.  While that happens, we watch the logs on the server with
-<code>journalctl -f</code>:</p>
+<p>Restart the Docker container again if necessary,
+and then either rerun the FT, or just try to log in manually.
+While that happens, we watch the logs on the server with <code>docker logs -f</code>:</p>
 </div>
 <div class="listingblock server-commands">
 <div class="content">
-<pre>elspeth@server:$ <strong>sudo journalctl -f -u gunicorn-staging.ottg.co.uk</strong></pre>
+<pre>elspeth@server:$ <strong>docker logs -f superlists</strong></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -189,32 +199,40 @@ at\n5.5.1  https://support.google.com/mail/?p=WantAuthError [...]
 </div>
 </div>
 <div class="paragraph">
-<p>Hm, Gmail is refusing to send our emails, is it?  Now why might that be?  Ah
-yes, we haven&#8217;t told the server what our password is!</p>
+<p>Hm, Gmail is refusing to send our emails, is it?  Now why might that be?
+Ah yes, we haven&#8217;t told the server what our password is!
+</p>
 </div>
 </div>
 <div class="sect2">
 <h3 id="_another_environment_variable">Another Environment Variable</h3>
 <div class="paragraph">
-<p>Just
-as in <a href="/book/chapter_11_ansible.html">[chapter_11_ansible]</a>, the place we
-set environment variables on the server is in the <em>.env</em> file:</p>
+<p>
+
+
+Just as in <a href="/book/chapter_11_ansible.html">[chapter_11_ansible]</a>,
+the place we set environment variables on the server is in the <em>superlists.env</em> file.
+Let&#8217;s change it manually, on the server, for a test:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>TODO: maybe use ansible straight away?  Also, need to discuss secret storage locally.</p>
+</li>
+</ul>
 </div>
 <div class="listingblock server-commands small-code">
 <div class="content">
-<pre>elspeth@server:$ <strong>cd ~/sites/staging.ottg.co.uk/</strong>
-elspeth@server:$ <strong>echo EMAIL_PASSWORD=yoursekritpasswordhere &gt;&gt; .env</strong>
-elspeth@server:$ <strong>sudo systemctl daemon-reload</strong>
-elspeth@server:$ <strong>sudo systemctl restart gunicorn-staging.ottg.co.uk</strong>
-elspeth@server:$ <strong>sudo journalctl -f -u gunicorn-staging.ottg.co.uk</strong></pre>
+<pre>elspeth@server:$ <strong>echo EMAIL_PASSWORD=yoursekritpasswordhere &gt;&gt; ~/superlists.env</strong>
+elspeth@server:$ <strong>docker restart superlists</strong></pre>
 </div>
 </div>
 <div class="paragraph">
 <p>Now if we rerun our FTs, we see a change:</p>
 </div>
-<div class="listingblock small-code">
+<div class="listingblock against-server small-code">
 <div class="content">
-<pre>$ <strong>STAGING_SERVER=staging.ottg.co.uk python manage.py test functional_tests</strong>
+<pre>$ <strong>TEST_SERVER=staging.ottg.co.uk python src/manage.py test functional_tests</strong>
 
 [...]
 Traceback (most recent call last):
@@ -230,35 +248,37 @@ element: Log out</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>The <code>my_lists</code> failure is still the same, but we have more information in our
-login test: the FT gets further, and the site now looks like it&#8217;s sending
-emails correctly (and the server log no longer shows any errors), but we can&#8217;t
-check the email in the <code>mail.outbox</code>&#8230;&#8203;</p>
+<p>The <code>my_lists</code> failure is still the same, but we have more information in our login test:
+the FT gets further, and the site now looks like it&#8217;s sending emails correctly
+(and the server log no longer shows any errors),
+but we can&#8217;t check the email in the <code>mail.outbox</code>&#8230;&#8203;</p>
 </div>
 </div>
 <div class="sect2">
 <h3 id="_adapting_our_ft_to_be_able_to_test_real_emails_via_pop3">Adapting Our FT to Be Able to Test Real Emails via POP3</h3>
 <div class="paragraph">
-<p>Ah.
-That explains it. Now that we&#8217;re running against a real server rather than
-the <code>LiveServerTestCase</code>, we can no longer inspect the local
-<code>django.mail.outbox</code> to see sent emails.</p>
+<p>
+
+
+Ah. That explains it.
+Now that we&#8217;re running against a real server rather than the <code>LiveServerTestCase</code>,
+we can no longer inspect the local <code>django.mail.outbox</code> to see sent emails.</p>
 </div>
 <div class="paragraph">
-<p>First, we&#8217;ll need to know, in our FTs, whether we&#8217;re running against
-the staging server or not.  Let&#8217;s save the <code>staging_server</code> variable
-on <code>self</code> in <em>base.py</em>:</p>
+<p>First, we&#8217;ll need to know, in our FTs,
+whether we&#8217;re running against the staging server or not.
+Let&#8217;s save the <code>staging_server</code> variable on <code>self</code> in <em>base.py</em>:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">functional_tests/base.py (ch18l009)</div>
+<div class="title">src/functional_tests/base.py (ch21l009)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
 <pre class="pygments highlight"><code data-lang="python"><span></span>    <span class="tok-k">def</span> <span class="tok-nf">setUp</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">):</span>
         <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">browser</span> <span class="tok-o">=</span> <span class="tok-n">webdriver</span><span class="tok-o">.</span><span class="tok-n">Firefox</span><span class="tok-p">()</span>
-        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">staging_server</span> <span class="tok-o">=</span> <span class="tok-n">os</span><span class="tok-o">.</span><span class="tok-n">environ</span><span class="tok-o">.</span><span class="tok-n">get</span><span class="tok-p">(</span><span class="tok-s1">'STAGING_SERVER'</span><span class="tok-p">)</span>
-        <span class="tok-k">if</span> <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">staging_server</span><span class="tok-p">:</span>
-            <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">live_server_url</span> <span class="tok-o">=</span> <span class="tok-s1">'http://'</span> <span class="tok-o">+</span> <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">staging_server</span></code></pre>
+        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">test_server</span> <span class="tok-o">=</span> <span class="tok-n">os</span><span class="tok-o">.</span><span class="tok-n">environ</span><span class="tok-o">.</span><span class="tok-n">get</span><span class="tok-p">(</span><span class="tok-s2">"TEST_SERVER"</span><span class="tok-p">)</span>
+        <span class="tok-k">if</span> <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">test_server</span><span class="tok-p">:</span>
+            <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">live_server_url</span> <span class="tok-o">=</span> <span class="tok-s2">"http://"</span> <span class="tok-o">+</span> <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">test_server</span></code></pre>
 </div>
 </div>
 </div>
@@ -269,7 +289,7 @@ email server, using the horrifically tortuous Python standard library POP3
 client:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">functional_tests/test_login.py (ch18l010)</div>
+<div class="title">src/functional_tests/test_login.py (ch21l010)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
@@ -280,7 +300,7 @@ client:</p>
 <span class="tok-p">[</span><span class="tok-o">...</span><span class="tok-p">]</span>
 
     <span class="tok-k">def</span> <span class="tok-nf">wait_for_email</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">,</span> <span class="tok-n">test_email</span><span class="tok-p">,</span> <span class="tok-n">subject</span><span class="tok-p">):</span>
-        <span class="tok-k">if</span> <span class="tok-ow">not</span> <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">staging_server</span><span class="tok-p">:</span>
+        <span class="tok-k">if</span> <span class="tok-ow">not</span> <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">test_server</span><span class="tok-p">:</span>
             <span class="tok-n">email</span> <span class="tok-o">=</span> <span class="tok-n">mail</span><span class="tok-o">.</span><span class="tok-n">outbox</span><span class="tok-p">[</span><span class="tok-mi">0</span><span class="tok-p">]</span>
             <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertIn</span><span class="tok-p">(</span><span class="tok-n">test_email</span><span class="tok-p">,</span> <span class="tok-n">email</span><span class="tok-o">.</span><span class="tok-n">to</span><span class="tok-p">)</span>
             <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertEqual</span><span class="tok-p">(</span><span class="tok-n">email</span><span class="tok-o">.</span><span class="tok-n">subject</span><span class="tok-p">,</span> <span class="tok-n">subject</span><span class="tok-p">)</span>
@@ -288,21 +308,21 @@ client:</p>
 
         <span class="tok-n">email_id</span> <span class="tok-o">=</span> <span class="tok-kc">None</span>
         <span class="tok-n">start</span> <span class="tok-o">=</span> <span class="tok-n">time</span><span class="tok-o">.</span><span class="tok-n">time</span><span class="tok-p">()</span>
-        <span class="tok-n">inbox</span> <span class="tok-o">=</span> <span class="tok-n">poplib</span><span class="tok-o">.</span><span class="tok-n">POP3_SSL</span><span class="tok-p">(</span><span class="tok-s1">'pop.mail.yahoo.com'</span><span class="tok-p">)</span>
+        <span class="tok-n">inbox</span> <span class="tok-o">=</span> <span class="tok-n">poplib</span><span class="tok-o">.</span><span class="tok-n">POP3_SSL</span><span class="tok-p">(</span><span class="tok-s2">"pop.mail.yahoo.com"</span><span class="tok-p">)</span>
         <span class="tok-k">try</span><span class="tok-p">:</span>
             <span class="tok-n">inbox</span><span class="tok-o">.</span><span class="tok-n">user</span><span class="tok-p">(</span><span class="tok-n">test_email</span><span class="tok-p">)</span>
-            <span class="tok-n">inbox</span><span class="tok-o">.</span><span class="tok-n">pass_</span><span class="tok-p">(</span><span class="tok-n">os</span><span class="tok-o">.</span><span class="tok-n">environ</span><span class="tok-p">[</span><span class="tok-s1">'YAHOO_PASSWORD'</span><span class="tok-p">])</span>
+            <span class="tok-n">inbox</span><span class="tok-o">.</span><span class="tok-n">pass_</span><span class="tok-p">(</span><span class="tok-n">os</span><span class="tok-o">.</span><span class="tok-n">environ</span><span class="tok-p">[</span><span class="tok-s2">"YAHOO_PASSWORD"</span><span class="tok-p">])</span>
             <span class="tok-k">while</span> <span class="tok-n">time</span><span class="tok-o">.</span><span class="tok-n">time</span><span class="tok-p">()</span> <span class="tok-o">-</span> <span class="tok-n">start</span> <span class="tok-o">&lt;</span> <span class="tok-mi">60</span><span class="tok-p">:</span>
                 <span class="tok-c1"># get 10 newest messages</span>
                 <span class="tok-n">count</span><span class="tok-p">,</span> <span class="tok-n">_</span> <span class="tok-o">=</span> <span class="tok-n">inbox</span><span class="tok-o">.</span><span class="tok-n">stat</span><span class="tok-p">()</span>
                 <span class="tok-k">for</span> <span class="tok-n">i</span> <span class="tok-ow">in</span> <span class="tok-nb">reversed</span><span class="tok-p">(</span><span class="tok-nb">range</span><span class="tok-p">(</span><span class="tok-nb">max</span><span class="tok-p">(</span><span class="tok-mi">1</span><span class="tok-p">,</span> <span class="tok-n">count</span> <span class="tok-o">-</span> <span class="tok-mi">10</span><span class="tok-p">),</span> <span class="tok-n">count</span> <span class="tok-o">+</span> <span class="tok-mi">1</span><span class="tok-p">)):</span>
-                    <span class="tok-nb">print</span><span class="tok-p">(</span><span class="tok-s1">'getting msg'</span><span class="tok-p">,</span> <span class="tok-n">i</span><span class="tok-p">)</span>
+                    <span class="tok-nb">print</span><span class="tok-p">(</span><span class="tok-s2">"getting msg"</span><span class="tok-p">,</span> <span class="tok-n">i</span><span class="tok-p">)</span>
                     <span class="tok-n">_</span><span class="tok-p">,</span> <span class="tok-n">lines</span><span class="tok-p">,</span> <span class="tok-n">__</span> <span class="tok-o">=</span> <span class="tok-n">inbox</span><span class="tok-o">.</span><span class="tok-n">retr</span><span class="tok-p">(</span><span class="tok-n">i</span><span class="tok-p">)</span>
-                    <span class="tok-n">lines</span> <span class="tok-o">=</span> <span class="tok-p">[</span><span class="tok-n">l</span><span class="tok-o">.</span><span class="tok-n">decode</span><span class="tok-p">(</span><span class="tok-s1">'utf8'</span><span class="tok-p">)</span> <span class="tok-k">for</span> <span class="tok-n">l</span> <span class="tok-ow">in</span> <span class="tok-n">lines</span><span class="tok-p">]</span>
+                    <span class="tok-n">lines</span> <span class="tok-o">=</span> <span class="tok-p">[</span><span class="tok-n">l</span><span class="tok-o">.</span><span class="tok-n">decode</span><span class="tok-p">(</span><span class="tok-s2">"utf8"</span><span class="tok-p">)</span> <span class="tok-k">for</span> <span class="tok-n">l</span> <span class="tok-ow">in</span> <span class="tok-n">lines</span><span class="tok-p">]</span>
                     <span class="tok-nb">print</span><span class="tok-p">(</span><span class="tok-n">lines</span><span class="tok-p">)</span>
-                    <span class="tok-k">if</span> <span class="tok-sa">f</span><span class="tok-s1">'Subject: </span><span class="tok-si">{</span><span class="tok-n">subject</span><span class="tok-si">}</span><span class="tok-s1">'</span> <span class="tok-ow">in</span> <span class="tok-n">lines</span><span class="tok-p">:</span>
+                    <span class="tok-k">if</span> <span class="tok-sa">f</span><span class="tok-s2">"Subject: </span><span class="tok-si">{</span><span class="tok-n">subject</span><span class="tok-si">}</span><span class="tok-s2">"</span> <span class="tok-ow">in</span> <span class="tok-n">lines</span><span class="tok-p">:</span>
                         <span class="tok-n">email_id</span> <span class="tok-o">=</span> <span class="tok-n">i</span>
-                        <span class="tok-n">body</span> <span class="tok-o">=</span> <span class="tok-s1">'</span><span class="tok-se">\n</span><span class="tok-s1">'</span><span class="tok-o">.</span><span class="tok-n">join</span><span class="tok-p">(</span><span class="tok-n">lines</span><span class="tok-p">)</span>
+                        <span class="tok-n">body</span> <span class="tok-o">=</span> <span class="tok-s2">"</span><span class="tok-se">\n</span><span class="tok-s2">"</span><span class="tok-o">.</span><span class="tok-n">join</span><span class="tok-p">(</span><span class="tok-n">lines</span><span class="tok-p">)</span>
                         <span class="tok-k">return</span> <span class="tok-n">body</span>
                 <span class="tok-n">time</span><span class="tok-o">.</span><span class="tok-n">sleep</span><span class="tok-p">(</span><span class="tok-mi">5</span><span class="tok-p">)</span>
         <span class="tok-k">finally</span><span class="tok-p">:</span>
@@ -313,15 +333,26 @@ client:</p>
 </div>
 </div>
 </div>
+<div class="ulist">
+<ul>
+<li>
+<p>TODO: consider not using POP3, maybe
+<a href="https://docs.djangoproject.com/en/5.0/topics/email/#file-backend">file backend</a> instead.
+discuss tradeoff of testing config
+vs not needing to test that django can actually send emails</p>
+</li>
+</ul>
+</div>
 <div class="paragraph">
-<p>I&#8217;m using a Yahoo account for testing, but you can use any email service you
-like, as long as it offers POP3 access. You will need to set the
+<p>I signed up for a Yahoo account for testing,
+but you can use any email service you like, as long as it offers POP3 access.
+You will need to set the
 <code>YAHOO_PASSWORD</code> environment variable in the console that&#8217;s running the FT.</p>
 </div>
 <div class="listingblock">
 <div class="content">
 <pre>$ <strong>echo YAHOO_PASSWORD=otheremailpasswordhere &gt;&gt; .env</strong>
-$ <strong>source .env</strong></pre>
+$ <strong>set -a; source .env; set +a</strong></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -330,37 +361,42 @@ as a result.  Firstly, populating a <code>test_email</code> variable, differentl
 local and staging tests:</p>
 </div>
 <div class="exampleblock sourcecode small-code">
-<div class="title">functional_tests/test_login.py (ch18l011-1)</div>
+<div class="title">src/functional_tests/test_login.py (ch21l011-1)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="pygments highlight"><code data-lang="diff"><span></span><span class="tok-gu">@@ -7,7 +7,7 @@ from selenium.webdriver.common.keys import Keys</span>
+<pre class="pygments highlight"><code data-lang="diff"><span></span><span class="tok-gu">@@ -9,7 +9,6 @@ from selenium.webdriver.common.keys import Keys</span>
 
 <span class="tok-w"> </span>from .base import FunctionalTest
 
-<span class="tok-gd">-TEST_EMAIL = 'edith@example.com'</span>
-<span class="tok-gi">+</span>
-<span class="tok-w"> </span>SUBJECT = 'Your login link for Superlists'
+<span class="tok-gd">-TEST_EMAIL = "edith@example.com"</span>
+<span class="tok-w"> </span>SUBJECT = "Your login link for Superlists"
 
 
-<span class="tok-gu">@@ -33,7 +33,6 @@ class LoginTest(FunctionalTest):</span>
-<span class="tok-w"> </span>                    print('getting msg', i)
+<span class="tok-gu">@@ -34,7 +33,6 @@ class LoginTest(FunctionalTest):</span>
+<span class="tok-w"> </span>                    print("getting msg", i)
 <span class="tok-w"> </span>                    _, lines, __ = inbox.retr(i)
-<span class="tok-w"> </span>                    lines = [l.decode('utf8') for l in lines]
+<span class="tok-w"> </span>                    lines = [l.decode("utf8") for l in lines]
 <span class="tok-gd">-                    print(lines)</span>
-<span class="tok-w"> </span>                    if f'Subject: {subject}' in lines:
+<span class="tok-w"> </span>                    if f"Subject: {subject}" in lines:
 <span class="tok-w"> </span>                        email_id = i
-<span class="tok-w"> </span>                        body = '\n'.join(lines)
-<span class="tok-gu">@@ -49,6 +48,11 @@ class LoginTest(FunctionalTest):</span>
+<span class="tok-w"> </span>                        body = "\n".join(lines)
+<span class="tok-gu">@@ -49,9 +47,14 @@ class LoginTest(FunctionalTest):</span>
 <span class="tok-w"> </span>        # Edith goes to the awesome superlists site
 <span class="tok-w"> </span>        # and notices a "Log in" section in the navbar for the first time
 <span class="tok-w"> </span>        # It's telling her to enter her email address, so she does
-<span class="tok-gi">+        if self.staging_server:</span>
-<span class="tok-gi">+            test_email = 'edith.testuser@yahoo.com'</span>
+<span class="tok-gi">+        if self.test_server:</span>
+<span class="tok-gi">+            test_email = "edith.testuser@yahoo.com"</span>
 <span class="tok-gi">+        else:</span>
-<span class="tok-gi">+            test_email = 'edith@example.com'</span>
+<span class="tok-gi">+            test_email = "edith@example.com"</span>
 <span class="tok-gi">+</span>
-<span class="tok-w"> </span>        self.browser.get(self.live_server_url)</code></pre>
+<span class="tok-w"> </span>        self.browser.get(self.live_server_url)
+<span class="tok-w"> </span>        self.browser.find_element(By.CSS_SELECTOR, "input[name=email]").send_keys(
+<span class="tok-gd">-            TEST_EMAIL</span>
+<span class="tok-gi">+            test_email</span>
+<span class="tok-w"> </span>        )
+<span class="tok-w"> </span>        self.browser.find_element(By.CSS_SELECTOR, "input[name=email]").send_keys(
+<span class="tok-w"> </span>            Keys.ENTER</code></pre>
 </div>
 </div>
 </div>
@@ -370,21 +406,12 @@ local and staging tests:</p>
 function:</p>
 </div>
 <div class="exampleblock sourcecode small-code">
-<div class="title">functional_tests/test_login.py (ch18l011-2)</div>
+<div class="title">src/functional_tests/test_login.py (ch21l011-2)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="pygments highlight"><code data-lang="diff"><span></span><span class="tok-gu">@@ -54,7 +54,7 @@ class LoginTest(FunctionalTest):</span>
-<span class="tok-w"> </span>            test_email = 'edith@example.com'
-
-<span class="tok-w"> </span>        self.browser.get(self.live_server_url)
-<span class="tok-gd">-        self.browser.find_element_by_name('email').send_keys(TEST_EMAIL)</span>
-<span class="tok-gi">+        self.browser.find_element_by_name('email').send_keys(test_email)</span>
-<span class="tok-w"> </span>        self.browser.find_element_by_name('email').send_keys(Keys.ENTER)
-
-<span class="tok-w"> </span>        # A message appears telling her an email has been sent
-<span class="tok-gu">@@ -64,15 +64,13 @@ class LoginTest(FunctionalTest):</span>
-<span class="tok-w"> </span>        ))
+<pre class="pygments highlight"><code data-lang="diff"><span></span><span class="tok-gu">@@ -69,15 +69,13 @@ class LoginTest(FunctionalTest):</span>
+<span class="tok-w"> </span>        )
 
 <span class="tok-w"> </span>        # She checks her email and finds a message
 <span class="tok-gd">-        email = mail.outbox[0]</span>
@@ -392,18 +419,19 @@ function:</p>
 <span class="tok-gd">-        self.assertEqual(email.subject, SUBJECT)</span>
 <span class="tok-gi">+        body = self.wait_for_email(test_email, SUBJECT)</span>
 
-<span class="tok-w"> </span>        # It has a url link in it
-<span class="tok-gd">-        self.assertIn('Use this link to log in', email.body)</span>
-<span class="tok-gd">-        url_search = re.search(r'http://.+/.+$', email.body)</span>
-<span class="tok-gi">+        self.assertIn('Use this link to log in', body)</span>
-<span class="tok-gi">+        url_search = re.search(r'http://.+/.+$', body)</span>
+<span class="tok-gd">-        # It has a URL link in it</span>
+<span class="tok-gd">-        self.assertIn("Use this link to log in", email.body)</span>
+<span class="tok-gd">-        url_search = re.search(r"http://.+/.+$", email.body)</span>
+<span class="tok-gi">+        # It has a url link in it</span>
+<span class="tok-gi">+        self.assertIn("Use this link to log in", body)</span>
+<span class="tok-gi">+        url_search = re.search(r"http://.+/.+$", body)</span>
 <span class="tok-w"> </span>        if not url_search:
-<span class="tok-gd">-            self.fail(f'Could not find url in email body:\n{email.body}')</span>
-<span class="tok-gi">+            self.fail(f'Could not find url in email body:\n{body}')</span>
+<span class="tok-gd">-            self.fail(f"Could not find url in email body:\n{email.body}")</span>
+<span class="tok-gi">+            self.fail(f"Could not find url in email body:\n{body}")</span>
 <span class="tok-w"> </span>        url = url_search.group(0)
 <span class="tok-w"> </span>        self.assertIn(self.live_server_url, url)
 
-<span class="tok-gu">@@ -80,11 +78,11 @@ class LoginTest(FunctionalTest):</span>
+<span class="tok-gu">@@ -85,10 +83,10 @@ class LoginTest(FunctionalTest):</span>
 <span class="tok-w"> </span>        self.browser.get(url)
 
 <span class="tok-w"> </span>        # she is logged in!
@@ -411,7 +439,7 @@ function:</p>
 <span class="tok-gi">+        self.wait_to_be_logged_in(email=test_email)</span>
 
 <span class="tok-w"> </span>        # Now she logs out
-<span class="tok-w"> </span>        self.browser.find_element_by_link_text('Log out').click()
+<span class="tok-w"> </span>        self.browser.find_element(By.LINK_TEXT, "Log out").click()
 
 <span class="tok-w"> </span>        # She is logged out
 <span class="tok-gd">-        self.wait_to_be_logged_out(email=TEST_EMAIL)</span>
@@ -424,9 +452,9 @@ function:</p>
 <p>And, believe it or not, that&#8217;ll actually work, and give us an FT
 that can actually check for logins that work, involving real emails!</p>
 </div>
-<div class="listingblock small-code">
+<div class="listingblock against-server small-code">
 <div class="content">
-<pre>$ <strong>STAGING_SERVER=staging.ottg.co.uk python manage.py test functional_tests.test_login</strong>
+<pre>$ <strong>TEST_SERVER=staging.ottg.co.uk python src/manage.py test functional_tests.test_login</strong>
 [...]
 OK</pre>
 </div>
@@ -438,12 +466,16 @@ OK</pre>
 <i class="fa icon-note" title="Note"></i>
 </td>
 <td class="content">
-I&#8217;ve just hacked this email-checking code together, and it&#8217;s currently
-    pretty ugly and brittle (one common problem is picking up the wrong email
-    from a previous test run).  With some cleanup and a few more retry loops it
-    could grow into something more reliable. Alternatively, services like
-    <em>mailinator.com</em> will give you throwaway email addresses and an API to
-    check them, for a small fee.
+I&#8217;ve just hacked this email-checking code together,
+    and it&#8217;s currently pretty ugly and brittle
+    (one common problem is picking up the wrong email from a previous test run).
+    With some cleanup and a few more retry loops
+    it could grow into something more reliable.
+    Alternatively, services like <em>mailinator.com</em> will give you throwaway email addresses
+    and an API to check them, for a small fee.
+    
+    
+    
 </td>
 </tr>
 </table>
@@ -452,13 +484,17 @@ I&#8217;ve just hacked this email-checking code together, and it&#8217;s current
 <div class="sect2">
 <h3 id="_managing_the_test_database_on_staging">Managing the Test Database on Staging</h3>
 <div class="paragraph">
-<p>Now
-we can rerun our full FT suite and get to the next failure: our attempt to
-create pre-authenticated sessions doesn&#8217;t work, so the "My Lists" test fails:</p>
+<p>
+
+
+
+Now we can rerun our full FT suite and get to the next failure:
+our attempt to create pre-authenticated sessions doesn&#8217;t work,
+so the "My Lists" test fails:</p>
 </div>
 <div class="listingblock skipme small-code">
 <div class="content">
-<pre>$ <strong>STAGING_SERVER=staging.ottg.co.uk python manage.py test functional_tests</strong>
+<pre>$ <strong>TEST_SERVER=staging.ottg.co.uk python src/manage.py test functional_tests</strong>
 
 ERROR: test_logged_in_users_lists_are_saved_as_my_lists
 (functional_tests.test_my_lists.MyListsTest)
@@ -482,9 +518,9 @@ database on the server.</p>
 <div class="sect3">
 <h4 id="_a_django_management_command_to_create_sessions">A Django Management Command to Create Sessions</h4>
 <div class="paragraph">
-<p>To
-do things on the server, we&#8217;ll need to build a self-contained script that
-can be run from the command line on the server, most probably via Fabric.</p>
+<p>
+To do things on the server, we&#8217;ll need to build a self-contained script
+that can be run from the command line on the server, most probably via Fabric.</p>
 </div>
 <div class="paragraph">
 <p>When trying to build a standalone script that works with Django (i.e., can talk
@@ -500,9 +536,9 @@ will do all that path mangling for you. They live in a folder called
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>$ <strong>mkdir -p functional_tests/management/commands</strong>
-$ <strong>touch functional_tests/management/__init__.py</strong>
-$ <strong>touch functional_tests/management/commands/__init__.py</strong></pre>
+<pre>$ <strong>mkdir -p src/functional_tests/management/commands</strong>
+$ <strong>touch src/functional_tests/management/__init__.py</strong>
+$ <strong>touch src/functional_tests/management/commands/__init__.py</strong></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -511,24 +547,24 @@ $ <strong>touch functional_tests/management/commands/__init__.py</strong></pre>
 <code>handle</code>:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">functional_tests/management/commands/create_session.py</div>
+<div class="title">src/functional_tests/management/commands/create_session.py (ch21l012)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
 <pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-kn">from</span> <span class="tok-nn">django.conf</span> <span class="tok-kn">import</span> <span class="tok-n">settings</span>
 <span class="tok-kn">from</span> <span class="tok-nn">django.contrib.auth</span> <span class="tok-kn">import</span> <span class="tok-n">BACKEND_SESSION_KEY</span><span class="tok-p">,</span> <span class="tok-n">SESSION_KEY</span><span class="tok-p">,</span> <span class="tok-n">get_user_model</span>
-<span class="tok-n">User</span> <span class="tok-o">=</span> <span class="tok-n">get_user_model</span><span class="tok-p">()</span>
 <span class="tok-kn">from</span> <span class="tok-nn">django.contrib.sessions.backends.db</span> <span class="tok-kn">import</span> <span class="tok-n">SessionStore</span>
 <span class="tok-kn">from</span> <span class="tok-nn">django.core.management.base</span> <span class="tok-kn">import</span> <span class="tok-n">BaseCommand</span>
 
+<span class="tok-n">User</span> <span class="tok-o">=</span> <span class="tok-n">get_user_model</span><span class="tok-p">()</span>
+
 
 <span class="tok-k">class</span> <span class="tok-nc">Command</span><span class="tok-p">(</span><span class="tok-n">BaseCommand</span><span class="tok-p">):</span>
-
     <span class="tok-k">def</span> <span class="tok-nf">add_arguments</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">,</span> <span class="tok-n">parser</span><span class="tok-p">):</span>
-        <span class="tok-n">parser</span><span class="tok-o">.</span><span class="tok-n">add_argument</span><span class="tok-p">(</span><span class="tok-s1">'email'</span><span class="tok-p">)</span>
+        <span class="tok-n">parser</span><span class="tok-o">.</span><span class="tok-n">add_argument</span><span class="tok-p">(</span><span class="tok-s2">"email"</span><span class="tok-p">)</span>
 
     <span class="tok-k">def</span> <span class="tok-nf">handle</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">,</span> <span class="tok-o">*</span><span class="tok-n">args</span><span class="tok-p">,</span> <span class="tok-o">**</span><span class="tok-n">options</span><span class="tok-p">):</span>
-        <span class="tok-n">session_key</span> <span class="tok-o">=</span> <span class="tok-n">create_pre_authenticated_session</span><span class="tok-p">(</span><span class="tok-n">options</span><span class="tok-p">[</span><span class="tok-s1">'email'</span><span class="tok-p">])</span>
+        <span class="tok-n">session_key</span> <span class="tok-o">=</span> <span class="tok-n">create_pre_authenticated_session</span><span class="tok-p">(</span><span class="tok-n">options</span><span class="tok-p">[</span><span class="tok-s2">"email"</span><span class="tok-p">])</span>
         <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">stdout</span><span class="tok-o">.</span><span class="tok-n">write</span><span class="tok-p">(</span><span class="tok-n">session_key</span><span class="tok-p">)</span>
 
 
@@ -549,10 +585,10 @@ $ <strong>touch functional_tests/management/commands/__init__.py</strong></pre>
 and then return the session key that we&#8217;ll want to add to our browser cookies,
 and the management command prints it out at the command line. Try it out:</p>
 </div>
-<div class="listingblock skipme">
+<div class="listingblock ignore-errors">
 <div class="content">
-<pre>$ <strong>python manage.py create_session a@b.com</strong>
-Unknown command: 'create_session'</pre>
+<pre>$ <strong>python src/manage.py create_session a@b.com</strong>
+Unknown command: 'create_session'. Did you mean clearsessions?</pre>
 </div>
 </div>
 <div class="paragraph">
@@ -561,15 +597,15 @@ for it to recognise it as a real app that might have management commands as
 well as tests:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">superlists/settings.py</div>
+<div class="title">src/superlists/settings.py (ch21l014)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
 <pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-o">+++</span> <span class="tok-n">b</span><span class="tok-o">/</span><span class="tok-n">superlists</span><span class="tok-o">/</span><span class="tok-n">settings</span><span class="tok-o">.</span><span class="tok-n">py</span>
 <span class="tok-o">@@</span> <span class="tok-o">-</span><span class="tok-mi">42</span><span class="tok-p">,</span><span class="tok-mi">6</span> <span class="tok-o">+</span><span class="tok-mi">42</span><span class="tok-p">,</span><span class="tok-mi">7</span> <span class="tok-o">@@</span> <span class="tok-n">INSTALLED_APPS</span> <span class="tok-o">=</span> <span class="tok-p">[</span>
-     <span class="tok-s1">'lists'</span><span class="tok-p">,</span>
-     <span class="tok-s1">'accounts'</span><span class="tok-p">,</span>
-<span class="tok-o">+</span>    <span class="tok-s1">'functional_tests'</span><span class="tok-p">,</span>
+     <span class="tok-s2">"lists"</span><span class="tok-p">,</span>
+     <span class="tok-s2">"accounts"</span><span class="tok-p">,</span>
+<span class="tok-o">+</span>    <span class="tok-s2">"functional_tests"</span><span class="tok-p">,</span>
  <span class="tok-p">]</span></code></pre>
 </div>
 </div>
@@ -580,7 +616,7 @@ well as tests:</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>$ <strong>python manage.py create_session a@b.com</strong>
+<pre>$ <strong>python src/manage.py create_session a@b.com</strong>
 qnslckvp2aga7tm6xuivyb0ob1akzzwl</pre>
 </div>
 </div>
@@ -603,34 +639,38 @@ If you see an error saying the <code>auth_user</code> table is missing, you may 
 <h4 id="_getting_the_ft_to_run_the_management_command_on_the_server">Getting the FT to Run the Management Command on the Server</h4>
 <div class="paragraph">
 <p>Next we need to adjust <code>test_my_lists</code> so that it runs the local function
-when we&#8217;re on the local server, and make it run the management command
-on the staging server if we&#8217;re on that:</p>
+when we&#8217;re on the local server,
+and make it run the management command on the staging server if we&#8217;re on that:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">functional_tests/test_my_lists.py (ch18l016)</div>
+<div class="title">src/functional_tests/test_my_lists.py (ch21l016)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
 <pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-kn">from</span> <span class="tok-nn">django.conf</span> <span class="tok-kn">import</span> <span class="tok-n">settings</span>
+
 <span class="tok-kn">from</span> <span class="tok-nn">.base</span> <span class="tok-kn">import</span> <span class="tok-n">FunctionalTest</span>
-<span class="tok-kn">from</span> <span class="tok-nn">.server_tools</span> <span class="tok-kn">import</span> <span class="tok-n">create_session_on_server</span>
 <span class="tok-kn">from</span> <span class="tok-nn">.management.commands.create_session</span> <span class="tok-kn">import</span> <span class="tok-n">create_pre_authenticated_session</span>
+<span class="tok-kn">from</span> <span class="tok-nn">.server_tools</span> <span class="tok-kn">import</span> <span class="tok-n">create_session_on_server</span>
+
 
 <span class="tok-k">class</span> <span class="tok-nc">MyListsTest</span><span class="tok-p">(</span><span class="tok-n">FunctionalTest</span><span class="tok-p">):</span>
-
     <span class="tok-k">def</span> <span class="tok-nf">create_pre_authenticated_session</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">,</span> <span class="tok-n">email</span><span class="tok-p">):</span>
-        <span class="tok-k">if</span> <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">staging_server</span><span class="tok-p">:</span>
-            <span class="tok-n">session_key</span> <span class="tok-o">=</span> <span class="tok-n">create_session_on_server</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">staging_server</span><span class="tok-p">,</span> <span class="tok-n">email</span><span class="tok-p">)</span>
+        <span class="tok-k">if</span> <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">test_server</span><span class="tok-p">:</span>
+            <span class="tok-n">session_key</span> <span class="tok-o">=</span> <span class="tok-n">create_session_on_server</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">test_server</span><span class="tok-p">,</span> <span class="tok-n">email</span><span class="tok-p">)</span>
         <span class="tok-k">else</span><span class="tok-p">:</span>
             <span class="tok-n">session_key</span> <span class="tok-o">=</span> <span class="tok-n">create_pre_authenticated_session</span><span class="tok-p">(</span><span class="tok-n">email</span><span class="tok-p">)</span>
+
         <span class="tok-c1">## to set a cookie we need to first visit the domain.</span>
         <span class="tok-c1">## 404 pages load the quickest!</span>
         <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">browser</span><span class="tok-o">.</span><span class="tok-n">get</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">live_server_url</span> <span class="tok-o">+</span> <span class="tok-s2">"/404_no_such_url/"</span><span class="tok-p">)</span>
-        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">browser</span><span class="tok-o">.</span><span class="tok-n">add_cookie</span><span class="tok-p">(</span><span class="tok-nb">dict</span><span class="tok-p">(</span>
-            <span class="tok-n">name</span><span class="tok-o">=</span><span class="tok-n">settings</span><span class="tok-o">.</span><span class="tok-n">SESSION_COOKIE_NAME</span><span class="tok-p">,</span>
-            <span class="tok-n">value</span><span class="tok-o">=</span><span class="tok-n">session_key</span><span class="tok-p">,</span>
-            <span class="tok-n">path</span><span class="tok-o">=</span><span class="tok-s1">'/'</span><span class="tok-p">,</span>
-        <span class="tok-p">))</span>
+        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">browser</span><span class="tok-o">.</span><span class="tok-n">add_cookie</span><span class="tok-p">(</span>
+            <span class="tok-nb">dict</span><span class="tok-p">(</span>
+                <span class="tok-n">name</span><span class="tok-o">=</span><span class="tok-n">settings</span><span class="tok-o">.</span><span class="tok-n">SESSION_COOKIE_NAME</span><span class="tok-p">,</span>
+                <span class="tok-n">value</span><span class="tok-o">=</span><span class="tok-n">session_key</span><span class="tok-p">,</span>
+                <span class="tok-n">path</span><span class="tok-o">=</span><span class="tok-s2">"/"</span><span class="tok-p">,</span>
+            <span class="tok-p">)</span>
+        <span class="tok-p">)</span>
 
     <span class="tok-p">[</span><span class="tok-o">...</span><span class="tok-p">]</span></code></pre>
 </div>
@@ -639,10 +679,10 @@ on the staging server if we&#8217;re on that:</p>
 </div>
 <div class="paragraph">
 <p>Let&#8217;s also tweak <em>base.py</em>, to gather a bit more information
-when we populate <code>self.against_staging</code>:</p>
+when we populate <code>self.test_server</code>:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">functional_tests/base.py (ch18l017)</div>
+<div class="title">src/functional_tests/base.py (ch21l017)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
@@ -650,13 +690,12 @@ when we populate <code>self.against_staging</code>:</p>
 <span class="tok-p">[</span><span class="tok-o">...</span><span class="tok-p">]</span>
 
 <span class="tok-k">class</span> <span class="tok-nc">FunctionalTest</span><span class="tok-p">(</span><span class="tok-n">StaticLiveServerTestCase</span><span class="tok-p">):</span>
-
     <span class="tok-k">def</span> <span class="tok-nf">setUp</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">):</span>
         <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">browser</span> <span class="tok-o">=</span> <span class="tok-n">webdriver</span><span class="tok-o">.</span><span class="tok-n">Firefox</span><span class="tok-p">()</span>
-        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">staging_server</span> <span class="tok-o">=</span> <span class="tok-n">os</span><span class="tok-o">.</span><span class="tok-n">environ</span><span class="tok-o">.</span><span class="tok-n">get</span><span class="tok-p">(</span><span class="tok-s1">'STAGING_SERVER'</span><span class="tok-p">)</span>
-        <span class="tok-k">if</span> <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">staging_server</span><span class="tok-p">:</span>
-            <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">live_server_url</span> <span class="tok-o">=</span> <span class="tok-s1">'http://'</span> <span class="tok-o">+</span> <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">staging_server</span>
-            <span class="tok-n">reset_database</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">staging_server</span><span class="tok-p">)</span>  <i class="conum" data-value="1"></i><b>(1)</b></code></pre>
+        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">test_server</span> <span class="tok-o">=</span> <span class="tok-n">os</span><span class="tok-o">.</span><span class="tok-n">environ</span><span class="tok-o">.</span><span class="tok-n">get</span><span class="tok-p">(</span><span class="tok-s2">"TEST_SERVER"</span><span class="tok-p">)</span>
+        <span class="tok-k">if</span> <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">test_server</span><span class="tok-p">:</span>
+            <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">live_server_url</span> <span class="tok-o">=</span> <span class="tok-s2">"http://"</span> <span class="tok-o">+</span> <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">test_server</span>
+            <span class="tok-n">reset_database</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">test_server</span><span class="tok-p">)</span>  <i class="conum" data-value="1"></i><b>(1)</b></code></pre>
 </div>
 </div>
 </div>
@@ -673,14 +712,21 @@ test.  We&#8217;ll write that next, using Fabric.</td>
 </div>
 <div class="sect3">
 <h4 id="_using_fabric_directly_from_python">Using Fabric Directly from Python</h4>
+<div class="ulist">
+<ul>
+<li>
+<p>TODO: rewrite for ansible.</p>
+</li>
+</ul>
+</div>
 <div class="paragraph">
-<p>Rather
-than using the <code>fab</code> command, Fabric provides an API that lets
+<p>
+Rather than using the <code>fab</code> command, Fabric provides an API that lets
 you run Fabric server commands directly inline in your Python code.  You
 just need to let it know the "host string" you&#8217;re connecting to:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">functional_tests/server_tools.py (ch18l018)</div>
+<div class="title">src/functional_tests/server_tools.py (ch18l018)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
@@ -689,13 +735,13 @@ just need to let it know the "host string" you&#8217;re connecting to:</p>
 
 
 <span class="tok-k">def</span> <span class="tok-nf">_get_manage_dot_py</span><span class="tok-p">(</span><span class="tok-n">host</span><span class="tok-p">):</span>
-    <span class="tok-k">return</span> <span class="tok-sa">f</span><span class="tok-s1">'~/sites/</span><span class="tok-si">{</span><span class="tok-n">host</span><span class="tok-si">}</span><span class="tok-s1">/.venv/bin/python ~/sites/</span><span class="tok-si">{</span><span class="tok-n">host</span><span class="tok-si">}</span><span class="tok-s1">/manage.py'</span>
+    <span class="tok-k">return</span> <span class="tok-sa">f</span><span class="tok-s2">"~/sites/</span><span class="tok-si">{</span><span class="tok-n">host</span><span class="tok-si">}</span><span class="tok-s2">/.venv/bin/python ~/sites/</span><span class="tok-si">{</span><span class="tok-n">host</span><span class="tok-si">}</span><span class="tok-s2">/manage.py"</span>
 
 
 <span class="tok-k">def</span> <span class="tok-nf">reset_database</span><span class="tok-p">(</span><span class="tok-n">host</span><span class="tok-p">):</span>
     <span class="tok-n">manage_dot_py</span> <span class="tok-o">=</span> <span class="tok-n">_get_manage_dot_py</span><span class="tok-p">(</span><span class="tok-n">host</span><span class="tok-p">)</span>
-    <span class="tok-k">with</span> <span class="tok-n">settings</span><span class="tok-p">(</span><span class="tok-n">host_string</span><span class="tok-o">=</span><span class="tok-sa">f</span><span class="tok-s1">'elspeth@</span><span class="tok-si">{</span><span class="tok-n">host</span><span class="tok-si">}</span><span class="tok-s1">'</span><span class="tok-p">):</span>  <i class="conum" data-value="1"></i><b>(1)</b>
-        <span class="tok-n">run</span><span class="tok-p">(</span><span class="tok-sa">f</span><span class="tok-s1">'</span><span class="tok-si">{</span><span class="tok-n">manage_dot_py</span><span class="tok-si">}</span><span class="tok-s1"> flush --noinput'</span><span class="tok-p">)</span>  <i class="conum" data-value="2"></i><b>(2)</b></code></pre>
+    <span class="tok-k">with</span> <span class="tok-n">settings</span><span class="tok-p">(</span><span class="tok-n">host_string</span><span class="tok-o">=</span><span class="tok-sa">f</span><span class="tok-s2">"elspeth@</span><span class="tok-si">{</span><span class="tok-n">host</span><span class="tok-si">}</span><span class="tok-s2">"</span><span class="tok-p">):</span>  <i class="conum" data-value="1"></i><b>(1)</b>
+        <span class="tok-n">run</span><span class="tok-p">(</span><span class="tok-sa">f</span><span class="tok-s2">"</span><span class="tok-si">{</span><span class="tok-n">manage_dot_py</span><span class="tok-si">}</span><span class="tok-s2"> flush --noinput"</span><span class="tok-p">)</span>  <i class="conum" data-value="2"></i><b>(2)</b></code></pre>
 </div>
 </div>
 </div>
@@ -722,21 +768,21 @@ the current running server, to be able to generate a session key that&#8217;s
 cryptographically valid for the server:</p>
 </div>
 <div class="exampleblock sourcecode small-code">
-<div class="title">functional_tests/server_tools.py (ch18l019)</div>
+<div class="title">src/functional_tests/server_tools.py (ch18l019)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
 <pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-k">def</span> <span class="tok-nf">_get_server_env_vars</span><span class="tok-p">(</span><span class="tok-n">host</span><span class="tok-p">):</span>
-    <span class="tok-n">env_lines</span> <span class="tok-o">=</span> <span class="tok-n">run</span><span class="tok-p">(</span><span class="tok-sa">f</span><span class="tok-s1">'cat ~/sites/</span><span class="tok-si">{</span><span class="tok-n">host</span><span class="tok-si">}</span><span class="tok-s1">/.env'</span><span class="tok-p">)</span><span class="tok-o">.</span><span class="tok-n">splitlines</span><span class="tok-p">()</span>  <i class="conum" data-value="1"></i><b>(1)</b>
-    <span class="tok-k">return</span> <span class="tok-nb">dict</span><span class="tok-p">(</span><span class="tok-n">l</span><span class="tok-o">.</span><span class="tok-n">split</span><span class="tok-p">(</span><span class="tok-s1">'='</span><span class="tok-p">)</span> <span class="tok-k">for</span> <span class="tok-n">l</span> <span class="tok-ow">in</span> <span class="tok-n">env_lines</span> <span class="tok-k">if</span> <span class="tok-n">l</span><span class="tok-p">)</span>
+    <span class="tok-n">env_lines</span> <span class="tok-o">=</span> <span class="tok-n">run</span><span class="tok-p">(</span><span class="tok-sa">f</span><span class="tok-s2">"cat ~/sites/</span><span class="tok-si">{</span><span class="tok-n">host</span><span class="tok-si">}</span><span class="tok-s2">/.env"</span><span class="tok-p">)</span><span class="tok-o">.</span><span class="tok-n">splitlines</span><span class="tok-p">()</span>  <i class="conum" data-value="1"></i><b>(1)</b>
+    <span class="tok-k">return</span> <span class="tok-nb">dict</span><span class="tok-p">(</span><span class="tok-n">l</span><span class="tok-o">.</span><span class="tok-n">split</span><span class="tok-p">(</span><span class="tok-s2">"="</span><span class="tok-p">)</span> <span class="tok-k">for</span> <span class="tok-n">l</span> <span class="tok-ow">in</span> <span class="tok-n">env_lines</span> <span class="tok-k">if</span> <span class="tok-n">l</span><span class="tok-p">)</span>
 
 
 <span class="tok-k">def</span> <span class="tok-nf">create_session_on_server</span><span class="tok-p">(</span><span class="tok-n">host</span><span class="tok-p">,</span> <span class="tok-n">email</span><span class="tok-p">):</span>
     <span class="tok-n">manage_dot_py</span> <span class="tok-o">=</span> <span class="tok-n">_get_manage_dot_py</span><span class="tok-p">(</span><span class="tok-n">host</span><span class="tok-p">)</span>
-    <span class="tok-k">with</span> <span class="tok-n">settings</span><span class="tok-p">(</span><span class="tok-n">host_string</span><span class="tok-o">=</span><span class="tok-sa">f</span><span class="tok-s1">'elspeth@</span><span class="tok-si">{</span><span class="tok-n">host</span><span class="tok-si">}</span><span class="tok-s1">'</span><span class="tok-p">):</span>
+    <span class="tok-k">with</span> <span class="tok-n">settings</span><span class="tok-p">(</span><span class="tok-n">host_string</span><span class="tok-o">=</span><span class="tok-sa">f</span><span class="tok-s2">"elspeth@</span><span class="tok-si">{</span><span class="tok-n">host</span><span class="tok-si">}</span><span class="tok-s2">"</span><span class="tok-p">):</span>
         <span class="tok-n">env_vars</span> <span class="tok-o">=</span> <span class="tok-n">_get_server_env_vars</span><span class="tok-p">(</span><span class="tok-n">host</span><span class="tok-p">)</span>
         <span class="tok-k">with</span> <span class="tok-n">shell_env</span><span class="tok-p">(</span><span class="tok-o">**</span><span class="tok-n">env_vars</span><span class="tok-p">):</span>  <i class="conum" data-value="2"></i><b>(2)</b>
-            <span class="tok-n">session_key</span> <span class="tok-o">=</span> <span class="tok-n">run</span><span class="tok-p">(</span><span class="tok-sa">f</span><span class="tok-s1">'</span><span class="tok-si">{</span><span class="tok-n">manage_dot_py</span><span class="tok-si">}</span><span class="tok-s1"> create_session </span><span class="tok-si">{</span><span class="tok-n">email</span><span class="tok-si">}</span><span class="tok-s1">'</span><span class="tok-p">)</span>  <i class="conum" data-value="3"></i><b>(3)</b>
+            <span class="tok-n">session_key</span> <span class="tok-o">=</span> <span class="tok-n">run</span><span class="tok-p">(</span><span class="tok-sa">f</span><span class="tok-s2">"</span><span class="tok-si">{</span><span class="tok-n">manage_dot_py</span><span class="tok-si">}</span><span class="tok-s2"> create_session </span><span class="tok-si">{</span><span class="tok-n">email</span><span class="tok-si">}</span><span class="tok-s2">"</span><span class="tok-p">)</span>  <i class="conum" data-value="3"></i><b>(3)</b>
             <span class="tok-k">return</span> <span class="tok-n">session_key</span><span class="tok-o">.</span><span class="tok-n">strip</span><span class="tok-p">()</span></code></pre>
 </div>
 </div>
@@ -765,8 +811,9 @@ same <code>create_pre_authenticated_session</code> function, but on the server.<
 <div class="sect3">
 <h4 id="_recap_creating_sessions_locally_versus_staging">Recap: Creating Sessions Locally Versus Staging</h4>
 <div class="paragraph">
-<p>Does
-that all make sense?  Perhaps a little ascii-art diagram will help:</p>
+<p>
+Does that all make sense?
+Perhaps a little ascii-art diagram will help:</p>
 </div>
 <div class="sect4">
 <h5 id="_locally">Locally:</h5>
@@ -802,21 +849,19 @@ that all make sense?  Perhaps a little ascii-art diagram will help:</p>
 <p>In any case, let&#8217;s see if it works.  First, locally, to check that we didn&#8217;t
 break anything:</p>
 </div>
-<div class="listingblock">
+<div class="listingblock dofirst-ch21l022">
 <div class="content">
-<pre>$ <strong>python manage.py test functional_tests.test_my_lists</strong>
+<pre>$ <strong>python src/manage.py test functional_tests.test_my_lists</strong>
 [...]
 OK</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>Next, against the server.  We push our code up first:</p>
+<p>Next, against the server.</p>
 </div>
 <div class="listingblock against-server">
 <div class="content">
-<pre>$ <strong>git push</strong>  # you'll need to commit changes first.
-$ <strong>cd deploy_tools</strong>
-$ <strong>fab deploy --host=elspeth@staging.ottg.co.uk</strong></pre>
+<pre>$ pass:quotes[<strong>ansible-playbook --user=elspeth -i staging.ottg.co.uk, infra/ansible-provision.yaml -vv</strong>]</pre>
 </div>
 </div>
 <div class="paragraph">
@@ -824,7 +869,7 @@ $ <strong>fab deploy --host=elspeth@staging.ottg.co.uk</strong></pre>
 </div>
 <div class="listingblock against-server small-code">
 <div class="content">
-<pre>$ <strong>STAGING_SERVER=staging.ottg.co.uk python manage.py test \
+<pre>$ <strong>TEST_SERVER=staging.ottg.co.uk python src/manage.py test \
  functional_tests.test_my_lists</strong>
 [...]
 [elspeth@staging.ottg.co.uk] run:
@@ -847,7 +892,7 @@ OK</pre>
 </div>
 <div class="listingblock against-server small-code">
 <div class="content">
-<pre>$ <strong>STAGING_SERVER=staging.ottg.co.uk python manage.py test functional_tests</strong>
+<pre>$ <strong>TEST_SERVER=staging.ottg.co.uk python src/manage.py test functional_tests</strong>
 [...]
 [elspeth@staging.ottg.co.uk] run:
 ~/sites/staging.ottg.co.uk/.venv/bin/python
@@ -881,22 +926,23 @@ I&#8217;ve shown one way of managing the test database, but you could
 <div class="content">
 <div class="title">Warning: Be Careful Not to Run Test Code Against the Live Server</div>
 <div class="paragraph">
-<p>We&#8217;re
-into dangerous territory, now that we have code that can directly
-affect a database on the server.  You want to be very, very careful that you
-don&#8217;t accidentally blow away your production database by running FTs against
-the wrong host.</p>
+<p>
+
+We&#8217;re into dangerous territory,
+now that we have code that can directly affect a database on the server.
+You want to be very, very careful
+that you don&#8217;t accidentally blow away your production database
+by running FTs against the wrong host.</p>
 </div>
 <div class="paragraph">
-<p>You might consider putting some safeguards in place at this point. For example,
-you could put staging and production on different servers, and make it so they
-use different keypairs for authentication, with different passphrases.</p>
+<p>You might consider putting some safeguards in place at this point.
+For example, you could put staging and production on different servers,
+and make it so they use different keypairs for authentication, with different passphrases.</p>
 </div>
 <div class="paragraph">
-<p>This is similarly dangerous territory to running tests against clones of
-production data. I have a little story about accidentally sending
-thousands of duplicate invoices to clients in <a href="/book/appendix_IV_testing_migrations.html">[data-migrations-appendix]</a>.
-LFMF.</p>
+<p>This is similarly dangerous territory to running tests against clones of production data.
+I have a little story about accidentally sending thousands of duplicate invoices to clients
+in <a href="/book/appendix_IV_testing_migrations.html">[data-migrations-appendix]</a>. LFMF.</p>
 </div>
 </div>
 </div>
@@ -905,13 +951,20 @@ LFMF.</p>
 </div>
 <div class="sect2">
 <h3 id="_updating_our_deploy_script">Updating our Deploy Script</h3>
+<div class="ulist">
+<ul>
+<li>
+<p>TODO: ansible.</p>
+</li>
+</ul>
+</div>
 <div class="paragraph">
-<p>Before
-we finish, let&#8217;s update our deployment fabfile so that it can
+<p>
+Before we finish, let&#8217;s update our deployment fabfile so that it can
 automatically add the <code>EMAIL_PASSWORD</code> to the <em>.env</em> file on the server:</p>
 </div>
-<div class="exampleblock sourcecode">
-<div class="title">deploy_tools/fabfile.py (ch18l021)</div>
+<div class="exampleblock sourcecode skipme">
+<div class="title">src/deploy_tools/fabfile.py (ch18l021)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
@@ -920,16 +973,16 @@ automatically add the <code>EMAIL_PASSWORD</code> to the <em>.env</em> file on t
 
 
 <span class="tok-k">def</span> <span class="tok-nf">_create_or_update_dotenv</span><span class="tok-p">():</span>
-    <span class="tok-n">append</span><span class="tok-p">(</span><span class="tok-s1">'.env'</span><span class="tok-p">,</span> <span class="tok-s1">'DJANGO_DEBUG_FALSE=y'</span><span class="tok-p">)</span>
-    <span class="tok-n">append</span><span class="tok-p">(</span><span class="tok-s1">'.env'</span><span class="tok-p">,</span> <span class="tok-sa">f</span><span class="tok-s1">'SITENAME=</span><span class="tok-si">{</span><span class="tok-n">env</span><span class="tok-o">.</span><span class="tok-n">host</span><span class="tok-si">}</span><span class="tok-s1">'</span><span class="tok-p">)</span>
-    <span class="tok-n">current_contents</span> <span class="tok-o">=</span> <span class="tok-n">run</span><span class="tok-p">(</span><span class="tok-s1">'cat .env'</span><span class="tok-p">)</span>
-    <span class="tok-k">if</span> <span class="tok-s1">'DJANGO_SECRET_KEY'</span> <span class="tok-ow">not</span> <span class="tok-ow">in</span> <span class="tok-n">current_contents</span><span class="tok-p">:</span>
-        <span class="tok-n">new_secret</span> <span class="tok-o">=</span> <span class="tok-s1">''</span><span class="tok-o">.</span><span class="tok-n">join</span><span class="tok-p">(</span><span class="tok-n">random</span><span class="tok-o">.</span><span class="tok-n">SystemRandom</span><span class="tok-p">()</span><span class="tok-o">.</span><span class="tok-n">choices</span><span class="tok-p">(</span>
-            <span class="tok-s1">'abcdefghijklmnopqrstuvwxyz0123456789'</span><span class="tok-p">,</span> <span class="tok-n">k</span><span class="tok-o">=</span><span class="tok-mi">50</span>
-        <span class="tok-p">))</span>
-        <span class="tok-n">append</span><span class="tok-p">(</span><span class="tok-s1">'.env'</span><span class="tok-p">,</span> <span class="tok-sa">f</span><span class="tok-s1">'DJANGO_SECRET_KEY=</span><span class="tok-si">{</span><span class="tok-n">new_secret</span><span class="tok-si">}</span><span class="tok-s1">'</span><span class="tok-p">)</span>
-    <span class="tok-n">email_password</span> <span class="tok-o">=</span> <span class="tok-n">os</span><span class="tok-o">.</span><span class="tok-n">environ</span><span class="tok-p">[</span><span class="tok-s1">'EMAIL_PASSWORD'</span><span class="tok-p">]</span>  <i class="conum" data-value="1"></i><b>(1)</b>
-    <span class="tok-n">append</span><span class="tok-p">(</span><span class="tok-s1">'.env'</span><span class="tok-p">,</span> <span class="tok-sa">f</span><span class="tok-s1">'EMAIL_PASSWORD=</span><span class="tok-si">{</span><span class="tok-n">email_password</span><span class="tok-si">}</span><span class="tok-s1">'</span><span class="tok-p">)</span>  <i class="conum" data-value="1"></i><b>(1)</b></code></pre>
+    <span class="tok-n">append</span><span class="tok-p">(</span><span class="tok-s2">".env"</span><span class="tok-p">,</span> <span class="tok-s2">"DJANGO_DEBUG_FALSE=y"</span><span class="tok-p">)</span>
+    <span class="tok-n">append</span><span class="tok-p">(</span><span class="tok-s2">".env"</span><span class="tok-p">,</span> <span class="tok-sa">f</span><span class="tok-s2">"SITENAME=</span><span class="tok-si">{</span><span class="tok-n">env</span><span class="tok-o">.</span><span class="tok-n">host</span><span class="tok-si">}</span><span class="tok-s2">"</span><span class="tok-p">)</span>
+    <span class="tok-n">current_contents</span> <span class="tok-o">=</span> <span class="tok-n">run</span><span class="tok-p">(</span><span class="tok-s2">"cat .env"</span><span class="tok-p">)</span>
+    <span class="tok-k">if</span> <span class="tok-s2">"DJANGO_SECRET_KEY"</span> <span class="tok-ow">not</span> <span class="tok-ow">in</span> <span class="tok-n">current_contents</span><span class="tok-p">:</span>
+        <span class="tok-n">new_secret</span> <span class="tok-o">=</span> <span class="tok-s2">""</span><span class="tok-o">.</span><span class="tok-n">join</span><span class="tok-p">(</span>
+            <span class="tok-n">random</span><span class="tok-o">.</span><span class="tok-n">SystemRandom</span><span class="tok-p">()</span><span class="tok-o">.</span><span class="tok-n">choices</span><span class="tok-p">(</span><span class="tok-s2">"abcdefghijklmnopqrstuvwxyz0123456789"</span><span class="tok-p">,</span> <span class="tok-n">k</span><span class="tok-o">=</span><span class="tok-mi">50</span><span class="tok-p">)</span>
+        <span class="tok-p">)</span>
+        <span class="tok-n">append</span><span class="tok-p">(</span><span class="tok-s2">".env"</span><span class="tok-p">,</span> <span class="tok-sa">f</span><span class="tok-s2">"DJANGO_SECRET_KEY=</span><span class="tok-si">{</span><span class="tok-n">new_secret</span><span class="tok-si">}</span><span class="tok-s2">"</span><span class="tok-p">)</span>
+    <span class="tok-n">email_password</span> <span class="tok-o">=</span> <span class="tok-n">os</span><span class="tok-o">.</span><span class="tok-n">environ</span><span class="tok-p">[</span><span class="tok-s2">"EMAIL_PASSWORD"</span><span class="tok-p">]</span>  <i class="conum" data-value="1"></i><b>(1)</b>
+    <span class="tok-n">append</span><span class="tok-p">(</span><span class="tok-s2">".env"</span><span class="tok-p">,</span> <span class="tok-sa">f</span><span class="tok-s2">"EMAIL_PASSWORD=</span><span class="tok-si">{</span><span class="tok-n">email_password</span><span class="tok-si">}</span><span class="tok-s2">"</span><span class="tok-p">)</span>  <i class="conum" data-value="1"></i><b>(1)</b></code></pre>
 </div>
 </div>
 </div>
@@ -971,28 +1024,30 @@ the ability to save their lists on a "My Lists" page.</p>
 <dl>
 <dt class="hdlist1">Fixtures also have to work remotely</dt>
 <dd>
-<p><code>LiveServerTestCase</code>
-makes
-it easy to interact with the test database
+<p><code>LiveServerTestCase</code> makes it easy to interact with the test database
 using the Django ORM for tests running locally.  Interacting with the
 database on the staging server is not so straightforward. One solution
 is Fabric and Django management commands, as I&#8217;ve shown, but you should
-explore what works for you&#8212;&#8203;SSH tunnels, for example.</p>
+explore what works for you&#8212;&#8203;SSH tunnels, for example.
+
+</p>
 </dd>
 <dt class="hdlist1">Be very careful when resetting data on your servers</dt>
 <dd>
-<p>A
-command that can remotely wipe the entire database on one of your
+<p>A command that can remotely wipe the entire database on one of your
 servers is a dangerous weapon, and you want to be really, really sure
-it&#8217;s never accidentally going to hit your production data.</p>
+it&#8217;s never accidentally going to hit your production data.
+
+</p>
 </dd>
 <dt class="hdlist1">Logging is critical to debugging issues on the server</dt>
 <dd>
-<p>At
-the very least, you&#8217;ll want to be able to see any error messages
+<p>At the very least, you&#8217;ll want to be able to see any error messages
 that are being generated by the server.  For thornier bugs, you&#8217;ll also
 want to be able to do the occasional "debug print", and see it end up
-in a file somewhere.</p>
+in a file somewhere.
+
+</p>
 </dd>
 </dl>
 </div>
@@ -1004,7 +1059,7 @@ in a file somewhere.</p>
 </div>
 <div id="footer">
 <div id="footer-text">
-License: Creative Commons <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode">CC-BY-NC-ND</a>. Last updated: 2024-05-20 17:54:12 +0100
+License: Creative Commons <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode">CC-BY-NC-ND</a>. Last updated: 2024-07-30 16:07:04 +0100
 </div>
 </div>
 <div class="comments" style="padding: 20px">
@@ -1012,7 +1067,7 @@ License: Creative Commons <a href="https://creativecommons.org/licenses/by-nc-nd
   <div id="disqus_thread"></div>
   <script type="text/javascript">
     var disqus_config = function () {
-        this.page.identifier = 'chapter_server_side_debugging';
+        this.page.identifier = 'chapter_21_server_side_debugging';
     };
     
     (function() {

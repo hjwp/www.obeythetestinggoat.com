@@ -55,35 +55,53 @@ def redirect_13():
 def redirect_14():
     return redirect("/book/chapter_14_simple_form.html", code=301)
 
+
 @app.route("/book/chapter_advanced_forms.html")
 def redirect_15():
     return redirect("/book/chapter_15_advanced_forms.html", code=301)
+
 
 @app.route("/book/chapter_javascript.html")
 def redirect_16():
     return redirect("/book/chapter_16_javascript.html", code=301)
 
+
 @app.route("/book/chapter_deploying_validation.html")
 def redirect_17():
     return redirect("/book/chapter_17_second_deploy.html", code=301)
+
 
 @app.route("/book/chapter_spiking_custom_auth.html")
 def redirect_18():
     return redirect("/book/chapter_18_spiking_custom_auth.html", code=301)
 
+
 @app.route("/book/chapter_mocking.html")
 def redirect_19():
     return redirect("/book/chapter_19_mocking.html", code=301)
 
+
+@app.route("/book/chapter_fixtures_and_wait_decorator.html")
+def redirect_20():
+    return redirect("/book/chapter_20_fixtures_and_wait_decorator.html", code=301)
+
+
+@app.route("/book/chapter_server_side_debugging.html")
+def redirect_21():
+    return redirect("/book/chapter_21_server_side_debugging.html", code=301)
+
+
+@app.route("/book/chapter_outside_in.html")
+def redirect_22():
+    return redirect("/book/chapter_22_outside_in.html", code=301)
+
+
 """
-TODO?
+TODO  (old urls/chapters as yet not renamed)
 
 chapter_CI.html
-chapter_fixtures_and_wait_decorator.html
 chapter_hot_lava.html
-chapter_outside_in.html
 chapter_page_pattern.html
 chapter_prettification.html
 chapter_purist_unit_tests.html
-chapter_server_side_debugging.html
 """
