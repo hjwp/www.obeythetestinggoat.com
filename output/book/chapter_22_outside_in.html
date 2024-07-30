@@ -41,33 +41,47 @@ httpRequest.send();
 </div>
 <div id="content">
 <div class="sect1">
-<h2 id="chapter_outside_in">Finishing "My Lists": Outside-In TDD</h2>
+<h2 id="chapter_22_outside_in">Finishing "My Lists": Outside-In TDD</h2>
 <div class="sectionbody">
+<div class="sidebarblock">
+<div class="content">
+<div class="title">Warning, Chapter Update In Progress</div>
 <div class="paragraph">
-<p>In
-this chapter I&#8217;d like to talk about a technique called Outside-In TDD.
-It&#8217;s pretty much what we&#8217;ve been doing all along. Our "double-loop" TDD
-process, in which we write the functional test first and then the unit tests,
-is already a manifestation of outside-in&#8212;&#8203;we design the system from the
-outside, and build up our code in layers. Now I&#8217;ll make it explicit, and talk
-about some of the common issues involved.</p>
+<p>&#128679; Warning, this Chapter half updated for the 3e.</p>
+</div>
+<div class="paragraph">
+<p>I&#8217;m currently updating the listings for the latest Django + Python,
+some things may not be quite right yet.</p>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>
+In this chapter I&#8217;d like to talk about a technique called Outside-In TDD.
+It&#8217;s pretty much what we&#8217;ve been doing all along.
+Our "double-loop" TDD process,
+in which we write the functional test first and then the unit tests,
+is already a manifestation of outside-in&#8212;&#8203;we
+design the system from the outside, and build up our code in layers.
+Now I&#8217;ll make it explicit, and talk about some of the common issues involved.</p>
 </div>
 <div class="sect2">
 <h3 id="_the_alternative_inside_out">The Alternative: "Inside-Out"</h3>
 <div class="paragraph">
-<p>The alternative to "outside-in" is to work "inside-out", which is the way most
-people intuitively work before they encounter TDD. After
-coming up with a design, the natural inclination is sometimes to implement it
-starting with the innermost, lowest-level components first.</p>
+<p>The alternative to "outside-in" is to work "inside-out",
+which is the way most people intuitively work before they encounter TDD.
+After coming up with a design, the natural inclination is sometimes
+to implement it starting with the innermost, lowest-level components first.</p>
 </div>
 <div class="paragraph">
-<p>For example, when faced with our current problem, providing users with a
-"My Lists" page of saved lists, the temptation is to start by adding an "owner"
-attribute to the <code>List</code> model object, reasoning that an attribute like this is
-"obviously" going to be required. Once that&#8217;s in place, we would modify the
-more peripheral layers of code, such as views and templates, taking advantage
-of the new attribute, and then finally add URL routing to point to the new
-view.</p>
+<p>For example, when faced with our current problem,
+providing users with a "My Lists" page of saved lists,
+the temptation is to start at the models layer:
+we probably want to add an "owner" attribute to the <code>List</code> model object,
+reasoning that an attribute like this is "obviously" going to be required.
+Once that&#8217;s in place, we would modify the more peripheral layers of code,
+such as views and templates, taking advantage of the new attribute,
+and then finally add URL routing to point to the new view.</p>
 </div>
 <div class="paragraph">
 <p>It feels comfortable because it means you&#8217;re never working on a bit of code
@@ -81,8 +95,9 @@ work on the inside is a solid foundation on which to build the next layer out.</
 <div class="sect2">
 <h3 id="_why_prefer_outside_in">Why Prefer "Outside-In"?</h3>
 <div class="paragraph">
-<p>The
-most obvious problem with inside-out is that it requires us to stray from a
+<p>
+
+The most obvious problem with inside-out is that it requires us to stray from a
 TDD workflow. Our functional test&#8217;s first failure might be due to missing URL
 routing, but we decide to ignore that and go off adding attributes to our
 database model objects instead.</p>
@@ -112,8 +127,8 @@ action.</p>
 <div class="sect2">
 <h3 id="_the_ft_for_my_lists">The FT for "My Lists"</h3>
 <div class="paragraph">
-<p>As
-we work through the following functional test, we start with the most
+<p>
+As we work through the following functional test, we start with the most
 outward-facing (presentation layer), through to the view functions (or
 "controllers"), and lastly the innermost layers, which in this case will be
 model code.</p>
@@ -123,29 +138,32 @@ model code.</p>
 write our FT to look for a "My Lists" page:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">functional_tests/test_my_lists.py (ch19l001-1)</div>
+<div class="title">src/functional_tests/test_my_lists.py (ch22l001)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="pygments highlight"><code data-lang="python"><span></span>    <span class="tok-k">def</span> <span class="tok-nf">test_logged_in_users_lists_are_saved_as_my_lists</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">):</span>
+<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-kn">from</span> <span class="tok-nn">selenium.webdriver.common.by</span> <span class="tok-kn">import</span> <span class="tok-n">By</span>
+<span class="tok-p">[</span><span class="tok-o">...</span><span class="tok-p">]</span>
+
+    <span class="tok-k">def</span> <span class="tok-nf">test_logged_in_users_lists_are_saved_as_my_lists</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">):</span>
         <span class="tok-c1"># Edith is a logged-in user</span>
-        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">create_pre_authenticated_session</span><span class="tok-p">(</span><span class="tok-s1">'edith@example.com'</span><span class="tok-p">)</span>
+        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">create_pre_authenticated_session</span><span class="tok-p">(</span><span class="tok-s2">"edith@example.com"</span><span class="tok-p">)</span>
 
         <span class="tok-c1"># She goes to the home page and starts a list</span>
         <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">browser</span><span class="tok-o">.</span><span class="tok-n">get</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">live_server_url</span><span class="tok-p">)</span>
-        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">add_list_item</span><span class="tok-p">(</span><span class="tok-s1">'Reticulate splines'</span><span class="tok-p">)</span>
-        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">add_list_item</span><span class="tok-p">(</span><span class="tok-s1">'Immanentize eschaton'</span><span class="tok-p">)</span>
+        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">add_list_item</span><span class="tok-p">(</span><span class="tok-s2">"Reticulate splines"</span><span class="tok-p">)</span>
+        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">add_list_item</span><span class="tok-p">(</span><span class="tok-s2">"Immanentize eschaton"</span><span class="tok-p">)</span>
         <span class="tok-n">first_list_url</span> <span class="tok-o">=</span> <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">browser</span><span class="tok-o">.</span><span class="tok-n">current_url</span>
 
         <span class="tok-c1"># She notices a "My lists" link, for the first time.</span>
-        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">browser</span><span class="tok-o">.</span><span class="tok-n">find_element_by_link_text</span><span class="tok-p">(</span><span class="tok-s1">'My lists'</span><span class="tok-p">)</span><span class="tok-o">.</span><span class="tok-n">click</span><span class="tok-p">()</span>
+        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">browser</span><span class="tok-o">.</span><span class="tok-n">find_element</span><span class="tok-p">(</span><span class="tok-n">By</span><span class="tok-o">.</span><span class="tok-n">LINK_TEXT</span><span class="tok-p">,</span> <span class="tok-s2">"My lists"</span><span class="tok-p">)</span><span class="tok-o">.</span><span class="tok-n">click</span><span class="tok-p">()</span>
 
         <span class="tok-c1"># She sees that her list is in there, named according to its</span>
         <span class="tok-c1"># first list item</span>
         <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">wait_for</span><span class="tok-p">(</span>
-            <span class="tok-k">lambda</span><span class="tok-p">:</span> <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">browser</span><span class="tok-o">.</span><span class="tok-n">find_element_by_link_text</span><span class="tok-p">(</span><span class="tok-s1">'Reticulate splines'</span><span class="tok-p">)</span>
+            <span class="tok-k">lambda</span><span class="tok-p">:</span> <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">browser</span><span class="tok-o">.</span><span class="tok-n">find_element</span><span class="tok-p">(</span><span class="tok-n">By</span><span class="tok-o">.</span><span class="tok-n">LINK_TEXT</span><span class="tok-p">,</span> <span class="tok-s2">"Reticulate splines"</span><span class="tok-p">)</span>
         <span class="tok-p">)</span>
-        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">browser</span><span class="tok-o">.</span><span class="tok-n">find_element_by_link_text</span><span class="tok-p">(</span><span class="tok-s1">'Reticulate splines'</span><span class="tok-p">)</span><span class="tok-o">.</span><span class="tok-n">click</span><span class="tok-p">()</span>
+        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">browser</span><span class="tok-o">.</span><span class="tok-n">find_element</span><span class="tok-p">(</span><span class="tok-n">By</span><span class="tok-o">.</span><span class="tok-n">LINK_TEXT</span><span class="tok-p">,</span> <span class="tok-s2">"Reticulate splines"</span><span class="tok-p">)</span><span class="tok-o">.</span><span class="tok-n">click</span><span class="tok-p">()</span>
         <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">wait_for</span><span class="tok-p">(</span>
             <span class="tok-k">lambda</span><span class="tok-p">:</span> <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertEqual</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">browser</span><span class="tok-o">.</span><span class="tok-n">current_url</span><span class="tok-p">,</span> <span class="tok-n">first_list_url</span><span class="tok-p">)</span>
         <span class="tok-p">)</span></code></pre>
@@ -164,7 +182,7 @@ appear on the My Lists page as well.  The FT continues, and while we&#8217;re at
 we check that only logged-in users can see the "My Lists" page:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">functional_tests/test_my_lists.py (ch19l001-2)</div>
+<div class="title">src/functional_tests/test_my_lists.py (ch22l002)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
@@ -175,25 +193,25 @@ we check that only logged-in users can see the "My Lists" page:</p>
 
         <span class="tok-c1"># She decides to start another list, just to see</span>
         <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">browser</span><span class="tok-o">.</span><span class="tok-n">get</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">live_server_url</span><span class="tok-p">)</span>
-        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">add_list_item</span><span class="tok-p">(</span><span class="tok-s1">'Click cows'</span><span class="tok-p">)</span>
+        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">add_list_item</span><span class="tok-p">(</span><span class="tok-s2">"Click cows"</span><span class="tok-p">)</span>
         <span class="tok-n">second_list_url</span> <span class="tok-o">=</span> <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">browser</span><span class="tok-o">.</span><span class="tok-n">current_url</span>
 
         <span class="tok-c1"># Under "my lists", her new list appears</span>
-        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">browser</span><span class="tok-o">.</span><span class="tok-n">find_element_by_link_text</span><span class="tok-p">(</span><span class="tok-s1">'My lists'</span><span class="tok-p">)</span><span class="tok-o">.</span><span class="tok-n">click</span><span class="tok-p">()</span>
-        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">wait_for</span><span class="tok-p">(</span>
-            <span class="tok-k">lambda</span><span class="tok-p">:</span> <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">browser</span><span class="tok-o">.</span><span class="tok-n">find_element_by_link_text</span><span class="tok-p">(</span><span class="tok-s1">'Click cows'</span><span class="tok-p">)</span>
-        <span class="tok-p">)</span>
-        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">browser</span><span class="tok-o">.</span><span class="tok-n">find_element_by_link_text</span><span class="tok-p">(</span><span class="tok-s1">'Click cows'</span><span class="tok-p">)</span><span class="tok-o">.</span><span class="tok-n">click</span><span class="tok-p">()</span>
+        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">browser</span><span class="tok-o">.</span><span class="tok-n">find_element</span><span class="tok-p">(</span><span class="tok-n">By</span><span class="tok-o">.</span><span class="tok-n">LINK_TEXT</span><span class="tok-p">,</span> <span class="tok-s2">"My lists"</span><span class="tok-p">)</span><span class="tok-o">.</span><span class="tok-n">click</span><span class="tok-p">()</span>
+        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">wait_for</span><span class="tok-p">(</span><span class="tok-k">lambda</span><span class="tok-p">:</span> <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">browser</span><span class="tok-o">.</span><span class="tok-n">find_element</span><span class="tok-p">(</span><span class="tok-n">By</span><span class="tok-o">.</span><span class="tok-n">LINK_TEXT</span><span class="tok-p">,</span> <span class="tok-s2">"Click cows"</span><span class="tok-p">))</span>
+        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">browser</span><span class="tok-o">.</span><span class="tok-n">find_element</span><span class="tok-p">(</span><span class="tok-n">By</span><span class="tok-o">.</span><span class="tok-n">LINK_TEXT</span><span class="tok-p">,</span> <span class="tok-s2">"Click cows"</span><span class="tok-p">)</span><span class="tok-o">.</span><span class="tok-n">click</span><span class="tok-p">()</span>
         <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">wait_for</span><span class="tok-p">(</span>
             <span class="tok-k">lambda</span><span class="tok-p">:</span> <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertEqual</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">browser</span><span class="tok-o">.</span><span class="tok-n">current_url</span><span class="tok-p">,</span> <span class="tok-n">second_list_url</span><span class="tok-p">)</span>
         <span class="tok-p">)</span>
 
         <span class="tok-c1"># She logs out.  The "My lists" option disappears</span>
-        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">browser</span><span class="tok-o">.</span><span class="tok-n">find_element_by_link_text</span><span class="tok-p">(</span><span class="tok-s1">'Log out'</span><span class="tok-p">)</span><span class="tok-o">.</span><span class="tok-n">click</span><span class="tok-p">()</span>
-        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">wait_for</span><span class="tok-p">(</span><span class="tok-k">lambda</span><span class="tok-p">:</span> <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertEqual</span><span class="tok-p">(</span>
-            <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">browser</span><span class="tok-o">.</span><span class="tok-n">find_elements_by_link_text</span><span class="tok-p">(</span><span class="tok-s1">'My lists'</span><span class="tok-p">),</span>
-            <span class="tok-p">[]</span>
-        <span class="tok-p">))</span></code></pre>
+        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">browser</span><span class="tok-o">.</span><span class="tok-n">find_element</span><span class="tok-p">(</span><span class="tok-n">By</span><span class="tok-o">.</span><span class="tok-n">LINK_TEXT</span><span class="tok-p">,</span> <span class="tok-s2">"Log out"</span><span class="tok-p">)</span><span class="tok-o">.</span><span class="tok-n">click</span><span class="tok-p">()</span>
+        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">wait_for</span><span class="tok-p">(</span>
+            <span class="tok-k">lambda</span><span class="tok-p">:</span> <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertEqual</span><span class="tok-p">(</span>
+                <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">browser</span><span class="tok-o">.</span><span class="tok-n">find_elements</span><span class="tok-p">(</span><span class="tok-n">By</span><span class="tok-o">.</span><span class="tok-n">LINK_TEXT</span><span class="tok-p">,</span> <span class="tok-s2">"My lists"</span><span class="tok-p">),</span>
+                <span class="tok-p">[],</span>
+            <span class="tok-p">)</span>
+        <span class="tok-p">)</span></code></pre>
 </div>
 </div>
 </div>
@@ -203,7 +221,7 @@ we check that only logged-in users can see the "My Lists" page:</p>
 text into the right input box.  We define it in <em>base.py</em>:</p>
 </div>
 <div class="exampleblock sourcecode small-code">
-<div class="title">functional_tests/base.py (ch19l001-3)</div>
+<div class="title">src/functional_tests/base.py (ch22l003)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
@@ -211,11 +229,11 @@ text into the right input box.  We define it in <em>base.py</em>:</p>
 <span class="tok-p">[</span><span class="tok-o">...</span><span class="tok-p">]</span>
 
     <span class="tok-k">def</span> <span class="tok-nf">add_list_item</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">,</span> <span class="tok-n">item_text</span><span class="tok-p">):</span>
-        <span class="tok-n">num_rows</span> <span class="tok-o">=</span> <span class="tok-nb">len</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">browser</span><span class="tok-o">.</span><span class="tok-n">find_elements_by_css_selector</span><span class="tok-p">(</span><span class="tok-s1">'#id_list_table tr'</span><span class="tok-p">))</span>
+        <span class="tok-n">num_rows</span> <span class="tok-o">=</span> <span class="tok-nb">len</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">browser</span><span class="tok-o">.</span><span class="tok-n">find_elements</span><span class="tok-p">(</span><span class="tok-n">By</span><span class="tok-o">.</span><span class="tok-n">CSS_SELECTOR</span><span class="tok-p">,</span> <span class="tok-s2">"#id_list_table tr"</span><span class="tok-p">))</span>
         <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">get_item_input_box</span><span class="tok-p">()</span><span class="tok-o">.</span><span class="tok-n">send_keys</span><span class="tok-p">(</span><span class="tok-n">item_text</span><span class="tok-p">)</span>
         <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">get_item_input_box</span><span class="tok-p">()</span><span class="tok-o">.</span><span class="tok-n">send_keys</span><span class="tok-p">(</span><span class="tok-n">Keys</span><span class="tok-o">.</span><span class="tok-n">ENTER</span><span class="tok-p">)</span>
         <span class="tok-n">item_number</span> <span class="tok-o">=</span> <span class="tok-n">num_rows</span> <span class="tok-o">+</span> <span class="tok-mi">1</span>
-        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">wait_for_row_in_list_table</span><span class="tok-p">(</span><span class="tok-sa">f</span><span class="tok-s1">'</span><span class="tok-si">{</span><span class="tok-n">item_number</span><span class="tok-si">}</span><span class="tok-s1">: </span><span class="tok-si">{</span><span class="tok-n">item_text</span><span class="tok-si">}</span><span class="tok-s1">'</span><span class="tok-p">)</span></code></pre>
+        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">wait_for_row_in_list_table</span><span class="tok-p">(</span><span class="tok-sa">f</span><span class="tok-s2">"</span><span class="tok-si">{</span><span class="tok-n">item_number</span><span class="tok-si">}</span><span class="tok-s2">: </span><span class="tok-si">{</span><span class="tok-n">item_text</span><span class="tok-si">}</span><span class="tok-s2">"</span><span class="tok-p">)</span></code></pre>
 </div>
 </div>
 </div>
@@ -223,12 +241,12 @@ text into the right input box.  We define it in <em>base.py</em>:</p>
 <div class="paragraph">
 <p>And while we&#8217;re at it we can use it in a few of the other FTs, like this:</p>
 </div>
-<div class="exampleblock sourcecode currentcontents dofirst-ch19l001-4">
-<div class="title">functional_tests/test_list_item_validation.py</div>
+<div class="exampleblock sourcecode currentcontents dofirst-ch22l004">
+<div class="title">src/functional_tests/test_list_item_validation.py</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="pygments highlight"><code data-lang="python"><span></span>    <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">add_list_item</span><span class="tok-p">(</span><span class="tok-s1">'Buy wellies'</span><span class="tok-p">)</span></code></pre>
+<pre class="pygments highlight"><code data-lang="python"><span></span>    <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">add_list_item</span><span class="tok-p">(</span><span class="tok-s2">"Buy wellies"</span><span class="tok-p">)</span></code></pre>
 </div>
 </div>
 </div>
@@ -243,34 +261,41 @@ The first error should look like this:</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>$ <strong>python3 manage.py test functional_tests.test_my_lists</strong>
+<pre>$ <strong>python src/manage.py test functional_tests.test_my_lists</strong>
 [...]
 selenium.common.exceptions.NoSuchElementException: Message: Unable to locate
-element: My lists</pre>
+element: My lists; [...]</pre>
 </div>
 </div>
 </div>
 <div class="sect2">
 <h3 id="_the_outside_layer_presentation_and_templates">The Outside Layer: Presentation and Templates</h3>
 <div class="paragraph">
-<p>The
-test is currently failing saying that it can&#8217;t find a link saying "My
-Lists". We can address that at the presentation layer, in <em>base.html</em>, in
-our navigation bar. Here&#8217;s the minimal code change:</p>
+<p>
+The test is currently failing saying that it can&#8217;t find a link saying "My Lists".
+We can address that at the presentation layer, in <em>base.html</em>, in our navigation bar.
+Here&#8217;s the minimal code change:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>TODO: update this link for latest bootstrap / style nicely</p>
+</li>
+</ul>
 </div>
 <div class="exampleblock sourcecode small-code">
-<div class="title">lists/templates/base.html (ch19l002-1)</div>
+<div class="title">src/lists/templates/base.html (ch22l005)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="pygments highlight"><code data-lang="html"><span></span>  {% if user.email %}
-    <span class="tok-p">&lt;</span><span class="tok-nt">ul</span> <span class="tok-na">class</span><span class="tok-o">=</span><span class="tok-s">"nav navbar-nav navbar-left"</span><span class="tok-p">&gt;</span>
-      <span class="tok-p">&lt;</span><span class="tok-nt">li</span><span class="tok-p">&gt;&lt;</span><span class="tok-nt">a</span> <span class="tok-na">href</span><span class="tok-o">=</span><span class="tok-s">"#"</span><span class="tok-p">&gt;</span>My lists<span class="tok-p">&lt;/</span><span class="tok-nt">a</span><span class="tok-p">&gt;&lt;/</span><span class="tok-nt">li</span><span class="tok-p">&gt;</span>
-    <span class="tok-p">&lt;/</span><span class="tok-nt">ul</span><span class="tok-p">&gt;</span>
-    <span class="tok-p">&lt;</span><span class="tok-nt">ul</span> <span class="tok-na">class</span><span class="tok-o">=</span><span class="tok-s">"nav navbar-nav navbar-right"</span><span class="tok-p">&gt;</span>
-      <span class="tok-p">&lt;</span><span class="tok-nt">li</span> <span class="tok-na">class</span><span class="tok-o">=</span><span class="tok-s">"navbar-text"</span><span class="tok-p">&gt;</span>Logged in as {{ user.email }}<span class="tok-p">&lt;/</span><span class="tok-nt">li</span><span class="tok-p">&gt;</span>
-      <span class="tok-p">&lt;</span><span class="tok-nt">li</span><span class="tok-p">&gt;&lt;</span><span class="tok-nt">a</span> <span class="tok-na">href</span><span class="tok-o">=</span><span class="tok-s">"{% url 'logout' %}"</span><span class="tok-p">&gt;</span>Log out<span class="tok-p">&lt;/</span><span class="tok-nt">a</span><span class="tok-p">&gt;&lt;/</span><span class="tok-nt">li</span><span class="tok-p">&gt;</span>
-    <span class="tok-p">&lt;/</span><span class="tok-nt">ul</span><span class="tok-p">&gt;</span></code></pre>
+<pre class="pygments highlight"><code data-lang="html"><span></span>      <span class="tok-p">&lt;</span><span class="tok-nt">nav</span> <span class="tok-na">class</span><span class="tok-o">=</span><span class="tok-s">"navbar"</span><span class="tok-p">&gt;</span>
+        <span class="tok-p">&lt;</span><span class="tok-nt">div</span> <span class="tok-na">class</span><span class="tok-o">=</span><span class="tok-s">"container-fluid"</span><span class="tok-p">&gt;</span>
+          <span class="tok-p">&lt;</span><span class="tok-nt">a</span> <span class="tok-na">class</span><span class="tok-o">=</span><span class="tok-s">"navbar-brand"</span> <span class="tok-na">href</span><span class="tok-o">=</span><span class="tok-s">"/"</span><span class="tok-p">&gt;</span>Superlists<span class="tok-p">&lt;/</span><span class="tok-nt">a</span><span class="tok-p">&gt;</span>
+          {% if user.email %}
+            <span class="tok-p">&lt;</span><span class="tok-nt">a</span> <span class="tok-na">href</span><span class="tok-o">=</span><span class="tok-s">"#"</span><span class="tok-p">&gt;</span>My lists<span class="tok-p">&lt;/</span><span class="tok-nt">a</span><span class="tok-p">&gt;</span>
+            <span class="tok-p">&lt;</span><span class="tok-nt">ul</span><span class="tok-p">&gt;</span>
+              <span class="tok-p">&lt;</span><span class="tok-nt">span</span> <span class="tok-na">class</span><span class="tok-o">=</span><span class="tok-s">"navbar-text"</span><span class="tok-p">&gt;</span>Logged in as {{ user.email }}<span class="tok-p">&lt;/</span><span class="tok-nt">span</span><span class="tok-p">&gt;</span>
+              [...]</code></pre>
 </div>
 </div>
 </div>
@@ -281,12 +306,13 @@ the next failure:</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>$ <strong>python3 manage.py test functional_tests.test_my_lists</strong>
+<pre>$ <strong>python src/manage.py test functional_tests.test_my_lists</strong>
 [...]
-    lambda: self.browser.find_element_by_link_text('Reticulate splines')
+    lambda: self.browser.find_element(By.LINK_TEXT, "Reticulate splines")
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 [...]
 selenium.common.exceptions.NoSuchElementException: Message: Unable to locate
-element: Reticulate splines</pre>
+element: Reticulate splines; [...]</pre>
 </div>
 </div>
 <div class="paragraph">
@@ -299,13 +325,12 @@ template for it.</p>
 URL and nothing else:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">lists/templates/base.html (ch19l002-2)</div>
+<div class="title">src/lists/templates/base.html (ch22l006)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="pygments highlight"><code data-lang="html"><span></span>    <span class="tok-p">&lt;</span><span class="tok-nt">ul</span> <span class="tok-na">class</span><span class="tok-o">=</span><span class="tok-s">"nav navbar-nav navbar-left"</span><span class="tok-p">&gt;</span>
-      <span class="tok-p">&lt;</span><span class="tok-nt">li</span><span class="tok-p">&gt;&lt;</span><span class="tok-nt">a</span> <span class="tok-na">href</span><span class="tok-o">=</span><span class="tok-s">"{% url 'my_lists' user.email %}"</span><span class="tok-p">&gt;</span>My lists<span class="tok-p">&lt;/</span><span class="tok-nt">a</span><span class="tok-p">&gt;&lt;/</span><span class="tok-nt">li</span><span class="tok-p">&gt;</span>
-    <span class="tok-p">&lt;/</span><span class="tok-nt">ul</span><span class="tok-p">&gt;</span></code></pre>
+<pre class="pygments highlight"><code data-lang="html"><span></span>  {% if user.email %}
+    <span class="tok-p">&lt;</span><span class="tok-nt">a</span> <span class="tok-na">href</span><span class="tok-o">=</span><span class="tok-s">"{% url 'my_lists' user.email %}"</span><span class="tok-p">&gt;</span>My lists<span class="tok-p">&lt;/</span><span class="tok-nt">a</span><span class="tok-p">&gt;</span></code></pre>
 </div>
 </div>
 </div>
@@ -314,8 +339,8 @@ URL and nothing else:</p>
 <div class="sect2">
 <h3 id="_moving_down_one_layer_to_view_functions_the_controller">Moving Down One Layer to View Functions (the Controller)</h3>
 <div class="paragraph">
-<p>That
-will cause a template error, so we&#8217;ll start to move down from the
+<p>
+That will cause a template error, so we&#8217;ll start to move down from the
 presentation layer and URLs down to the controller layer, Django&#8217;s view
 functions.</p>
 </div>
@@ -323,15 +348,14 @@ functions.</p>
 <p>As always, we start with a test:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">lists/tests/test_views.py (ch19l003)</div>
+<div class="title">src/lists/tests/test_views.py (ch19l003)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
 <pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-k">class</span> <span class="tok-nc">MyListsTest</span><span class="tok-p">(</span><span class="tok-n">TestCase</span><span class="tok-p">):</span>
-
     <span class="tok-k">def</span> <span class="tok-nf">test_my_lists_url_renders_my_lists_template</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">):</span>
-        <span class="tok-n">response</span> <span class="tok-o">=</span> <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">client</span><span class="tok-o">.</span><span class="tok-n">get</span><span class="tok-p">(</span><span class="tok-s1">'/lists/users/a@b.com/'</span><span class="tok-p">)</span>
-        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertTemplateUsed</span><span class="tok-p">(</span><span class="tok-n">response</span><span class="tok-p">,</span> <span class="tok-s1">'my_lists.html'</span><span class="tok-p">)</span></code></pre>
+        <span class="tok-n">response</span> <span class="tok-o">=</span> <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">client</span><span class="tok-o">.</span><span class="tok-n">get</span><span class="tok-p">(</span><span class="tok-s2">"/lists/users/a@b.com/"</span><span class="tok-p">)</span>
+        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertTemplateUsed</span><span class="tok-p">(</span><span class="tok-n">response</span><span class="tok-p">,</span> <span class="tok-s2">"my_lists.html"</span><span class="tok-p">)</span></code></pre>
 </div>
 </div>
 </div>
@@ -348,14 +372,14 @@ functions.</p>
 <p>And we fix it, still at the presentation level, in <em>urls.py</em>:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">lists/urls.py</div>
+<div class="title">src/lists/urls.py (ch22l008)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
 <pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-n">urlpatterns</span> <span class="tok-o">=</span> <span class="tok-p">[</span>
-    <span class="tok-n">url</span><span class="tok-p">(</span><span class="tok-sa">r</span><span class="tok-s1">'^new$'</span><span class="tok-p">,</span> <span class="tok-n">views</span><span class="tok-o">.</span><span class="tok-n">new_list</span><span class="tok-p">,</span> <span class="tok-n">name</span><span class="tok-o">=</span><span class="tok-s1">'new_list'</span><span class="tok-p">),</span>
-    <span class="tok-n">url</span><span class="tok-p">(</span><span class="tok-sa">r</span><span class="tok-s1">'^(\d+)/$'</span><span class="tok-p">,</span> <span class="tok-n">views</span><span class="tok-o">.</span><span class="tok-n">view_list</span><span class="tok-p">,</span> <span class="tok-n">name</span><span class="tok-o">=</span><span class="tok-s1">'view_list'</span><span class="tok-p">),</span>
-    <span class="tok-n">url</span><span class="tok-p">(</span><span class="tok-sa">r</span><span class="tok-s1">'^users/(.+)/$'</span><span class="tok-p">,</span> <span class="tok-n">views</span><span class="tok-o">.</span><span class="tok-n">my_lists</span><span class="tok-p">,</span> <span class="tok-n">name</span><span class="tok-o">=</span><span class="tok-s1">'my_lists'</span><span class="tok-p">),</span>
+    <span class="tok-n">path</span><span class="tok-p">(</span><span class="tok-s2">"new"</span><span class="tok-p">,</span> <span class="tok-n">views</span><span class="tok-o">.</span><span class="tok-n">new_list</span><span class="tok-p">,</span> <span class="tok-n">name</span><span class="tok-o">=</span><span class="tok-s2">"new_list"</span><span class="tok-p">),</span>
+    <span class="tok-n">path</span><span class="tok-p">(</span><span class="tok-s2">"&lt;int:list_id&gt;/"</span><span class="tok-p">,</span> <span class="tok-n">views</span><span class="tok-o">.</span><span class="tok-n">view_list</span><span class="tok-p">,</span> <span class="tok-n">name</span><span class="tok-o">=</span><span class="tok-s2">"view_list"</span><span class="tok-p">),</span>
+    <span class="tok-n">path</span><span class="tok-p">(</span><span class="tok-s2">"users/&lt;str:email&gt;/"</span><span class="tok-p">,</span> <span class="tok-n">views</span><span class="tok-o">.</span><span class="tok-n">my_lists</span><span class="tok-p">,</span> <span class="tok-n">name</span><span class="tok-o">=</span><span class="tok-s2">"my_lists"</span><span class="tok-p">),</span>
 <span class="tok-p">]</span></code></pre>
 </div>
 </div>
@@ -367,7 +391,9 @@ move down to the next level:</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>AttributeError: module 'lists.views' has no attribute 'my_lists'</pre>
+<pre>    path("users/&lt;str:email&gt;/", views.my_lists, name="my_lists"),
+                               ^^^^^^^^^^^^^^
+AttributeError: module 'lists.views' has no attribute 'my_lists'</pre>
 </div>
 </div>
 <div class="paragraph">
@@ -375,12 +401,12 @@ move down to the next level:</p>
 minimal placeholder:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">lists/views.py (ch19l005)</div>
+<div class="title">src/lists/views.py (ch22l009)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
 <pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-k">def</span> <span class="tok-nf">my_lists</span><span class="tok-p">(</span><span class="tok-n">request</span><span class="tok-p">,</span> <span class="tok-n">email</span><span class="tok-p">):</span>
-    <span class="tok-k">return</span> <span class="tok-n">render</span><span class="tok-p">(</span><span class="tok-n">request</span><span class="tok-p">,</span> <span class="tok-s1">'my_lists.html'</span><span class="tok-p">)</span></code></pre>
+    <span class="tok-k">return</span> <span class="tok-n">render</span><span class="tok-p">(</span><span class="tok-n">request</span><span class="tok-p">,</span> <span class="tok-s2">"my_lists.html"</span><span class="tok-p">)</span></code></pre>
 </div>
 </div>
 </div>
@@ -389,7 +415,7 @@ minimal placeholder:</p>
 <p>And a minimal template:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">lists/templates/my_lists.html</div>
+<div class="title">src/lists/templates/my_lists.html (ch22l010)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
@@ -407,67 +433,66 @@ them to be clickable links named after the first item:</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>$ <strong>python3 manage.py test functional_tests.test_my_lists</strong>
+<pre>$ <strong>python src/manage.py test functional_tests.test_my_lists</strong>
 [...]
 selenium.common.exceptions.NoSuchElementException: Message: Unable to locate
-element: Reticulate splines</pre>
+element: Reticulate splines; [...]</pre>
 </div>
 </div>
 </div>
 <div class="sect2">
 <h3 id="_another_pass_outside_in">Another Pass, Outside-In</h3>
 <div class="paragraph">
-<p>At
-each stage, we still let the FT drive what development we do.</p>
+<p>
+At each stage, we still let the FT drive what development we do.</p>
 </div>
 <div class="paragraph">
-<p>Starting again at the outside layer, in the template, we begin to
-write the template code we&#8217;d like to use to get the "My Lists" page to
-work the  way we want it to. As we do so, we start to specify the API
-we want from the code at the layers below.</p>
+<p>Starting again at the outside layer, in the template,
+we begin to write the template code we&#8217;d like to use
+to get the "My Lists" page to work the  way we want it to.
+As we do so, we start to specify the API we want
+from the code at the layers below.</p>
 </div>
 <div class="sect3">
 <h4 id="_a_quick_restructure_of_the_template_inheritance_hierarchy">A Quick Restructure of the Template Inheritance Hierarchy</h4>
 <div class="paragraph">
-<p>Currently
-there&#8217;s no place in our base template for us to put any new
-content.  Also, the "My Lists" page doesn&#8217;t need the new item form, so
-we&#8217;ll put that into a block too, making it optional:</p>
+<p>
+Currently there&#8217;s no place in our base template for us to put any new content.
+Also, the "My Lists" page doesn&#8217;t need the new item form,
+so we&#8217;ll put that into a block too, making it optional:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">lists/templates/base.html (ch19l007-1)</div>
+<div class="title">src/lists/templates/base.html (ch22l011-1)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="pygments highlight"><code data-lang="html"><span></span>      <span class="tok-p">&lt;</span><span class="tok-nt">div</span> <span class="tok-na">class</span><span class="tok-o">=</span><span class="tok-s">"row"</span><span class="tok-p">&gt;</span>
-        <span class="tok-p">&lt;</span><span class="tok-nt">div</span> <span class="tok-na">class</span><span class="tok-o">=</span><span class="tok-s">"col-md-6 col-md-offset-3 jumbotron"</span><span class="tok-p">&gt;</span>
-          <span class="tok-p">&lt;</span><span class="tok-nt">div</span> <span class="tok-na">class</span><span class="tok-o">=</span><span class="tok-s">"text-center"</span><span class="tok-p">&gt;</span>
-            <span class="tok-p">&lt;</span><span class="tok-nt">h1</span><span class="tok-p">&gt;</span>{% block header_text %}{% endblock %}<span class="tok-p">&lt;/</span><span class="tok-nt">h1</span><span class="tok-p">&gt;</span>
-            {% block list_form %}
-              <span class="tok-p">&lt;</span><span class="tok-nt">form</span> <span class="tok-na">method</span><span class="tok-o">=</span><span class="tok-s">"POST"</span> <span class="tok-na">action</span><span class="tok-o">=</span><span class="tok-s">"{% block form_action %}{% endblock %}"</span><span class="tok-p">&gt;</span>
-                {{ form.text }}
-                {% csrf_token %}
-                {% if form.errors %}
-                  <span class="tok-p">&lt;</span><span class="tok-nt">div</span> <span class="tok-na">class</span><span class="tok-o">=</span><span class="tok-s">"form-group has-error"</span><span class="tok-p">&gt;</span>
-                    <span class="tok-p">&lt;</span><span class="tok-nt">div</span> <span class="tok-na">class</span><span class="tok-o">=</span><span class="tok-s">"help-block"</span><span class="tok-p">&gt;</span>{{ form.text.errors }}<span class="tok-p">&lt;/</span><span class="tok-nt">div</span><span class="tok-p">&gt;</span>
-                  <span class="tok-p">&lt;/</span><span class="tok-nt">div</span><span class="tok-p">&gt;</span>
-                {% endif %}
-              <span class="tok-p">&lt;/</span><span class="tok-nt">form</span><span class="tok-p">&gt;</span>
-            {% endblock %}
-          <span class="tok-p">&lt;/</span><span class="tok-nt">div</span><span class="tok-p">&gt;</span>
-        <span class="tok-p">&lt;/</span><span class="tok-nt">div</span><span class="tok-p">&gt;</span>
-      <span class="tok-p">&lt;/</span><span class="tok-nt">div</span><span class="tok-p">&gt;</span></code></pre>
+<pre class="pygments highlight"><code data-lang="diff"><span></span><span class="tok-gu">@@ -57,6 +57,7 @@</span>
+<span class="tok-w"> </span>        &lt;div class="col-lg-6 text-center"&gt;
+<span class="tok-w"> </span>          &lt;h1 class="display-1 mb-4"&gt;{% block header_text %}{% endblock %}&lt;/h1&gt;
+
+<span class="tok-gi">+          {% block list_form %}</span>
+<span class="tok-w"> </span>            &lt;form
+<span class="tok-w"> </span>              method="POST"
+<span class="tok-w"> </span>              action="{% block form_action %}{% endblock %}"
+<span class="tok-gu">@@ -75,6 +76,8 @@</span>
+<span class="tok-w"> </span>                {% endif %}
+<span class="tok-w"> </span>                {% csrf_token %}
+<span class="tok-w"> </span>            &lt;/form&gt;
+<span class="tok-gi">+          {% endblock %}</span>
+<span class="tok-gi">+</span>
+<span class="tok-w"> </span>        &lt;/div&gt;
+<span class="tok-w"> </span>      &lt;/div&gt;</code></pre>
 </div>
 </div>
 </div>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">lists/templates/base.html (ch19l007-2)</div>
+<div class="title">src/lists/templates/base.html (ch22l011-2)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="pygments highlight"><code data-lang="html"><span></span>      <span class="tok-p">&lt;</span><span class="tok-nt">div</span> <span class="tok-na">class</span><span class="tok-o">=</span><span class="tok-s">"row"</span><span class="tok-p">&gt;</span>
-        <span class="tok-p">&lt;</span><span class="tok-nt">div</span> <span class="tok-na">class</span><span class="tok-o">=</span><span class="tok-s">"col-md-6 col-md-offset-3"</span><span class="tok-p">&gt;</span>
+<pre class="pygments highlight"><code data-lang="html"><span></span>      <span class="tok-p">&lt;</span><span class="tok-nt">div</span> <span class="tok-na">class</span><span class="tok-o">=</span><span class="tok-s">"row justify-content-center"</span><span class="tok-p">&gt;</span>
+        <span class="tok-p">&lt;</span><span class="tok-nt">div</span> <span class="tok-na">class</span><span class="tok-o">=</span><span class="tok-s">"col-lg-6"</span><span class="tok-p">&gt;</span>
           {% block table %}
           {% endblock %}
         <span class="tok-p">&lt;/</span><span class="tok-nt">div</span><span class="tok-p">&gt;</span>
@@ -479,9 +504,9 @@ we&#8217;ll put that into a block too, making it optional:</p>
           {% endblock %}
         <span class="tok-p">&lt;/</span><span class="tok-nt">div</span><span class="tok-p">&gt;</span>
       <span class="tok-p">&lt;/</span><span class="tok-nt">div</span><span class="tok-p">&gt;</span>
-
     <span class="tok-p">&lt;/</span><span class="tok-nt">div</span><span class="tok-p">&gt;</span>
-    <span class="tok-p">&lt;</span><span class="tok-nt">script</span> <span class="tok-na">src</span><span class="tok-o">=</span><span class="tok-s">"/static/jquery-3.1.1.min.js"</span><span class="tok-p">&gt;&lt;/</span><span class="tok-nt">script</span><span class="tok-p">&gt;</span>
+
+    <span class="tok-p">&lt;</span><span class="tok-nt">script</span> <span class="tok-na">src</span><span class="tok-o">=</span><span class="tok-s">"/static/lists.js"</span><span class="tok-p">&gt;&lt;/</span><span class="tok-nt">script</span><span class="tok-p">&gt;</span>
     [...]</code></pre>
 </div>
 </div>
@@ -491,11 +516,12 @@ we&#8217;ll put that into a block too, making it optional:</p>
 <div class="sect3">
 <h4 id="_designing_our_api_using_the_template">Designing Our API Using the Template</h4>
 <div class="paragraph">
-<p>Meanwhile, in <em>my_lists.html</em> we override the <code>list_form</code> and say it should
-be empty&#8230;&#8203;</p>
+<p>
+Meanwhile, in <em>my_lists.html</em> we override the <code>list_form</code>
+and say it should be empty&#8230;&#8203;</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">lists/templates/my_lists.html</div>
+<div class="title">src/lists/templates/my_lists.html</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
@@ -512,7 +538,7 @@ be empty&#8230;&#8203;</p>
 <p>And then we can just work inside the <code>extra_content</code> block:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">lists/templates/my_lists.html</div>
+<div class="title">src/lists/templates/my_lists.html</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
@@ -533,8 +559,8 @@ be empty&#8230;&#8203;</p>
 </div>
 </div>
 <div class="paragraph">
-<p>We&#8217;ve made several design decisions in this template which are going
-to filter their way down through the code:</p>
+<p>We&#8217;ve made several design decisions in this template
+which are going to filter their way down through the code:</p>
 </div>
 <div class="colist arabic">
 <table>
@@ -544,14 +570,14 @@ to filter their way down through the code:</p>
 </tr>
 <tr>
 <td><i class="conum" data-value="2"></i><b>2</b></td>
-<td>We want to be able to iterate through the lists created by the user using
-<code>owner.list_set.all</code> (I happen to know we get this for free from the Django
-ORM).</td>
+<td>We want to be able to iterate through the lists created by the user
+using <code>owner.list_set.all</code>
+(I happen to know we get this for free from the Django ORM).</td>
 </tr>
 <tr>
 <td><i class="conum" data-value="3"></i><b>3</b></td>
-<td>We want to use <code>list.name</code> to print out the "name" of the list, which is
-currently specified as the text of its first element.</td>
+<td>We want to use <code>list.name</code> to print out the "name" of the list,
+which is currently specified as the text of its first element.</td>
 </tr>
 </table>
 </div>
@@ -562,23 +588,25 @@ currently specified as the text of its first element.</td>
 <i class="fa icon-note" title="Note"></i>
 </td>
 <td class="content">
-Outside-In TDD is sometimes called "programming by wishful thinking",
-    and you can see why.  We start writing code at the higher levels based on
-    what we wish we had at the lower levels, even though it doesn&#8217;t exist yet!
+Outside-In TDD is sometimes called "programming by wishful thinking",<sup class="footnote">[<a id="_footnoteref_1" class="footnote" href="#_footnotedef_1" title="View footnote.">1</a>]</sup>
+    and you can see why.
+    We start writing code at the higher levels
+    based on what we wish we had at the lower levels,
+    even though it doesn&#8217;t exist yet!
 </td>
 </tr>
 </table>
 </div>
 <div class="paragraph">
-<p>We can rerun our FTs, to check that we didn&#8217;t break anything, and to see whether
-we&#8217;ve got any further:</p>
+<p>We can rerun our FTs, to check that we didn&#8217;t break anything,
+and to see whether we&#8217;ve got any further:</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>$ <strong>python manage.py test functional_tests</strong>
+<pre>$ <strong>python src/manage.py test functional_tests</strong>
 [...]
 selenium.common.exceptions.NoSuchElementException: Message: Unable to locate
-element: Reticulate splines
+element: Reticulate splines; [...]
 
  ---------------------------------------------------------------------
 Ran 8 tests in 77.613s
@@ -591,7 +619,7 @@ FAILED (errors=1)</pre>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>$ <strong>git add lists</strong>
+<pre>$ <strong>git add src/lists</strong>
 $ <strong>git diff --staged</strong>
 $ <strong>git commit -m "url, placeholder view, and first-cut templates for my_lists"</strong></pre>
 </div>
@@ -600,27 +628,31 @@ $ <strong>git commit -m "url, placeholder view, and first-cut templates for my_l
 <div class="sect3">
 <h4 id="_moving_down_to_the_next_layer_what_the_view_passes_to_the_template">Moving Down to the Next Layer: What the View Passes to the Template</h4>
 <div class="paragraph">
-<p>Now
-our views layer needs to respond to the requirements we&#8217;ve laid out in the template layer, by giving it the objects it needs.  In this case, the list owner:</p>
+<p>
+Now our views layer needs to respond to the requirements we&#8217;ve laid out in the template layer,
+by giving it the objects it needs.
+In this case, the list owner:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">lists/tests/test_views.py (ch19l011)</div>
+<div class="title">src/lists/tests/test_views.py (ch19l011)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
 <pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-kn">from</span> <span class="tok-nn">django.contrib.auth</span> <span class="tok-kn">import</span> <span class="tok-n">get_user_model</span>
+
 <span class="tok-n">User</span> <span class="tok-o">=</span> <span class="tok-n">get_user_model</span><span class="tok-p">()</span>
 <span class="tok-p">[</span><span class="tok-o">...</span><span class="tok-p">]</span>
-<span class="tok-k">class</span> <span class="tok-nc">MyListsTest</span><span class="tok-p">(</span><span class="tok-n">TestCase</span><span class="tok-p">):</span>
 
+
+<span class="tok-k">class</span> <span class="tok-nc">MyListsTest</span><span class="tok-p">(</span><span class="tok-n">TestCase</span><span class="tok-p">):</span>
     <span class="tok-k">def</span> <span class="tok-nf">test_my_lists_url_renders_my_lists_template</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">):</span>
         <span class="tok-p">[</span><span class="tok-o">...</span><span class="tok-p">]</span>
 
     <span class="tok-k">def</span> <span class="tok-nf">test_passes_correct_owner_to_template</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">):</span>
-        <span class="tok-n">User</span><span class="tok-o">.</span><span class="tok-n">objects</span><span class="tok-o">.</span><span class="tok-n">create</span><span class="tok-p">(</span><span class="tok-n">email</span><span class="tok-o">=</span><span class="tok-s1">'wrong@owner.com'</span><span class="tok-p">)</span>
-        <span class="tok-n">correct_user</span> <span class="tok-o">=</span> <span class="tok-n">User</span><span class="tok-o">.</span><span class="tok-n">objects</span><span class="tok-o">.</span><span class="tok-n">create</span><span class="tok-p">(</span><span class="tok-n">email</span><span class="tok-o">=</span><span class="tok-s1">'a@b.com'</span><span class="tok-p">)</span>
-        <span class="tok-n">response</span> <span class="tok-o">=</span> <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">client</span><span class="tok-o">.</span><span class="tok-n">get</span><span class="tok-p">(</span><span class="tok-s1">'/lists/users/a@b.com/'</span><span class="tok-p">)</span>
-        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertEqual</span><span class="tok-p">(</span><span class="tok-n">response</span><span class="tok-o">.</span><span class="tok-n">context</span><span class="tok-p">[</span><span class="tok-s1">'owner'</span><span class="tok-p">],</span> <span class="tok-n">correct_user</span><span class="tok-p">)</span></code></pre>
+        <span class="tok-n">User</span><span class="tok-o">.</span><span class="tok-n">objects</span><span class="tok-o">.</span><span class="tok-n">create</span><span class="tok-p">(</span><span class="tok-n">email</span><span class="tok-o">=</span><span class="tok-s2">"wrong@owner.com"</span><span class="tok-p">)</span>
+        <span class="tok-n">correct_user</span> <span class="tok-o">=</span> <span class="tok-n">User</span><span class="tok-o">.</span><span class="tok-n">objects</span><span class="tok-o">.</span><span class="tok-n">create</span><span class="tok-p">(</span><span class="tok-n">email</span><span class="tok-o">=</span><span class="tok-s2">"a@b.com"</span><span class="tok-p">)</span>
+        <span class="tok-n">response</span> <span class="tok-o">=</span> <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">client</span><span class="tok-o">.</span><span class="tok-n">get</span><span class="tok-p">(</span><span class="tok-s2">"/lists/users/a@b.com/"</span><span class="tok-p">)</span>
+        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertEqual</span><span class="tok-p">(</span><span class="tok-n">response</span><span class="tok-o">.</span><span class="tok-n">context</span><span class="tok-p">[</span><span class="tok-s2">"owner"</span><span class="tok-p">],</span> <span class="tok-n">correct_user</span><span class="tok-p">)</span></code></pre>
 </div>
 </div>
 </div>
@@ -637,17 +669,19 @@ our views layer needs to respond to the requirements we&#8217;ve laid out in the
 <p>So:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">lists/views.py (ch19l012)</div>
+<div class="title">src/lists/views.py (ch19l012)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
 <pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-kn">from</span> <span class="tok-nn">django.contrib.auth</span> <span class="tok-kn">import</span> <span class="tok-n">get_user_model</span>
+
 <span class="tok-n">User</span> <span class="tok-o">=</span> <span class="tok-n">get_user_model</span><span class="tok-p">()</span>
 <span class="tok-p">[</span><span class="tok-o">...</span><span class="tok-p">]</span>
 
+
 <span class="tok-k">def</span> <span class="tok-nf">my_lists</span><span class="tok-p">(</span><span class="tok-n">request</span><span class="tok-p">,</span> <span class="tok-n">email</span><span class="tok-p">):</span>
     <span class="tok-n">owner</span> <span class="tok-o">=</span> <span class="tok-n">User</span><span class="tok-o">.</span><span class="tok-n">objects</span><span class="tok-o">.</span><span class="tok-n">get</span><span class="tok-p">(</span><span class="tok-n">email</span><span class="tok-o">=</span><span class="tok-n">email</span><span class="tok-p">)</span>
-    <span class="tok-k">return</span> <span class="tok-n">render</span><span class="tok-p">(</span><span class="tok-n">request</span><span class="tok-p">,</span> <span class="tok-s1">'my_lists.html'</span><span class="tok-p">,</span> <span class="tok-p">{</span><span class="tok-s1">'owner'</span><span class="tok-p">:</span> <span class="tok-n">owner</span><span class="tok-p">})</span></code></pre>
+    <span class="tok-k">return</span> <span class="tok-n">render</span><span class="tok-p">(</span><span class="tok-n">request</span><span class="tok-p">,</span> <span class="tok-s2">"my_lists.html"</span><span class="tok-p">,</span> <span class="tok-p">{</span><span class="tok-s2">"owner"</span><span class="tok-p">:</span> <span class="tok-n">owner</span><span class="tok-p">})</span></code></pre>
 </div>
 </div>
 </div>
@@ -657,12 +691,12 @@ our views layer needs to respond to the requirements we&#8217;ve laid out in the
 the previous test. We just need to add a user for it as well:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">lists/tests/test_views.py (ch19l013)</div>
+<div class="title">src/lists/tests/test_views.py (ch19l013)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
 <pre class="pygments highlight"><code data-lang="python"><span></span>    <span class="tok-k">def</span> <span class="tok-nf">test_my_lists_url_renders_my_lists_template</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">):</span>
-        <span class="tok-n">User</span><span class="tok-o">.</span><span class="tok-n">objects</span><span class="tok-o">.</span><span class="tok-n">create</span><span class="tok-p">(</span><span class="tok-n">email</span><span class="tok-o">=</span><span class="tok-s1">'a@b.com'</span><span class="tok-p">)</span>
+        <span class="tok-n">User</span><span class="tok-o">.</span><span class="tok-n">objects</span><span class="tok-o">.</span><span class="tok-n">create</span><span class="tok-p">(</span><span class="tok-n">email</span><span class="tok-o">=</span><span class="tok-s2">"a@b.com"</span><span class="tok-p">)</span>
         <span class="tok-p">[</span><span class="tok-o">...</span><span class="tok-p">]</span></code></pre>
 </div>
 </div>
@@ -682,17 +716,17 @@ we get to an OK:</p>
 <div class="sect2">
 <h3 id="_the_next_requirement_from_the_views_layer_new_lists_should_record_owner">The Next "Requirement" from the Views Layer: New Lists Should Record Owner</h3>
 <div class="paragraph">
-<p>Before
-we move down to the model layer, there&#8217;s another part of the code
-at the views layer that will need to use our model:  we need some way for
-newly created lists to be assigned to an owner, if the current user is
-logged in to the site.</p>
+<p>
+Before we move down to the model layer,
+there&#8217;s another part of the code at the views layer that will need to use our model:
+we need some way for newly created lists to be assigned to an owner,
+if the current user is logged in to the site.</p>
 </div>
 <div class="paragraph">
 <p>Here&#8217;s a first crack at writing the test:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">lists/tests/test_views.py (ch19l014)</div>
+<div class="title">src/lists/tests/test_views.py (ch22l014)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
@@ -700,11 +734,11 @@ logged in to the site.</p>
     <span class="tok-p">[</span><span class="tok-o">...</span><span class="tok-p">]</span>
 
     <span class="tok-k">def</span> <span class="tok-nf">test_list_owner_is_saved_if_user_is_authenticated</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">):</span>
-        <span class="tok-n">user</span> <span class="tok-o">=</span> <span class="tok-n">User</span><span class="tok-o">.</span><span class="tok-n">objects</span><span class="tok-o">.</span><span class="tok-n">create</span><span class="tok-p">(</span><span class="tok-n">email</span><span class="tok-o">=</span><span class="tok-s1">'a@b.com'</span><span class="tok-p">)</span>
+        <span class="tok-n">user</span> <span class="tok-o">=</span> <span class="tok-n">User</span><span class="tok-o">.</span><span class="tok-n">objects</span><span class="tok-o">.</span><span class="tok-n">create</span><span class="tok-p">(</span><span class="tok-n">email</span><span class="tok-o">=</span><span class="tok-s2">"a@b.com"</span><span class="tok-p">)</span>
         <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">client</span><span class="tok-o">.</span><span class="tok-n">force_login</span><span class="tok-p">(</span><span class="tok-n">user</span><span class="tok-p">)</span>  <i class="conum" data-value="1"></i><b>(1)</b>
-        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">client</span><span class="tok-o">.</span><span class="tok-n">post</span><span class="tok-p">(</span><span class="tok-s1">'/lists/new'</span><span class="tok-p">,</span> <span class="tok-n">data</span><span class="tok-o">=</span><span class="tok-p">{</span><span class="tok-s1">'text'</span><span class="tok-p">:</span> <span class="tok-s1">'new item'</span><span class="tok-p">})</span>
-        <span class="tok-n">list_</span> <span class="tok-o">=</span> <span class="tok-n">List</span><span class="tok-o">.</span><span class="tok-n">objects</span><span class="tok-o">.</span><span class="tok-n">first</span><span class="tok-p">()</span>
-        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertEqual</span><span class="tok-p">(</span><span class="tok-n">list_</span><span class="tok-o">.</span><span class="tok-n">owner</span><span class="tok-p">,</span> <span class="tok-n">user</span><span class="tok-p">)</span></code></pre>
+        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">client</span><span class="tok-o">.</span><span class="tok-n">post</span><span class="tok-p">(</span><span class="tok-s2">"/lists/new"</span><span class="tok-p">,</span> <span class="tok-n">data</span><span class="tok-o">=</span><span class="tok-p">{</span><span class="tok-s2">"text"</span><span class="tok-p">:</span> <span class="tok-s2">"new item"</span><span class="tok-p">})</span>
+        <span class="tok-n">new_list</span> <span class="tok-o">=</span> <span class="tok-n">List</span><span class="tok-o">.</span><span class="tok-n">objects</span><span class="tok-o">.</span><span class="tok-n">get</span><span class="tok-p">()</span>
+        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertEqual</span><span class="tok-p">(</span><span class="tok-n">new_list</span><span class="tok-o">.</span><span class="tok-n">owner</span><span class="tok-p">,</span> <span class="tok-n">user</span><span class="tok-p">)</span></code></pre>
 </div>
 </div>
 </div>
@@ -730,20 +764,20 @@ with a logged-in user.</td>
 <p>To fix this, we can try writing code like this:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">lists/views.py (ch19l015)</div>
+<div class="title">src/lists/views.py (ch22l015)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
 <pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-k">def</span> <span class="tok-nf">new_list</span><span class="tok-p">(</span><span class="tok-n">request</span><span class="tok-p">):</span>
     <span class="tok-n">form</span> <span class="tok-o">=</span> <span class="tok-n">ItemForm</span><span class="tok-p">(</span><span class="tok-n">data</span><span class="tok-o">=</span><span class="tok-n">request</span><span class="tok-o">.</span><span class="tok-n">POST</span><span class="tok-p">)</span>
     <span class="tok-k">if</span> <span class="tok-n">form</span><span class="tok-o">.</span><span class="tok-n">is_valid</span><span class="tok-p">():</span>
-        <span class="tok-n">list_</span> <span class="tok-o">=</span> <span class="tok-n">List</span><span class="tok-p">()</span>
-        <span class="tok-n">list_</span><span class="tok-o">.</span><span class="tok-n">owner</span> <span class="tok-o">=</span> <span class="tok-n">request</span><span class="tok-o">.</span><span class="tok-n">user</span>
-        <span class="tok-n">list_</span><span class="tok-o">.</span><span class="tok-n">save</span><span class="tok-p">()</span>
-        <span class="tok-n">form</span><span class="tok-o">.</span><span class="tok-n">save</span><span class="tok-p">(</span><span class="tok-n">for_list</span><span class="tok-o">=</span><span class="tok-n">list_</span><span class="tok-p">)</span>
-        <span class="tok-k">return</span> <span class="tok-n">redirect</span><span class="tok-p">(</span><span class="tok-n">list_</span><span class="tok-p">)</span>
+        <span class="tok-n">nulist</span> <span class="tok-o">=</span> <span class="tok-n">List</span><span class="tok-o">.</span><span class="tok-n">objects</span><span class="tok-o">.</span><span class="tok-n">create</span><span class="tok-p">()</span>
+        <span class="tok-n">nulist</span><span class="tok-o">.</span><span class="tok-n">owner</span> <span class="tok-o">=</span> <span class="tok-n">request</span><span class="tok-o">.</span><span class="tok-n">user</span>
+        <span class="tok-n">nulist</span><span class="tok-o">.</span><span class="tok-n">save</span><span class="tok-p">()</span>
+        <span class="tok-n">form</span><span class="tok-o">.</span><span class="tok-n">save</span><span class="tok-p">(</span><span class="tok-n">for_list</span><span class="tok-o">=</span><span class="tok-n">nulist</span><span class="tok-p">)</span>
+        <span class="tok-k">return</span> <span class="tok-n">redirect</span><span class="tok-p">(</span><span class="tok-n">nulist</span><span class="tok-p">)</span>
     <span class="tok-k">else</span><span class="tok-p">:</span>
-        <span class="tok-k">return</span> <span class="tok-n">render</span><span class="tok-p">(</span><span class="tok-n">request</span><span class="tok-p">,</span> <span class="tok-s1">'home.html'</span><span class="tok-p">,</span> <span class="tok-p">{</span><span class="tok-s2">"form"</span><span class="tok-p">:</span> <span class="tok-n">form</span><span class="tok-p">})</span></code></pre>
+        <span class="tok-k">return</span> <span class="tok-n">render</span><span class="tok-p">(</span><span class="tok-n">request</span><span class="tok-p">,</span> <span class="tok-s2">"home.html"</span><span class="tok-p">,</span> <span class="tok-p">{</span><span class="tok-s2">"form"</span><span class="tok-p">:</span> <span class="tok-n">form</span><span class="tok-p">})</span></code></pre>
 </div>
 </div>
 </div>
@@ -753,36 +787,46 @@ with a logged-in user.</td>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>    self.assertEqual(list_.owner, user)
+<pre>    self.assertEqual(new_list.owner, user)
+                     ^^^^^^^^^^^^^^
 AttributeError: 'List' object has no attribute 'owner'</pre>
 </div>
 </div>
 <div class="sect3">
 <h4 id="_a_decision_point_whether_to_proceed_to_the_next_layer_with_a_failing_test">A Decision Point: Whether to Proceed to the Next Layer with a Failing Test</h4>
-<div class="paragraph">
-<p>In
-order to get this test passing, as it&#8217;s written now, we have to move
-down to the model layer.  However, it means doing more work with a failing
-test, which is not ideal.</p>
+<div class="ulist">
+<ul>
+<li>
+<p>TODO: rewrite this section if we do decide to drop the next chapter.</p>
+</li>
+</ul>
 </div>
 <div class="paragraph">
-<p>The
-alternative is to rewrite the test to make it more <em>isolated</em> from the
-level below, using mocks.</p>
+<p>
+In order to get this test passing, as it&#8217;s written now,
+we have to move down to the model layer.
+However, it means doing more work with a failing test, which is not ideal.</p>
 </div>
 <div class="paragraph">
-<p>On the one hand, it&#8217;s a lot more effort to use mocks, and it can lead to
-tests that are harder to read.  On the other hand, imagine if our app was more
-complex, and there were several more layers between the outside and the inside.
-Imagine leaving three or four or five layers of tests, all failing while we
-wait to get to the bottom layer to implement our critical feature.  While tests
-are failing, we&#8217;re not sure that layer really works, on its own terms, or not.
+<p>
+The alternative is to rewrite the test
+to make it more <em>isolated</em> from the level below, using mocks.</p>
+</div>
+<div class="paragraph">
+<p>On the one hand, it&#8217;s a lot more effort to use mocks,
+and it can lead to tests that are harder to read.
+On the other hand, imagine if our app was more complex,
+and there were several more layers between the outside and the inside.
+Imagine leaving three or four or five layers of tests, all failing
+while we wait to get to the bottom layer to implement our critical feature.
+While tests are failing, we&#8217;re not sure that layer really works, on its own terms, or not.
 We have to wait until we get to the bottom layer.</p>
 </div>
 <div class="paragraph">
-<p>This is a decision point you&#8217;re likely to run into in your own projects. Let&#8217;s
-investigate both approaches.  We&#8217;ll start by taking the shortcut, and leaving
-the test failing.  In the next chapter, we&#8217;ll come back to this exact point,
+<p>This is a decision point you&#8217;re likely to run into in your own projects.
+Let&#8217;s investigate both approaches.
+We&#8217;ll start by taking the shortcut, and leaving the test failing.
+In the next chapter, we&#8217;ll come back to this exact point,
 and investigate how things would have gone if we&#8217;d used more isolation.</p>
 </div>
 <div class="paragraph">
@@ -801,31 +845,32 @@ $ <strong>git tag revisit_this_point_with_isolated_tests</strong></pre>
 <h3 id="_moving_down_to_the_model_layer">Moving Down to the Model Layer</h3>
 <div class="paragraph">
 <p>Our outside-in design has driven out two requirements for the model layer:
-we want to be able to assign an owner to a list using the attribute
-<code>.owner</code>, and we want to be able to access the list&#8217;s owner with
-the API <code>owner.list_set.all</code>.</p>
+we want to be able to assign an owner to a list using the attribute <code>.owner</code>,
+and we want to be able to access the list&#8217;s owner with the API <code>owner.list_set.all()</code>.</p>
 </div>
 <div class="paragraph">
 <p>Let&#8217;s write a test for that:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">lists/tests/test_models.py (ch19l018)</div>
+<div class="title">src/lists/tests/test_models.py (ch22l018)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
 <pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-kn">from</span> <span class="tok-nn">django.contrib.auth</span> <span class="tok-kn">import</span> <span class="tok-n">get_user_model</span>
+<span class="tok-p">[</span><span class="tok-o">...</span><span class="tok-p">]</span>
+
 <span class="tok-n">User</span> <span class="tok-o">=</span> <span class="tok-n">get_user_model</span><span class="tok-p">()</span>
 <span class="tok-p">[</span><span class="tok-o">...</span><span class="tok-p">]</span>
 
-<span class="tok-k">class</span> <span class="tok-nc">ListModelTest</span><span class="tok-p">(</span><span class="tok-n">TestCase</span><span class="tok-p">):</span>
 
+<span class="tok-k">class</span> <span class="tok-nc">ListModelTest</span><span class="tok-p">(</span><span class="tok-n">TestCase</span><span class="tok-p">):</span>
     <span class="tok-k">def</span> <span class="tok-nf">test_get_absolute_url</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">):</span>
         <span class="tok-p">[</span><span class="tok-o">...</span><span class="tok-p">]</span>
 
     <span class="tok-k">def</span> <span class="tok-nf">test_lists_can_have_owners</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">):</span>
-        <span class="tok-n">user</span> <span class="tok-o">=</span> <span class="tok-n">User</span><span class="tok-o">.</span><span class="tok-n">objects</span><span class="tok-o">.</span><span class="tok-n">create</span><span class="tok-p">(</span><span class="tok-n">email</span><span class="tok-o">=</span><span class="tok-s1">'a@b.com'</span><span class="tok-p">)</span>
-        <span class="tok-n">list_</span> <span class="tok-o">=</span> <span class="tok-n">List</span><span class="tok-o">.</span><span class="tok-n">objects</span><span class="tok-o">.</span><span class="tok-n">create</span><span class="tok-p">(</span><span class="tok-n">owner</span><span class="tok-o">=</span><span class="tok-n">user</span><span class="tok-p">)</span>
-        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertIn</span><span class="tok-p">(</span><span class="tok-n">list_</span><span class="tok-p">,</span> <span class="tok-n">user</span><span class="tok-o">.</span><span class="tok-n">list_set</span><span class="tok-o">.</span><span class="tok-n">all</span><span class="tok-p">())</span></code></pre>
+        <span class="tok-n">user</span> <span class="tok-o">=</span> <span class="tok-n">User</span><span class="tok-o">.</span><span class="tok-n">objects</span><span class="tok-o">.</span><span class="tok-n">create</span><span class="tok-p">(</span><span class="tok-n">email</span><span class="tok-o">=</span><span class="tok-s2">"a@b.com"</span><span class="tok-p">)</span>
+        <span class="tok-n">mylist</span> <span class="tok-o">=</span> <span class="tok-n">List</span><span class="tok-o">.</span><span class="tok-n">objects</span><span class="tok-o">.</span><span class="tok-n">create</span><span class="tok-p">(</span><span class="tok-n">owner</span><span class="tok-o">=</span><span class="tok-n">user</span><span class="tok-p">)</span>
+        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertIn</span><span class="tok-p">(</span><span class="tok-n">mylist</span><span class="tok-p">,</span> <span class="tok-n">user</span><span class="tok-o">.</span><span class="tok-n">list_set</span><span class="tok-o">.</span><span class="tok-n">all</span><span class="tok-p">())</span></code></pre>
 </div>
 </div>
 </div>
@@ -835,9 +880,9 @@ the API <code>owner.list_set.all</code>.</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>    list_ = List.objects.create(owner=user)
+<pre>    mylist = List.objects.create(owner=user)
     [...]
-TypeError: 'owner' is an invalid keyword argument for this function</pre>
+TypeError: List() got unexpected keyword arguments: 'owner'</pre>
 </div>
 </div>
 <div class="paragraph">
@@ -858,7 +903,7 @@ is better than implicit, and tests are documentation, so let&#8217;s have a test
 that too:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">lists/tests/test_models.py (ch19l020)</div>
+<div class="title">src/lists/tests/test_models.py (ch22l020)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
@@ -872,7 +917,7 @@ that too:</p>
 <p>The correct implementation is this:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">lists/models.py</div>
+<div class="title">src/lists/models.py (ch22l021)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
@@ -880,10 +925,12 @@ that too:</p>
 <span class="tok-p">[</span><span class="tok-o">...</span><span class="tok-p">]</span>
 
 <span class="tok-k">class</span> <span class="tok-nc">List</span><span class="tok-p">(</span><span class="tok-n">models</span><span class="tok-o">.</span><span class="tok-n">Model</span><span class="tok-p">):</span>
-    <span class="tok-n">owner</span> <span class="tok-o">=</span> <span class="tok-n">models</span><span class="tok-o">.</span><span class="tok-n">ForeignKey</span><span class="tok-p">(</span><span class="tok-n">settings</span><span class="tok-o">.</span><span class="tok-n">AUTH_USER_MODEL</span><span class="tok-p">,</span> <span class="tok-n">blank</span><span class="tok-o">=</span><span class="tok-kc">True</span><span class="tok-p">,</span> <span class="tok-n">null</span><span class="tok-o">=</span><span class="tok-kc">True</span><span class="tok-p">)</span>
+    <span class="tok-n">owner</span> <span class="tok-o">=</span> <span class="tok-n">models</span><span class="tok-o">.</span><span class="tok-n">ForeignKey</span><span class="tok-p">(</span>
+        <span class="tok-n">settings</span><span class="tok-o">.</span><span class="tok-n">AUTH_USER_MODEL</span><span class="tok-p">,</span> <span class="tok-n">blank</span><span class="tok-o">=</span><span class="tok-kc">True</span><span class="tok-p">,</span> <span class="tok-n">null</span><span class="tok-o">=</span><span class="tok-kc">True</span><span class="tok-p">,</span> <span class="tok-n">on_delete</span><span class="tok-o">=</span><span class="tok-n">models</span><span class="tok-o">.</span><span class="tok-n">CASCADE</span>
+    <span class="tok-p">)</span>
 
     <span class="tok-k">def</span> <span class="tok-nf">get_absolute_url</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">):</span>
-        <span class="tok-k">return</span> <span class="tok-n">reverse</span><span class="tok-p">(</span><span class="tok-s1">'view_list'</span><span class="tok-p">,</span> <span class="tok-n">args</span><span class="tok-o">=</span><span class="tok-p">[</span><span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">id</span><span class="tok-p">])</span></code></pre>
+        <span class="tok-k">return</span> <span class="tok-n">reverse</span><span class="tok-p">(</span><span class="tok-s2">"view_list"</span><span class="tok-p">,</span> <span class="tok-n">args</span><span class="tok-o">=</span><span class="tok-p">[</span><span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">id</span><span class="tok-p">])</span></code></pre>
 </div>
 </div>
 </div>
@@ -893,8 +940,9 @@ that too:</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>    return Database.Cursor.execute(self, query, params)
-django.db.utils.OperationalError: no such column: lists_list.owner_id</pre>
+<pre>    return super().execute(query, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+django.db.utils.OperationalError: table lists_list has no column named owner_id</pre>
 </div>
 </div>
 <div class="paragraph">
@@ -902,9 +950,9 @@ django.db.utils.OperationalError: no such column: lists_list.owner_id</pre>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>$ <strong>python manage.py makemigrations</strong>
+<pre>$ <strong>python src/manage.py makemigrations</strong>
 Migrations for 'lists':
-  lists/migrations/0006_list_owner.py
+  src/lists/migrations/0006_list_owner.py
     - Add field owner to list</pre>
 </div>
 </div>
@@ -913,39 +961,43 @@ Migrations for 'lists':
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>ERROR: test_redirects_after_POST (lists.tests.test_views.NewListTest)
+<pre>ERROR: test_can_save_a_POST_request
 [...]
 ValueError: Cannot assign "&lt;SimpleLazyObject:
-&lt;django.contrib.auth.models.AnonymousUser object at 0x7f364795ef90&gt;&gt;":
-"List.owner" must be a "User" instance.
-ERROR: test_can_save_a_POST_request (lists.tests.test_views.NewListTest)
+&lt;django.contrib.auth.models.AnonymousUser object at 0x1069852e&gt;&gt;": "List.owner" must
+be a "User" instance.
+[...]
 
+ERROR: test_redirects_after_POST
 [...]
 ValueError: Cannot assign "&lt;SimpleLazyObject:
-&lt;django.contrib.auth.models.AnonymousUser object at 0x7f364795ef90&gt;&gt;":
-"List.owner" must be a "User" instance.</pre>
+&lt;django.contrib.auth.models.AnonymousUser object at 0x106a1b440&gt;&gt;": "List.owner" must
+be a "User" instance.</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>We&#8217;re moving back up to the views layer now, just doing a little
-tidying up. Notice that these are in the old test for the <code>new_list</code> view, when
-we haven&#8217;t got a logged-in user.  We should only save the list owner when the
-user is actually logged in.  The <code>.is_authenticated</code> attribute we defined in
-<a href="/book/chapter_18_spiking_custom_auth.html">[chapter_18_spiking_custom_auth]</a> comes in useful now (when they&#8217;re not logged in,
-Django represents users using a class called <code>AnonymousUser</code>, whose
-<code>.is_authenticated</code> is always <code>False</code>):</p>
+<p>We&#8217;re moving back up to the views layer now, just doing a little tidying up.
+Notice that these are in the old test for the <code>new_list</code> view,
+when we haven&#8217;t got a logged-in user.
+We should only save the list owner when the user is actually logged in.
+The <code>.is_authenticated</code> attribute we defined in <a href="/book/chapter_18_spiking_custom_auth.html">[chapter_18_spiking_custom_auth]</a>
+comes in useful now
+(when they&#8217;re not logged in,
+Django represents users using a class called <code>AnonymousUser</code>,
+whose <code>.is_authenticated</code> is always <code>False</code>):</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">lists/views.py (ch19l023)</div>
+<div class="title">src/lists/views.py (ch22l023)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
 <pre class="pygments highlight"><code data-lang="python"><span></span>    <span class="tok-k">if</span> <span class="tok-n">form</span><span class="tok-o">.</span><span class="tok-n">is_valid</span><span class="tok-p">():</span>
-        <span class="tok-n">list_</span> <span class="tok-o">=</span> <span class="tok-n">List</span><span class="tok-p">()</span>
+        <span class="tok-n">nulist</span> <span class="tok-o">=</span> <span class="tok-n">List</span><span class="tok-o">.</span><span class="tok-n">objects</span><span class="tok-o">.</span><span class="tok-n">create</span><span class="tok-p">()</span>
         <span class="tok-k">if</span> <span class="tok-n">request</span><span class="tok-o">.</span><span class="tok-n">user</span><span class="tok-o">.</span><span class="tok-n">is_authenticated</span><span class="tok-p">:</span>
-            <span class="tok-n">list_</span><span class="tok-o">.</span><span class="tok-n">owner</span> <span class="tok-o">=</span> <span class="tok-n">request</span><span class="tok-o">.</span><span class="tok-n">user</span>
-        <span class="tok-n">list_</span><span class="tok-o">.</span><span class="tok-n">save</span><span class="tok-p">()</span>
-        <span class="tok-n">form</span><span class="tok-o">.</span><span class="tok-n">save</span><span class="tok-p">(</span><span class="tok-n">for_list</span><span class="tok-o">=</span><span class="tok-n">list_</span><span class="tok-p">)</span>
+            <span class="tok-n">nulist</span><span class="tok-o">.</span><span class="tok-n">owner</span> <span class="tok-o">=</span> <span class="tok-n">request</span><span class="tok-o">.</span><span class="tok-n">user</span>
+            <span class="tok-n">nulist</span><span class="tok-o">.</span><span class="tok-n">save</span><span class="tok-p">()</span>
+        <span class="tok-n">form</span><span class="tok-o">.</span><span class="tok-n">save</span><span class="tok-p">(</span><span class="tok-n">for_list</span><span class="tok-o">=</span><span class="tok-n">nulist</span><span class="tok-p">)</span>
+        <span class="tok-k">return</span> <span class="tok-n">redirect</span><span class="tok-p">(</span><span class="tok-n">nulist</span><span class="tok-p">)</span>
         <span class="tok-p">[</span><span class="tok-o">...</span><span class="tok-p">]</span></code></pre>
 </div>
 </div>
@@ -956,11 +1008,10 @@ Django represents users using a class called <code>AnonymousUser</code>, whose
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>$ <strong>python manage.py test lists</strong>
+<pre>$ <strong>python src/manage.py test lists</strong>
 [...]
-.......................................
- ---------------------------------------------------------------------
-Ran 39 tests in 0.237s
+
+Ran 37 tests in 0.237s
 
 OK</pre>
 </div>
@@ -970,33 +1021,34 @@ OK</pre>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>$ <strong>git add lists</strong>
+<pre>$ <strong>git add src/lists</strong>
 $ <strong>git commit -m "lists can have owners, which are saved on creation."</strong></pre>
 </div>
 </div>
-<div class="sect3">
-<h4 id="_final_step_feeding_through_the_name_api_from_the_template">Final Step: Feeding Through the .name API from the Template</h4>
+</div>
+<div class="sect2">
+<h3 id="_final_step_feeding_through_the_name_api_from_the_template">Final Step: Feeding Through the .name API from the Template</h3>
 <div class="paragraph">
 <p>The last thing our outside-in design wanted came from the templates,
 which wanted to be able to access a list "name" based on the text of
 its first item:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">lists/tests/test_models.py (ch19l024)</div>
+<div class="title">src/lists/tests/test_models.py (ch19l024)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
 <pre class="pygments highlight"><code data-lang="python"><span></span>    <span class="tok-k">def</span> <span class="tok-nf">test_list_name_is_first_item_text</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">):</span>
         <span class="tok-n">list_</span> <span class="tok-o">=</span> <span class="tok-n">List</span><span class="tok-o">.</span><span class="tok-n">objects</span><span class="tok-o">.</span><span class="tok-n">create</span><span class="tok-p">()</span>
-        <span class="tok-n">Item</span><span class="tok-o">.</span><span class="tok-n">objects</span><span class="tok-o">.</span><span class="tok-n">create</span><span class="tok-p">(</span><span class="tok-nb">list</span><span class="tok-o">=</span><span class="tok-n">list_</span><span class="tok-p">,</span> <span class="tok-n">text</span><span class="tok-o">=</span><span class="tok-s1">'first item'</span><span class="tok-p">)</span>
-        <span class="tok-n">Item</span><span class="tok-o">.</span><span class="tok-n">objects</span><span class="tok-o">.</span><span class="tok-n">create</span><span class="tok-p">(</span><span class="tok-nb">list</span><span class="tok-o">=</span><span class="tok-n">list_</span><span class="tok-p">,</span> <span class="tok-n">text</span><span class="tok-o">=</span><span class="tok-s1">'second item'</span><span class="tok-p">)</span>
-        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertEqual</span><span class="tok-p">(</span><span class="tok-n">list_</span><span class="tok-o">.</span><span class="tok-n">name</span><span class="tok-p">,</span> <span class="tok-s1">'first item'</span><span class="tok-p">)</span></code></pre>
+        <span class="tok-n">Item</span><span class="tok-o">.</span><span class="tok-n">objects</span><span class="tok-o">.</span><span class="tok-n">create</span><span class="tok-p">(</span><span class="tok-nb">list</span><span class="tok-o">=</span><span class="tok-n">list_</span><span class="tok-p">,</span> <span class="tok-n">text</span><span class="tok-o">=</span><span class="tok-s2">"first item"</span><span class="tok-p">)</span>
+        <span class="tok-n">Item</span><span class="tok-o">.</span><span class="tok-n">objects</span><span class="tok-o">.</span><span class="tok-n">create</span><span class="tok-p">(</span><span class="tok-nb">list</span><span class="tok-o">=</span><span class="tok-n">list_</span><span class="tok-p">,</span> <span class="tok-n">text</span><span class="tok-o">=</span><span class="tok-s2">"second item"</span><span class="tok-p">)</span>
+        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertEqual</span><span class="tok-p">(</span><span class="tok-n">list_</span><span class="tok-o">.</span><span class="tok-n">name</span><span class="tok-p">,</span> <span class="tok-s2">"first item"</span><span class="tok-p">)</span></code></pre>
 </div>
 </div>
 </div>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">lists/models.py (ch19l025)</div>
+<div class="title">src/lists/models.py (ch19l025)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
@@ -1013,7 +1065,7 @@ and a working "My Lists" page (<a href="#my-lists-page">The "My Lists" page, in 
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>$ <strong>python manage.py test functional_tests</strong>
+<pre>$ <strong>python src/manage.py test functional_tests</strong>
 [...]
 Ran 8 tests in 93.819s
 
@@ -1098,10 +1150,15 @@ remind us to write other critical tests that are less user-visible&#8212;&#8203;
 </div>
 </div>
 </div>
+<div id="footnotes">
+<hr>
+<div class="footnote" id="_footnotedef_1">
+<a href="#_footnoteref_1">1</a>. This phrase "programming by wishful thinking" was perhaps first used in     the amazing, mind-expanding textbook     <a href="https://en.wikipedia.org/wiki/Structure_and_Interpretation_of_Computer_Programs">SICP</a>,     which I <em>cannot</em> recommend highly enough.
+</div>
 </div>
 <div id="footer">
 <div id="footer-text">
-License: Creative Commons <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode">CC-BY-NC-ND</a>. Last updated: 2024-07-11 02:29:40 +0100
+License: Creative Commons <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode">CC-BY-NC-ND</a>. Last updated: 2024-07-30 16:19:33 +0100
 </div>
 </div>
 <div class="comments" style="padding: 20px">
@@ -1109,7 +1166,7 @@ License: Creative Commons <a href="https://creativecommons.org/licenses/by-nc-nd
   <div id="disqus_thread"></div>
   <script type="text/javascript">
     var disqus_config = function () {
-        this.page.identifier = 'chapter_outside_in';
+        this.page.identifier = 'chapter_22_outside_in';
     };
     
     (function() {
