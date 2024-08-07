@@ -85,19 +85,26 @@ Table of contents follows:
 * [Chapter 6: Improving Functional Tests: Ensuring Isolation and Removing Voodoo Sleeps](/book/chapter_06_explicit_waits_1.html)
 * [Chapter 7: Working Incrementally](/book/chapter_07_working_incrementally.html)
 
+
+
 ### [Part 2: Web Development Sine Qua Nons](/book/part2.forbook.html)
+
+* [Part 2: Web Development Sine Qua Nons](/book/part2.forbook.html)
 * [Chapter 8: Prettification: Layout and Styling, and What to Test About It](/book/chapter_08_prettification.html)
-* [Chapter 9: Deployment Part 1: Containerization aka Docker](/book/chapter_09_docker.html)
-* [Chapter 10: Making our App Production-Ready](/book/chapter_10_production_readiness.html)
-* [Chapter 11: Infrastructure As Code: Automated Deployments With Ansbile](/book/chapter_11_ansible.html)
+* [Chapter 9: Containerization aka Docker](/book/chapter_09_docker.html)
+* [Chapter 10: Making Our App Production-Ready](/book/chapter_10_production_readiness.html)
+* [Chapter 11: Infrastructure As Code: Automated Deployments With Ansible](/book/chapter_11_ansible.html)
 * [Chapter 12: Splitting Our Tests into Multiple Files, and a Generic Wait Helper](/book/chapter_12_organising_test_files.html)
 * [Chapter 13: Validation at the Database Layer](/book/chapter_13_database_layer_validation.html)
 * [Chapter 14: A Simple Form](/book/chapter_14_simple_form.html)
 * [Chapter 15: More Advanced Forms](/book/chapter_15_advanced_forms.html)
-* [Chapter 16: Dipping Our Toes, Very Tentatively, into JavaScript](/book/chapter_16_javascript.html)
-* [Chapter 17: Deploying Our New Code](/book/chapter_deploying_validation.html)
+* [Chapter 16: A Gentle Excursion Into JavaScript](/book/chapter_16_javascript.html)
+* [Chapter 17: Deploying Our New Code](/book/chapter_17_second_deploy.html)
+
+
 
 ### [Part 3: More Advanced Topics in Testing](/book/part3.forbook.html)
+
 * [Chapter 18: User Authentication, Spiking, and De-Spiking](/book/chapter_18_spiking_custom_auth.html)
 * [Chapter 19: Using Mocks to Test External Dependencies or Reduce Duplication](/book/chapter_19_mocking.html)
 * [Chapter 20: Test Fixtures and a Decorator for Explicit Waits](/book/chapter_20_fixtures_and_wait_decorator.html)
