@@ -306,6 +306,13 @@ Here&#8217;s the minimal code change:</p>
 <p>Of course, that link doesn&#8217;t actually go anywhere, but it does get us along to
 the next failure:</p>
 </div>
+<div class="ulist">
+<ul>
+<li>
+<p>TODO: address issue with default list item ordering here.</p>
+</li>
+</ul>
+</div>
 <div class="listingblock">
 <div class="content">
 <pre>$ <strong>python src/manage.py test functional_tests.test_my_lists</strong>
@@ -350,7 +357,7 @@ functions.</p>
 <p>As always, we start with a test:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">src/lists/tests/test_views.py (ch19l003)</div>
+<div class="title">src/lists/tests/test_views.py (ch22l007)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
@@ -459,34 +466,7 @@ from the code at the layers below.</p>
 <h4 id="_a_quick_restructure_of_the_template_inheritance_hierarchy">A Quick Restructure of the Template Inheritance Hierarchy</h4>
 <div class="paragraph">
 <p>
-Currently there&#8217;s no place in our base template for us to put any new content.
-Also, the "My Lists" page doesn&#8217;t need the new item form,
-so we&#8217;ll put that into a block too, making it optional:</p>
-</div>
-<div class="exampleblock sourcecode">
-<div class="title">src/lists/templates/base.html (ch22l011-1)</div>
-<div class="content">
-<div class="listingblock">
-<div class="content">
-<pre class="pygments highlight"><code data-lang="diff"><span></span><span class="tok-gu">@@ -57,6 +57,7 @@</span>
-<span class="tok-w"> </span>        &lt;div class="col-lg-6 text-center"&gt;
-<span class="tok-w"> </span>          &lt;h1 class="display-1 mb-4"&gt;{% block header_text %}{% endblock %}&lt;/h1&gt;
-
-<span class="tok-gi">+          {% block list_form %}</span>
-<span class="tok-w"> </span>            &lt;form
-<span class="tok-w"> </span>              method="POST"
-<span class="tok-w"> </span>              action="{% block form_action %}{% endblock %}"
-<span class="tok-gu">@@ -75,6 +76,8 @@</span>
-<span class="tok-w"> </span>                {% endif %}
-<span class="tok-w"> </span>                {% csrf_token %}
-<span class="tok-w"> </span>            &lt;/form&gt;
-<span class="tok-gi">+          {% endblock %}</span>
-<span class="tok-gi">+</span>
-<span class="tok-w"> </span>        &lt;/div&gt;
-<span class="tok-w"> </span>      &lt;/div&gt;</code></pre>
-</div>
-</div>
-</div>
+Currently there&#8217;s no place in our base template for us to put any new content.</p>
 </div>
 <div class="exampleblock sourcecode">
 <div class="title">src/lists/templates/base.html (ch22l011-2)</div>
@@ -514,6 +494,35 @@ so we&#8217;ll put that into a block too, making it optional:</p>
 </div>
 </div>
 </div>
+<div class="paragraph">
+<p>Also, the "My Lists" page doesn&#8217;t need the new item form,
+so we&#8217;ll put that into a block too, making it optional.</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">src/lists/templates/base.html (ch22l011-1)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="diff"><span></span><span class="tok-gu">@@ -57,6 +57,7 @@</span>
+<span class="tok-w"> </span>        &lt;div class="col-lg-6 text-center"&gt;
+<span class="tok-w"> </span>          &lt;h1 class="display-1 mb-4"&gt;{% block header_text %}{% endblock %}&lt;/h1&gt;
+
+<span class="tok-gi">+          {% block list_form %}</span>
+<span class="tok-w"> </span>            &lt;form method="POST" action="{% block form_action %}{% endblock %}" &gt;
+<span class="tok-w"> </span>              {% csrf_token %}
+<span class="tok-w"> </span>              &lt;input
+<span class="tok-gu">@@ -76,6 +77,8 @@</span>
+<span class="tok-w"> </span>                &lt;/div&gt;
+<span class="tok-w"> </span>              {% endif %}
+<span class="tok-w"> </span>            &lt;/form&gt;
+<span class="tok-gi">+          {% endblock %}</span>
+<span class="tok-gi">+</span>
+<span class="tok-w"> </span>        &lt;/div&gt;
+<span class="tok-w"> </span>      &lt;/div&gt;</code></pre>
+</div>
+</div>
+</div>
+</div>
 </div>
 <div class="sect3">
 <h4 id="_designing_our_api_using_the_template">Designing Our API Using the Template</h4>
@@ -523,7 +532,7 @@ Meanwhile, in <em>my_lists.html</em> we override the <code>list_form</code>
 and say it should be empty&#8230;&#8203;</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">src/lists/templates/my_lists.html</div>
+<div class="title">src/lists/templates/my_lists.html (ch22l010-1)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
@@ -540,7 +549,7 @@ and say it should be empty&#8230;&#8203;</p>
 <p>And then we can just work inside the <code>extra_content</code> block:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">src/lists/templates/my_lists.html</div>
+<div class="title">src/lists/templates/my_lists.html (ch22l010-2)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
@@ -549,12 +558,12 @@ and say it should be empty&#8230;&#8203;</p>
 {% block list_form %}{% endblock %}
 
 {% block extra_content %}
-    <span class="tok-p">&lt;</span><span class="tok-nt">h2</span><span class="tok-p">&gt;</span>{{ owner.email }}'s lists<span class="tok-p">&lt;/</span><span class="tok-nt">h2</span><span class="tok-p">&gt;</span>  <i class="conum" data-value="1"></i><b>(1)</b>
-    <span class="tok-p">&lt;</span><span class="tok-nt">ul</span><span class="tok-p">&gt;</span>
-        {% for list in owner.list_set.all %}  <i class="conum" data-value="2"></i><b>(2)</b>
-            <span class="tok-p">&lt;</span><span class="tok-nt">li</span><span class="tok-p">&gt;&lt;</span><span class="tok-nt">a</span> <span class="tok-na">href</span><span class="tok-o">=</span><span class="tok-s">"{{ list.get_absolute_url }}"</span><span class="tok-p">&gt;</span>{{ list.name }}<span class="tok-p">&lt;/</span><span class="tok-nt">a</span><span class="tok-p">&gt;&lt;/</span><span class="tok-nt">li</span><span class="tok-p">&gt;</span>  <i class="conum" data-value="3"></i><b>(3)</b>
-        {% endfor %}
-    <span class="tok-p">&lt;/</span><span class="tok-nt">ul</span><span class="tok-p">&gt;</span>
+  <span class="tok-p">&lt;</span><span class="tok-nt">h2</span><span class="tok-p">&gt;</span>{{ owner.email }}'s lists<span class="tok-p">&lt;/</span><span class="tok-nt">h2</span><span class="tok-p">&gt;</span>  <i class="conum" data-value="1"></i><b>(1)</b>
+  <span class="tok-p">&lt;</span><span class="tok-nt">ul</span><span class="tok-p">&gt;</span>
+    {% for list in owner.list_set.all %}  <i class="conum" data-value="2"></i><b>(2)</b>
+      <span class="tok-p">&lt;</span><span class="tok-nt">li</span><span class="tok-p">&gt;&lt;</span><span class="tok-nt">a</span> <span class="tok-na">href</span><span class="tok-o">=</span><span class="tok-s">"{{ list.get_absolute_url }}"</span><span class="tok-p">&gt;</span>{{ list.name }}<span class="tok-p">&lt;/</span><span class="tok-nt">a</span><span class="tok-p">&gt;&lt;/</span><span class="tok-nt">li</span><span class="tok-p">&gt;</span>  <i class="conum" data-value="3"></i><b>(3)</b>
+    {% endfor %}
+  <span class="tok-p">&lt;/</span><span class="tok-nt">ul</span><span class="tok-p">&gt;</span>
 {% endblock %}</code></pre>
 </div>
 </div>
@@ -636,7 +645,7 @@ by giving it the objects it needs.
 In this case, the list owner:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">src/lists/tests/test_views.py (ch19l011)</div>
+<div class="title">src/lists/tests/test_views.py (ch22l011)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
@@ -671,7 +680,7 @@ In this case, the list owner:</p>
 <p>So:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">src/lists/views.py (ch19l012)</div>
+<div class="title">src/lists/views.py (ch22l012)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
@@ -693,7 +702,7 @@ In this case, the list owner:</p>
 the previous test. We just need to add a user for it as well:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">src/lists/tests/test_views.py (ch19l013)</div>
+<div class="title">src/lists/tests/test_views.py (ch22l013)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
@@ -954,7 +963,7 @@ django.db.utils.OperationalError: table lists_list has no column named owner_id<
 <div class="content">
 <pre>$ <strong>python src/manage.py makemigrations</strong>
 Migrations for 'lists':
-  src/lists/migrations/0006_list_owner.py
+  src/lists/migrations/0007_list_owner.py
     - Add field owner to list</pre>
 </div>
 </div>
@@ -1036,7 +1045,7 @@ which wanted to be able to access a list "name" based on the text of
 its first item:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">src/lists/tests/test_models.py (ch19l024)</div>
+<div class="title">src/lists/tests/test_models.py (ch22l024)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
@@ -1050,7 +1059,7 @@ its first item:</p>
 </div>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">src/lists/models.py (ch19l025)</div>
+<div class="title">src/lists/models.py (ch22l025)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
@@ -1160,7 +1169,7 @@ remind us to write other critical tests that are less user-visible&#8212;&#8203;
 </div>
 <div id="footer">
 <div id="footer-text">
-License: Creative Commons <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode">CC-BY-NC-ND</a>. Last updated: 2024-08-02 11:53:14 +0100
+License: Creative Commons <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode">CC-BY-NC-ND</a>. Last updated: 2024-08-08 03:18:17 +0100
 </div>
 </div>
 <div class="comments" style="padding: 20px">

@@ -296,14 +296,6 @@ together:</p>
 <a href="https://docs.djangoproject.com/en/4.2/ref/models/options/">Django docs on model
 <code>Meta</code> attributes</a> at this point.</p>
 </div>
-<div class="paragraph">
-<p>Great! Our unit tests are passing.</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>OK</pre>
-</div>
-</div>
 </div>
 <div class="sect3">
 <h4 id="rewrite-model-test">Rewriting the Old Model Test</h4>
@@ -442,7 +434,7 @@ and discuss what to do if we run into migrations and data integrity issues at th
 <code>.full_clean</code>&#8230;&#8203;</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">src/lists/tests/test_models.py</div>
+<div class="title">src/lists/tests/test_models.py (ch15l008)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
@@ -479,7 +471,7 @@ error from the one we want, an <code>IntegrityError</code> instead of a <code>Va
 <div class="paragraph">
 <p>Let&#8217;s revert our changes to the test, and see them all passing again:</p>
 </div>
-<div class="listingblock dofirst-ch15l008">
+<div class="listingblock dofirst-ch15l008-1">
 <div class="content">
 <pre>$ <strong>python src/manage.py test lists</strong>
 [...]
@@ -491,7 +483,7 @@ OK</pre>
 <p>And
 now it&#8217;s time to commit our model-layer changes:</p>
 </div>
-<div class="listingblock small-code skipme">
+<div class="listingblock small-code">
 <div class="content">
 <pre>$ <strong>git status</strong> # should show changes to tests + models and new migration
 $ <strong>git add src/lists</strong>
@@ -921,38 +913,32 @@ use Django instead, it seems like we need to bring back our custom
 <code>&lt;input&gt;</code> and add a few attributes manually:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">src/lists/templates/base.html</div>
+<div class="title">src/lists/templates/base.html (ch15l019)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="pygments highlight"><code data-lang="diff"><span></span><span class="tok-gu">@@ -14,12 +14,25 @@</span>
-<span class="tok-w"> </span>      &lt;div class="row justify-content-center p-5 bg-body-tertiary rounded-3"&gt;
-<span class="tok-w"> </span>        &lt;div class="col-lg-6 text-center"&gt;
+<pre class="pygments highlight"><code data-lang="diff"><span></span><span class="tok-gu">@@ -16,10 +16,22 @@</span>
 <span class="tok-w"> </span>          &lt;h1 class="display-1 mb-4"&gt;{% block header_text %}{% endblock %}&lt;/h1&gt;
-<span class="tok-gd">-</span>
-<span class="tok-gd">-          &lt;form method="POST" action="{% block form_action %}{% endblock %}" &gt;</span>
+
+<span class="tok-w"> </span>          &lt;form method="POST" action="{% block form_action %}{% endblock %}" &gt;
 <span class="tok-gd">-            {{ form.text }}</span>
-<span class="tok-gd">-            {% csrf_token %}</span>
-<span class="tok-gi">+          &lt;form</span>
-<span class="tok-gi">+            class="was-validated"  </span><i class="conum" data-value="1"></i><b>(1)</b>
-<span class="tok-gi">+            method="POST"</span>
-<span class="tok-gi">+            action="{% block form_action %}{% endblock %}"</span>
-<span class="tok-gi">+          &gt;</span>
-<span class="tok-gi">+            {% csrf_token %}</span>
-<span class="tok-gi">+            &lt;input   </span><i class="conum" data-value="2"></i><b>(2)</b>
+<span class="tok-w"> </span>            {% csrf_token %}
+<span class="tok-gi">+            &lt;input  </span><i class="conum" data-value="1"></i><b>(1)</b>
 <span class="tok-gi">+              id="id_text"</span>
 <span class="tok-gi">+              name="text"</span>
-<span class="tok-gi">+              class="form-control</span>
+<span class="tok-gi">+              class="form-control  </span><i class="conum" data-value="2"></i><b>(2)</b>
 <span class="tok-gi">+                     form-control-lg</span>
-<span class="tok-gi">+                     {% if form.errors %}is-invalid{% endif %}"  </span><i class="conum" data-value="2"></i><b>(2)</b>
+<span class="tok-gi">+                     {% if form.errors %}is-invalid{% endif %}"</span>
 <span class="tok-gi">+              placeholder="Enter a to-do item"</span>
 <span class="tok-gi">+              value="{{ form.text.value }}"</span>
-<span class="tok-gi">+              aria-describedby="id_text_feedback"</span>
+<span class="tok-gi">+              aria-describedby="id_text_feedback"  </span><i class="conum" data-value="3"></i><b>(3)</b>
 <span class="tok-gi">+              required</span>
 <span class="tok-gi">+            /&gt;</span>
 <span class="tok-w"> </span>            {% if form.errors %}
 <span class="tok-gd">-              &lt;div class="invalid-feedback"&gt;{{ form.errors.text }}&lt;/div&gt;</span>
-<span class="tok-gi">+              &lt;div class="invalid-feedback"&gt;{{ form.errors.text.0 }}&lt;/div&gt;   </span><i class="conum" data-value="3"></i><b>(3)</b>
+<span class="tok-gi">+              &lt;div id="id_text_feedback" class="invalid-feedback"&gt;  </span><i class="conum" data-value="3"></i><b>(3)</b>
+<span class="tok-gi">+                {{ form.errors.text.0 }}  </span><i class="conum" data-value="4"></i><b>(4)</b>
+<span class="tok-gi">+              &lt;/div&gt;</span>
 <span class="tok-w"> </span>            {% endif %}
 <span class="tok-w"> </span>          &lt;/form&gt;
 <span class="tok-w"> </span>        &lt;/div&gt;</code></pre>
@@ -964,19 +950,24 @@ use Django instead, it seems like we need to bring back our custom
 <table>
 <tr>
 <td><i class="conum" data-value="1"></i><b>1</b></td>
-<td>We give <code>.was-validated</code> to the <code>&lt;form&gt;</code></td>
+<td>We hand-craft the <code>&lt;input&gt;</code> and the most important custom setting will be its
+<code>class</code>.</td>
 </tr>
 <tr>
 <td><i class="conum" data-value="2"></i><b>2</b></td>
-<td>We provide an <code>&lt;input&gt;</code> and the most important custom setting will be its
-    <code>class</code>. As you can see, we can use conditionals even for providing
-    additional <code>class</code> -es.<sup class="footnote">[<a id="_footnoteref_2" class="footnote" href="#_footnotedef_2" title="View footnote.">2</a>]</sup></td>
+<td>As you can see, we can use conditionals even for providing additional <code>class</code> -es.<sup class="footnote">[<a id="_footnoteref_2" class="footnote" href="#_footnotedef_2" title="View footnote.">2</a>]</sup></td>
 </tr>
 <tr>
 <td><i class="conum" data-value="3"></i><b>3</b></td>
-<td>If you try to just simply display <code>form.errors.text</code> you&#8217;ll see it ends up
-as a list item in an unordered list. To avoid that, let&#8217;s just
-select <code>form.errors.text.0</code>.</td>
+<td>We add an <code>id</code> to the error message, to be able to use <code>aria-describedby</code> on the input,
+as recommended in the Bootstrap docs;
+it makes the error message more accessible to screen readers.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="4"></i><b>4</b></td>
+<td>If you just try to use <code>form.errors.text</code> you&#8217;ll that Django injects a <code>&lt;ul&gt;</code>
+list, because the forms framework can report multiple errors for each field.
+We know we&#8217;ve only got one, so we can use use <code>form.errors.text.0</code>.</td>
 </tr>
 </table>
 </div>
@@ -1003,20 +994,228 @@ Another fliip-flop!
 </table>
 </div>
 <div class="paragraph">
-<p>Now when we run the FT for validation again:</p>
+<p>Now let&#8217;s run the FT for validation again:</p>
 </div>
 <div class="listingblock">
 <div class="content">
 <pre>$ <strong>python src/manage.py test functional_tests.test_list_item_validation</strong>
 [...]
+======================================================================
+FAIL: test_cannot_add_empty_list_items (functional_tests.test_list_item_validat
+ion.ItemValidationTest.test_cannot_add_empty_list_items)
  ---------------------------------------------------------------------
-Ran 2 tests in 12.048s
+Traceback (most recent call last):
+  File "...goat-book/src/functional_tests/test_list_item_validation.py", line
+48, in test_cannot_add_empty_list_items
+    self.wait_for_row_in_list_table("2: Make tea")
+  File "...goat-book/src/functional_tests/base.py", line 37, in
+wait_for_row_in_list_table
+    self.assertIn(row_text, [row.text for row in rows])
+AssertionError: '2: Make tea' not found in ['1: Make tea', '2: Purchase milk']</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Ooops what happened here?</p>
+</div>
+<div class="sect3">
+<h4 id="_a_little_digression_on_queryset_ordering_and_string_representations">A Little Digression on Queryset Ordering and String Representations</h4>
+<div class="paragraph">
+<p>
+
+Something seems to be going wrong with the ordering of our list items.
+Debugging this with an FT is going to be slow,
+so let&#8217;s work at the unit test level.</p>
+</div>
+<div class="paragraph">
+<p>We&#8217;ll add a test that checks that list items are ordered
+in the order they are inserted.
+You&#8217;ll have to forgive me if I jump straight to the right answer,
+using intuition borne of long experience,
+but I suspect that it might be sorting alphabetically based on list text instead
+(what else wouold it sort by after all?),
+so I&#8217;ll pick some text values designed to test that hypothesis:</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">src/lists/tests/test_models.py (ch15l020)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-k">class</span> <span class="tok-nc">ItemModelTest</span><span class="tok-p">(</span><span class="tok-n">TestCase</span><span class="tok-p">):</span>
+    <span class="tok-p">[</span><span class="tok-o">...</span><span class="tok-p">]</span>
+
+    <span class="tok-k">def</span> <span class="tok-nf">test_list_ordering</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">):</span>
+        <span class="tok-n">list1</span> <span class="tok-o">=</span> <span class="tok-n">List</span><span class="tok-o">.</span><span class="tok-n">objects</span><span class="tok-o">.</span><span class="tok-n">create</span><span class="tok-p">()</span>
+        <span class="tok-n">item1</span> <span class="tok-o">=</span> <span class="tok-n">Item</span><span class="tok-o">.</span><span class="tok-n">objects</span><span class="tok-o">.</span><span class="tok-n">create</span><span class="tok-p">(</span><span class="tok-nb">list</span><span class="tok-o">=</span><span class="tok-n">list1</span><span class="tok-p">,</span> <span class="tok-n">text</span><span class="tok-o">=</span><span class="tok-s2">"i1"</span><span class="tok-p">)</span>
+        <span class="tok-n">item2</span> <span class="tok-o">=</span> <span class="tok-n">Item</span><span class="tok-o">.</span><span class="tok-n">objects</span><span class="tok-o">.</span><span class="tok-n">create</span><span class="tok-p">(</span><span class="tok-nb">list</span><span class="tok-o">=</span><span class="tok-n">list1</span><span class="tok-p">,</span> <span class="tok-n">text</span><span class="tok-o">=</span><span class="tok-s2">"item 2"</span><span class="tok-p">)</span>
+        <span class="tok-n">item3</span> <span class="tok-o">=</span> <span class="tok-n">Item</span><span class="tok-o">.</span><span class="tok-n">objects</span><span class="tok-o">.</span><span class="tok-n">create</span><span class="tok-p">(</span><span class="tok-nb">list</span><span class="tok-o">=</span><span class="tok-n">list1</span><span class="tok-p">,</span> <span class="tok-n">text</span><span class="tok-o">=</span><span class="tok-s2">"3"</span><span class="tok-p">)</span>
+        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertEqual</span><span class="tok-p">(</span>
+            <span class="tok-n">Item</span><span class="tok-o">.</span><span class="tok-n">objects</span><span class="tok-o">.</span><span class="tok-n">all</span><span class="tok-p">(),</span>
+            <span class="tok-p">[</span><span class="tok-n">item1</span><span class="tok-p">,</span> <span class="tok-n">item2</span><span class="tok-p">,</span> <span class="tok-n">item3</span><span class="tok-p">],</span>
+        <span class="tok-p">)</span></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="admonitionblock tip">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-tip" title="Tip"></i>
+</td>
+<td class="content">
+FTs are a slow feedback loop.
+    Switch to unit tests when you want to drill down on edge case bugs.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>That gives us a new failure, but it&#8217;s not a very readable one:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>AssertionError: &lt;QuerySet [&lt;Item: Item object (1)&gt;, &lt;Item[40 chars]3)&gt;]&gt; !=
+[&lt;Item: Item object (1)&gt;, &lt;Item: Item obj[29 chars](3)&gt;]</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>We need a better string representation for our objects.  Let&#8217;s add another
+unit test:</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+Ordinarily you would be wary of adding more failing tests when you
+    already have some&#8212;&#8203;it makes reading test output that much more complicated,
+    and just generally makes you nervous. Will we ever get back to a working
+    state? In this case, they&#8217;re all quite simple tests, so I&#8217;m not worried.
+</td>
+</tr>
+</table>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">src/lists/tests/test_models.py (ch15l021)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-k">def</span> <span class="tok-nf">test_string_representation</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">):</span>
+    <span class="tok-n">item</span> <span class="tok-o">=</span> <span class="tok-n">Item</span><span class="tok-p">(</span><span class="tok-n">text</span><span class="tok-o">=</span><span class="tok-s2">"some text"</span><span class="tok-p">)</span>
+    <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertEqual</span><span class="tok-p">(</span><span class="tok-nb">str</span><span class="tok-p">(</span><span class="tok-n">item</span><span class="tok-p">),</span> <span class="tok-s2">"some text"</span><span class="tok-p">)</span></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>That gives us:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>AssertionError: 'Item object (None)' != 'some text'</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>As well as the other two failures.  Let&#8217;s start fixing them all now:</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">src/lists/models.py (ch15l022)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-k">class</span> <span class="tok-nc">Item</span><span class="tok-p">(</span><span class="tok-n">models</span><span class="tok-o">.</span><span class="tok-n">Model</span><span class="tok-p">):</span>
+    <span class="tok-p">[</span><span class="tok-o">...</span><span class="tok-p">]</span>
+
+    <span class="tok-k">def</span> <span class="tok-fm">__str__</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">):</span>
+        <span class="tok-k">return</span> <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">text</span></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>Now we&#8217;re down to one failure, and the ordering test has a more readable
+failure message:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>AssertionError: &lt;QuerySet [&lt;Item: i1&gt;, &lt;Item: item 2&gt;, &lt;Item: 3&gt;]&gt; != [&lt;Item:
+i1&gt;, &lt;Item: item 2&gt;, &lt;Item: 3&gt;]</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>That confirms our suspicion that the ordering was alphabetical.
+We can fix that in the <code>class Meta</code>:</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">src/lists/models.py (ch15l023)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="python"><span></span>    <span class="tok-k">class</span> <span class="tok-nc">Meta</span><span class="tok-p">:</span>
+        <span class="tok-n">ordering</span> <span class="tok-o">=</span> <span class="tok-p">(</span><span class="tok-s2">"id"</span><span class="tok-p">,)</span>
+        <span class="tok-n">unique_together</span> <span class="tok-o">=</span> <span class="tok-p">(</span><span class="tok-s2">"list"</span><span class="tok-p">,</span> <span class="tok-s2">"text"</span><span class="tok-p">)</span></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>Does that work?</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>AssertionError: &lt;QuerySet [&lt;Item: i1&gt;, &lt;Item: item 2&gt;, &lt;Item: 3&gt;]&gt; != [&lt;Item:
+i1&gt;, &lt;Item: item 2&gt;, &lt;Item: 3&gt;]</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Urp?  It has worked; you can see the items <em>are</em> in the same order, but the
+tests are confused.  I keep running into this problem actually&#8212;&#8203;Django
+querysets don&#8217;t compare well with lists.  We can fix it by converting the
+queryset to a list<sup class="footnote">[<a id="_footnoteref_3" class="footnote" href="#_footnotedef_3" title="View footnote.">3</a>]</sup>
+in our test:</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">src/lists/tests/test_models.py (ch15l024)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="python"><span></span>    <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertEqual</span><span class="tok-p">(</span>
+        <span class="tok-nb">list</span><span class="tok-p">(</span><span class="tok-n">Item</span><span class="tok-o">.</span><span class="tok-n">objects</span><span class="tok-o">.</span><span class="tok-n">all</span><span class="tok-p">()),</span>
+        <span class="tok-p">[</span><span class="tok-n">item1</span><span class="tok-p">,</span> <span class="tok-n">item2</span><span class="tok-p">,</span> <span class="tok-n">item3</span><span class="tok-p">],</span>
+    <span class="tok-p">)</span></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>That works; we get a fully passing unit test suite:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>Ran 32 tests in 0.034s
 
 OK</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>As a final check, we rerun <em>all</em> the FTs:</p>
+<p>
+</p>
+</div>
+<div class="paragraph">
+<p>We do need a migration for that ordering change though:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>python src/manage.py makemigrations</strong>
+Migrations for 'lists':
+  src/lists/migrations/0006_alter_item_options.py
+    - Change Meta options on item</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>And as a final check, we rerun <em>all</em> the FTs:</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -1031,6 +1230,16 @@ OK</pre>
 <div class="paragraph">
 <p>Hooray! Time for a final commit, and a wrap-up of what we&#8217;ve learned about
 testing views over the last few chapters.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre><strong>git add src</strong>
+<strong>git commit -m "Fix list item ordering, go back to html5 in FT"</strong></pre>
+</div>
+</div>
+<div class="paragraph">
+<p></p>
+</div>
 </div>
 </div>
 <div class="sect2">
@@ -1147,12 +1356,15 @@ of client-side code.  Uh-oh, you know what that means&#8230;&#8203;</p>
 <a href="#_footnoteref_1">1</a>. It&#8217;s showing a server error, code 500.  Gotta get with the jargon!
 </div>
 <div class="footnote" id="_footnotedef_2">
-<a href="#_footnoteref_2">2</a>. We&#8217;ve split the form tag across three lines so it fits nicely in the book. If you&#8217;ve not seen that before, it may look a little weird to you, but I promise it is valid HTML. You don&#8217;t have to use it if you don&#8217;t like it though. :)
+<a href="#_footnoteref_2">2</a>. We&#8217;ve split the input tag across multiple lines so it fits nicely on the screen. If you&#8217;ve not seen that before, it may look a little weird to you, but I promise it is valid HTML. You don&#8217;t have to use it if you don&#8217;t like it though. :)
+</div>
+<div class="footnote" id="_footnotedef_3">
+<a href="#_footnoteref_3">3</a>. You could also check out <code>assertSequenceEqual</code> from <code>unittest</code>, and <code>assertQuerysetEqual</code> from Django&#8217;s test tools, although I confess when I last looked at <code>assertQuerysetEqual</code> I was quite baffled&#8230;&#8203;
 </div>
 </div>
 <div id="footer">
 <div id="footer-text">
-License: Creative Commons <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode">CC-BY-NC-ND</a>. Last updated: 2024-08-02 11:53:14 +0100
+License: Creative Commons <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode">CC-BY-NC-ND</a>. Last updated: 2024-08-08 03:18:17 +0100
 </div>
 </div>
 <div class="comments" style="padding: 20px">
