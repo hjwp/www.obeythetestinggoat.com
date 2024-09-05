@@ -110,10 +110,9 @@ Table of contents follows:
 * [Chapter 20: Test Fixtures and a Decorator for Explicit Waits](/book/chapter_20_fixtures_and_wait_decorator.html)
 * [Chapter 21: Server-Side Debugging](/book/chapter_21_server_side_debugging.html)
 * [Chapter 22: Finishing "My Lists": Outside-In TDD](/book/chapter_22_outside_in.html)
-* [Chapter 23: Test Isolation, and "Listening to Your Tests"](/book/chapter_purist_unit_tests.html)
-* [Chapter 24: Continuous Integration (CI)](/book/chapter_CI.html)
-* [Chapter 25: The Token Social Bit, the Page Pattern, and an Exercise for the Reader](/book/chapter_page_pattern.html)
-* [Chapter 26: Fast Tests, Slow Tests, and Hot Lava](/book/chapter_hot_lava.html)
+* [Chapter 23: Continuous Integration (CI)](/book/chapter_23_CI.html)
+* [Chapter 24: The Token Social Bit, the Page Pattern, and an Exercise for the Reader](/book/chapter_24_page_pattern.html)
+* [Chapter 25: Fast Tests, Slow Tests, and Hot Lava](/book/chapter_25_hot_lava.html)
 * [Epilogue: Obey the Testing Goat!](/book/epilogue.html)
 
 ### Appendices
@@ -124,9 +123,10 @@ Table of contents follows:
 * [Appendix D: Behaviour-Driven Development (BDD)](/book/appendix_bdd.html)
 * [Appendix E: Building a REST API: JSON, Ajax, and Mocking with JavaScript](/book/appendix_rest_api.html)
 * [Appendix F: Django-Rest-Framework](/book/appendix_DjangoRestFramework.html)
-* [Appendix G: Cheat Sheet](/book/appendix_IX_cheat_sheet.html)
-* [Appendix H: What to Do Next](/book/appendix_X_what_to_do_next.html)
-* [Appendix I: Source Code Examples](/book/appendix_github_links.html)
+* [Appendix G: Test Isolation, and "Listening to Your Tests"](/book/appendix_purist_unit_tests.html)
+* [Appendix H: Cheat Sheet](/book/appendix_IX_cheat_sheet.html)
+* [Appendix I: What to Do Next](/book/appendix_X_what_to_do_next.html)
+* [Appendix J: Source Code Examples](/book/appendix_github_links.html)
 * [Bibliography](/book/bibliography.html)
 
 
