@@ -95,13 +95,20 @@ def redirect_21():
 def redirect_22():
     return redirect("/book/chapter_22_outside_in.html", code=301)
 
+@app.route("/book/chapter_CI.html")
+def redirect_23():
+    return redirect("/book/chapter_23_CI.html", code=301)
+
+@app.route("/book/chapter_page_pattern.html")
+def redirect_24():
+    return redirect("/book/chapter_24_page_pattern.html", code=301)
+
+@app.route("/book/chapter_purist_unit_tests.html")
+def redirect_25():
+    return redirect("/book/appendix_purist_unit_tests.html", code=301)
 
 """
 TODO  (old urls/chapters as yet not renamed)
 
-chapter_CI.html
 chapter_hot_lava.html
-chapter_page_pattern.html
-chapter_prettification.html
-chapter_purist_unit_tests.html
 """
