@@ -620,7 +620,24 @@ where <code>.toEqual</code> is the equivalent of <code>assertEqual</code> in Pyt
 </table>
 </div>
 <div class="paragraph">
-<p>Let&#8217;s see how that looks in our browser (<a href="#jasmine-specrunner-green">The Jasmine Spec runner in action</a>):</p>
+<p>Let&#8217;s see how that looks.
+Open up _SpecRunner.html` in your browser;
+you can do this from the command-line with</p>
+</div>
+<div class="listingblock skipme">
+<div class="content">
+<pre>$ *firefox src/lists/static/tests/SpecRunner.html*
+# or, on a mac:
+$ *open src/lists/static/tests/SpecRunner.html*</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Or you can navigate to it using the address bar,
+using the <code>file://</code> protocol, something like this:
+<em><a href="file:///home/your-username/path/to/superlists/src/lists/static/tests/SpecRunner.html" class="bare">file:///home/your-username/path/to/superlists/src/lists/static/tests/SpecRunner.html</a></em></p>
+</div>
+<div class="paragraph">
+<p>Either way you get there, you should see something like <a href="#jasmine-specrunner-green">The Jasmine Spec runner in action</a>.</p>
 </div>
 <div id="jasmine-specrunner-green" class="imageblock">
 <div class="content">
@@ -733,14 +750,13 @@ for our tests and our code to interact with.</p>
 <span class="tok-sb">        /&gt;</span>
 <span class="tok-sb">        &lt;div id="id_text_feedback" class="invalid-feedback"&gt;An error message&lt;/div&gt;</span>
 <span class="tok-sb">      &lt;/form&gt;</span>
-<span class="tok-sb">    `</span>
-<span class="tok-w">    </span><span class="tok-nb">document</span><span class="tok-p">.</span><span class="tok-nx">body</span><span class="tok-p">.</span><span class="tok-nx">appendChild</span><span class="tok-p">(</span><span class="tok-nx">testDiv</span><span class="tok-p">)</span>
+<span class="tok-sb">    `</span><span class="tok-p">;</span>
+<span class="tok-w">    </span><span class="tok-nb">document</span><span class="tok-p">.</span><span class="tok-nx">body</span><span class="tok-p">.</span><span class="tok-nx">appendChild</span><span class="tok-p">(</span><span class="tok-nx">testDiv</span><span class="tok-p">);</span>
 <span class="tok-w">  </span><span class="tok-p">});</span>
 
 <span class="tok-w">  </span><span class="tok-nx">afterEach</span><span class="tok-p">(()</span><span class="tok-w"> </span><span class="tok-p">=&gt;</span><span class="tok-w"> </span><span class="tok-p">{</span><span class="tok-w">  </span><i class="conum" data-value="1"></i><b>(1)</b>
 <span class="tok-w">    </span><span class="tok-nx">testDiv</span><span class="tok-p">.</span><span class="tok-nx">remove</span><span class="tok-p">();</span>
-<span class="tok-w">  </span><span class="tok-p">});</span>
-<span class="tok-w">  </span><span class="tok-p">[...]</span></code></pre>
+<span class="tok-w">  </span><span class="tok-p">});</span></code></pre>
 </div>
 </div>
 </div>
@@ -933,7 +949,7 @@ into <em>lists.js</em>:</p>
 <span class="tok-nx">textInput</span><span class="tok-p">.</span><span class="tok-nx">oninput</span><span class="tok-w"> </span><span class="tok-o">=</span><span class="tok-w"> </span><span class="tok-p">()</span><span class="tok-w"> </span><span class="tok-p">=&gt;</span><span class="tok-w"> </span><span class="tok-p">{</span>
 <span class="tok-w">  </span><span class="tok-kd">const</span><span class="tok-w"> </span><span class="tok-nx">errorMsg</span><span class="tok-w"> </span><span class="tok-o">=</span><span class="tok-w"> </span><span class="tok-nb">document</span><span class="tok-p">.</span><span class="tok-nx">querySelector</span><span class="tok-p">(</span><span class="tok-s2">".invalid-feedback"</span><span class="tok-p">);</span>
 <span class="tok-w">  </span><span class="tok-nx">errorMsg</span><span class="tok-p">.</span><span class="tok-nx">style</span><span class="tok-p">.</span><span class="tok-nx">display</span><span class="tok-w"> </span><span class="tok-o">=</span><span class="tok-w"> </span><span class="tok-s2">"none"</span><span class="tok-p">;</span>
-<span class="tok-p">}</span></code></pre>
+<span class="tok-p">};</span></code></pre>
 </div>
 </div>
 </div>
@@ -954,6 +970,19 @@ Expected true to be false.
 @file:///...goat-book/src/lists/static/tests/Spec.js:38:40
 &lt;Jasmine&gt;</pre>
 </div>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+If your Jasmine output shows <code>Script error</code> instead of <code>textInput is null</code>,
+    open up the dev tools console, and you&#8217;ll see the actual error printed in there.
+</td>
+</tr>
+</table>
 </div>
 <div class="paragraph">
 <p><code>textInput is null</code> it says.   Let&#8217;s see if we can figure out why.</p>
@@ -1268,11 +1297,15 @@ Expected false to be true.
 <h3 id="_red_green_refactor_removing_hardcoded_selectors">Red, Green, Refactor: Removing Hardcoded Selectors</h3>
 <div class="paragraph">
 <p>The <code>#id_text</code> and <code>.invalid-feedback</code> selectors are "magic constants" at the moment.
-It would be better to pass them in, both in the tests and in <em>base.html</em>,
+It would be better to pass them in to <code>initialize()</code>,
+both in the tests and in <em>base.html</em>,
 so that they&#8217;re defined in the same file that actually has the HTML elements.</p>
 </div>
 <div class="paragraph">
-<p>And while we&#8217;re at it, our tests could do with a bit of refactoring too!</p>
+<p>And while we&#8217;re at it, our tests could do with a bit of refactoring too,
+to remove some duplication.  We&#8217;ll start with that,
+by defining a few more variables in the top-level scope,
+and populate them in the <code>beforeEach</code>:</p>
 </div>
 <div class="exampleblock sourcecode">
 <div class="title">src/lists/static/tests/Spec.js (ch16l022)</div>
@@ -1282,7 +1315,7 @@ so that they&#8217;re defined in the same file that actually has the HTML elemen
 <pre class="pygments highlight"><code data-lang="javascript"><span></span><span class="tok-nx">describe</span><span class="tok-p">(</span><span class="tok-s2">"Superlists tests"</span><span class="tok-p">,</span><span class="tok-w"> </span><span class="tok-p">()</span><span class="tok-w"> </span><span class="tok-p">=&gt;</span><span class="tok-w"> </span><span class="tok-p">{</span>
 <span class="tok-w">  </span><span class="tok-kd">const</span><span class="tok-w"> </span><span class="tok-nx">inputId</span><span class="tok-w"> </span><span class="tok-o">=</span><span class="tok-w"> </span><span class="tok-s2">"id_text"</span><span class="tok-p">;</span><span class="tok-w">  </span><i class="conum" data-value="1"></i><b>(1)</b>
 <span class="tok-w">  </span><span class="tok-kd">const</span><span class="tok-w"> </span><span class="tok-nx">errorClass</span><span class="tok-w"> </span><span class="tok-o">=</span><span class="tok-w"> </span><span class="tok-s2">"invalid-feedback"</span><span class="tok-p">;</span><span class="tok-w">  </span><i class="conum" data-value="1"></i><b>(1)</b>
-<span class="tok-w">  </span><span class="tok-kd">const</span><span class="tok-w"> </span><span class="tok-nx">inputSelector</span><span class="tok-w"> </span><span class="tok-o">=</span><span class="tok-w"> </span><span class="tok-sb">`#</span><span class="tok-si">${</span><span class="tok-nx">inputId</span><span class="tok-si">}</span><span class="tok-sb">`</span><span class="tok-w">  </span><i class="conum" data-value="2"></i><b>(2)</b>
+<span class="tok-w">  </span><span class="tok-kd">const</span><span class="tok-w"> </span><span class="tok-nx">inputSelector</span><span class="tok-w"> </span><span class="tok-o">=</span><span class="tok-w"> </span><span class="tok-sb">`#</span><span class="tok-si">${</span><span class="tok-nx">inputId</span><span class="tok-si">}</span><span class="tok-sb">`</span><span class="tok-p">;</span><span class="tok-w">  </span><i class="conum" data-value="2"></i><b>(2)</b>
 <span class="tok-w">  </span><span class="tok-kd">const</span><span class="tok-w"> </span><span class="tok-nx">errorSelector</span><span class="tok-w"> </span><span class="tok-o">=</span><span class="tok-w"> </span><span class="tok-sb">`.</span><span class="tok-si">${</span><span class="tok-nx">errorClass</span><span class="tok-si">}</span><span class="tok-sb">`</span><span class="tok-p">;</span><span class="tok-w">  </span><i class="conum" data-value="2"></i><b>(2)</b>
 <span class="tok-w">  </span><span class="tok-kd">let</span><span class="tok-w"> </span><span class="tok-nx">testDiv</span><span class="tok-p">;</span>
 <span class="tok-w">  </span><span class="tok-kd">let</span><span class="tok-w"> </span><span class="tok-nx">textInput</span><span class="tok-p">;</span><span class="tok-w">  </span><i class="conum" data-value="3"></i><b>(3)</b>
@@ -1304,8 +1337,8 @@ so that they&#8217;re defined in the same file that actually has the HTML elemen
 <span class="tok-sb">        /&gt;</span>
 <span class="tok-sb">        &lt;div id="id_text_feedback" class="</span><span class="tok-si">${</span><span class="tok-nx">errorClass</span><span class="tok-si">}</span><span class="tok-sb">"&gt;An error message&lt;/div&gt;  </span><i class="conum" data-value="4"></i><b>(4)</b>
 <span class="tok-sb">      &lt;/form&gt;</span>
-<span class="tok-sb">    `</span>
-<span class="tok-w">    </span><span class="tok-nb">document</span><span class="tok-p">.</span><span class="tok-nx">body</span><span class="tok-p">.</span><span class="tok-nx">appendChild</span><span class="tok-p">(</span><span class="tok-nx">testDiv</span><span class="tok-p">)</span>
+<span class="tok-sb">    `</span><span class="tok-p">;</span>
+<span class="tok-w">    </span><span class="tok-nb">document</span><span class="tok-p">.</span><span class="tok-nx">body</span><span class="tok-p">.</span><span class="tok-nx">appendChild</span><span class="tok-p">(</span><span class="tok-nx">testDiv</span><span class="tok-p">);</span>
 <span class="tok-w">    </span><span class="tok-nx">textInput</span><span class="tok-w"> </span><span class="tok-o">=</span><span class="tok-w"> </span><span class="tok-nb">document</span><span class="tok-p">.</span><span class="tok-nx">querySelector</span><span class="tok-p">(</span><span class="tok-nx">inputSelector</span><span class="tok-p">);</span><span class="tok-w">  </span><i class="conum" data-value="5"></i><b>(5)</b>
 <span class="tok-w">    </span><span class="tok-nx">errorMsg</span><span class="tok-w"> </span><span class="tok-o">=</span><span class="tok-w"> </span><span class="tok-nb">document</span><span class="tok-p">.</span><span class="tok-nx">querySelector</span><span class="tok-p">(</span><span class="tok-nx">errorSelector</span><span class="tok-p">);</span><span class="tok-w">  </span><i class="conum" data-value="5"></i><b>(5)</b>
 <span class="tok-w">  </span><span class="tok-p">});</span></code></pre>
@@ -1392,7 +1425,8 @@ Superlists tests
 </div>
 </div>
 <div class="paragraph">
-<p>OK let&#8217;s see what happens when we pass the selectors in to our initialize function:</p>
+<p>The next refactor is wanting to pass the selectors to <code>initialize()</code>.
+Let&#8217;s see what happens if we just <em>do that</em> straight away, in the tests:</p>
 </div>
 <div class="exampleblock sourcecode">
 <div class="title">src/lists/static/tests/Spec.js (ch16l024)</div>
@@ -1904,7 +1938,7 @@ so I&#8217;ll let you go out and find them if you need them.</p>
 </div>
 <div id="footer">
 <div id="footer-text">
-License: Creative Commons <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode">CC-BY-NC-ND</a>. Last updated: 2024-08-08 03:18:17 +0100
+License: Creative Commons <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode">CC-BY-NC-ND</a>. Last updated: 2024-09-05 00:28:56 +0100
 </div>
 </div>
 <div class="comments" style="padding: 20px">

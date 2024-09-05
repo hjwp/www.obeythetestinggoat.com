@@ -41,32 +41,55 @@ httpRequest.send();
 </div>
 <div id="content">
 <div class="sect1">
-<h2 id="chapter_CI">Continuous Integration (CI)</h2>
+<h2 id="chapter_23_CI">Continuous Integration (CI)</h2>
 <div class="sectionbody">
+<div class="sidebarblock">
+<div class="content">
+<div class="title">Warning, Chapter Update in Progress</div>
 <div class="paragraph">
-<p>As
-our site grows, it takes longer and longer to run all of our functional
-tests.  If this continues, the danger is that we&#8217;re going to stop bothering.</p>
+<p>&#128679; Warning, this chapter is being updated,
+and still mostly the 2e version;</p>
+</div>
+<div class="paragraph">
+<p>Although it&#8217;s not got many code examples in,
+you may find it&#8217;s a little out of date.</p>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>
+
+As our site grows, it takes longer and longer to run all of our functional tests.
+If this continues, the danger is that we&#8217;re going to stop bothering.</p>
 </div>
 <div class="paragraph">
 <p>Rather than let that happen, we can automate the running of functional tests
-by setting up a "Continuous Integration" or CI server.  That way, in day-to-day
-development, we can just run the FT that we&#8217;re working on at that time, and
-rely on the CI server to run all the tests automatically and let us know if
-we&#8217;ve broken anything accidentally.  The unit tests should stay fast enough
-that we can keep running them every few seconds.</p>
+by setting up a "Continuous Integration" or CI server.
+That way, in day-to-day development,
+we can just run the FT that we&#8217;re working on at that time,
+and rely on the CI server to run all the other tests automatically
+and let us know if we&#8217;ve broken anything accidentally.
+The unit tests should stay fast enough that we can keep running them every few seconds.</p>
 </div>
 <div class="paragraph">
-<p>The
-CI server of choice these days is called Jenkins. It&#8217;s a bit Java, a bit
-crashy, a bit ugly, but it&#8217;s what everyone uses, and it has a great plugin
-ecosystem, so let&#8217;s get it up and running.</p>
+<p>
+The CI server of choice these days is called Jenkins.
+It&#8217;s a bit Java, a bit crashy, a bit ugly, but it&#8217;s what everyone uses,
+and it has a great plugin ecosystem, so let&#8217;s get it up and running.</p>
 </div>
 <div class="sect2">
 <h3 id="_installing_jenkins">Installing Jenkins</h3>
+<div class="ulist">
+<ul>
+<li>
+<p>TODO: update to mention github actions, gitlab etc.</p>
+</li>
+</ul>
+</div>
 <div class="paragraph">
-<p>There
-are several hosted-CI services out there that essentially provide you
+<p>
+
+There are several hosted-CI services out there that essentially provide you
 with a Jenkins server, ready to go.  I&#8217;ve come across Sauce Labs, Travis,
 Circle-CI, ShiningPanda, and there are probably lots more.  But I&#8217;m going to
 assume we&#8217;re installing everything on a server we control.</p>
@@ -92,41 +115,36 @@ and it also doesn&#8217;t set itself up to listen on the public internet by defa
 </div>
 <div class="listingblock skipme">
 <div class="content">
-<pre>root@server:$ <strong>wget -q -O - https://pkg.jenkins.io/debian/jenkins-ci.org.key |\
-     apt-key add -</strong>
-root@server:$ <strong>echo deb http://pkg.jenkins.io/debian-stable binary/ | tee \
-    /etc/apt/sources.list.d/jenkins.list</strong>
-root@server:$ <strong>apt update</strong>
-root@server:$ <strong>apt install jenkins</strong></pre>
+<pre># add jenkins repo to our apt sources
+root@server:$ <strong>wget -O /usr/share/keyrings/jenkins-keyring.asc \
+  https://pkg.jenkins.io/debian-stable/jenkins.io-2023.key</strong>
+
+root@server:$ <strong>echo "deb [signed-by=/usr/share/keyrings/jenkins-keyring.asc]" \
+  https://pkg.jenkins.io/debian-stable binary/ &gt; \
+  /etc/apt/sources.list.d/jenkins.list</strong>
+
+# update and install jenkins
+root@server:$ <strong>apt-get update</strong>
+root@server:$ <strong>apt-get install jenkins</strong></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>(Instructions lifted from the <a href="https://wiki.jenkins-ci.org/display/JENKINS/Installing+Jenkins+on+Ubuntu">Jenkins site</a>.)</p>
+<p>(Instructions lifted from the <a href="https://www.jenkins.io/doc/book/installing/linux/#debianubuntu">Jenkins site</a>.)</p>
 </div>
 <div class="paragraph">
 <p>While we&#8217;re at it, we&#8217;ll install a few other dependencies:</p>
 </div>
 <div class="listingblock skipme small-code">
 <div class="content">
-<pre>root@server:$ <strong>add-apt-repository ppa:deadsnakes/ppa</strong>
+<pre># remove the default Firefox installed via snap,
+# add more reliable "extended support release" version:
+root@server:$ <strong>snap remove firefox</strong>
+root@server:$ <strong>add-apt-repository ppa:mozillateam/ppa</strong>
 root@server:$ <strong>apt update</strong>
-root@server:$ <strong>apt install firefox python3.7-venv python3.7-dev xvfb</strong>
-# and, to build fabric3:
-root@server:$ <strong>apt install build-essential libssl-dev libffi-dev</strong></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>And we&#8217;ll download, unzip, and install geckodriver too (it was v0.17 at
-the time of writing, but substitute the latest version as you read this):</p>
-</div>
-<div class="listingblock skipme">
-<div class="content">
-<pre>root@server:$ <strong>wget https://github.com/mozilla/geckodriver/releases\
-/download/v0.17.0/geckodriver-v0.17.0-linux64.tar.gz</strong>
-root@server:$ <strong>tar -xvzf geckodriver-v0.17.0-linux64.tar.gz</strong>
-root@server:$ <strong>mv geckodriver /usr/local/bin</strong>
-root@server:$ <strong>geckodriver --version</strong>
-geckodriver 0.17.0</pre>
+root@server:$ <strong>apt install firefox-esr</strong>
+
+# install the venv modules for the otherwise-broken default system python:
+root@server:$ <strong>apt install python3-venv</strong></pre>
 </div>
 </div>
 <div class="sidebarblock">
@@ -139,10 +157,11 @@ OOM-killed unless you add some swap:</p>
 </div>
 <div class="listingblock skipme">
 <div class="content">
-<pre>$ <strong>fallocate -l 4G /swapfile</strong>
-$ <strong>mkswap /swapfile</strong>
-$ <strong>chmod 600 /swapfile</strong>
-$ <strong>swapon /swapfile</strong></pre>
+<pre>root@server:$ <strong>fallocate -l 4G /swapfile</strong>
+root@server:$ <strong>mkswap /swapfile</strong>
+root@server:$ <strong>chmod 600 /swapfile</strong>
+root@server:$ <strong>swapon /swapfile</strong>
+root@server:$ <strong>echo "LABEL=swap  /swap.img  swap  defaults 0 0" &gt;&gt; /etc/fstab</strong></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -154,22 +173,22 @@ $ <strong>swapon /swapfile</strong></pre>
 <div class="sect2">
 <h3 id="_configuring_jenkins">Configuring Jenkins</h3>
 <div class="paragraph">
-<p>You
-should now be able to visit Jenkins at the URL/IP for your server on port
-<code>8080</code>, and see something like <a href="#jenkin-unlock">Jenkins unlock screen</a>.</p>
+<p>
+
+You should now be able to visit Jenkins at the URL/IP for your server on port <code>8080</code>,
+and see something like <a href="#jenkin-unlock">Jenkins unlock screen</a>.</p>
 </div>
 <div id="jenkin-unlock" class="imageblock width-75">
 <div class="content">
-<img src="images/twp2_2401.png" alt="Jenkins' default unlock screen">
+<img src="images/jenkins-unlock.png" alt="Jenkins' default unlock screen">
 </div>
 <div class="title">Figure 1. Jenkins unlock screen</div>
 </div>
 <div class="sect3">
 <h4 id="_initial_unlock">Initial Unlock</h4>
 <div class="paragraph">
-<p>The unlock screen is telling us to read a file from disk to unlock
-the server for first-time use.  I jumped over to a terminal and printed
-it like this:</p>
+<p>The unlock screen is telling us to read a file from disk to unlock the server for first-time use.
+I jumped over to a terminal and printed it like this:</p>
 </div>
 <div class="listingblock skipme">
 <div class="content">
@@ -180,11 +199,10 @@ it like this:</p>
 <div class="sect3">
 <h4 id="_suggested_plugins_for_now">Suggested Plugins for Now</h4>
 <div class="paragraph">
-<p>Next we&#8217;re offered the choice to choose "suggested" plugins. Suggested
-ones are fine for now. (As a self-respecting nerd, our instinct
-is to hit "customize" immediately, and that&#8217;s what I did first time round,
-but it turns out that screen won&#8217;t give us what we want. Don&#8217;t worry, we&#8217;ll add
-some more plugins later.)</p>
+<p>Next we&#8217;re offered the choice to choose "suggested" plugins.
+Suggested ones are fine for now.
+(As a self-respecting nerd, our instinct is to hit "customize" immediately,
+but I don&#8217;t think it really bought me anything.)</p>
 </div>
 </div>
 <div class="sect3">
@@ -194,7 +212,7 @@ some more plugins later.)</p>
 </div>
 <div id="jenkins-user" class="imageblock width-75">
 <div class="content">
-<img src="images/twp2_2402.png" alt="Jenkins screen asking for username and password">
+<img src="images/jenkins-admin-user.png" alt="Jenkins screen asking for username and password">
 </div>
 <div class="title">Figure 2. Jenkins admin user config</div>
 </div>
@@ -203,69 +221,20 @@ some more plugins later.)</p>
 </div>
 <div id="jenkin-welcome" class="imageblock width-75">
 <div class="content">
-<img src="images/twp2_2403.png" alt="Jenkins welcome screen with invitation to create new job">
+<img src="images/jenkins-welcome.png" alt="Jenkins welcome screen with invitation to create new job">
 </div>
 <div class="title">Figure 3. A butler&#8212;&#8203;how quaint</div>
 </div>
 </div>
-<div class="sect3 pagebreak-before">
-<h4 id="_adding_plugins">Adding Plugins</h4>
-<div class="paragraph">
-<p>Follow the links for <em>Manage Jenkins</em> &#8594; <em>Manage Plugins</em> &#8594; <em>Available</em>.</p>
-</div>
-<div class="paragraph">
-<p>We&#8217;ll want the plugins for:</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p><em>ShiningPanda</em></p>
-</li>
-<li>
-<p><em>Xvfb</em></p>
-</li>
-</ul>
-</div>
-<div class="paragraph">
-<p>And hit install (<a href="#installing-plugins">Installing plugins&#8230;&#8203;</a>).</p>
-</div>
-<div id="installing-plugins" class="imageblock width-75">
-<div class="content">
-<img src="images/twp2_2404.png" alt="Jenkins installing plugins">
-</div>
-<div class="title">Figure 4. Installing plugins&#8230;&#8203;</div>
-</div>
-</div>
-<div class="sect3">
-<h4 id="_telling_jenkins_where_to_find_python_3_and_xvfb">Telling Jenkins Where to Find Python 3 and Xvfb</h4>
-<div class="paragraph">
-<p>We need to tell the ShiningPanda plugin where Python 3 is installed
-(usually <em>/usr/bin/python3</em>, but you can check with a <code>which python3</code>):</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p><em>Manage Jenkins</em> &#8594; <em>Global Tool Configuration</em></p>
-</li>
-<li>
-<p><em>Python</em> &#8594; <em>Python installations</em> &#8594; <em>Add Python</em> (see <a href="#add-python-to-jenkins">Where did I leave that Python?</a>; it&#8217;s
-safe to ignore the warning message)</p>
-</li>
-<li>
-<p><em>Xvfb installation</em> &#8594; <em>Add Xvfb installation</em>; enter <strong><code>/usr/bin</code></strong> as the
-installation directory</p>
-</li>
-</ul>
-</div>
-<div id="add-python-to-jenkins" class="imageblock">
-<div class="content">
-<img src="images/twp2_2405.png" alt="Adding Python 3">
-</div>
-<div class="title">Figure 5. Where did I leave that Python?</div>
-</div>
-</div>
 <div class="sect3">
 <h4 id="_finishing_off_with_https">Finishing Off with HTTPS</h4>
+<div class="ulist">
+<ul>
+<li>
+<p>TODO: review and update this section</p>
+</li>
+</ul>
+</div>
 <div class="paragraph">
 <p>To finish off securing your Jenkins instance, you&#8217;ll want to set up HTTPS, by
 getting nginx HTTPS to use a self-signed cert, and proxy requests from port 443
@@ -315,7 +284,7 @@ OK.</p>
 <div class="content">
 <img src="images/twp2_2406.png" alt="Setting the git repo">
 </div>
-<div class="title">Figure 6. Get it from Git</div>
+<div class="title">Figure 4. Get it from Git</div>
 </div>
 <div class="ulist">
 <ul>
@@ -328,7 +297,7 @@ OK.</p>
 <div class="content">
 <img src="images/twp2_2407.png" alt="Config polling GitHub">
 </div>
-<div class="title">Figure 7. Poll GitHub for changes</div>
+<div class="title">Figure 5. Poll GitHub for changes</div>
 </div>
 <div class="ulist">
 <ul>
@@ -345,7 +314,7 @@ OK.</p>
 <div class="content">
 <img src="images/twp2_2408.png" alt="Adding Python 3">
 </div>
-<div class="title">Figure 8. Virtualenv build steps</div>
+<div class="title">Figure 6. Virtualenv build steps</div>
 </div>
 </div>
 <div class="sect2">
@@ -504,7 +473,7 @@ as in <a href="#xvfb-tickbox">Sometimes config is easy</a>.</p>
 <div class="content">
 <img src="images/twp2_2409.png" alt="Tickbox saying we want Xvfb">
 </div>
-<div class="title">Figure 9. Sometimes config is easy</div>
+<div class="title">Figure 7. Sometimes config is easy</div>
 </div>
 <div class="paragraph">
 <p>The build does much better now:</p>
@@ -594,35 +563,32 @@ custom logic in our FT class <code>tearDown</code>. We have to do a bit of intro
 this will work:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">functional_tests/base.py (ch21l006)</div>
+<div class="title">src/functional_tests/base.py (ch23l006)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
 <pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-kn">import</span> <span class="tok-nn">os</span>
+<span class="tok-kn">import</span> <span class="tok-nn">time</span>
 <span class="tok-kn">from</span> <span class="tok-nn">datetime</span> <span class="tok-kn">import</span> <span class="tok-n">datetime</span>
+<span class="tok-kn">from</span> <span class="tok-nn">pathlib</span> <span class="tok-kn">import</span> <span class="tok-n">Path</span>
 <span class="tok-p">[</span><span class="tok-o">...</span><span class="tok-p">]</span>
+<span class="tok-n">MAX_WAIT</span> <span class="tok-o">=</span> <span class="tok-mi">5</span>
 
-<span class="tok-n">SCREEN_DUMP_LOCATION</span> <span class="tok-o">=</span> <span class="tok-n">os</span><span class="tok-o">.</span><span class="tok-n">path</span><span class="tok-o">.</span><span class="tok-n">join</span><span class="tok-p">(</span>
-    <span class="tok-n">os</span><span class="tok-o">.</span><span class="tok-n">path</span><span class="tok-o">.</span><span class="tok-n">dirname</span><span class="tok-p">(</span><span class="tok-n">os</span><span class="tok-o">.</span><span class="tok-n">path</span><span class="tok-o">.</span><span class="tok-n">abspath</span><span class="tok-p">(</span><span class="tok-vm">__file__</span><span class="tok-p">)),</span> <span class="tok-s1">'screendumps'</span>
-<span class="tok-p">)</span>
+<span class="tok-n">SCREEN_DUMP_LOCATION</span> <span class="tok-o">=</span> <span class="tok-n">Path</span><span class="tok-p">(</span><span class="tok-vm">__file__</span><span class="tok-p">)</span><span class="tok-o">.</span><span class="tok-n">absolute</span><span class="tok-p">()</span><span class="tok-o">.</span><span class="tok-n">parent</span> <span class="tok-o">/</span> <span class="tok-s2">"screendumps"</span>
 <span class="tok-p">[</span><span class="tok-o">...</span><span class="tok-p">]</span>
 
     <span class="tok-k">def</span> <span class="tok-nf">tearDown</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">):</span>
         <span class="tok-k">if</span> <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">_test_has_failed</span><span class="tok-p">():</span>
-            <span class="tok-k">if</span> <span class="tok-ow">not</span> <span class="tok-n">os</span><span class="tok-o">.</span><span class="tok-n">path</span><span class="tok-o">.</span><span class="tok-n">exists</span><span class="tok-p">(</span><span class="tok-n">SCREEN_DUMP_LOCATION</span><span class="tok-p">):</span>
-                <span class="tok-n">os</span><span class="tok-o">.</span><span class="tok-n">makedirs</span><span class="tok-p">(</span><span class="tok-n">SCREEN_DUMP_LOCATION</span><span class="tok-p">)</span>
-            <span class="tok-k">for</span> <span class="tok-n">ix</span><span class="tok-p">,</span> <span class="tok-n">handle</span> <span class="tok-ow">in</span> <span class="tok-nb">enumerate</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">browser</span><span class="tok-o">.</span><span class="tok-n">window_handles</span><span class="tok-p">):</span>
-                <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">_windowid</span> <span class="tok-o">=</span> <span class="tok-n">ix</span>
-                <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">browser</span><span class="tok-o">.</span><span class="tok-n">switch_to_window</span><span class="tok-p">(</span><span class="tok-n">handle</span><span class="tok-p">)</span>
-                <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">take_screenshot</span><span class="tok-p">()</span>
-                <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">dump_html</span><span class="tok-p">()</span>
+            <span class="tok-k">if</span> <span class="tok-ow">not</span> <span class="tok-n">SCREEN_DUMP_LOCATION</span><span class="tok-o">.</span><span class="tok-n">exists</span><span class="tok-p">():</span>
+                <span class="tok-n">SCREEN_DUMP_LOCATION</span><span class="tok-o">.</span><span class="tok-n">mkdir</span><span class="tok-p">(</span><span class="tok-n">parents</span><span class="tok-o">=</span><span class="tok-kc">True</span><span class="tok-p">)</span>
+            <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">take_screenshot</span><span class="tok-p">()</span>
+            <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">dump_html</span><span class="tok-p">()</span>
         <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">browser</span><span class="tok-o">.</span><span class="tok-n">quit</span><span class="tok-p">()</span>
         <span class="tok-nb">super</span><span class="tok-p">()</span><span class="tok-o">.</span><span class="tok-n">tearDown</span><span class="tok-p">()</span>
 
-
     <span class="tok-k">def</span> <span class="tok-nf">_test_has_failed</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">):</span>
         <span class="tok-c1"># slightly obscure but couldn't find a better way!</span>
-        <span class="tok-k">return</span> <span class="tok-nb">any</span><span class="tok-p">(</span><span class="tok-n">error</span> <span class="tok-k">for</span> <span class="tok-p">(</span><span class="tok-n">method</span><span class="tok-p">,</span> <span class="tok-n">error</span><span class="tok-p">)</span> <span class="tok-ow">in</span> <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">_outcome</span><span class="tok-o">.</span><span class="tok-n">errors</span><span class="tok-p">)</span></code></pre>
+        <span class="tok-k">return</span> <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">_outcome</span><span class="tok-o">.</span><span class="tok-n">result</span><span class="tok-o">.</span><span class="tok-n">failures</span> <span class="tok-ow">or</span> <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">_outcome</span><span class="tok-o">.</span><span class="tok-n">result</span><span class="tok-o">.</span><span class="tok-n">errors</span></code></pre>
 </div>
 </div>
 </div>
@@ -634,21 +600,19 @@ methods, <code>get_screenshot_as_file</code> and <code>browser.page_source</code
 HTML dumps:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">functional_tests/base.py (ch21l007)</div>
+<div class="title">src/functional_tests/base.py (ch23l007)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
 <pre class="pygments highlight"><code data-lang="python"><span></span>    <span class="tok-k">def</span> <span class="tok-nf">take_screenshot</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">):</span>
-        <span class="tok-n">filename</span> <span class="tok-o">=</span> <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">_get_filename</span><span class="tok-p">()</span> <span class="tok-o">+</span> <span class="tok-s1">'.png'</span>
-        <span class="tok-nb">print</span><span class="tok-p">(</span><span class="tok-s1">'screenshotting to'</span><span class="tok-p">,</span> <span class="tok-n">filename</span><span class="tok-p">)</span>
-        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">browser</span><span class="tok-o">.</span><span class="tok-n">get_screenshot_as_file</span><span class="tok-p">(</span><span class="tok-n">filename</span><span class="tok-p">)</span>
-
+        <span class="tok-n">path</span> <span class="tok-o">=</span> <span class="tok-n">SCREEN_DUMP_LOCATION</span> <span class="tok-o">/</span> <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">_get_filename</span><span class="tok-p">(</span><span class="tok-s2">"png"</span><span class="tok-p">)</span>
+        <span class="tok-nb">print</span><span class="tok-p">(</span><span class="tok-s2">"screenshotting to"</span><span class="tok-p">,</span> <span class="tok-n">path</span><span class="tok-p">)</span>
+        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">browser</span><span class="tok-o">.</span><span class="tok-n">get_screenshot_as_file</span><span class="tok-p">(</span><span class="tok-nb">str</span><span class="tok-p">(</span><span class="tok-n">path</span><span class="tok-p">))</span>
 
     <span class="tok-k">def</span> <span class="tok-nf">dump_html</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">):</span>
-        <span class="tok-n">filename</span> <span class="tok-o">=</span> <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">_get_filename</span><span class="tok-p">()</span> <span class="tok-o">+</span> <span class="tok-s1">'.html'</span>
-        <span class="tok-nb">print</span><span class="tok-p">(</span><span class="tok-s1">'dumping page HTML to'</span><span class="tok-p">,</span> <span class="tok-n">filename</span><span class="tok-p">)</span>
-        <span class="tok-k">with</span> <span class="tok-nb">open</span><span class="tok-p">(</span><span class="tok-n">filename</span><span class="tok-p">,</span> <span class="tok-s1">'w'</span><span class="tok-p">)</span> <span class="tok-k">as</span> <span class="tok-n">f</span><span class="tok-p">:</span>
-            <span class="tok-n">f</span><span class="tok-o">.</span><span class="tok-n">write</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">browser</span><span class="tok-o">.</span><span class="tok-n">page_source</span><span class="tok-p">)</span></code></pre>
+        <span class="tok-n">path</span> <span class="tok-o">=</span> <span class="tok-n">SCREEN_DUMP_LOCATION</span> <span class="tok-o">/</span> <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">_get_filename</span><span class="tok-p">(</span><span class="tok-s2">"html"</span><span class="tok-p">)</span>
+        <span class="tok-nb">print</span><span class="tok-p">(</span><span class="tok-s2">"dumping page HTML to"</span><span class="tok-p">,</span> <span class="tok-n">path</span><span class="tok-p">)</span>
+        <span class="tok-n">path</span><span class="tok-o">.</span><span class="tok-n">write_text</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">browser</span><span class="tok-o">.</span><span class="tok-n">page_source</span><span class="tok-p">)</span></code></pre>
 </div>
 </div>
 </div>
@@ -658,18 +622,14 @@ HTML dumps:</p>
 includes the name of the test and its class, as well as a timestamp:</p>
 </div>
 <div class="exampleblock sourcecode small-code">
-<div class="title">functional_tests/base.py (ch21l008)</div>
+<div class="title">src/functional_tests/base.py (ch23l008)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="pygments highlight"><code data-lang="python"><span></span>    <span class="tok-k">def</span> <span class="tok-nf">_get_filename</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">):</span>
-        <span class="tok-n">timestamp</span> <span class="tok-o">=</span> <span class="tok-n">datetime</span><span class="tok-o">.</span><span class="tok-n">now</span><span class="tok-p">()</span><span class="tok-o">.</span><span class="tok-n">isoformat</span><span class="tok-p">()</span><span class="tok-o">.</span><span class="tok-n">replace</span><span class="tok-p">(</span><span class="tok-s1">':'</span><span class="tok-p">,</span> <span class="tok-s1">'.'</span><span class="tok-p">)[:</span><span class="tok-mi">19</span><span class="tok-p">]</span>
-        <span class="tok-k">return</span> <span class="tok-s1">'</span><span class="tok-si">{folder}</span><span class="tok-s1">/</span><span class="tok-si">{classname}</span><span class="tok-s1">.</span><span class="tok-si">{method}</span><span class="tok-s1">-window</span><span class="tok-si">{windowid}</span><span class="tok-s1">-</span><span class="tok-si">{timestamp}</span><span class="tok-s1">'</span><span class="tok-o">.</span><span class="tok-n">format</span><span class="tok-p">(</span>
-            <span class="tok-n">folder</span><span class="tok-o">=</span><span class="tok-n">SCREEN_DUMP_LOCATION</span><span class="tok-p">,</span>
-            <span class="tok-n">classname</span><span class="tok-o">=</span><span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-vm">__class__</span><span class="tok-o">.</span><span class="tok-vm">__name__</span><span class="tok-p">,</span>
-            <span class="tok-n">method</span><span class="tok-o">=</span><span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">_testMethodName</span><span class="tok-p">,</span>
-            <span class="tok-n">windowid</span><span class="tok-o">=</span><span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">_windowid</span><span class="tok-p">,</span>
-            <span class="tok-n">timestamp</span><span class="tok-o">=</span><span class="tok-n">timestamp</span>
+<pre class="pygments highlight"><code data-lang="python"><span></span>    <span class="tok-k">def</span> <span class="tok-nf">_get_filename</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">,</span> <span class="tok-n">extension</span><span class="tok-p">):</span>
+        <span class="tok-n">timestamp</span> <span class="tok-o">=</span> <span class="tok-n">datetime</span><span class="tok-o">.</span><span class="tok-n">now</span><span class="tok-p">()</span><span class="tok-o">.</span><span class="tok-n">isoformat</span><span class="tok-p">()</span><span class="tok-o">.</span><span class="tok-n">replace</span><span class="tok-p">(</span><span class="tok-s2">":"</span><span class="tok-p">,</span> <span class="tok-s2">"."</span><span class="tok-p">)[:</span><span class="tok-mi">19</span><span class="tok-p">]</span>
+        <span class="tok-k">return</span> <span class="tok-p">(</span>
+            <span class="tok-sa">f</span><span class="tok-s2">"</span><span class="tok-si">{</span><span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-vm">__class__</span><span class="tok-o">.</span><span class="tok-vm">__name__</span><span class="tok-si">}</span><span class="tok-s2">.</span><span class="tok-si">{</span><span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">_testMethodName</span><span class="tok-si">}</span><span class="tok-s2">-</span><span class="tok-si">{</span><span class="tok-n">timestamp</span><span class="tok-si">}</span><span class="tok-s2">.</span><span class="tok-si">{</span><span class="tok-n">extension</span><span class="tok-si">}</span><span class="tok-s2">"</span>
         <span class="tok-p">)</span></code></pre>
 </div>
 </div>
@@ -682,10 +642,10 @@ a <code>self.fail()</code> for example, and you&#8217;ll see something like this
 <div class="listingblock dofirst-ch21l009">
 <div class="content">
 <pre>[...]
-screenshotting to ...goat-book/functional_tests/screendumps/MyListsTest.t
-est_logged_in_users_lists_are_saved_as_my_lists-window0-2014-03-09T11.19.12.png
-dumping page HTML to ...goat-book/functional_tests/screendumps/MyListsTes
-t.test_logged_in_users_lists_are_saved_as_my_lists-window0-[...]</pre>
+.Fscreenshotting to ...goat-book/src/functional_tests/screendumps/MyListsTest.t
+est_logged_in_users_lists_are_saved_as_my_lists-[...]
+dumping page HTML to ...goat-book/src/functional_tests/screendumps/MyListsTest.
+test_logged_in_users_lists_are_saved_as_my_lists-[...]</pre>
 </div>
 </div>
 <div class="paragraph">
@@ -694,7 +654,7 @@ t.test_logged_in_users_lists_are_saved_as_my_lists-window0-[...]</pre>
 <div class="listingblock dofirst-ch21l010">
 <div class="content">
 <pre>$ <strong>git diff</strong>  # changes in base.py
-$ <strong>echo "functional_tests/screendumps" &gt;&gt; .gitignore</strong>
+$ <strong>echo "src/functional_tests/screendumps" &gt;&gt; .gitignore</strong>
 $ <strong>git commit -am "add screenshot on failure to FT runner"</strong>
 $ <strong>git push</strong></pre>
 </div>
@@ -719,7 +679,7 @@ uses to store our source code and run the tests in, as in
 <div class="content">
 <img src="images/twp2_2410.png" alt="workspace files including screenshot">
 </div>
-<div class="title">Figure 10. Visiting the project workspace</div>
+<div class="title">Figure 8. Visiting the project workspace</div>
 </div>
 <div class="paragraph">
 <p>And then we look at the screenshot, as shown in <a href="#normal-screenshot">Screenshot looking normal</a>.</p>
@@ -728,7 +688,7 @@ uses to store our source code and run the tests in, as in
 <div class="content">
 <img src="images/twp2_2411.png" alt="Screenshot of site page">
 </div>
-<div class="title">Figure 11. Screenshot looking normal</div>
+<div class="title">Figure 9. Screenshot looking normal</div>
 </div>
 </div>
 <div class="sect2">
@@ -738,7 +698,7 @@ uses to store our source code and run the tests in, as in
 old adage goes:</p>
 </div>
 <div class="exampleblock sourcecode skipme">
-<div class="title">functional_tests/base.py</div>
+<div class="title">src/functional_tests/base.py</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
@@ -755,7 +715,7 @@ works, as in <a href="#outlook-brighter">The outlook is brighter</a>.</p>
 <div class="content">
 <img src="images/twp2_2412.png" alt="Build showing a recent pass and sun-peeking-through-clouds logo">
 </div>
-<div class="title">Figure 12. The outlook is brighter</div>
+<div class="title">Figure 10. The outlook is brighter</div>
 </div>
 <div class="paragraph">
 <p>Jenkins uses blue to indicate passing builds rather than green, which is a bit
@@ -803,10 +763,10 @@ you need is <em>runner.js</em>.</p>
 <div class="paragraph">
 <p>You should end up with this:</p>
 </div>
-<div class="listingblock dofirst-ch21l017">
+<div class="listingblock skipme">
 <div class="content">
-<pre>$ <strong>tree lists/static/tests/</strong>
-lists/static/tests/
+<pre>$ <strong>tree src/lists/static/tests/</strong>
+src/lists/static/tests/
 &#9500;&#9472;&#9472; qunit-2.0.1.css
 &#9500;&#9472;&#9472; qunit-2.0.1.js
 &#9500;&#9472;&#9472; runner.js
@@ -818,22 +778,22 @@ lists/static/tests/
 <div class="paragraph">
 <p>Let&#8217;s try it out:</p>
 </div>
-<div class="listingblock">
+<div class="listingblock skipme">
 <div class="content">
-<pre>$ <strong>phantomjs lists/static/tests/runner.js lists/static/tests/tests.html</strong>
+<pre>$ <strong>phantomjs src/lists/static/tests/runner.js src/lists/static/tests/tests.html</strong>
 Took 24ms to run 2 tests. 2 passed, 0 failed.</pre>
 </div>
 </div>
 <div class="paragraph">
 <p>Just to be sure, let&#8217;s deliberately break something:</p>
 </div>
-<div class="exampleblock sourcecode">
-<div class="title">lists/static/list.js (ch21l019)</div>
+<div class="exampleblock sourcecode skipme">
+<div class="title">src/lists/static/tests/Spec.js (ch23l019)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="pygments highlight"><code data-lang="javascript"><span></span><span class="tok-w">  </span><span class="tok-nx">$</span><span class="tok-p">(</span><span class="tok-s1">'input[name="text"]'</span><span class="tok-p">).</span><span class="tok-nx">on</span><span class="tok-p">(</span><span class="tok-s1">'keypress'</span><span class="tok-p">,</span><span class="tok-w"> </span><span class="tok-kd">function</span><span class="tok-w"> </span><span class="tok-p">()</span><span class="tok-w"> </span><span class="tok-p">{</span>
-<span class="tok-w">    </span><span class="tok-c1">// $('.has-error').hide();</span>
+<pre class="pygments highlight"><code data-lang="javascript"><span></span><span class="tok-w">  </span><span class="tok-nx">it</span><span class="tok-p">(</span><span class="tok-s2">"sense-check our html fixture"</span><span class="tok-p">,</span><span class="tok-w"> </span><span class="tok-p">()</span><span class="tok-w"> </span><span class="tok-p">=&gt;</span><span class="tok-w"> </span><span class="tok-p">{</span>
+<span class="tok-w">    </span><span class="tok-nx">expect</span><span class="tok-p">(</span><span class="tok-nx">errorMsg</span><span class="tok-p">.</span><span class="tok-nx">checkVisibility</span><span class="tok-p">()).</span><span class="tok-nx">toBe</span><span class="tok-p">(</span><span class="tok-kc">false</span><span class="tok-p">);</span>
 <span class="tok-w">  </span><span class="tok-p">});</span></code></pre>
 </div>
 </div>
@@ -842,7 +802,7 @@ Took 24ms to run 2 tests. 2 passed, 0 failed.</pre>
 <div class="paragraph">
 <p>Sure enough:</p>
 </div>
-<div class="listingblock">
+<div class="listingblock skipme">
 <div class="content">
 <pre>$ <strong>phantomjs lists/static/tests/runner.js lists/static/tests/tests.html</strong>
 
@@ -857,7 +817,7 @@ Took 27ms to run 2 tests. 1 passed, 1 failed.</pre>
 <p>All right!  Let&#8217;s unbreak that, commit and push the runner, and then add it to
 our <span class="keep-together">Jenkins</span> build:</p>
 </div>
-<div class="listingblock dofirst-ch21l020">
+<div class="listingblock dofirst-ch23l020 skipme">
 <div class="content">
 <pre>$ <strong>git checkout lists/static/list.js</strong>
 $ <strong>git add lists/static/tests/runner.js</strong>
@@ -876,7 +836,7 @@ JavaScript tests, as per <a href="#js-unit-tests-jenkey">Add a build step for ou
 <div class="content">
 <img src="images/new_jenkins_phantomjs_screenshot.png" alt="JS test runner setup">
 </div>
-<div class="title">Figure 13. Add a build step for our JavaScript unit tests</div>
+<div class="title">Figure 11. Add a build step for our JavaScript unit tests</div>
 </div>
 <div class="paragraph">
 <p>You&#8217;ll also need to install PhantomJS on the server:</p>
@@ -944,8 +904,12 @@ OK</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>Nice
-to know that, no matter how lazy I get about running the full test suite
+<p>
+
+
+
+
+Nice to know that, no matter how lazy I get about running the full test suite
 on my own machine, the CI server will catch me.  Another one of the Testing
 Goat&#8217;s agents in cyberspace, watching over us&#8230;&#8203;</p>
 </div>
@@ -1027,7 +991,7 @@ that use <code>LiveServerTestCase</code> are all very well for dev boxes,
 </div>
 <div id="footer">
 <div id="footer-text">
-License: Creative Commons <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode">CC-BY-NC-ND</a>. Last updated: 2024-08-07 13:14:54 +0100
+License: Creative Commons <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode">CC-BY-NC-ND</a>. Last updated: 2024-08-29 11:52:04 +0100
 </div>
 </div>
 <div class="comments" style="padding: 20px">
@@ -1035,7 +999,7 @@ License: Creative Commons <a href="https://creativecommons.org/licenses/by-nc-nd
   <div id="disqus_thread"></div>
   <script type="text/javascript">
     var disqus_config = function () {
-        this.page.identifier = 'chapter_CI';
+        this.page.identifier = 'chapter_23_CI';
     };
     
     (function() {

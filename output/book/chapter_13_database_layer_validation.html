@@ -124,48 +124,45 @@ This test is interesting
 because it&#8217;s testing that the code under test should raise an exception:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">src/lists/tests/test_models.py (ch11l018)</div>
+<div class="title">src/lists/tests/test_models.py (ch13l001)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-kn">from</span> <span class="tok-nn">django.core.exceptions</span> <span class="tok-kn">import</span> <span class="tok-n">ValidationError</span>
+<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-kn">from</span> <span class="tok-nn">django.db.utils</span> <span class="tok-kn">import</span> <span class="tok-n">IntegrityError</span>
 <span class="tok-p">[</span><span class="tok-o">...</span><span class="tok-p">]</span>
 
 <span class="tok-k">class</span> <span class="tok-nc">ListAndItemModelsTest</span><span class="tok-p">(</span><span class="tok-n">TestCase</span><span class="tok-p">):</span>
-    <span class="tok-p">[</span><span class="tok-o">...</span><span class="tok-p">]</span>
+    <span class="tok-k">def</span> <span class="tok-nf">test_saving_and_retrieving_items</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">):</span>
+        <span class="tok-p">[</span><span class="tok-o">...</span><span class="tok-p">]</span>
 
     <span class="tok-k">def</span> <span class="tok-nf">test_cannot_save_empty_list_items</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">):</span>
         <span class="tok-n">mylist</span> <span class="tok-o">=</span> <span class="tok-n">List</span><span class="tok-o">.</span><span class="tok-n">objects</span><span class="tok-o">.</span><span class="tok-n">create</span><span class="tok-p">()</span>
         <span class="tok-n">item</span> <span class="tok-o">=</span> <span class="tok-n">Item</span><span class="tok-p">(</span><span class="tok-nb">list</span><span class="tok-o">=</span><span class="tok-n">mylist</span><span class="tok-p">,</span> <span class="tok-n">text</span><span class="tok-o">=</span><span class="tok-s2">""</span><span class="tok-p">)</span>
-        <span class="tok-k">with</span> <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertRaises</span><span class="tok-p">(</span><span class="tok-n">ValidationError</span><span class="tok-p">):</span>
+        <span class="tok-k">with</span> <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertRaises</span><span class="tok-p">(</span><span class="tok-n">IntegrityError</span><span class="tok-p">):</span>
             <span class="tok-n">item</span><span class="tok-o">.</span><span class="tok-n">save</span><span class="tok-p">()</span></code></pre>
 </div>
 </div>
 </div>
 </div>
 <div class="paragraph">
-<p>This is a new unit testing technique: when we want to check that doing
-something will raise an error, we can use the <code>self.assertRaises</code> context
-manager.  We could have used something like this instead:</p>
+<p>This is a new unit testing technique:
+when we want to check that doing something will raise an error,
+we can use the <code>self.assertRaises</code> context manager.</p>
+</div>
+<div class="paragraph">
+<p>We could have used something like this instead:</p>
 </div>
 <div class="listingblock skipme">
 <div class="content">
 <pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-k">try</span><span class="tok-p">:</span>
     <span class="tok-n">item</span><span class="tok-o">.</span><span class="tok-n">save</span><span class="tok-p">()</span>
     <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">fail</span><span class="tok-p">(</span><span class="tok-s1">'The save should have raised an exception'</span><span class="tok-p">)</span>
-<span class="tok-k">except</span> <span class="tok-n">ValidationError</span><span class="tok-p">:</span>
+<span class="tok-k">except</span> <span class="tok-n">IntegrityError</span><span class="tok-p">:</span>
     <span class="tok-k">pass</span></code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>But the <code>with</code> formulation is neater.  Now, we can try running the test,
-and see its expected failure:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>    with self.assertRaises(ValidationError):
-AssertionError: ValidationError not raised</pre>
-</div>
+<p>But the <code>with</code> formulation is neater.</p>
 </div>
 <div class="admonitionblock tip">
 <table>
@@ -175,10 +172,11 @@ AssertionError: ValidationError not raised</pre>
 </td>
 <td class="content">
 If you&#8217;re new to Python, you may never have seen the <code>with</code> statement.
-    It&#8217;s used with what are called "context managers", which wrap a block of code,
+    It&#8217;s the special keyword to use with what are called "context managers".
+    Together, they wrap a block of code,
     usually with some kind of setup, cleanup, or error-handling code.
-    There&#8217;s a good write-up in the
-    <a href="https://docs.python.org/release/2.5/whatsnew/pep-343.html">Python 2.5 release notes</a>.
+    There&#8217;s a good write-up on
+    <a href="https://www.pythonmorsels.com/what-is-a-context-manager/">Python Morsels</a>.
     
     
 </td>
@@ -187,55 +185,191 @@ If you&#8217;re new to Python, you may never have seen the <code>with</code> sta
 </div>
 </div>
 <div class="sect3">
-<h4 id="_a_django_quirk_model_save_doesnt_run_validation">A Django Quirk: Model Save Doesn&#8217;t Run Validation</h4>
+<h4 id="_django_model_constraints_and_their_interaction_with_databases">Django Model Constraints and Their Interaction With Databases</h4>
 <div class="paragraph">
-<p>
-And now we discover one of Django&#8217;s little quirks.
-<em>This test should already pass</em>.
-If you take a look at the
+<p>When we run this new unit test, we see the failure we expected:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>    with self.assertRaises(IntegrityError):
+AssertionError: IntegrityError not raised</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>But all is not quite as it seems,
+because <em>this test should already pass</em>.</p>
+</div>
+<div class="paragraph">
+<p>If you take a look at the
 <a href="https://docs.djangoproject.com/en/4.2/ref/models/fields/#blank">docs for the Django model fields</a>,
-you&#8217;ll see under <em>Field options</em> that the default setting for <code>blank</code> is <code>False</code>. Which means,
-since TextField is a type of Field, it <em>should</em> disallow empty values.</p>
+you&#8217;ll see under <em>Field options</em> that the default setting for <em>all</em> fields is
+<code>blank=False</code>.
+Since TextField is a type of Field, it <em>should</em> already disallow empty values.</p>
 </div>
 <div class="paragraph">
 <p>
 So why is the test still failing?
-Well, for
-<a href="http://bit.ly/2v3SfRq">slightly counterintuitive historical reasons</a>,
-Django models don&#8217;t run full validation on save.
-As we&#8217;ll see later,
-any constraints that are actually implemented in the database
-will raise errors on save,
-but SQLite doesn&#8217;t support enforcing emptiness constraints on text columns,
-and so our save method is letting this invalid value through silently.</p>
+Why is our database not raising an IntegrityError when we try to save an empty string
+into the <code>text</code> column?</p>
 </div>
 <div class="paragraph">
-<p>There&#8217;s a way of checking whether the constraint will happen at the database level or not:
-if it was at the database level, we would need a migration to apply the constraint.
-But Django knows that SQLite doesn&#8217;t support this type of constraint,
-so if we try to run <code>makemigrations</code>, it will report there&#8217;s nothing to do:</p>
+<p>The answer is a combination of Django&#8217;s design and the database we&#8217;re using.</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_inspecting_our_constraints_at_the_database_level">Inspecting Our Constraints at the Database Level</h4>
+<div class="paragraph">
+<p>Let&#8217;s have a look directly at the database using the <code>dbshell</code> command:</p>
+</div>
+<div class="listingblock skipme">
+<div class="content">
+<pre>$ <strong>./src/manage.py dbshell</strong>  # (this is equivalent to running sqlite3 src/db.sqlite3)
+SQLite version 3.[...]
+Enter ".help" for usage hints.
+sqlite&gt; <strong>.schema lists_item</strong>
+CREATE TABLE IF NOT EXISTS "lists_item" ("id" integer NOT NULL PRIMARY KEY
+AUTOINCREMENT, "text" text NOT NULL, "list_id" bigint NOT NULL REFERENCES
+"lists_list" ("id") DEFERRABLE INITIALLY DEFERRED);</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The <code>text</code> column only has the <code>NOT NULL</code> constraint.
+This means that the database would not allow <code>None</code> as a value,
+but it will actually allow the empty string.</p>
+</div>
+<div class="paragraph">
+<p>Whilst it is
+<a href="https://stackoverflow.com/questions/10371077/not-empty-string-constraint-in-sqlite">technically possible</a>
+to implement a "not empty string" constraint on a Text column in SQLite,
+the Django developers have chosen not to do this.</p>
+</div>
+<div class="paragraph">
+<p>This is because Django distinguishes between what they call "database-related"
+and "validation-related" constraints.
+As well as <code>empyt=False</code>, all fields get <code>null=False</code> setting,
+which translates into the database-level <code>NOT NULL</code> constraint we saw earlier.</p>
+</div>
+<div class="paragraph">
+<p>Let&#8217;s see if we can verify that using our test, instead.
+We&#8217;ll pass in <code>text=None</code> instead of <code>text=""</code>
+(and change the test name):</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">src/lists/tests/test_models.py (ch13l002)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="python"><span></span>    <span class="tok-k">def</span> <span class="tok-nf">test_cannot_save_null_list_items</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">):</span>
+        <span class="tok-n">mylist</span> <span class="tok-o">=</span> <span class="tok-n">List</span><span class="tok-o">.</span><span class="tok-n">objects</span><span class="tok-o">.</span><span class="tok-n">create</span><span class="tok-p">()</span>
+        <span class="tok-n">item</span> <span class="tok-o">=</span> <span class="tok-n">Item</span><span class="tok-p">(</span><span class="tok-nb">list</span><span class="tok-o">=</span><span class="tok-n">mylist</span><span class="tok-p">,</span> <span class="tok-n">text</span><span class="tok-o">=</span><span class="tok-kc">None</span><span class="tok-p">)</span>
+        <span class="tok-k">with</span> <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertRaises</span><span class="tok-p">(</span><span class="tok-n">IntegrityError</span><span class="tok-p">):</span>
+            <span class="tok-n">item</span><span class="tok-o">.</span><span class="tok-n">save</span><span class="tok-p">()</span></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>You&#8217;ll see that <em>this</em> test now passes.</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>$ <strong>python src/manage.py makemigrations</strong>
-No changes detected</pre>
+<pre>Ran 10 tests in 0.030s
+
+OK</pre>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_testing_django_model_validation">Testing Django Model Validation:</h4>
+<div class="paragraph">
+<p>That&#8217;s all vaguely interesting, but it&#8217;s not actually what we set out to do.
+How do we make sure that the "validation-related" constraint is being enforced?
+The answer is that, while <code>IntegrityError</code> comes from the database,
+Django uses <code>ValidationError</code> to signal errors that come from its own validation.</p>
+</div>
+<div class="paragraph">
+<p>Let&#8217;s write a second test that checks on that:</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">src/lists/tests/test_models.py (ch13l003)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-kn">from</span> <span class="tok-nn">django.core.exceptions</span> <span class="tok-kn">import</span> <span class="tok-n">ValidationError</span>
+<span class="tok-kn">from</span> <span class="tok-nn">django.db.utils</span> <span class="tok-kn">import</span> <span class="tok-n">IntegrityError</span>
+<span class="tok-p">[</span><span class="tok-o">...</span><span class="tok-p">]</span>
+
+<span class="tok-k">class</span> <span class="tok-nc">ListAndItemModelsTest</span><span class="tok-p">(</span><span class="tok-n">TestCase</span><span class="tok-p">):</span>
+    <span class="tok-k">def</span> <span class="tok-nf">test_saving_and_retrieving_items</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">):</span>
+        <span class="tok-p">[</span><span class="tok-o">...</span><span class="tok-p">]</span>
+
+    <span class="tok-k">def</span> <span class="tok-nf">test_cannot_save_null_list_items</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">):</span>
+        <span class="tok-n">mylist</span> <span class="tok-o">=</span> <span class="tok-n">List</span><span class="tok-o">.</span><span class="tok-n">objects</span><span class="tok-o">.</span><span class="tok-n">create</span><span class="tok-p">()</span>
+        <span class="tok-n">item</span> <span class="tok-o">=</span> <span class="tok-n">Item</span><span class="tok-p">(</span><span class="tok-nb">list</span><span class="tok-o">=</span><span class="tok-n">mylist</span><span class="tok-p">,</span> <span class="tok-n">text</span><span class="tok-o">=</span><span class="tok-kc">None</span><span class="tok-p">)</span>
+        <span class="tok-k">with</span> <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertRaises</span><span class="tok-p">(</span><span class="tok-n">IntegrityError</span><span class="tok-p">):</span>
+            <span class="tok-n">item</span><span class="tok-o">.</span><span class="tok-n">save</span><span class="tok-p">()</span>
+
+    <span class="tok-k">def</span> <span class="tok-nf">test_cannot_save_empty_list_items</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">):</span>
+        <span class="tok-n">mylist</span> <span class="tok-o">=</span> <span class="tok-n">List</span><span class="tok-o">.</span><span class="tok-n">objects</span><span class="tok-o">.</span><span class="tok-n">create</span><span class="tok-p">()</span>
+        <span class="tok-n">item</span> <span class="tok-o">=</span> <span class="tok-n">Item</span><span class="tok-p">(</span><span class="tok-nb">list</span><span class="tok-o">=</span><span class="tok-n">mylist</span><span class="tok-p">,</span> <span class="tok-n">text</span><span class="tok-o">=</span><span class="tok-s2">""</span><span class="tok-p">)</span>  <i class="conum" data-value="1"></i><b>(1)</b>
+        <span class="tok-k">with</span> <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertRaises</span><span class="tok-p">(</span><span class="tok-n">ValidationError</span><span class="tok-p">):</span>  <i class="conum" data-value="2"></i><b>(2)</b>
+            <span class="tok-n">item</span><span class="tok-o">.</span><span class="tok-n">save</span><span class="tok-p">()</span></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>This time we pass <code>text=""</code></td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>And we&#8217;re expecting a <code>ValidationError</code> instead of an <code>IntegrityError</code>:</td>
+</tr>
+</table>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_a_django_quirk_model_save_doesnt_run_validation">A Django Quirk: Model Save Doesn&#8217;t Run Validation</h4>
+<div class="paragraph">
+<p>We can try running <em>this</em> new unit test,
+and we&#8217;ll see its expected failure&#8230;&#8203;</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>    with self.assertRaises(ValidationError):
+AssertionError: ValidationError not raised</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>Django
-does have a method to manually run full validation, however, called
-<code>full_clean</code> (more info in
+<p>Wait a minute!  We expected this to <em>pass</em> actually!
+We just got through learning that Django should be enforcing the <code>blank=False</code>
+constraint by default.  Why doesn&#8217;t this work?</p>
+</div>
+<div class="paragraph">
+<p>
+We&#8217;ve discovered one of Django&#8217;s little quirks.
+For
+<a href="https://groups.google.com/g/django-developers/c/uIhzSwWHj4c">slightly
+counterintuitive historical reasons</a>,
+Django models don&#8217;t run full validation on save.</p>
+</div>
+<div class="paragraph">
+<p>
+Django does have a method to manually run full validation, however,
+called <code>full_clean</code> (more info in
 <a href="https://docs.djangoproject.com/en/4.2/ref/models/instances/#django.db.models.Model.full_clean">the docs</a>).
-Let&#8217;s hack it in to see it work:</p>
+Let&#8217;s swap that for the <code>.save()</code> and see if it works:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">src/lists/tests/test_models.py</div>
+<div class="title">src/lists/tests/test_models.py (ch13l004)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
 <pre class="pygments highlight"><code data-lang="python"><span></span>    <span class="tok-k">with</span> <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertRaises</span><span class="tok-p">(</span><span class="tok-n">ValidationError</span><span class="tok-p">):</span>
-        <span class="tok-n">item</span><span class="tok-o">.</span><span class="tok-n">full_clean</span><span class="tok-p">()</span>
-        <span class="tok-n">item</span><span class="tok-o">.</span><span class="tok-n">save</span><span class="tok-p">()</span></code></pre>
+        <span class="tok-n">item</span><span class="tok-o">.</span><span class="tok-n">full_clean</span><span class="tok-p">()</span></code></pre>
 </div>
 </div>
 </div>
@@ -245,17 +379,50 @@ Let&#8217;s hack it in to see it work:</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>OK</pre>
+<pre>Ran 11 tests in 0.030s
+
+OK</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>Good. That taught us a little about Django validation, and the test is there to
-warn us if we ever forget our requirement and set <code>blank=True</code> on the <code>text</code>
-field (try it!).</p>
+<p>Good. That taught us a little about Django validation,
+and the test is there to warn us if we ever forget our requirement
+and set <code>blank=True</code> on the <code>text</code> field (try it!).</p>
+</div>
+<div class="sidebarblock">
+<div class="content">
+<div class="title">Recap: Database-level and Model-level Validation in Django</div>
+<div class="paragraph">
+<p>Django distinguishes two types of validation for models:</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>Database-level constraints like <code>null=False</code> or <code>unique=True</code>.
+(We&#8217;ll see an example of the latter in in <a href="/book/chapter_15_advanced_forms.html">[chapter_15_advanced_forms]</a>).
+These are enforced by the database itself,
+using things like <code>NOT NULL</code> or <code>UNIQUE</code> constraints.
+These bubble up as `IntegrityError`s if you try to save an invalid object.</p>
+</li>
+<li>
+<p>Model-level validation like <code>blank=False</code>,
+which is only enforced by Django, when you call <code>full_clean()</code>,
+and they raise a <code>ValidationError</code>.</p>
+</li>
+</ol>
 </div>
 <div class="paragraph">
-<p>The FTs will still fail though, because we&#8217;re not actually forcing these errors
-to appear in our actual app, outside of this one unit test.</p>
+<p>The subtlety is that Django <em>also</em> enforces database-level constraints
+when you call <code>full_clean()</code>.
+So you&#8217;ll only see <code>IntegrityError</code> if you forget to call <code>full_clean()</code>
+before doing a <code>.save()</code>.</p>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>The FTs are still failing,
+because we&#8217;re not actually forcing these errors to appear in our actual app,
+outside of this one unit test.</p>
 </div>
 </div>
 </div>
@@ -265,8 +432,9 @@ to appear in our actual app, outside of this one unit test.</p>
 <p>
 Let&#8217;s try to enforce our model validation in the views layer
 and bring it up through into our templates, so the user can see them.
-Here&#8217;s how we can optionally display an error in our HTML&#8212;&#8203;we check whether the template has
-been passed an error variable, and if so, we do this:</p>
+Here&#8217;s how we can optionally display an error in our HTML&#8212;&#8203;we check
+whether the template has been passed an error variable,
+and if so, we do this:</p>
 </div>
 <div class="exampleblock sourcecode">
 <div class="title">src/lists/templates/base.html (ch11l020)</div>
@@ -326,7 +494,7 @@ However, ignore the Bootstrap docs' advice to prefer client-side
     <a href="https://cheatsheetseries.owasp.org/cheatsheets/Input_Validation_Cheat_Sheet.html#client-side-vs-server-side-validation">it is not a security measure.</a>
     Server-side validation is indispensable for handling any input
     that gets processed by the server&#8212;&#8203;and it will also provide albeit slower,
-    feedback for the client side.]
+    feedback for the client side.
 </td>
 </tr>
 </table>
@@ -382,7 +550,7 @@ to a working state first.</p>
 <p>Let&#8217;s try calling <code>full_clean()</code> in the view:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">src/lists/views.py</div>
+<div class="title">src/lists/views.py (ch11l022)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
@@ -508,7 +676,7 @@ item' in response</pre>
 <p>A little print-based debug&#8230;&#8203;</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">src/lists/tests/test_views.py</div>
+<div class="title">src/lists/tests/test_views.py (ch11l028)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
@@ -526,7 +694,8 @@ the apostrophe:</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>[...]
+<pre>$ <strong>python src/manage.py test lists</strong>
+[...]
               &lt;div class="invalid-feedback"&gt;You can&amp;#x27;t have an empty list
 item&lt;/div&gt;</pre>
 </div>
@@ -561,7 +730,7 @@ item&lt;/div&gt;</pre>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>Ran 11 tests in 0.047s
+<pre>Ran 12 tests in 0.047s
 
 OK</pre>
 </div>
@@ -663,22 +832,27 @@ element: .invalid-feedback; [...]</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>Not quite, but they did get a little further.  Checking the line in which the
-error occurred&#8201;&#8212;&#8201;<em>line 31</em> in my case&#8201;&#8212;&#8201;, we can
-see that we&#8217;ve got past the first part of the test, and are now onto the second
-check&#8212;&#8203;that submitting a second empty item also shows an error.</p>
+<p>Not quite, but they did get a little further.
+Checking the line in which the error occurred&#8212;_line 31_ in my case&#8212;&#8203;we
+can see that we&#8217;ve got past the first part of the test,
+and are now onto the second check&#8212;&#8203;that
+submitting a second empty item also shows an error.</p>
 </div>
 <div class="paragraph">
-<p>We&#8217;ve
-got some working code though, so let&#8217;s have a commit:</p>
+<p>
+We&#8217;ve got some working code though, so let&#8217;s have a commit:</p>
 </div>
 <div class="listingblock">
 <div class="content">
 <pre>$ <strong>git commit -am "Adjust new list view to do model validation"</strong></pre>
 </div>
 </div>
+</div>
+<div class="sect3">
+<h4 id="_adding_an_early_return_to_our_ft_to_let_us_refactor_against_green">Adding an Early Return to our FT to Let us Refactor Against Green</h4>
 <div class="paragraph">
-<p>Let&#8217;s put an early return in the FT to separate
+<p>
+Let&#8217;s put an early return in the FT to separate
 what we got working from those that still need to be dealt with:</p>
 </div>
 <div class="exampleblock sourcecode">
@@ -747,8 +921,8 @@ When working on a new feature, it&#8217;s common to realise partway through that
 This time we&#8217;ll use a slightly different approach,
 one that&#8217;s actually a very common pattern in Django,
 which is to use the same view to process POST requests
-to also to render the form that they come from.
-Whilst this doesn&#8217;t fit the REST-ful URL model quite as well,
+to also render the form that they come from.
+Whilst this doesn&#8217;t fit the RESTful URL model quite as well,
 it has the important advantage that the same URL can display a form,
 and display any errors encountered in processing the user&#8217;s input.</p>
 </div>
@@ -882,8 +1056,8 @@ As we do so, we also make them point at the base list URL, instead of <em>&#8230
 </div>
 <div class="paragraph">
 <p>Note that the <code>NewItemTest</code> class disappears completely.
-I&#8217;ve also changed the name of the redirect test to make it explicit that it only applies to POST
-requests.</p>
+I&#8217;ve also changed the name of the redirect test
+to make it explicit that it only applies to POST requests.</p>
 </div>
 <div class="paragraph">
 <p>That gives:</p>
@@ -925,7 +1099,7 @@ AssertionError: 0 != 1</pre>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>Ran 12 tests in 0.047s
+<pre>Ran 13 tests in 0.047s
 
 OK</pre>
 </div>
@@ -1081,7 +1255,7 @@ just redirects for all POSTs:</p>
 AssertionError: 302 != 200</pre>
 </div>
 </div>
-<div class="paragraph pagebreak-before">
+<div class="paragraph">
 <p>Here&#8217;s an implementation:</p>
 </div>
 <div class="exampleblock sourcecode">
@@ -1095,9 +1269,9 @@ AssertionError: 302 != 200</pre>
 
     <span class="tok-k">if</span> <span class="tok-n">request</span><span class="tok-o">.</span><span class="tok-n">method</span> <span class="tok-o">==</span> <span class="tok-s2">"POST"</span><span class="tok-p">:</span>
         <span class="tok-k">try</span><span class="tok-p">:</span>
-            <span class="tok-n">item</span> <span class="tok-o">=</span> <span class="tok-n">Item</span><span class="tok-p">(</span><span class="tok-n">text</span><span class="tok-o">=</span><span class="tok-n">request</span><span class="tok-o">.</span><span class="tok-n">POST</span><span class="tok-p">[</span><span class="tok-s2">"item_text"</span><span class="tok-p">],</span> <span class="tok-nb">list</span><span class="tok-o">=</span><span class="tok-n">our_list</span><span class="tok-p">)</span>
-            <span class="tok-n">item</span><span class="tok-o">.</span><span class="tok-n">full_clean</span><span class="tok-p">()</span>
-            <span class="tok-n">item</span><span class="tok-o">.</span><span class="tok-n">save</span><span class="tok-p">()</span>
+            <span class="tok-n">item</span> <span class="tok-o">=</span> <span class="tok-n">Item</span><span class="tok-p">(</span><span class="tok-n">text</span><span class="tok-o">=</span><span class="tok-n">request</span><span class="tok-o">.</span><span class="tok-n">POST</span><span class="tok-p">[</span><span class="tok-s2">"item_text"</span><span class="tok-p">],</span> <span class="tok-nb">list</span><span class="tok-o">=</span><span class="tok-n">our_list</span><span class="tok-p">)</span>  <i class="conum" data-value="1"></i><b>(1)</b>
+            <span class="tok-n">item</span><span class="tok-o">.</span><span class="tok-n">full_clean</span><span class="tok-p">()</span>  <i class="conum" data-value="2"></i><b>(2)</b>
+            <span class="tok-n">item</span><span class="tok-o">.</span><span class="tok-n">save</span><span class="tok-p">()</span>  <i class="conum" data-value="2"></i><b>(2)</b>
             <span class="tok-k">return</span> <span class="tok-n">redirect</span><span class="tok-p">(</span><span class="tok-sa">f</span><span class="tok-s2">"/lists/</span><span class="tok-si">{</span><span class="tok-n">our_list</span><span class="tok-o">.</span><span class="tok-n">id</span><span class="tok-si">}</span><span class="tok-s2">/"</span><span class="tok-p">)</span>
         <span class="tok-k">except</span> <span class="tok-n">ValidationError</span><span class="tok-p">:</span>
             <span class="tok-n">error</span> <span class="tok-o">=</span> <span class="tok-s2">"You can't have an empty list item"</span>
@@ -1107,17 +1281,33 @@ AssertionError: 302 != 200</pre>
 </div>
 </div>
 </div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>Notice we do <code>Item()</code> instead of <code>Item.objects.create()</code></td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>Then we call <code>full_clean()</code> before we call <code>save()</code></td>
+</tr>
+</table>
+</div>
 <div class="paragraph">
-<p>It&#8217;s not deeply satisfying, is it?
-There&#8217;s definitely some duplication of code here;
-that <code>try/except</code> occurs twice in <em>views.py</em>, and in general things are feeling clunky.</p>
+<p>It works:</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>Ran 13 tests in 0.047s
+<pre>Ran 14 tests in 0.047s
 
 OK</pre>
 </div>
+</div>
+<div class="paragraph">
+<p>But it&#8217;s not deeply satisfying, is it?
+There&#8217;s definitely some duplication of code here;
+that <code>try/except</code> occurs twice in <em>views.py</em>,
+and in general things are feeling clunky.</p>
 </div>
 <div class="paragraph">
 <p>Let&#8217;s wait a bit before we do more refactoring though,
@@ -1175,9 +1365,11 @@ OK</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>We&#8217;re back to a working state, so we can take a look at some of the items on
-our scratchpad.  This would be a good time for a commit. And possibly a
-tea break.</p>
+<p>We&#8217;re back to a working state,
+so we can take a look at some of the items on our scratchpad.
+This would be a good time for a commit.
+And possibly a tea break.
+</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -1189,10 +1381,14 @@ tea break.</p>
 <div class="sect2">
 <h3 id="_refactor_removing_hardcoded_urls">Refactor: Removing Hardcoded URLs</h3>
 <div class="paragraph">
-<p>Do
-you remember those <code>name=</code> parameters in <em>urls.py</em>? We just copied
-them across from the default example Django gave us, and I&#8217;ve been giving
-them some reasonably descriptive names. Now we find out what they&#8217;re for:</p>
+<p>
+
+
+
+Do you remember those <code>name=</code> parameters in <em>urls.py</em>?
+We just copied them across from the default example Django gave us,
+and I&#8217;ve been giving them some reasonably descriptive names.
+Now we find out what they&#8217;re for:</p>
 </div>
 <div class="exampleblock sourcecode currentcontents">
 <div class="title">src/lists/urls.py</div>
@@ -1465,7 +1661,9 @@ and we&#8217;ve taken the opportunity to do a few refactors along the way.
 <div class="content">
 <div class="title">On Database-Layer Validation</div>
 <div class="paragraph">
-<p>I always like to push my validation logic down as low as possible.
+<p>Although, as we saw, the specific "not empty" constraint we&#8217;re trying to apply here
+isn&#8217;t enforceable by SQLite, and so it was actually Django that ended up enforcing it for us,
+I always like to push my validation logic down as low as possible.
 </p>
 </div>
 <div class="dlist">
@@ -1506,7 +1704,7 @@ send them.
 </div>
 <div id="footer">
 <div id="footer-text">
-License: Creative Commons <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode">CC-BY-NC-ND</a>. Last updated: 2024-08-08 03:18:17 +0100
+License: Creative Commons <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode">CC-BY-NC-ND</a>. Last updated: 2024-09-04 22:34:45 +0100
 </div>
 </div>
 <div class="comments" style="padding: 20px">
