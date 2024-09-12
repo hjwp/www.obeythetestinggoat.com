@@ -2113,10 +2113,11 @@ and non&#8211;logged-in users (which our FT relies on):</p>
   <span class="tok-p">&lt;</span><span class="tok-nt">div</span> <span class="tok-na">class</span><span class="tok-o">=</span><span class="tok-s">"container-fluid"</span><span class="tok-p">&gt;</span>
     <span class="tok-p">&lt;</span><span class="tok-nt">a</span> <span class="tok-na">class</span><span class="tok-o">=</span><span class="tok-s">"navbar-brand"</span> <span class="tok-na">href</span><span class="tok-o">=</span><span class="tok-s">"/"</span><span class="tok-p">&gt;</span>Superlists<span class="tok-p">&lt;/</span><span class="tok-nt">a</span><span class="tok-p">&gt;</span>
     {% if user.email %}
-      <span class="tok-p">&lt;</span><span class="tok-nt">ul</span><span class="tok-p">&gt;</span>
-        <span class="tok-p">&lt;</span><span class="tok-nt">span</span> <span class="tok-na">class</span><span class="tok-o">=</span><span class="tok-s">"navbar-text"</span><span class="tok-p">&gt;</span>Logged in as {{ user.email }}<span class="tok-p">&lt;/</span><span class="tok-nt">span</span><span class="tok-p">&gt;</span>
-        <span class="tok-p">&lt;</span><span class="tok-nt">a</span> <span class="tok-na">href</span><span class="tok-o">=</span><span class="tok-s">"#TODO"</span><span class="tok-p">&gt;</span>Log out<span class="tok-p">&lt;/</span><span class="tok-nt">a</span><span class="tok-p">&gt;</span>
-      <span class="tok-p">&lt;/</span><span class="tok-nt">ul</span><span class="tok-p">&gt;</span>
+      <span class="tok-p">&lt;</span><span class="tok-nt">span</span> <span class="tok-na">class</span><span class="tok-o">=</span><span class="tok-s">"navbar-text"</span><span class="tok-p">&gt;</span>Logged in as {{ user.email }}<span class="tok-p">&lt;/</span><span class="tok-nt">span</span><span class="tok-p">&gt;</span>
+      <span class="tok-p">&lt;</span><span class="tok-nt">form</span> <span class="tok-na">method</span><span class="tok-o">=</span><span class="tok-s">"POST"</span> <span class="tok-na">action</span><span class="tok-o">=</span><span class="tok-s">"TODO"</span><span class="tok-p">&gt;</span>
+        {% csrf_token %}
+        <span class="tok-p">&lt;</span><span class="tok-nt">button</span> <span class="tok-na">id</span><span class="tok-o">=</span><span class="tok-s">"id_logout"</span> <span class="tok-na">class</span><span class="tok-o">=</span><span class="tok-s">"btn btn-outline-secondary"</span> <span class="tok-na">type</span><span class="tok-o">=</span><span class="tok-s">"submit"</span><span class="tok-p">&gt;</span>Log out<span class="tok-p">&lt;/</span><span class="tok-nt">button</span><span class="tok-p">&gt;</span>
+      <span class="tok-p">&lt;/</span><span class="tok-nt">form</span><span class="tok-p">&gt;</span>
     {% else %}
       <span class="tok-p">&lt;</span><span class="tok-nt">form</span> <span class="tok-na">method</span><span class="tok-o">=</span><span class="tok-s">"POST"</span> <span class="tok-na">action</span><span class="tok-o">=</span><span class="tok-s">"{% url 'send_login_email' %}"</span><span class="tok-p">&gt;</span>
         <span class="tok-p">&lt;</span><span class="tok-nt">div</span> <span class="tok-na">class</span><span class="tok-o">=</span><span class="tok-s">"input-group"</span><span class="tok-p">&gt;</span>
@@ -2139,15 +2140,9 @@ and non&#8211;logged-in users (which our FT relies on):</p>
 </div>
 </div>
 </div>
-<div class="sidebarblock">
-<div class="content">
 <div class="paragraph">
-<p>TODO resume updates to chapter from here</p>
-</div>
-</div>
-</div>
-<div class="paragraph">
-<p>How does our FT look now?</p>
+<p>OK there&#8217;s a TODO in there about the log out button,
+we&#8217;ll get to that, but how does our FT look now?</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -2306,8 +2301,7 @@ $ <strong>git commit -m "Custom passwordless auth backend + custom user model"</
 <h3 id="_finishing_off_our_ft_testing_logout">Finishing Off Our FT, Testing Logout</h3>
 <div class="paragraph">
 <p>
-The last thing we need to do before we call it a day is to test the logout link
-(you may remember the URL just says <code>#TODO</code> at the moment.)
+The last thing we need to do before we call it a day is to test the logout button
 We extend the FT with a couple more steps:</p>
 </div>
 <div class="exampleblock sourcecode">
@@ -2317,12 +2311,14 @@ We extend the FT with a couple more steps:</p>
 <div class="content">
 <pre class="pygments highlight"><code data-lang="python"><span></span>        <span class="tok-p">[</span><span class="tok-o">...</span><span class="tok-p">]</span>
         <span class="tok-c1"># she is logged in!</span>
-        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">wait_for</span><span class="tok-p">(</span><span class="tok-k">lambda</span><span class="tok-p">:</span> <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">browser</span><span class="tok-o">.</span><span class="tok-n">find_element</span><span class="tok-p">(</span><span class="tok-n">By</span><span class="tok-o">.</span><span class="tok-n">LINK_TEXT</span><span class="tok-p">,</span> <span class="tok-s2">"Log out"</span><span class="tok-p">))</span>
+        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">wait_for</span><span class="tok-p">(</span>
+            <span class="tok-k">lambda</span><span class="tok-p">:</span> <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">browser</span><span class="tok-o">.</span><span class="tok-n">find_element</span><span class="tok-p">(</span><span class="tok-n">By</span><span class="tok-o">.</span><span class="tok-n">CSS_SELECTOR</span><span class="tok-p">,</span> <span class="tok-s2">"#id_logout"</span><span class="tok-p">),</span>
+        <span class="tok-p">)</span>
         <span class="tok-n">navbar</span> <span class="tok-o">=</span> <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">browser</span><span class="tok-o">.</span><span class="tok-n">find_element</span><span class="tok-p">(</span><span class="tok-n">By</span><span class="tok-o">.</span><span class="tok-n">CSS_SELECTOR</span><span class="tok-p">,</span> <span class="tok-s2">".navbar"</span><span class="tok-p">)</span>
         <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertIn</span><span class="tok-p">(</span><span class="tok-n">TEST_EMAIL</span><span class="tok-p">,</span> <span class="tok-n">navbar</span><span class="tok-o">.</span><span class="tok-n">text</span><span class="tok-p">)</span>
 
         <span class="tok-c1"># Now she logs out</span>
-        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">browser</span><span class="tok-o">.</span><span class="tok-n">find_element</span><span class="tok-p">(</span><span class="tok-n">By</span><span class="tok-o">.</span><span class="tok-n">LINK_TEXT</span><span class="tok-p">,</span> <span class="tok-s2">"Log out"</span><span class="tok-p">)</span><span class="tok-o">.</span><span class="tok-n">click</span><span class="tok-p">()</span>
+        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">browser</span><span class="tok-o">.</span><span class="tok-n">find_element</span><span class="tok-p">(</span><span class="tok-n">By</span><span class="tok-o">.</span><span class="tok-n">CSS_SELECTOR</span><span class="tok-p">,</span> <span class="tok-s2">"#id_logout"</span><span class="tok-p">)</span><span class="tok-o">.</span><span class="tok-n">click</span><span class="tok-p">()</span>
 
         <span class="tok-c1"># She is logged out</span>
         <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">wait_for</span><span class="tok-p">(</span>
@@ -2336,7 +2332,7 @@ We extend the FT with a couple more steps:</p>
 </div>
 <div class="paragraph">
 <p>With that, we can see that the test is failing because the logout button
-doesn&#8217;t actually do anything:</p>
+doesn&#8217;t have a valid URL to submit to:</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -2355,10 +2351,11 @@ element: input[name=email]; [...]</pre>
 <div class="listingblock">
 <div class="content">
 <pre class="pygments highlight"><code data-lang="html"><span></span>          {% if user.email %}
-            <span class="tok-p">&lt;</span><span class="tok-nt">ul</span><span class="tok-p">&gt;</span>
-              <span class="tok-p">&lt;</span><span class="tok-nt">span</span> <span class="tok-na">class</span><span class="tok-o">=</span><span class="tok-s">"navbar-text"</span><span class="tok-p">&gt;</span>Logged in as {{ user.email }}<span class="tok-p">&lt;/</span><span class="tok-nt">span</span><span class="tok-p">&gt;</span>
-              <span class="tok-p">&lt;</span><span class="tok-nt">a</span> <span class="tok-na">href</span><span class="tok-o">=</span><span class="tok-s">"{% url 'logout' %}"</span><span class="tok-p">&gt;</span>Log out<span class="tok-p">&lt;/</span><span class="tok-nt">a</span><span class="tok-p">&gt;</span>
-            <span class="tok-p">&lt;/</span><span class="tok-nt">ul</span><span class="tok-p">&gt;</span>
+            <span class="tok-p">&lt;</span><span class="tok-nt">span</span> <span class="tok-na">class</span><span class="tok-o">=</span><span class="tok-s">"navbar-text"</span><span class="tok-p">&gt;</span>Logged in as {{ user.email }}<span class="tok-p">&lt;/</span><span class="tok-nt">span</span><span class="tok-p">&gt;</span>
+            <span class="tok-p">&lt;</span><span class="tok-nt">form</span> <span class="tok-na">method</span><span class="tok-o">=</span><span class="tok-s">"POST"</span> <span class="tok-na">action</span><span class="tok-o">=</span><span class="tok-s">"{% url 'logout' %}"</span><span class="tok-p">&gt;</span>
+              {% csrf_token %}
+              <span class="tok-p">&lt;</span><span class="tok-nt">button</span> <span class="tok-na">id</span><span class="tok-o">=</span><span class="tok-s">"id_logout"</span> <span class="tok-na">class</span><span class="tok-o">=</span><span class="tok-s">"btn btn-outline-secondary"</span> <span class="tok-na">type</span><span class="tok-o">=</span><span class="tok-s">"submit"</span><span class="tok-p">&gt;</span>Log out<span class="tok-p">&lt;/</span><span class="tok-nt">button</span><span class="tok-p">&gt;</span>
+            <span class="tok-p">&lt;/</span><span class="tok-nt">form</span><span class="tok-p">&gt;</span>
           {% else %}</code></pre>
 </div>
 </div>
@@ -2382,13 +2379,13 @@ ERROR: test_login_using_magic_link
 [...]
 
 selenium.common.exceptions.NoSuchElementException: Message: Unable to locate
-element: Log out; [...]</pre>
+element: #id_logout; [...]</pre>
 </div>
 </div>
 <div class="paragraph">
 <p>Implementing a logout URL is actually very simple:
 we can use Django&#8217;s
-<a href="https://docs.djangoproject.com/en/4.2/topics/auth/default/#module-django.contrib.auth.views">built-in logout view</a>,
+<a href="https://docs.djangoproject.com/en/5.1/topics/auth/default/#module-django.contrib.auth.views">built-in logout view</a>,
 which clears down the user&#8217;s session and redirects them to a page of our choice:</p>
 </div>
 <div class="exampleblock sourcecode small-code">
@@ -2525,7 +2522,7 @@ a variation on the style I mostly follow and show in this book.
 </div>
 <div id="footer">
 <div id="footer-text">
-License: Creative Commons <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode">CC-BY-NC-ND</a>. Last updated: 2024-09-05 00:58:37 +0100
+License: Creative Commons <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode">CC-BY-NC-ND</a>. Last updated: 2024-09-12 23:13:58 +0100
 </div>
 </div>
 <div class="comments" style="padding: 20px">
