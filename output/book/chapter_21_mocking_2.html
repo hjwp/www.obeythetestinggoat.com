@@ -1,0 +1,1945 @@
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="generator" content="Asciidoctor 2.0.23">
+<title>Mocks and Mocking 2: Using Mocks for Test Isolation</title>
+<link rel="stylesheet" href="./asciidoctor.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+<link rel="stylesheet" href="./pygments-default.css">
+<script>var httpRequest = new XMLHttpRequest();
+httpRequest.onreadystatechange = function() {
+  if (httpRequest.readyState === XMLHttpRequest.DONE) {
+    if (httpRequest.status === 200) {
+      document.getElementById('header').innerHTML += httpRequest.responseText;
+      var subheaders = document.getElementsByClassName('sectlevel2');
+      var section;
+      for (var i=0; i<subheaders.length; i++) {
+        section = subheaders[i];
+        if (section.innerHTML.indexOf(window.location.pathname) === -1) {
+          section.style.display = 'none';
+        } else {
+          section.scrollIntoView && section.scrollIntoView();
+        }
+      }
+
+    }
+  }
+};
+httpRequest.open('GET', 'toc.html');
+httpRequest.send();
+
+</script></head>
+<body class="article toc2 toc-left">
+<div id="buy_the_book" style="position: absolute; top: 0; right: 0; z-index:100">
+  <a href="/pages/book.html">
+    <img src="images/buy_the_book.svg" alt="buy the book ribbon">
+  </a>
+</div>
+<div id="header">
+</div>
+<div id="content">
+<div class="sect1">
+<h2 id="chapter_21_mocking_2">Mocks and Mocking 2: Using Mocks for Test Isolation</h2>
+<div class="sectionbody">
+<div class="sidebarblock">
+<div class="content">
+<div class="title">Warning, Recently Updated</div>
+<div class="paragraph">
+<p>&#128679; Warning, chapter in progress! &#128679;</p>
+</div>
+<div class="paragraph">
+<p>I&#8217;ve recently updated this chapter, and there are some new discussions
+of the pros and cons of mocking, which I&#8217;d love your feedback on!</p>
+</div>
+<div class="paragraph">
+<p><a href="mailto:obeythetestinggoat@gmail.com">obeythetestinggoat@gmail.com</a></p>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>In this chapter we&#8217;ll finish up our login system.
+While doing so, we&#8217;ll explore an alternative use of mocks:
+to isolate parts of the system from each other,
+enabling more targeted testing, fight combinatorial explosion,
+and reduce duplication between tests.</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+In doing so, we start to drift towards what&#8217;s called "London-school TDD",
+    which is a variant on the "Classical" or "Detroit" style of TDD
+    that I mostly show in the book.
+    We won&#8217;t get into the details here,
+    but London school TDD places more emphasis on mocking and isolating parts of the system.
+    As always there are pros and cons!
+    Check out <a href="/book/appendix_purist_unit_tests.html">[appendix_purist_unit_tests]</a> for a longer exploration of the London-style approach.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>Along the way, we&#8217;ll learn a few more useful features of <code>unittest.mock</code>,
+and we&#8217;ll also have a discussion about how many tests is "enough".</p>
+</div>
+<div class="sect2">
+<h3 id="_using_our_auth_backend_in_the_login_view">Using Our Auth Backend in the Login View</h3>
+<div class="paragraph">
+<p>We got our auth backend ready in the last chapter,
+now we need use the backend in our login view.
+First we add it to <em>settings.py</em>:</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">src/superlists/settings.py (ch20l001)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-n">AUTH_USER_MODEL</span> <span class="tok-o">=</span> <span class="tok-s2">"accounts.User"</span>
+<span class="tok-n">AUTHENTICATION_BACKENDS</span> <span class="tok-o">=</span> <span class="tok-p">[</span>
+    <span class="tok-s2">"accounts.authentication.PasswordlessAuthenticationBackend"</span><span class="tok-p">,</span>
+<span class="tok-p">]</span>
+
+<span class="tok-p">[</span><span class="tok-o">...</span><span class="tok-p">]</span></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>Next let&#8217;s write some tests for what should happen in our view.
+Looking back at the spike again:</p>
+</div>
+<div class="exampleblock sourcecode skipme">
+<div class="title">src/accounts/views.py</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-k">def</span> <span class="tok-nf">login</span><span class="tok-p">(</span><span class="tok-n">request</span><span class="tok-p">):</span>
+    <span class="tok-nb">print</span><span class="tok-p">(</span><span class="tok-s2">"login view"</span><span class="tok-p">,</span> <span class="tok-n">file</span><span class="tok-o">=</span><span class="tok-n">sys</span><span class="tok-o">.</span><span class="tok-n">stderr</span><span class="tok-p">)</span>
+    <span class="tok-n">uid</span> <span class="tok-o">=</span> <span class="tok-n">request</span><span class="tok-o">.</span><span class="tok-n">GET</span><span class="tok-o">.</span><span class="tok-n">get</span><span class="tok-p">(</span><span class="tok-s2">"uid"</span><span class="tok-p">)</span>
+    <span class="tok-n">user</span> <span class="tok-o">=</span> <span class="tok-n">auth</span><span class="tok-o">.</span><span class="tok-n">authenticate</span><span class="tok-p">(</span><span class="tok-n">uid</span><span class="tok-o">=</span><span class="tok-n">uid</span><span class="tok-p">)</span>
+    <span class="tok-k">if</span> <span class="tok-n">user</span> <span class="tok-ow">is</span> <span class="tok-ow">not</span> <span class="tok-kc">None</span><span class="tok-p">:</span>
+        <span class="tok-n">auth</span><span class="tok-o">.</span><span class="tok-n">login</span><span class="tok-p">(</span><span class="tok-n">request</span><span class="tok-p">,</span> <span class="tok-n">user</span><span class="tok-p">)</span>
+    <span class="tok-k">return</span> <span class="tok-n">redirect</span><span class="tok-p">(</span><span class="tok-s2">"/"</span><span class="tok-p">)</span></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>We call <code>django.contrib.auth.authenticate</code>, and then,
+if it returns a user, we call <code>django.contrib.auth.login</code>.</p>
+</div>
+<div class="admonitionblock tip">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-tip" title="Tip"></i>
+</td>
+<td class="content">
+This is a good time to check out the
+    <a href="https://docs.djangoproject.com/en/5.1/topics/auth/default/#how-to-log-a-user-in">Django docs on authentication</a>
+    for a little more context.
+    
+</td>
+</tr>
+</table>
+</div>
+<div class="sect3">
+<h4 id="_straightforward_non_mocky_test_for_our_view">Straightforward Non-Mocky Test for our View</h4>
+<div class="paragraph">
+<p>Here&#8217;s the most obvious test we might want to write:
+we think in terms of the <em>behaviour</em> we want:</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>If someone has a valid Token, they should get logged in</p>
+</li>
+<li>
+<p>If someone tries to use an invalid Token (or none), it should not log them in.</p>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p>Here&#8217;s how we might add the happy-path test for (1):</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">src/accounts/tests/test_views.py (ch20l002)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-kn">from</span> <span class="tok-nn">django.contrib</span> <span class="tok-kn">import</span> <span class="tok-n">auth</span>
+<span class="tok-p">[</span><span class="tok-o">...</span><span class="tok-p">]</span>
+
+<span class="tok-k">class</span> <span class="tok-nc">LoginViewTest</span><span class="tok-p">(</span><span class="tok-n">TestCase</span><span class="tok-p">):</span>
+    <span class="tok-k">def</span> <span class="tok-nf">test_redirects_to_home_page</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">):</span>
+        <span class="tok-p">[</span><span class="tok-o">...</span><span class="tok-p">]</span>
+
+    <span class="tok-k">def</span> <span class="tok-nf">test_logs_in_if_given_valid_token</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">):</span>
+        <span class="tok-n">anon_user</span> <span class="tok-o">=</span> <span class="tok-n">auth</span><span class="tok-o">.</span><span class="tok-n">get_user</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">client</span><span class="tok-p">)</span>  <i class="conum" data-value="1"></i><b>(1)</b>
+        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertEqual</span><span class="tok-p">(</span><span class="tok-n">anon_user</span><span class="tok-o">.</span><span class="tok-n">is_authenticated</span><span class="tok-p">,</span> <span class="tok-kc">False</span><span class="tok-p">)</span>  <i class="conum" data-value="2"></i><b>(2)</b>
+
+        <span class="tok-n">token</span> <span class="tok-o">=</span> <span class="tok-n">Token</span><span class="tok-o">.</span><span class="tok-n">objects</span><span class="tok-o">.</span><span class="tok-n">create</span><span class="tok-p">(</span><span class="tok-n">email</span><span class="tok-o">=</span><span class="tok-s2">"edith@example.com"</span><span class="tok-p">)</span>
+        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">client</span><span class="tok-o">.</span><span class="tok-n">get</span><span class="tok-p">(</span><span class="tok-sa">f</span><span class="tok-s2">"/accounts/login?token=</span><span class="tok-si">{</span><span class="tok-n">token</span><span class="tok-o">.</span><span class="tok-n">uid</span><span class="tok-si">}</span><span class="tok-s2">"</span><span class="tok-p">)</span>
+
+        <span class="tok-n">user</span> <span class="tok-o">=</span> <span class="tok-n">auth</span><span class="tok-o">.</span><span class="tok-n">get_user</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">client</span><span class="tok-p">)</span>
+        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertEqual</span><span class="tok-p">(</span><span class="tok-n">user</span><span class="tok-o">.</span><span class="tok-n">is_authenticated</span><span class="tok-p">,</span> <span class="tok-kc">True</span><span class="tok-p">)</span>  <i class="conum" data-value="3"></i><b>(3)</b>
+        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertEqual</span><span class="tok-p">(</span><span class="tok-n">user</span><span class="tok-o">.</span><span class="tok-n">email</span><span class="tok-p">,</span> <span class="tok-s2">"edith@example.com"</span><span class="tok-p">)</span>  <i class="conum" data-value="3"></i><b>(3)</b></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>We use Django&#8217;s <code>auth.get_user()</code> to extract the current user from the Test Client.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>We verify we&#8217;re not logged in before we start
+(this isn&#8217;t strictly necessary, but it&#8217;s always nice to know you&#8217;re on firm ground).</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="3"></i><b>3</b></td>
+<td>And here&#8217;s where we check that we&#8217;ve been logged,
+with a user with the right email address:</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>And that will fail as expected:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>    self.assertEqual(user.is_authenticated, True)
+AssertionError: False != True</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>We can get it to pass by "cheating", like this:</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">src/accounts/views.py (ch20l003)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-kn">from</span> <span class="tok-nn">django.contrib</span> <span class="tok-kn">import</span> <span class="tok-n">auth</span><span class="tok-p">,</span> <span class="tok-n">messages</span>
+<span class="tok-p">[</span><span class="tok-o">...</span><span class="tok-p">]</span>
+
+
+<span class="tok-k">def</span> <span class="tok-nf">login</span><span class="tok-p">(</span><span class="tok-n">request</span><span class="tok-p">):</span>
+    <span class="tok-n">User</span> <span class="tok-o">=</span> <span class="tok-n">auth</span><span class="tok-o">.</span><span class="tok-n">get_user_model</span><span class="tok-p">()</span>
+    <span class="tok-n">user</span> <span class="tok-o">=</span> <span class="tok-n">User</span><span class="tok-o">.</span><span class="tok-n">objects</span><span class="tok-o">.</span><span class="tok-n">create</span><span class="tok-p">(</span><span class="tok-n">email</span><span class="tok-o">=</span><span class="tok-s2">"edith@example.com"</span><span class="tok-p">)</span>
+    <span class="tok-n">auth</span><span class="tok-o">.</span><span class="tok-n">login</span><span class="tok-p">(</span><span class="tok-n">request</span><span class="tok-p">,</span> <span class="tok-n">user</span><span class="tok-p">)</span>
+    <span class="tok-k">return</span> <span class="tok-n">redirect</span><span class="tok-p">(</span><span class="tok-s2">"/"</span><span class="tok-p">)</span></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>Which forces us to write another test:</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">src/accounts/tests/test_views.py (ch20l004)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-k">def</span> <span class="tok-nf">test_shows_login_error_if_token_invalid</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">):</span>
+    <span class="tok-n">response</span> <span class="tok-o">=</span> <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">client</span><span class="tok-o">.</span><span class="tok-n">get</span><span class="tok-p">(</span><span class="tok-s2">"/accounts/login?token=invalid-token"</span><span class="tok-p">,</span> <span class="tok-n">follow</span><span class="tok-o">=</span><span class="tok-kc">True</span><span class="tok-p">)</span>
+    <span class="tok-n">user</span> <span class="tok-o">=</span> <span class="tok-n">auth</span><span class="tok-o">.</span><span class="tok-n">get_user</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">client</span><span class="tok-p">)</span>
+    <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertEqual</span><span class="tok-p">(</span><span class="tok-n">user</span><span class="tok-o">.</span><span class="tok-n">is_authenticated</span><span class="tok-p">,</span> <span class="tok-kc">False</span><span class="tok-p">)</span>
+    <span class="tok-n">message</span> <span class="tok-o">=</span> <span class="tok-nb">list</span><span class="tok-p">(</span><span class="tok-n">response</span><span class="tok-o">.</span><span class="tok-n">context</span><span class="tok-p">[</span><span class="tok-s2">"messages"</span><span class="tok-p">])[</span><span class="tok-mi">0</span><span class="tok-p">]</span>
+    <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertEqual</span><span class="tok-p">(</span>
+        <span class="tok-n">message</span><span class="tok-o">.</span><span class="tok-n">message</span><span class="tok-p">,</span>
+        <span class="tok-s2">"Invalid login link, please request a new one"</span><span class="tok-p">,</span>
+    <span class="tok-p">)</span>
+    <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertEqual</span><span class="tok-p">(</span><span class="tok-n">message</span><span class="tok-o">.</span><span class="tok-n">tags</span><span class="tok-p">,</span> <span class="tok-s2">"error"</span><span class="tok-p">)</span></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>And now we get that passing using the most straightforward implementation&#8230;&#8203;</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">src/accounts/views.py (ch20l005)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-k">def</span> <span class="tok-nf">login</span><span class="tok-p">(</span><span class="tok-n">request</span><span class="tok-p">):</span>
+    <span class="tok-k">if</span> <span class="tok-n">Token</span><span class="tok-o">.</span><span class="tok-n">objects</span><span class="tok-o">.</span><span class="tok-n">filter</span><span class="tok-p">(</span><span class="tok-n">uid</span><span class="tok-o">=</span><span class="tok-n">request</span><span class="tok-o">.</span><span class="tok-n">GET</span><span class="tok-p">[</span><span class="tok-s2">"token"</span><span class="tok-p">])</span><span class="tok-o">.</span><span class="tok-n">exists</span><span class="tok-p">():</span>   <i class="conum" data-value="1"></i><b>(1)</b> <i class="conum" data-value="2"></i><b>(2)</b>
+        <span class="tok-n">User</span> <span class="tok-o">=</span> <span class="tok-n">auth</span><span class="tok-o">.</span><span class="tok-n">get_user_model</span><span class="tok-p">()</span>
+        <span class="tok-n">user</span> <span class="tok-o">=</span> <span class="tok-n">User</span><span class="tok-o">.</span><span class="tok-n">objects</span><span class="tok-o">.</span><span class="tok-n">create</span><span class="tok-p">(</span><span class="tok-n">email</span><span class="tok-o">=</span><span class="tok-s2">"edith@example.com"</span><span class="tok-p">)</span>  <i class="conum" data-value="3"></i><b>(3)</b>
+        <span class="tok-n">auth</span><span class="tok-o">.</span><span class="tok-n">login</span><span class="tok-p">(</span><span class="tok-n">request</span><span class="tok-p">,</span> <span class="tok-n">user</span><span class="tok-p">)</span>
+    <span class="tok-k">else</span><span class="tok-p">:</span>
+        <span class="tok-n">messages</span><span class="tok-o">.</span><span class="tok-n">error</span><span class="tok-p">(</span><span class="tok-n">request</span><span class="tok-p">,</span> <span class="tok-s2">"Invalid login link, please request a new one"</span><span class="tok-p">)</span>  <i class="conum" data-value="4"></i><b>(4)</b>
+    <span class="tok-k">return</span> <span class="tok-n">redirect</span><span class="tok-p">(</span><span class="tok-s2">"/"</span><span class="tok-p">)</span></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>Oh wait, we forgot about our authentication backend
+and just did the query directly from the Token model?
+Well that&#8217;s arguably more straightforward,
+but how do we force ourselves to write the code the way we want it to,
+ie using the Django&#8217;s auth API?</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>Oh dear and the email address is still hardcoded.
+We might have to think about writing an extra test to force ourselves to fix that.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="3"></i><b>3</b></td>
+<td>Oh&#8212;&#8203;also, we&#8217;re hardcoding the creation of a user every time,
+but actually, we want to have the get-or-create logic
+that we implemented in our backend</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="4"></i><b>4</b></td>
+<td>This bit is OK at least! &#128517;</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>Is this starting to feel a bit familiar?
+We&#8217;ve already written all the tests for the various permutations of our authentication logic,
+and we&#8217;re considering writing equivalent tests at the views layer.</p>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_combinatorial_explosion">Combinatorial Explosion</h3>
+<div class="paragraph">
+<p>Let&#8217;s recap the tests we might want to write at each layer in our application:
+</p>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">Table 1. What We Want to Test in Each Layer</caption>
+<colgroup>
+<col style="width: 33.3333%;">
+<col style="width: 33.3333%;">
+<col style="width: 33.3334%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Views Layer</th>
+<th class="tableblock halign-left valign-top">Authentication Backend</th>
+<th class="tableblock halign-left valign-top">Models Layer</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="ulist">
+<ul>
+<li>
+<p>Valid Token means user is logged in</p>
+</li>
+<li>
+<p>Invalid Token means user is not logged in</p>
+</li>
+</ul>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="ulist">
+<ul>
+<li>
+<p>Returns correct existing user for a valid token</p>
+</li>
+<li>
+<p>Creates a new user for a new email address</p>
+</li>
+<li>
+<p>Returns None for an invalid token</p>
+</li>
+</ul>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="ulist">
+<ul>
+<li>
+<p>Token associates email and uid</p>
+</li>
+<li>
+<p>User can be retrieved from token UID</p>
+</li>
+</ul>
+</div></div></td>
+</tr>
+</tbody>
+</table>
+<div class="paragraph">
+<p>We already have 3 tests in the models layer, and 5 in the authentication layer.
+We started off writing the tests in the views layer,
+where, <em>conceptually</em>, we only really want two test cases,
+and we&#8217;re finding ourselves wondering if we need to write
+a whole bunch of tests that essentially duplicate the authentication layer tests.</p>
+</div>
+<div class="paragraph">
+<p>This is an example of the <em>combinatorial explosion</em> problem.</p>
+</div>
+<div class="sect3">
+<h4 id="_the_car_factory_example">The Car Factory Example</h4>
+<div class="paragraph">
+<p>Imagine we&#8217;re testing a car factory, where:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>First we choose the car type: normal, station-wagon, or convertible</p>
+</li>
+<li>
+<p>Then we choose the engine type: petrol, diesel, or electric</p>
+</li>
+<li>
+<p>And then we choose the colour: red, white, or hot pink.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>How many tests do we need?  Well, the upper bound to test every possible combination
+is 3 x 3 x 3 = 27 tests.  That&#8217;s a lot!</p>
+</div>
+<div class="listingblock skipme">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-k">def</span> <span class="tok-nf">build_car</span><span class="tok-p">(</span><span class="tok-n">car_type</span><span class="tok-p">,</span> <span class="tok-n">engine_type</span><span class="tok-p">,</span> <span class="tok-n">colour</span><span class="tok-p">):</span>
+    <span class="tok-n">engine</span> <span class="tok-o">=</span> <span class="tok-n">_create_engine</span><span class="tok-p">(</span><span class="tok-n">engine_type</span><span class="tok-p">)</span>
+    <span class="tok-n">naked_car</span> <span class="tok-o">=</span> <span class="tok-n">_assemble_car</span><span class="tok-p">(</span><span class="tok-n">engine</span><span class="tok-p">,</span> <span class="tok-n">car_type</span><span class="tok-p">)</span>
+    <span class="tok-n">finished_car</span> <span class="tok-o">=</span> <span class="tok-n">_paint_car</span><span class="tok-p">(</span><span class="tok-n">naked_car</span><span class="tok-p">,</span> <span class="tok-n">colour</span><span class="tok-p">)</span>
+    <span class="tok-k">return</span> <span class="tok-n">finished_car</span></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>How many tests do we <em>actually</em> need to write?
+Well, it depends on how we&#8217;re testing, how the different parts of the factory are integrated,
+and what we know about the system.</p>
+</div>
+<div class="paragraph">
+<p>Do we need to test every single colour? Maybe!
+Or, maybe, if we&#8217;re happy that we can do 2 different colours, then we&#8217;re happy we can do any number,
+whether it&#8217;s 2, 3, or hundreds.  Perhaps we need 2 tests, perhaps 3.</p>
+</div>
+<div class="paragraph">
+<p>OK, but do we need to test that painting woks for all the different engine types?
+Well, the painting process is probably independent of engine type:
+if we can paint a diesel in red, we can paint it in pink or white too.</p>
+</div>
+<div class="paragraph">
+<p>But, perhaps it <em>is</em> affected by the car type:
+painting a convertible with a fabric roof
+might be a very different technological process to painting a hard-bodied car.</p>
+</div>
+<div class="paragraph">
+<p>So we&#8217;d probably want to test that painting <em>in general</em> works for each car type (3 tests)
+but we don&#8217;t need to test that painting works for every engine type.</p>
+</div>
+<div class="paragraph">
+<p>What we&#8217;re analysing here is the level of "coupling" between the different parts of the system.
+Painting is tightly coupled to car type, but not to engine type.
+Painting "needs to know" about car types, but it does not "need to know" about engine types.</p>
+</div>
+<div class="admonitionblock tip">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-tip" title="Tip"></i>
+</td>
+<td class="content">
+The more tightly coupled two parts of the system are,
+    the more tests you&#8217;ll need to write to cover all the combinations of their behaviour.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>Another way of thinking about it is, what level are we writing tests at?
+You can choose to write low-level tests that cover only one part of the assembly process,
+or higher-level ones that test several steps together, or perhaps all of them end-to-end.
+See <a href="#car-factory-illustration">Analysing how many tests are needed at different levels</a>.</p>
+</div>
+<div id="car-factory-illustration" class="imageblock">
+<div class="content">
+<img src="images/car-factory-illustration.png" alt="An illustration of the car factory, with boxes for each step in the process (build engine, assemble, paint), and descriptions of testing each step separately vs testing them in combination.">
+</div>
+<div class="title">Figure 1. Analysing how many tests are needed at different levels</div>
+</div>
+<div class="paragraph">
+<p>Analysing things in these terms,
+we think about the inputs and outputs that apply to each type of test,
+as well as which attributes of the inputs matter, and which don&#8217;t.</p>
+</div>
+<div class="paragraph">
+<p>Testing the first stage of the process, building the engine,
+is straightforward.  The "engine type" input has three possible values,
+as inputs, so we need three tests of the output, which is the engine.
+If we&#8217;re testing at the end-to-end level, no matter how many tests we have in total,
+we know we&#8217;ll need at least 3 of to be the tests
+that check we can produce a car with a working engine of each type.</p>
+</div>
+<div class="paragraph">
+<p>Testing the painting needs a bit more thought.
+If we test at the low level, the inputs are a naked car, and a paint colour.
+There are theoretically 9 types of naked car, do we need to test all of them?
+No, the engine type doesn&#8217;t matter; we only need to test 1 of each body type.
+Does that mean 3 x 3 = 9 tests?  No.  The colour and body type are independent.
+We can just test that all 3 colours work, and that all three body types work,
+so that&#8217;s 6 tests.</p>
+</div>
+<div class="paragraph">
+<p>What about at the end-to-end level?
+It depends if we&#8217;re being rigorous about "black box" testing,
+where we&#8217;re not supposed to know anything about how the production process works.
+In that case maybe we do need 27 tests.
+But if we allow that we know about the internals,
+then we can apply similar reasoning to what we used at the lower level.
+However many tests we end up with,
+we need 3 of them to be checking on each colour,
+and 3 that check that each body type can be painted.</p>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_using_mocks_to_test_parts_of_our_system_in_isolation">Using Mocks to Test Parts of Our System in Isolation</h3>
+<div class="paragraph">
+<p>To recap, so far we have some minimal tests at the models layer,
+and we have comprehensive tests of our authentication backend,
+and we&#8217;re now wondering how many tests we need at the views layer.</p>
+</div>
+<div class="paragraph">
+<p>Here&#8217;s the current state of our view:</p>
+</div>
+<div class="exampleblock sourcecode currentcontents">
+<div class="title">src/accounts/views.py</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-k">def</span> <span class="tok-nf">login</span><span class="tok-p">(</span><span class="tok-n">request</span><span class="tok-p">):</span>
+    <span class="tok-k">if</span> <span class="tok-n">Token</span><span class="tok-o">.</span><span class="tok-n">objects</span><span class="tok-o">.</span><span class="tok-n">filter</span><span class="tok-p">(</span><span class="tok-n">uid</span><span class="tok-o">=</span><span class="tok-n">request</span><span class="tok-o">.</span><span class="tok-n">GET</span><span class="tok-p">[</span><span class="tok-s2">"token"</span><span class="tok-p">])</span><span class="tok-o">.</span><span class="tok-n">exists</span><span class="tok-p">():</span>
+        <span class="tok-n">User</span> <span class="tok-o">=</span> <span class="tok-n">auth</span><span class="tok-o">.</span><span class="tok-n">get_user_model</span><span class="tok-p">()</span>
+        <span class="tok-n">user</span> <span class="tok-o">=</span> <span class="tok-n">User</span><span class="tok-o">.</span><span class="tok-n">objects</span><span class="tok-o">.</span><span class="tok-n">create</span><span class="tok-p">(</span><span class="tok-n">email</span><span class="tok-o">=</span><span class="tok-s2">"edith@example.com"</span><span class="tok-p">)</span>
+        <span class="tok-n">auth</span><span class="tok-o">.</span><span class="tok-n">login</span><span class="tok-p">(</span><span class="tok-n">request</span><span class="tok-p">,</span> <span class="tok-n">user</span><span class="tok-p">)</span>
+    <span class="tok-k">else</span><span class="tok-p">:</span>
+        <span class="tok-n">messages</span><span class="tok-o">.</span><span class="tok-n">error</span><span class="tok-p">(</span><span class="tok-n">request</span><span class="tok-p">,</span> <span class="tok-s2">"Invalid login link, please request a new one"</span><span class="tok-p">)</span>
+    <span class="tok-k">return</span> <span class="tok-n">redirect</span><span class="tok-p">(</span><span class="tok-s2">"/"</span><span class="tok-p">)</span></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>We know we want to transform it to something like this:</p>
+</div>
+<div class="exampleblock sourcecode skipme">
+<div class="title">src/accounts/views.py</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-k">def</span> <span class="tok-nf">login</span><span class="tok-p">(</span><span class="tok-n">request</span><span class="tok-p">):</span>
+    <span class="tok-k">if</span> <span class="tok-n">user</span> <span class="tok-o">:=</span> <span class="tok-n">auth</span><span class="tok-o">.</span><span class="tok-n">authenticate</span><span class="tok-p">(</span><span class="tok-n">uid</span><span class="tok-o">=</span><span class="tok-n">request</span><span class="tok-o">.</span><span class="tok-n">GET</span><span class="tok-o">.</span><span class="tok-n">get</span><span class="tok-p">(</span><span class="tok-s2">"token"</span><span class="tok-p">))</span>  <i class="conum" data-value="1"></i><b>(1)</b>
+        <span class="tok-n">auth</span><span class="tok-o">.</span><span class="tok-n">login</span><span class="tok-p">(</span><span class="tok-n">request</span><span class="tok-p">,</span> <span class="tok-n">user</span><span class="tok-p">)</span>  <i class="conum" data-value="2"></i><b>(2)</b>
+    <span class="tok-k">else</span><span class="tok-p">:</span>
+        <span class="tok-n">messages</span><span class="tok-o">.</span><span class="tok-n">error</span><span class="tok-p">(</span><span class="tok-n">request</span><span class="tok-p">,</span> <span class="tok-s2">"Invalid login link, please request a new one"</span><span class="tok-p">)</span>  <i class="conum" data-value="3"></i><b>(3)</b>
+
+    <span class="tok-k">return</span> <span class="tok-n">redirect</span><span class="tok-p">(</span><span class="tok-s2">"/"</span><span class="tok-p">)</span></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>We want to refactor our logic to use the <code>authenticate()</code> function
+from our backend</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>We have the "happy path" branch where the user gets logged in</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="3"></i><b>3</b></td>
+<td>We have the "unhappy" path where the user gets an error message instead.</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>But currently our tests are letting us "get away" with
+the cheating/wrong implementation.</p>
+</div>
+<div class="paragraph">
+<p>Here are three possible options for getting ourselves to the right state:</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>Add more tests for all possible combinations at the views level
+(token exists but no user, token exists for existing user, invalid token,
+etc) until we end up duplicating all the logic in the auth backend in our view,
+and then feel justified in refactoring across to just calling the auth backend.</p>
+</li>
+<li>
+<p>Stick with our current two tests, and decide it&#8217;s OK to refactor already.</p>
+</li>
+<li>
+<p>Test the view in isolation, using mocks to verify that we call the auth backend.</p>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p>Each option has pros and cons!  If I was going for option (1),
+essentially going all in on test coverage at the views layer,
+I&#8217;d probably think about deleting all the tests at the auth layer afterwards.</p>
+</div>
+<div class="paragraph">
+<p>If you were to ask me what my personal preference or instinctive choice would be,
+I&#8217;d say at this point it might be to go with (2),
+and say with one happy path and one unhappy path test,
+we&#8217;re OK to refactor and switch across already.</p>
+</div>
+<div class="paragraph">
+<p>But since this chapter is about mocks, let&#8217;s investigate option (3) instead.
+Besides, it&#8217;ll be an excuse to do fun things with them,
+like playing with <code>.return_value</code>.</p>
+</div>
+<div class="paragraph">
+<p>
+
+So far we&#8217;ve used mocks to test external dependencies,
+like Django&#8217;s mail-sending function.
+The main reason to use a mock was to isolate ourselves from external side effects,
+in this case, to avoid sending out actual emails during our tests.</p>
+</div>
+<div class="paragraph">
+<p>In this section we&#8217;ll look at a different possible use case for mocks,
+which are around testing parts of our <em>own</em> code in isolation from each other,
+as a way of reducing duplication and avoiding combinatorial explosion in our tests.</p>
+</div>
+<div class="sect3">
+<h4 id="_mocks_can_also_let_you_test_the_implementation_when_it_matters">Mocks Can Also Let You Test the Implementation, When It Matters</h4>
+<div class="paragraph">
+<p>On top of that, the fact that we&#8217;re using the Django <code>auth.authenticate</code> function
+rather than calling our own code directly is relevant.
+Django has already introduce an abstraction,
+to decouple the specifics of authentication backends
+from the views that use them.
+This makes it easier for us to add further backends in future.</p>
+</div>
+<div class="paragraph">
+<p>So in this case
+(in contrast to the example in  <a href="/book/chapter_20_mocking_1.html#mocks-tightly-coupled-sidebar">[mocks-tightly-coupled-sidebar]</a>)
+the implementation <em>does</em> matter,
+because we&#8217;ve decided to use a particular, specific interface to implement our authentication system,
+which is something we might want to document and verify in our tests,
+and mocks are one way to enable that.</p>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_starting_again_test_driving_our_implementation_with_mocks">Starting Again, Test-Driving our Implementation With Mocks</h3>
+<div class="paragraph">
+<p>Let&#8217;s see how things would look if we had made this decision in the first place.
+We&#8217;ll start by reverting all the authentication stuff,
+both from our test and from our view.</p>
+</div>
+<div class="paragraph">
+<p>Let&#8217;s disable the test first (we can re-enable them later to sense-check things):</p>
+</div>
+<div class="exampleblock sourcecode small-code">
+<div class="title">src/accounts/tests/test_views.py (ch20l006)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-k">class</span> <span class="tok-nc">LoginViewTest</span><span class="tok-p">(</span><span class="tok-n">TestCase</span><span class="tok-p">):</span>
+    <span class="tok-k">def</span> <span class="tok-nf">test_redirects_to_home_page</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">):</span>  <i class="conum" data-value="1"></i><b>(1)</b>
+        <span class="tok-p">[</span><span class="tok-o">...</span><span class="tok-p">]</span>
+    <span class="tok-k">def</span> <span class="tok-nf">DONT_test_logs_in_if_given_valid_token</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">):</span>  <i class="conum" data-value="2"></i><b>(2)</b>
+        <span class="tok-p">[</span><span class="tok-o">...</span><span class="tok-p">]</span>
+    <span class="tok-k">def</span> <span class="tok-nf">DONT_test_shows_login_error_if_token_invalid</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">):</span>  <i class="conum" data-value="2"></i><b>(2)</b>
+        <span class="tok-p">[</span><span class="tok-o">...</span><span class="tok-p">]</span></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>We can leave the test for the redirect, since that doesn&#8217;t involve the auth framework.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>I call this "dontifying" tests :)</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>Now let&#8217;s revert the view, and replace our hacky code with some TODOs:</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">src/accounts/views.py (ch20l007)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-c1"># from django.contrib import auth, messages  </span><i class="conum" data-value="1"></i><b>(1)</b>
+<span class="tok-kn">from</span> <span class="tok-nn">django.contrib</span> <span class="tok-kn">import</span> <span class="tok-n">messages</span>
+<span class="tok-p">[</span><span class="tok-o">...</span><span class="tok-p">]</span>
+
+
+<span class="tok-k">def</span> <span class="tok-nf">login</span><span class="tok-p">(</span><span class="tok-n">request</span><span class="tok-p">):</span>
+    <span class="tok-c1"># TODO: call authenticate(),  </span><i class="conum" data-value="2"></i><b>(2)</b>
+    <span class="tok-c1"># then auth.login() with the user if we get one,</span>
+    <span class="tok-c1"># or messages.error() if we get None.</span>
+    <span class="tok-k">return</span> <span class="tok-n">redirect</span><span class="tok-p">(</span><span class="tok-s2">"/"</span><span class="tok-p">)</span></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>In order to demonstrate a common error message shortly,
+I&#8217;m also reverting our import of the <code>contrib.auth</code> module.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>And here&#8217;s where we delete our first implementation
+and replace it with some TODOs.</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>Let&#8217;s check all our tests pass:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>python src/manage.py test accounts</strong>
+[...]
+Ran 14 tests in 0.021s
+
+OK</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Now let&#8217;s start again with mock-based tests.
+First we can write a test that checks we call <code>authenticate()</code> correctly:</p>
+</div>
+<div class="exampleblock sourcecode small-code">
+<div class="title">src/accounts/tests/test_views.py (ch20l008)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-k">class</span> <span class="tok-nc">LoginViewTest</span><span class="tok-p">(</span><span class="tok-n">TestCase</span><span class="tok-p">):</span>
+    <span class="tok-p">[</span><span class="tok-o">...</span><span class="tok-p">]</span>
+
+    <span class="tok-nd">@mock</span><span class="tok-o">.</span><span class="tok-n">patch</span><span class="tok-p">(</span><span class="tok-s2">"accounts.views.auth"</span><span class="tok-p">)</span>  <i class="conum" data-value="1"></i><b>(1)</b>
+    <span class="tok-k">def</span> <span class="tok-nf">test_calls_authenticate_with_uid_from_get_request</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">,</span> <span class="tok-n">mock_auth</span><span class="tok-p">):</span>  <i class="conum" data-value="2"></i><b>(2)</b>
+        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">client</span><span class="tok-o">.</span><span class="tok-n">get</span><span class="tok-p">(</span><span class="tok-s2">"/accounts/login?token=abcd123"</span><span class="tok-p">)</span>
+        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertEqual</span><span class="tok-p">(</span>
+            <span class="tok-n">mock_auth</span><span class="tok-o">.</span><span class="tok-n">authenticate</span><span class="tok-o">.</span><span class="tok-n">call_args</span><span class="tok-p">,</span>  <i class="conum" data-value="3"></i><b>(3)</b>
+            <span class="tok-n">mock</span><span class="tok-o">.</span><span class="tok-n">call</span><span class="tok-p">(</span><span class="tok-n">uid</span><span class="tok-o">=</span><span class="tok-s2">"abcd123"</span><span class="tok-p">),</span>  <i class="conum" data-value="4"></i><b>(4)</b>
+        <span class="tok-p">)</span></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>We expect to be using the <code>django.contrib.auth</code> module in <em>views.py</em>,
+and we mock it out here.  Note that this time, we&#8217;re not mocking out
+a function, we&#8217;re mocking out a whole module, and thus implicitly
+mocking out all the functions (and any other objects) that module contains.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>As usual, the mocked object is injected into our test method.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="3"></i><b>3</b></td>
+<td>This time, we&#8217;ve mocked out a module rather than a function.
+So we examine the <code>call_args</code> not of the <code>mock_auth</code> module,
+but of the <code>mock_auth.authenticate</code> function.
+Because all the attributes of a mock are more mocks, that&#8217;s a mock too.
+You can start to see why <code>Mock</code> objects are so convenient,
+compared to trying to build your own.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="4"></i><b>4</b></td>
+<td>Now, instead of "unpacking" the call args, we use the <code>call</code> function
+for a neater way of saying what it should have been called with&#8212;&#8203;that is,
+the token from the GET request.
+(See <a href="#mock-call-args-sidebar">On Mock <code>call_args</code></a>.)</td>
+</tr>
+</table>
+</div>
+<div id="mock-call-args-sidebar" class="sidebarblock less_space pagebreak-before">
+<div class="content">
+<div class="title">On Mock <code>call_args</code></div>
+<div class="paragraph">
+<p>
+The <code>.call_args</code> property on a mock represents the positional and keyword arguments
+hat the mock was called with.
+It&#8217;s a special "call" object type,
+which is essentially a tuple of <code>(positional_args, keyword_args)</code>.
+<code>positional_args</code> is itself a tuple,
+consisting of the set of positional arguments.
+<code>keyword_args</code> is a dictionary.</p>
+</div>
+<div class="listingblock small-code skipme">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-o">&gt;&gt;&gt;</span> <span class="tok-kn">from</span> <span class="tok-nn">unittest.mock</span> <span class="tok-kn">import</span> <span class="tok-n">Mock</span><span class="tok-p">,</span> <span class="tok-n">call</span>
+<span class="tok-o">&gt;&gt;&gt;</span> <span class="tok-n">m</span> <span class="tok-o">=</span> <span class="tok-n">Mock</span><span class="tok-p">()</span>
+<span class="tok-o">&gt;&gt;&gt;</span> <span class="tok-n">m</span><span class="tok-p">(</span><span class="tok-mi">42</span><span class="tok-p">,</span> <span class="tok-mi">43</span><span class="tok-p">,</span> <span class="tok-s1">'positional arg 3'</span><span class="tok-p">,</span> <span class="tok-n">key</span><span class="tok-o">=</span><span class="tok-s1">'val'</span><span class="tok-p">,</span> <span class="tok-n">thing</span><span class="tok-o">=</span><span class="tok-mi">666</span><span class="tok-p">)</span>
+<span class="tok-o">&lt;</span><span class="tok-n">Mock</span> <span class="tok-n">name</span><span class="tok-o">=</span><span class="tok-s1">'mock()'</span> <span class="tok-nb">id</span><span class="tok-o">=</span><span class="tok-s1">'139909729163528'</span><span class="tok-o">&gt;</span>
+
+<span class="tok-o">&gt;&gt;&gt;</span> <span class="tok-n">m</span><span class="tok-o">.</span><span class="tok-n">call_args</span>
+<span class="tok-n">call</span><span class="tok-p">(</span><span class="tok-mi">42</span><span class="tok-p">,</span> <span class="tok-mi">43</span><span class="tok-p">,</span> <span class="tok-s1">'positional arg 3'</span><span class="tok-p">,</span> <span class="tok-n">key</span><span class="tok-o">=</span><span class="tok-s1">'val'</span><span class="tok-p">,</span> <span class="tok-n">thing</span><span class="tok-o">=</span><span class="tok-mi">666</span><span class="tok-p">)</span>
+
+<span class="tok-o">&gt;&gt;&gt;</span> <span class="tok-n">m</span><span class="tok-o">.</span><span class="tok-n">call_args</span> <span class="tok-o">==</span> <span class="tok-p">((</span><span class="tok-mi">42</span><span class="tok-p">,</span> <span class="tok-mi">43</span><span class="tok-p">,</span> <span class="tok-s1">'positional arg 3'</span><span class="tok-p">),</span> <span class="tok-p">{</span><span class="tok-s1">'key'</span><span class="tok-p">:</span> <span class="tok-s1">'val'</span><span class="tok-p">,</span> <span class="tok-s1">'thing'</span><span class="tok-p">:</span> <span class="tok-mi">666</span><span class="tok-p">})</span>
+<span class="tok-kc">True</span>
+<span class="tok-o">&gt;&gt;&gt;</span> <span class="tok-n">m</span><span class="tok-o">.</span><span class="tok-n">call_args</span> <span class="tok-o">==</span> <span class="tok-n">call</span><span class="tok-p">(</span><span class="tok-mi">42</span><span class="tok-p">,</span> <span class="tok-mi">43</span><span class="tok-p">,</span> <span class="tok-s1">'positional arg 3'</span><span class="tok-p">,</span> <span class="tok-n">key</span><span class="tok-o">=</span><span class="tok-s1">'val'</span><span class="tok-p">,</span> <span class="tok-n">thing</span><span class="tok-o">=</span><span class="tok-mi">666</span><span class="tok-p">)</span>
+<span class="tok-kc">True</span></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>So in our test,  we could have done this instead:</p>
+</div>
+<div class="exampleblock sourcecode skipme">
+<div class="title">src/accounts/tests/test_views.py</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="python"><span></span>    <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertEqual</span><span class="tok-p">(</span>
+        <span class="tok-n">mock_auth</span><span class="tok-o">.</span><span class="tok-n">authenticate</span><span class="tok-o">.</span><span class="tok-n">call_args</span><span class="tok-p">,</span>
+        <span class="tok-p">((,),</span> <span class="tok-p">{</span><span class="tok-s1">'uid'</span><span class="tok-p">:</span> <span class="tok-s1">'abcd123'</span><span class="tok-p">})</span>
+    <span class="tok-p">)</span>
+    <span class="tok-c1"># or this</span>
+    <span class="tok-n">args</span><span class="tok-p">,</span> <span class="tok-n">kwargs</span> <span class="tok-o">=</span> <span class="tok-n">mock_auth</span><span class="tok-o">.</span><span class="tok-n">authenticate</span><span class="tok-o">.</span><span class="tok-n">call_args</span>
+    <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertEqual</span><span class="tok-p">(</span><span class="tok-n">args</span><span class="tok-p">,</span> <span class="tok-p">(,))</span>
+    <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertEqual</span><span class="tok-p">(</span><span class="tok-n">kwargs</span><span class="tok-p">,</span> <span class="tok-p">{</span><span class="tok-s1">'uid'</span><span class="tok-p">:</span> <span class="tok-s1">'abcd123'</span><span class="tok-p">})</span></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>But you can see how using the <code>call</code> helper is nicer.</p>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>What happens when we run the test?   The first error is this:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>python src/manage.py test accounts</strong>
+[...]
+AttributeError: &lt;module 'accounts.views' from
+'...goat-book/src/accounts/views.py'&gt; does not have the attribute 'auth'</pre>
+</div>
+</div>
+<div class="admonitionblock tip">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-tip" title="Tip"></i>
+</td>
+<td class="content">
+<code>module foo does not have the attribute bar</code>
+    is a common first failure in a test that uses mocks.
+    It&#8217;s telling you that you&#8217;re trying to mock out something
+    that doesn&#8217;t yet exist (or isn&#8217;t yet imported)
+    in the target module.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>Once we re-import <code>django.contrib.auth</code>, the error changes:</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">src/accounts/views.py (ch20l009)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-kn">from</span> <span class="tok-nn">django.contrib</span> <span class="tok-kn">import</span> <span class="tok-n">auth</span><span class="tok-p">,</span> <span class="tok-n">messages</span>
+<span class="tok-p">[</span><span class="tok-o">...</span><span class="tok-p">]</span></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>Now we get:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>FAIL: test_calls_authenticate_with_uid_from_get_request [...]
+[...]
+AssertionError: None != call(uid='abcd123')</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>It&#8217;s telling us that the view doesn&#8217;t call the <code>auth.authenticate</code> function at all.
+Let&#8217;s fix that, but get it deliberately wrong, just to see:</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">src/accounts/views.py (ch20l010)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-k">def</span> <span class="tok-nf">login</span><span class="tok-p">(</span><span class="tok-n">request</span><span class="tok-p">):</span>
+    <span class="tok-c1"># TODO: call authenticate(),</span>
+    <span class="tok-n">auth</span><span class="tok-o">.</span><span class="tok-n">authenticate</span><span class="tok-p">(</span><span class="tok-s2">"bang!"</span><span class="tok-p">)</span>
+    <span class="tok-c1"># then auth.login() with the user if we get one,</span>
+    <span class="tok-c1"># or messages.error() if we get None.</span>
+    <span class="tok-k">return</span> <span class="tok-n">redirect</span><span class="tok-p">(</span><span class="tok-s2">"/"</span><span class="tok-p">)</span></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>Bang indeed!</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>python src/manage.py test accounts</strong>
+[...]
+AssertionError: call('bang!') != call(uid='abcd123')
+[...]
+FAILED (failures=1)</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Let&#8217;s give <code>authenticate</code> the arguments it expects then:</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">src/accounts/views.py (ch20l011)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-k">def</span> <span class="tok-nf">login</span><span class="tok-p">(</span><span class="tok-n">request</span><span class="tok-p">):</span>
+    <span class="tok-c1"># TODO: call authenticate(),</span>
+    <span class="tok-n">auth</span><span class="tok-o">.</span><span class="tok-n">authenticate</span><span class="tok-p">(</span><span class="tok-n">uid</span><span class="tok-o">=</span><span class="tok-n">request</span><span class="tok-o">.</span><span class="tok-n">GET</span><span class="tok-p">[</span><span class="tok-s2">"token"</span><span class="tok-p">])</span>
+    <span class="tok-c1"># then auth.login() with the user if we get one,</span>
+    <span class="tok-c1"># or messages.error() if we get None.</span>
+    <span class="tok-k">return</span> <span class="tok-n">redirect</span><span class="tok-p">(</span><span class="tok-s2">"/"</span><span class="tok-p">)</span></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>That gets us to passing tests:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>python src/manage.py test accounts</strong>
+Ran 15 tests in 0.023s
+
+OK</pre>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_using_mock_return_value">Using mock.return_value</h4>
+<div class="paragraph">
+<p>
+Next we want to check that if the authenticate function returns a user,
+we pass that into <code>auth.login</code>.  Let&#8217;s see how that test looks:</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">src/accounts/tests/test_views.py (ch20l012)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-nd">@mock</span><span class="tok-o">.</span><span class="tok-n">patch</span><span class="tok-p">(</span><span class="tok-s2">"accounts.views.auth"</span><span class="tok-p">)</span>  <i class="conum" data-value="1"></i><b>(1)</b>
+<span class="tok-k">def</span> <span class="tok-nf">test_calls_auth_login_with_user_if_there_is_one</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">,</span> <span class="tok-n">mock_auth</span><span class="tok-p">):</span>
+    <span class="tok-n">response</span> <span class="tok-o">=</span> <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">client</span><span class="tok-o">.</span><span class="tok-n">get</span><span class="tok-p">(</span><span class="tok-s2">"/accounts/login?token=abcd123"</span><span class="tok-p">)</span>
+    <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertEqual</span><span class="tok-p">(</span>
+        <span class="tok-n">mock_auth</span><span class="tok-o">.</span><span class="tok-n">login</span><span class="tok-o">.</span><span class="tok-n">call_args</span><span class="tok-p">,</span>  <i class="conum" data-value="2"></i><b>(2)</b>
+        <span class="tok-n">mock</span><span class="tok-o">.</span><span class="tok-n">call</span><span class="tok-p">(</span>
+            <span class="tok-n">response</span><span class="tok-o">.</span><span class="tok-n">wsgi_request</span><span class="tok-p">,</span>  <i class="conum" data-value="3"></i><b>(3)</b>
+            <span class="tok-n">mock_auth</span><span class="tok-o">.</span><span class="tok-n">authenticate</span><span class="tok-o">.</span><span class="tok-n">return_value</span><span class="tok-p">,</span>  <i class="conum" data-value="4"></i><b>(4)</b>
+        <span class="tok-p">),</span>
+    <span class="tok-p">)</span></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>We mock the <code>contrib.auth</code> module again.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>This time we examine the call args for the <code>auth.login</code> function.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="3"></i><b>3</b></td>
+<td>We check that it&#8217;s called with the request object that the view sees,</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="4"></i><b>4</b></td>
+<td>and the "user" object that the <code>authenticate()</code> function returns.
+Because <code>authenticate()</code> is also mocked out,
+we can use its special <code>.return_value</code> attribute.</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>When you call a mock, you get another mock.
+But you can also get a copy of that returned mock from the original mock that you called.
+Boy, it sure is hard to explain this stuff without saying "mock" a lot!
+Another little console illustration might help here:</p>
+</div>
+<div class="listingblock skipme">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-o">&gt;&gt;&gt;</span> <span class="tok-n">m</span> <span class="tok-o">=</span> <span class="tok-n">Mock</span><span class="tok-p">()</span>
+<span class="tok-o">&gt;&gt;&gt;</span> <span class="tok-n">thing</span> <span class="tok-o">=</span> <span class="tok-n">m</span><span class="tok-p">()</span>
+<span class="tok-o">&gt;&gt;&gt;</span> <span class="tok-n">thing</span>
+<span class="tok-o">&lt;</span><span class="tok-n">Mock</span> <span class="tok-n">name</span><span class="tok-o">=</span><span class="tok-s1">'mock()'</span> <span class="tok-nb">id</span><span class="tok-o">=</span><span class="tok-s1">'140652722034952'</span><span class="tok-o">&gt;</span>
+<span class="tok-o">&gt;&gt;&gt;</span> <span class="tok-n">m</span><span class="tok-o">.</span><span class="tok-n">return_value</span>
+<span class="tok-o">&lt;</span><span class="tok-n">Mock</span> <span class="tok-n">name</span><span class="tok-o">=</span><span class="tok-s1">'mock()'</span> <span class="tok-nb">id</span><span class="tok-o">=</span><span class="tok-s1">'140652722034952'</span><span class="tok-o">&gt;</span>
+<span class="tok-o">&gt;&gt;&gt;</span> <span class="tok-n">thing</span> <span class="tok-o">==</span> <span class="tok-n">m</span><span class="tok-o">.</span><span class="tok-n">return_value</span>
+<span class="tok-kc">True</span></code></pre>
+</div>
+</div>
+<div class="sidebarblock pagebreak-before less_space">
+<div class="content">
+<div class="title">Avoid Mock&#8217;s Magic assert_called&#8230;&#8203; Methods?</div>
+<div class="paragraph">
+<p>If you&#8217;ve used <code>unittest.mock</code> before, you may have come across its special
+<code>assert_called...</code>
+<a href="http://bit.ly/2F9AEMY">methods</a>, and you may be wondering why I didn&#8217;t use them.
+For example, instead of doing:</p>
+</div>
+<div class="listingblock skipme">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertEqual</span><span class="tok-p">(</span><span class="tok-n">a_mock</span><span class="tok-o">.</span><span class="tok-n">call_args</span><span class="tok-p">,</span> <span class="tok-n">call</span><span class="tok-p">(</span><span class="tok-n">foo</span><span class="tok-p">,</span> <span class="tok-n">bar</span><span class="tok-p">))</span></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>You can just do:</p>
+</div>
+<div class="listingblock skipme">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-n">a_mock</span><span class="tok-o">.</span><span class="tok-n">assert_called_with</span><span class="tok-p">(</span><span class="tok-n">foo</span><span class="tok-p">,</span> <span class="tok-n">bar</span><span class="tok-p">)</span></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>And the <em>mock</em> library will raise an <code>AssertionError</code> for you if there is a
+mismatch.</p>
+</div>
+<div class="paragraph">
+<p>Why not use that?  For me, the problem with these magic methods is that
+it&#8217;s too easy to make a silly typo and end up with a test that always passes:</p>
+</div>
+<div class="listingblock skipme">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-n">a_mock</span><span class="tok-o">.</span><span class="tok-n">asssert_called_with</span><span class="tok-p">(</span><span class="tok-n">foo</span><span class="tok-p">,</span> <span class="tok-n">bar</span><span class="tok-p">)</span>  <span class="tok-c1"># will always pass</span></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Unless you get the magic method name exactly right,
+then you will just get a "normal" mock method,
+which just silently return another mock,
+and you may not realise that you&#8217;ve written a test that tests nothing at all.</p>
+</div>
+<div class="paragraph">
+<p>That&#8217;s why I prefer to always have an explicit <code>unittest</code> method in there.</p>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>In any case, what do we get from running the test?</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>python src/manage.py test accounts</strong>
+[...]
+AssertionError: None != call(&lt;WSGIRequest: GET '/accounts/login?t[...]</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Sure enough, it&#8217;s telling us that we&#8217;re not calling <code>auth.login()</code> at all yet.
+Let&#8217;s try doing that.  Deliberately wrong as usual first!</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">src/accounts/views.py (ch20l013)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-k">def</span> <span class="tok-nf">login</span><span class="tok-p">(</span><span class="tok-n">request</span><span class="tok-p">):</span>
+    <span class="tok-c1"># TODO: call authenticate(),</span>
+    <span class="tok-n">auth</span><span class="tok-o">.</span><span class="tok-n">authenticate</span><span class="tok-p">(</span><span class="tok-n">uid</span><span class="tok-o">=</span><span class="tok-n">request</span><span class="tok-o">.</span><span class="tok-n">GET</span><span class="tok-p">[</span><span class="tok-s2">"token"</span><span class="tok-p">])</span>
+    <span class="tok-c1"># then auth.login() with the user if we get one,</span>
+    <span class="tok-n">auth</span><span class="tok-o">.</span><span class="tok-n">login</span><span class="tok-p">(</span><span class="tok-s2">"ack!"</span><span class="tok-p">)</span>
+    <span class="tok-c1"># or messages.error() if we get None.</span>
+    <span class="tok-k">return</span> <span class="tok-n">redirect</span><span class="tok-p">(</span><span class="tok-s2">"/"</span><span class="tok-p">)</span></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>Ack indeed!</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>python src/manage.py test accounts</strong>
+[...]
+
+ERROR: test_redirects_to_home_page
+[...]
+TypeError: login() missing 1 required positional argument: 'user'
+
+FAIL: test_calls_auth_login_with_user_if_there_is_one [...]
+[...]
+AssertionError: call('ack!') != call(&lt;WSGIRequest: GET
+'/accounts/login?token=[...]
+[...]
+
+Ran 16 tests in 0.026s
+
+FAILED (failures=1, errors=1)</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>That&#8217;s one expected failure from our mocky test,
+and one (more) unexpected one from the nonmocky one.</p>
+</div>
+<div class="paragraph">
+<p>Let&#8217;s see if we can fix them:</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">src/accounts/views.py (ch20l014)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-k">def</span> <span class="tok-nf">login</span><span class="tok-p">(</span><span class="tok-n">request</span><span class="tok-p">):</span>
+    <span class="tok-c1"># TODO: call authenticate(),</span>
+    <span class="tok-n">user</span> <span class="tok-o">=</span> <span class="tok-n">auth</span><span class="tok-o">.</span><span class="tok-n">authenticate</span><span class="tok-p">(</span><span class="tok-n">uid</span><span class="tok-o">=</span><span class="tok-n">request</span><span class="tok-o">.</span><span class="tok-n">GET</span><span class="tok-p">[</span><span class="tok-s2">"token"</span><span class="tok-p">])</span>
+    <span class="tok-c1"># then auth.login() with the user if we get one,</span>
+    <span class="tok-n">auth</span><span class="tok-o">.</span><span class="tok-n">login</span><span class="tok-p">(</span><span class="tok-n">request</span><span class="tok-p">,</span> <span class="tok-n">user</span><span class="tok-p">)</span>
+    <span class="tok-c1"># or messages.error() if we get None.</span>
+    <span class="tok-k">return</span> <span class="tok-n">redirect</span><span class="tok-p">(</span><span class="tok-s2">"/"</span><span class="tok-p">)</span></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>Well, that does fix our mocky test, but not the other one;
+it now has a slightly different complaint:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>ERROR: test_redirects_to_home_page
+(accounts.tests.test_views.LoginViewTest.test_redirects_to_home_page)
+[...]
+  File "...goat-book/src/accounts/views.py", line 33, in login
+    auth.login(request, user)
+[...]
+AttributeError: 'AnonymousUser' object has no attribute '_meta'</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>It&#8217;s because we&#8217;re still calling <code>auth.login</code> indiscriminately on any kind of user,
+and that&#8217;s causing problems back in our original test for the redirect,
+which <em>isn&#8217;t</em> currently mocking out <code>auth.login</code>.</p>
+</div>
+<div class="paragraph">
+<p>We can get back to passing like this:</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">src/accounts/views.py (ch20l015)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-k">def</span> <span class="tok-nf">login</span><span class="tok-p">(</span><span class="tok-n">request</span><span class="tok-p">):</span>
+    <span class="tok-c1"># TODO: call authenticate(),</span>
+    <span class="tok-k">if</span> <span class="tok-n">user</span> <span class="tok-o">:=</span> <span class="tok-n">auth</span><span class="tok-o">.</span><span class="tok-n">authenticate</span><span class="tok-p">(</span><span class="tok-n">uid</span><span class="tok-o">=</span><span class="tok-n">request</span><span class="tok-o">.</span><span class="tok-n">GET</span><span class="tok-p">[</span><span class="tok-s2">"token"</span><span class="tok-p">]):</span>  <i class="conum" data-value="1"></i><b>(1)</b>
+        <span class="tok-c1"># then auth.login() with the user if we get one,</span>
+        <span class="tok-n">auth</span><span class="tok-o">.</span><span class="tok-n">login</span><span class="tok-p">(</span><span class="tok-n">request</span><span class="tok-p">,</span> <span class="tok-n">user</span><span class="tok-p">)</span></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>If you haven&#8217;t seen this before, the <code>:=</code> is known as the "walrus operator"
+(more formally, it&#8217;s the operator for an "assignment expression"),
+which was a controversial new feature from Python 3.8
+(Guido pretty much burned out over it),
+and it&#8217;s not often useful, but it is quite neat for cases like this,
+where you have a variable and want to do a conditional on it straight away.
+See <a href="https://www.pythonmorsels.com/using-walrus-operator/">this article</a>
+for more explanation.</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>This gets our unit test passing:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>python src/manage.py test accounts</strong>
+[...]
+
+OK</pre>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_using_return_value_during_test_setup">Using .return_value during test setup</h4>
+<div class="paragraph">
+<p>I&#8217;m a little nervous that we&#8217;ve introduced an <code>if</code> without an <em>explicit</em> test for it.
+Testing the unhappy path will reassure me.
+We can use our existing test for the error case to crib from.</p>
+</div>
+<div class="paragraph">
+<p>We want to be able to set up our mocks to say:
+<code>auth.authenticate()</code> should return <code>None</code>.
+We can do that by <em>setting</em> the <code>.return_value</code> on the mock:</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">src/accounts/tests/test_views.py (ch20l016)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="python"><span></span>    <span class="tok-nd">@mock</span><span class="tok-o">.</span><span class="tok-n">patch</span><span class="tok-p">(</span><span class="tok-s2">"accounts.views.auth"</span><span class="tok-p">)</span>
+    <span class="tok-k">def</span> <span class="tok-nf">test_adds_error_message_if_auth_user_is_None</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">,</span> <span class="tok-n">mock_auth</span><span class="tok-p">):</span>
+        <span class="tok-n">mock_auth</span><span class="tok-o">.</span><span class="tok-n">authenticate</span><span class="tok-o">.</span><span class="tok-n">return_value</span> <span class="tok-o">=</span> <span class="tok-kc">None</span>  <i class="conum" data-value="1"></i><b>(1)</b>
+
+        <span class="tok-n">response</span> <span class="tok-o">=</span> <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">client</span><span class="tok-o">.</span><span class="tok-n">get</span><span class="tok-p">(</span><span class="tok-s2">"/accounts/login?token=abcd123"</span><span class="tok-p">,</span> <span class="tok-n">follow</span><span class="tok-o">=</span><span class="tok-kc">True</span><span class="tok-p">)</span>
+
+        <span class="tok-n">message</span> <span class="tok-o">=</span> <span class="tok-nb">list</span><span class="tok-p">(</span><span class="tok-n">response</span><span class="tok-o">.</span><span class="tok-n">context</span><span class="tok-p">[</span><span class="tok-s2">"messages"</span><span class="tok-p">])[</span><span class="tok-mi">0</span><span class="tok-p">]</span>
+        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertEqual</span><span class="tok-p">(</span>  <i class="conum" data-value="2"></i><b>(2)</b>
+            <span class="tok-n">message</span><span class="tok-o">.</span><span class="tok-n">message</span><span class="tok-p">,</span>
+            <span class="tok-s2">"Invalid login link, please request a new one"</span><span class="tok-p">,</span>
+        <span class="tok-p">)</span>
+        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertEqual</span><span class="tok-p">(</span><span class="tok-n">message</span><span class="tok-o">.</span><span class="tok-n">tags</span><span class="tok-p">,</span> <span class="tok-s2">"error"</span><span class="tok-p">)</span></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>We use <code>.return_value</code> on our mock once again,
+but this time, we <em>assign</em> to it, before it&#8217;s used,
+(in the setup part of the test, aka the "arrange" or "given" phase).
+rather than reading from it (in the assert/when part)
+as we did earlier.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>Our asserts are copied across from
+<code>DONT_test_shows_login_error_if_token_invalid()</code></td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>That gives us this somewhat cryptic, but expected failure:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>ERROR: test_adds_error_message_if_auth_user_is_None [...]
+[...]
+    message = list(response.context["messages"])[0]
+              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^
+IndexError: list index out of range</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Essentially that&#8217;s saying there <em>are</em> no messages in our response.</p>
+</div>
+<div class="paragraph">
+<p>We can get it passing like this, starting with a deliberate mistake as always:</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">src/accounts/views.py (ch20l017)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-k">def</span> <span class="tok-nf">login</span><span class="tok-p">(</span><span class="tok-n">request</span><span class="tok-p">):</span>
+    <span class="tok-c1"># TODO: call authenticate(),</span>
+    <span class="tok-k">if</span> <span class="tok-n">user</span> <span class="tok-o">:=</span> <span class="tok-n">auth</span><span class="tok-o">.</span><span class="tok-n">authenticate</span><span class="tok-p">(</span><span class="tok-n">uid</span><span class="tok-o">=</span><span class="tok-n">request</span><span class="tok-o">.</span><span class="tok-n">GET</span><span class="tok-p">[</span><span class="tok-s2">"token"</span><span class="tok-p">]):</span>
+        <span class="tok-c1"># then auth.login() with the user if we get one,</span>
+        <span class="tok-n">auth</span><span class="tok-o">.</span><span class="tok-n">login</span><span class="tok-p">(</span><span class="tok-n">request</span><span class="tok-p">,</span> <span class="tok-n">user</span><span class="tok-p">)</span>
+    <span class="tok-k">else</span><span class="tok-p">:</span>
+        <span class="tok-c1"># or messages.error() if we get None.</span>
+        <span class="tok-n">messages</span><span class="tok-o">.</span><span class="tok-n">error</span><span class="tok-p">(</span><span class="tok-n">request</span><span class="tok-p">,</span> <span class="tok-s2">"boo"</span><span class="tok-p">)</span>
+    <span class="tok-k">return</span> <span class="tok-n">redirect</span><span class="tok-p">(</span><span class="tok-s2">"/"</span><span class="tok-p">)</span></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>Which gives us</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>AssertionError: 'boo' != 'Invalid login link, please request a new one'</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>And so:</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">src/accounts/views.py (ch20l018)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-k">def</span> <span class="tok-nf">login</span><span class="tok-p">(</span><span class="tok-n">request</span><span class="tok-p">):</span>
+    <span class="tok-c1"># TODO: call authenticate(),</span>
+    <span class="tok-k">if</span> <span class="tok-n">user</span> <span class="tok-o">:=</span> <span class="tok-n">auth</span><span class="tok-o">.</span><span class="tok-n">authenticate</span><span class="tok-p">(</span><span class="tok-n">uid</span><span class="tok-o">=</span><span class="tok-n">request</span><span class="tok-o">.</span><span class="tok-n">GET</span><span class="tok-p">[</span><span class="tok-s2">"token"</span><span class="tok-p">]):</span>
+        <span class="tok-c1"># then auth.login() with the user if we get one,</span>
+        <span class="tok-n">auth</span><span class="tok-o">.</span><span class="tok-n">login</span><span class="tok-p">(</span><span class="tok-n">request</span><span class="tok-p">,</span> <span class="tok-n">user</span><span class="tok-p">)</span>
+    <span class="tok-k">else</span><span class="tok-p">:</span>
+        <span class="tok-c1"># or messages.error() if we get None.</span>
+        <span class="tok-n">messages</span><span class="tok-o">.</span><span class="tok-n">error</span><span class="tok-p">(</span><span class="tok-n">request</span><span class="tok-p">,</span> <span class="tok-s2">"Invalid login link, please request a new one"</span><span class="tok-p">)</span>
+    <span class="tok-k">return</span> <span class="tok-n">redirect</span><span class="tok-p">(</span><span class="tok-s2">"/"</span><span class="tok-p">)</span></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>Now our tests pass:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>python src/manage.py test accounts</strong>
+[...]
+
+Ran 17 tests in 0.025s
+
+OK</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>And we can do a final refactor to remove those comments:</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">src/accounts/views.py (ch20l019)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-k">def</span> <span class="tok-nf">login</span><span class="tok-p">(</span><span class="tok-n">request</span><span class="tok-p">):</span>
+    <span class="tok-k">if</span> <span class="tok-n">user</span> <span class="tok-o">:=</span> <span class="tok-n">auth</span><span class="tok-o">.</span><span class="tok-n">authenticate</span><span class="tok-p">(</span><span class="tok-n">uid</span><span class="tok-o">=</span><span class="tok-n">request</span><span class="tok-o">.</span><span class="tok-n">GET</span><span class="tok-p">[</span><span class="tok-s2">"token"</span><span class="tok-p">]):</span>
+        <span class="tok-n">auth</span><span class="tok-o">.</span><span class="tok-n">login</span><span class="tok-p">(</span><span class="tok-n">request</span><span class="tok-p">,</span> <span class="tok-n">user</span><span class="tok-p">)</span>
+    <span class="tok-k">else</span><span class="tok-p">:</span>
+        <span class="tok-n">messages</span><span class="tok-o">.</span><span class="tok-n">error</span><span class="tok-p">(</span><span class="tok-n">request</span><span class="tok-p">,</span> <span class="tok-s2">"Invalid login link, please request a new one"</span><span class="tok-p">)</span>
+    <span class="tok-k">return</span> <span class="tok-n">redirect</span><span class="tok-p">(</span><span class="tok-s2">"/"</span><span class="tok-p">)</span></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>Lovely!  What&#8217;s next?
+</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_undontifying">UnDONTifying</h4>
+<div class="paragraph">
+<p>Remember we still have the DONTified, nonmocky tests?
+Let&#8217;s re-enable now to sense-check that our mocky tests have driven
+us to the right place:</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">src/accounts/tests/test_views.py (ch20l020)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="diff"><span></span><span class="tok-gu">@@ -63,7 +63,7 @@ class LoginViewTest(TestCase):</span>
+<span class="tok-w"> </span>        response = self.client.get("/accounts/login?token=abcd123")
+<span class="tok-w"> </span>        self.assertRedirects(response, "/")
+
+<span class="tok-gd">-    def DONT_test_logs_in_if_given_valid_token(self):</span>
+<span class="tok-gi">+    def test_logs_in_if_given_valid_token(self):</span>
+<span class="tok-w"> </span>        anon_user = auth.get_user(self.client)
+<span class="tok-w"> </span>        self.assertEqual(anon_user.is_authenticated, False)
+
+<span class="tok-gu">@@ -74,7 +74,7 @@ class LoginViewTest(TestCase):</span>
+<span class="tok-w"> </span>        self.assertEqual(user.is_authenticated, True)
+<span class="tok-w"> </span>        self.assertEqual(user.email, "edith@example.com")
+
+<span class="tok-gd">-    def DONT_test_shows_login_error_if_token_invalid(self):</span>
+<span class="tok-gi">+    def test_shows_login_error_if_token_invalid(self):</span>
+<span class="tok-w"> </span>        response = self.client.get("/accounts/login?token=invalid-token", follow=True)</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>Sure enough they both pass:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>python src/manage.py test accounts</strong>
+[...]
+Ran 19 tests in 0.025s
+
+OK</pre>
+</div>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_deciding_which_tests_to_keep">Deciding Which Tests To Keep</h3>
+<div class="paragraph">
+<p>We now definitely have duplicate tests:</p>
+</div>
+<div class="exampleblock sourcecode skipme">
+<div class="title">src/accounts/tests/test_views.py</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-k">class</span> <span class="tok-nc">LoginViewTest</span><span class="tok-p">(</span><span class="tok-n">TestCase</span><span class="tok-p">):</span>
+    <span class="tok-k">def</span> <span class="tok-nf">test_redirects_to_home_page</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">):</span>
+        <span class="tok-p">[</span><span class="tok-o">...</span><span class="tok-p">]</span>
+
+    <span class="tok-k">def</span> <span class="tok-nf">test_logs_in_if_given_valid_token</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">):</span>
+        <span class="tok-p">[</span><span class="tok-o">...</span><span class="tok-p">]</span>
+
+    <span class="tok-k">def</span> <span class="tok-nf">test_shows_login_error_if_token_invalid</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">):</span>
+        <span class="tok-p">[</span><span class="tok-o">...</span><span class="tok-p">]</span>
+
+    <span class="tok-nd">@mock</span><span class="tok-o">.</span><span class="tok-n">patch</span><span class="tok-p">(</span><span class="tok-s2">"accounts.views.auth"</span><span class="tok-p">)</span>
+    <span class="tok-k">def</span> <span class="tok-nf">test_calls_authenticate_with_uid_from_get_request</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">,</span> <span class="tok-n">mock_auth</span><span class="tok-p">):</span>
+        <span class="tok-p">[</span><span class="tok-o">...</span><span class="tok-p">]</span>
+
+    <span class="tok-nd">@mock</span><span class="tok-o">.</span><span class="tok-n">patch</span><span class="tok-p">(</span><span class="tok-s2">"accounts.views.auth"</span><span class="tok-p">)</span>
+    <span class="tok-k">def</span> <span class="tok-nf">test_calls_auth_login_with_user_if_there_is_one</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">,</span> <span class="tok-n">mock_auth</span><span class="tok-p">):</span>
+        <span class="tok-p">[</span><span class="tok-o">...</span><span class="tok-p">]</span>
+
+    <span class="tok-nd">@mock</span><span class="tok-o">.</span><span class="tok-n">patch</span><span class="tok-p">(</span><span class="tok-s2">"accounts.views.auth"</span><span class="tok-p">)</span>
+    <span class="tok-k">def</span> <span class="tok-nf">test_adds_error_message_if_auth_user_is_None</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">,</span> <span class="tok-n">mock_auth</span><span class="tok-p">):</span>
+        <span class="tok-p">[</span><span class="tok-o">...</span><span class="tok-p">]</span></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>The redirect test could stay the same whether we&#8217;re using mocks or not.
+We then have two non-mocky tests for the happy and unhappy paths,
+and three mocky tests:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>One checks that we are integrated with our auth backend correctly</p>
+</li>
+<li>
+<p>One checks that we call the built-in <code>auth.login</code> function correctly,
+which tests the happy path.</p>
+</li>
+<li>
+<p>And one that checks we set an error message in the unhappy path.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>I think there are lots of ways to justify different choices here,
+but my instinct tends to be to avoid using mocks if you can.
+So, I propose we delete the two mocky tests for the happy and unhappy paths,
+since they are reasonably covered by the non-mocky ones,
+but I think we can justify keeping the first mocky test,
+because it adds value by checking that we&#8217;re doing our authentication
+the "right" way, ie by calling into Dango&#8217;s <code>auth.authenticate()</code> function
+(instead of, eg, instantiating and calling our auth backend ourselves,
+or even just implementing authentication inline in the view).</p>
+</div>
+<div class="admonitionblock tip">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-tip" title="Tip"></i>
+</td>
+<td class="content">
+"Test behaviour, not implementation" is a GREAT rule of thumb for tests.
+    But sometimes, the fact that you&#8217;re using one implementation rather than another
+    really is important.  In these cases, a mocky test can be useful.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>So let&#8217;s delete our last two mocky tests.
+I&#8217;m also going to rename the remaining one to make our intention clear,
+we want to check we are using the Django auth library:</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">src/accounts/tests/test_views.py (ch20l021)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="python"><span></span>    <span class="tok-nd">@mock</span><span class="tok-o">.</span><span class="tok-n">patch</span><span class="tok-p">(</span><span class="tok-s2">"accounts.views.auth"</span><span class="tok-p">)</span>
+    <span class="tok-k">def</span> <span class="tok-nf">test_calls_django_auth_authenticate</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">,</span> <span class="tok-n">mock_auth</span><span class="tok-p">):</span>
+        <span class="tok-p">[</span><span class="tok-o">...</span><span class="tok-p">]</span></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>And we&#8217;re down to 17 tests:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>python src/manage.py test accounts</strong>
+[...]
+Ran 17 tests in 0.015s
+
+OK</pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_the_moment_of_truth_will_the_ft_pass">The Moment of Truth:  Will the FT Pass?</h3>
+<div class="paragraph">
+<p>
+
+I think we&#8217;re just about ready to try our functional test!</p>
+</div>
+<div class="paragraph">
+<p>Let&#8217;s just make sure our base template shows a different nav bar for logged-in
+and non&#8211;logged-in users (which our FT relies on):</p>
+</div>
+<div class="exampleblock sourcecode small-code">
+<div class="title">src/lists/templates/base.html (ch20l022)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="html"><span></span><span class="tok-p">&lt;</span><span class="tok-nt">nav</span> <span class="tok-na">class</span><span class="tok-o">=</span><span class="tok-s">"navbar"</span><span class="tok-p">&gt;</span>
+  <span class="tok-p">&lt;</span><span class="tok-nt">div</span> <span class="tok-na">class</span><span class="tok-o">=</span><span class="tok-s">"container-fluid"</span><span class="tok-p">&gt;</span>
+    <span class="tok-p">&lt;</span><span class="tok-nt">a</span> <span class="tok-na">class</span><span class="tok-o">=</span><span class="tok-s">"navbar-brand"</span> <span class="tok-na">href</span><span class="tok-o">=</span><span class="tok-s">"/"</span><span class="tok-p">&gt;</span>Superlists<span class="tok-p">&lt;/</span><span class="tok-nt">a</span><span class="tok-p">&gt;</span>
+    {% if user.email %}
+      <span class="tok-p">&lt;</span><span class="tok-nt">span</span> <span class="tok-na">class</span><span class="tok-o">=</span><span class="tok-s">"navbar-text"</span><span class="tok-p">&gt;</span>Logged in as {{ user.email }}<span class="tok-p">&lt;/</span><span class="tok-nt">span</span><span class="tok-p">&gt;</span>
+      <span class="tok-p">&lt;</span><span class="tok-nt">form</span> <span class="tok-na">method</span><span class="tok-o">=</span><span class="tok-s">"POST"</span> <span class="tok-na">action</span><span class="tok-o">=</span><span class="tok-s">"TODO"</span><span class="tok-p">&gt;</span>
+        {% csrf_token %}
+        <span class="tok-p">&lt;</span><span class="tok-nt">button</span> <span class="tok-na">id</span><span class="tok-o">=</span><span class="tok-s">"id_logout"</span> <span class="tok-na">class</span><span class="tok-o">=</span><span class="tok-s">"btn btn-outline-secondary"</span> <span class="tok-na">type</span><span class="tok-o">=</span><span class="tok-s">"submit"</span><span class="tok-p">&gt;</span>Log out<span class="tok-p">&lt;/</span><span class="tok-nt">button</span><span class="tok-p">&gt;</span>
+      <span class="tok-p">&lt;/</span><span class="tok-nt">form</span><span class="tok-p">&gt;</span>
+    {% else %}
+      <span class="tok-p">&lt;</span><span class="tok-nt">form</span> <span class="tok-na">method</span><span class="tok-o">=</span><span class="tok-s">"POST"</span> <span class="tok-na">action</span><span class="tok-o">=</span><span class="tok-s">"{% url 'send_login_email' %}"</span><span class="tok-p">&gt;</span>
+        <span class="tok-p">&lt;</span><span class="tok-nt">div</span> <span class="tok-na">class</span><span class="tok-o">=</span><span class="tok-s">"input-group"</span><span class="tok-p">&gt;</span>
+          <span class="tok-p">&lt;</span><span class="tok-nt">label</span> <span class="tok-na">class</span><span class="tok-o">=</span><span class="tok-s">"navbar-text me-2"</span> <span class="tok-na">for</span><span class="tok-o">=</span><span class="tok-s">"id_email_input"</span><span class="tok-p">&gt;</span>
+            Enter your email to log in
+          <span class="tok-p">&lt;/</span><span class="tok-nt">label</span><span class="tok-p">&gt;</span>
+          <span class="tok-p">&lt;</span><span class="tok-nt">input</span>
+            <span class="tok-na">id</span><span class="tok-o">=</span><span class="tok-s">"id_email_input"</span>
+            <span class="tok-na">name</span><span class="tok-o">=</span><span class="tok-s">"email"</span>
+            <span class="tok-na">class</span><span class="tok-o">=</span><span class="tok-s">"form-control"</span>
+            <span class="tok-na">placeholder</span><span class="tok-o">=</span><span class="tok-s">"your@email.com"</span>
+          <span class="tok-p">/&gt;</span>
+          {% csrf_token %}
+        <span class="tok-p">&lt;/</span><span class="tok-nt">div</span><span class="tok-p">&gt;</span>
+      <span class="tok-p">&lt;/</span><span class="tok-nt">form</span><span class="tok-p">&gt;</span>
+    {% endif %}
+  <span class="tok-p">&lt;/</span><span class="tok-nt">div</span><span class="tok-p">&gt;</span>
+<span class="tok-p">&lt;/</span><span class="tok-nt">nav</span><span class="tok-p">&gt;</span></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>OK there&#8217;s a TODO in there about the log out button,
+we&#8217;ll get to that, but how does our FT look now?</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>python src/manage.py test functional_tests.test_login</strong>
+[...]
+.
+ ---------------------------------------------------------------------
+Ran 1 test in 3.282s
+
+OK</pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_it_works_in_theory_does_it_work_in_practice">It Works in Theory!  Does It Work in Practice?</h3>
+<div class="paragraph">
+<p>
+Wow! Can you believe it?  I scarcely can!
+Time for a manual look around with <code>runserver</code>:</p>
+</div>
+<div class="listingblock skipme">
+<div class="content">
+<pre>$ <strong>python src/manage.py runserver</strong>
+[...]
+Internal Server Error: /accounts/send_login_email
+Traceback (most recent call last):
+  File "...goat-book/accounts/views.py", line 20, in send_login_email
+
+ConnectionRefusedError: [Errno 111] Connection refused</pre>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_using_our_new_environment_variable_and_saving_it_to_env">Using Our New Environment Variable, and Saving It to .env</h4>
+<div class="paragraph">
+<p>You&#8217;ll probably get an error, like I did, when you try to run things manually.
+It&#8217;s because of two things:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Firstly, we need to re-add the email configuration to <em>settings.py</em>.</p>
+</li>
+</ul>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">src/superlists/settings.py (ch20l023)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-n">EMAIL_HOST</span> <span class="tok-o">=</span> <span class="tok-s2">"smtp.gmail.com"</span>
+<span class="tok-n">EMAIL_HOST_USER</span> <span class="tok-o">=</span> <span class="tok-s2">"obeythetestinggoat@gmail.com"</span>
+<span class="tok-n">EMAIL_HOST_PASSWORD</span> <span class="tok-o">=</span> <span class="tok-n">os</span><span class="tok-o">.</span><span class="tok-n">environ</span><span class="tok-o">.</span><span class="tok-n">get</span><span class="tok-p">(</span><span class="tok-s2">"EMAIL_PASSWORD"</span><span class="tok-p">)</span>
+<span class="tok-n">EMAIL_PORT</span> <span class="tok-o">=</span> <span class="tok-mi">587</span>
+<span class="tok-n">EMAIL_USE_TLS</span> <span class="tok-o">=</span> <span class="tok-kc">True</span></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Secondly, we (probably) need to re-set the <code>EMAIL_PASSWORD</code> in our shell.</p>
+</li>
+</ul>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>export EMAIL_PASSWORD="yoursekritpasswordhere"</strong></pre>
+</div>
+</div>
+<div class="sidebarblock">
+<div class="content">
+<div class="title">Using a Local .env File for Development</div>
+<div class="paragraph">
+<p>Until now we&#8217;ve only used a <em>.env</em> file on the server,
+(where we called it <em>superlists/.env</em>).
+That&#8217;s because we&#8217;ve made sure all the other settings have sensible defaults for dev,
+but there&#8217;s just no way to get a working login system without this one!</p>
+</div>
+<div class="paragraph">
+<p>Just as we do on the server, you can also use a <em>.env</em> file to save
+project-specific environment variables.
+We&#8217;ll call this one literally just <em>.env</em>;
+that&#8217;s a convention which makes it a hidden file, on Unix-like systems at least:</p>
+</div>
+<div class="listingblock skipme">
+<div class="content">
+<pre>$ <strong>echo .env &gt;&gt; .gitignore</strong>  # we don't want to commit our secrets into git!
+$ <strong>echo EMAIL_PASSWORD="yoursekritpasswordhere" &gt;&gt; .env</strong>
+$ <strong>set -a; source .env; set +a;</strong></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>It does mean you have to remember to do that weird <code>set -a; source...</code> dance,
+every time you start working on the project, as well as remembering to activate
+your virtualenv.</p>
+</div>
+<div class="paragraph">
+<p>If you search or ask around, you&#8217;ll find there are some tools and shell plugins
+that load virtualenvs and <em>.env</em> files automatically, and/or django plugins
+that do this stuff too.</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Django-specific:
+<a href="https://django-environ.readthedocs.io/en/latest/">django-environ</a> or
+<a href="https://github.com/jpadilla/django-dotenv">django-dotenv</a></p>
+</li>
+<li>
+<p>More general Python project management <a href="https://docs.pipenv.org/">Pipenv</a></p>
+</li>
+<li>
+<p>Or even <a href="https://stackoverflow.com/questions/19331497/set-environment-variables-from-file/34093548#34093548">roll your own</a></p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>And now&#8230;&#8203;</p>
+</div>
+<div class="listingblock skipme">
+<div class="content">
+<pre>$ <strong>python src/manage.py runserver</strong></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>&#8230;&#8203;you should see something like <a href="#despiked-success-message">Check your email&#8230;&#8203;.</a>.</p>
+</div>
+<div id="despiked-success-message" class="imageblock">
+<div class="content">
+<img src="images/twp2_1901.png" alt="de-spiked site with success message">
+</div>
+<div class="title">Figure 2. Check your email&#8230;&#8203;.</div>
+</div>
+<div class="paragraph">
+<p>Woohoo!</p>
+</div>
+<div class="paragraph">
+<p>I&#8217;ve been waiting to do a commit up until this moment, just to make sure
+everything works.  At this point, you could make a series of separate
+commits&#8212;&#8203;one for the login view, one for the auth backend, one for
+the user model, one for wiring up the template.  Or you could decide that,
+since they&#8217;re all interrelated, and none will work without the others,
+you may as well just have one big commit:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>git status</strong>
+$ <strong>git add .</strong>
+$ <strong>git diff --staged</strong>
+$ <strong>git commit -m "Custom passwordless auth backend + custom user model"</strong></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_finishing_off_our_ft_testing_logout">Finishing Off Our FT, Testing Logout</h3>
+<div class="paragraph">
+<p>
+The last thing we need to do before we call it a day is to test the logout button
+We extend the FT with a couple more steps:</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">src/functional_tests/test_login.py (ch20l024)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="python"><span></span>        <span class="tok-p">[</span><span class="tok-o">...</span><span class="tok-p">]</span>
+        <span class="tok-c1"># she is logged in!</span>
+        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">wait_for</span><span class="tok-p">(</span>
+            <span class="tok-k">lambda</span><span class="tok-p">:</span> <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">browser</span><span class="tok-o">.</span><span class="tok-n">find_element</span><span class="tok-p">(</span><span class="tok-n">By</span><span class="tok-o">.</span><span class="tok-n">CSS_SELECTOR</span><span class="tok-p">,</span> <span class="tok-s2">"#id_logout"</span><span class="tok-p">),</span>
+        <span class="tok-p">)</span>
+        <span class="tok-n">navbar</span> <span class="tok-o">=</span> <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">browser</span><span class="tok-o">.</span><span class="tok-n">find_element</span><span class="tok-p">(</span><span class="tok-n">By</span><span class="tok-o">.</span><span class="tok-n">CSS_SELECTOR</span><span class="tok-p">,</span> <span class="tok-s2">".navbar"</span><span class="tok-p">)</span>
+        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertIn</span><span class="tok-p">(</span><span class="tok-n">TEST_EMAIL</span><span class="tok-p">,</span> <span class="tok-n">navbar</span><span class="tok-o">.</span><span class="tok-n">text</span><span class="tok-p">)</span>
+
+        <span class="tok-c1"># Now she logs out</span>
+        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">browser</span><span class="tok-o">.</span><span class="tok-n">find_element</span><span class="tok-p">(</span><span class="tok-n">By</span><span class="tok-o">.</span><span class="tok-n">CSS_SELECTOR</span><span class="tok-p">,</span> <span class="tok-s2">"#id_logout"</span><span class="tok-p">)</span><span class="tok-o">.</span><span class="tok-n">click</span><span class="tok-p">()</span>
+
+        <span class="tok-c1"># She is logged out</span>
+        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">wait_for</span><span class="tok-p">(</span>
+            <span class="tok-k">lambda</span><span class="tok-p">:</span> <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">browser</span><span class="tok-o">.</span><span class="tok-n">find_element</span><span class="tok-p">(</span><span class="tok-n">By</span><span class="tok-o">.</span><span class="tok-n">CSS_SELECTOR</span><span class="tok-p">,</span> <span class="tok-s2">"input[name=email]"</span><span class="tok-p">)</span>
+        <span class="tok-p">)</span>
+        <span class="tok-n">navbar</span> <span class="tok-o">=</span> <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">browser</span><span class="tok-o">.</span><span class="tok-n">find_element</span><span class="tok-p">(</span><span class="tok-n">By</span><span class="tok-o">.</span><span class="tok-n">CSS_SELECTOR</span><span class="tok-p">,</span> <span class="tok-s2">".navbar"</span><span class="tok-p">)</span>
+        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertNotIn</span><span class="tok-p">(</span><span class="tok-n">TEST_EMAIL</span><span class="tok-p">,</span> <span class="tok-n">navbar</span><span class="tok-o">.</span><span class="tok-n">text</span><span class="tok-p">)</span></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>With that, we can see that the test is failing because the logout button
+doesn&#8217;t have a valid URL to submit to:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>python src/manage.py test functional_tests.test_login</strong>
+[...]
+selenium.common.exceptions.NoSuchElementException: Message: Unable to locate
+element: input[name=email]; [...]</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>So let&#8217;s tell the base template that we want a new url named "logout":</p>
+</div>
+<div class="exampleblock sourcecode small-code">
+<div class="title">src/lists/templates/base.html (ch20l025)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="html"><span></span>          {% if user.email %}
+            <span class="tok-p">&lt;</span><span class="tok-nt">span</span> <span class="tok-na">class</span><span class="tok-o">=</span><span class="tok-s">"navbar-text"</span><span class="tok-p">&gt;</span>Logged in as {{ user.email }}<span class="tok-p">&lt;/</span><span class="tok-nt">span</span><span class="tok-p">&gt;</span>
+            <span class="tok-p">&lt;</span><span class="tok-nt">form</span> <span class="tok-na">method</span><span class="tok-o">=</span><span class="tok-s">"POST"</span> <span class="tok-na">action</span><span class="tok-o">=</span><span class="tok-s">"{% url 'logout' %}"</span><span class="tok-p">&gt;</span>
+              {% csrf_token %}
+              <span class="tok-p">&lt;</span><span class="tok-nt">button</span> <span class="tok-na">id</span><span class="tok-o">=</span><span class="tok-s">"id_logout"</span> <span class="tok-na">class</span><span class="tok-o">=</span><span class="tok-s">"btn btn-outline-secondary"</span> <span class="tok-na">type</span><span class="tok-o">=</span><span class="tok-s">"submit"</span><span class="tok-p">&gt;</span>Log out<span class="tok-p">&lt;/</span><span class="tok-nt">button</span><span class="tok-p">&gt;</span>
+            <span class="tok-p">&lt;/</span><span class="tok-nt">form</span><span class="tok-p">&gt;</span>
+          {% else %}</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>If you try the FTs at this point,
+you&#8217;ll see an error saying that URL doesn&#8217;t exist yet:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>python src/manage.py test functional_tests.test_login</strong>
+Internal Server Error: /
+[...]
+django.urls.exceptions.NoReverseMatch: Reverse for 'logout' not found. 'logout'
+is not a valid view function or pattern name.
+
+======================================================================
+ERROR: test_login_using_magic_link
+(functional_tests.test_login.LoginTest.test_login_using_magic_link)
+[...]
+
+selenium.common.exceptions.NoSuchElementException: Message: Unable to locate
+element: #id_logout; [...]</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Implementing a logout URL is actually very simple:
+we can use Django&#8217;s
+<a href="https://docs.djangoproject.com/en/5.1/topics/auth/default/#module-django.contrib.auth.views">built-in logout view</a>,
+which clears down the user&#8217;s session and redirects them to a page of our choice:</p>
+</div>
+<div class="exampleblock sourcecode small-code">
+<div class="title">src/accounts/urls.py (ch20l026)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-kn">from</span> <span class="tok-nn">django.contrib.auth</span> <span class="tok-kn">import</span> <span class="tok-n">views</span> <span class="tok-k">as</span> <span class="tok-n">auth_views</span>
+<span class="tok-kn">from</span> <span class="tok-nn">django.urls</span> <span class="tok-kn">import</span> <span class="tok-n">path</span>
+
+<span class="tok-kn">from</span> <span class="tok-nn">.</span> <span class="tok-kn">import</span> <span class="tok-n">views</span>
+
+<span class="tok-n">urlpatterns</span> <span class="tok-o">=</span> <span class="tok-p">[</span>
+    <span class="tok-n">path</span><span class="tok-p">(</span><span class="tok-s2">"send_login_email"</span><span class="tok-p">,</span> <span class="tok-n">views</span><span class="tok-o">.</span><span class="tok-n">send_login_email</span><span class="tok-p">,</span> <span class="tok-n">name</span><span class="tok-o">=</span><span class="tok-s2">"send_login_email"</span><span class="tok-p">),</span>
+    <span class="tok-n">path</span><span class="tok-p">(</span><span class="tok-s2">"login"</span><span class="tok-p">,</span> <span class="tok-n">views</span><span class="tok-o">.</span><span class="tok-n">login</span><span class="tok-p">,</span> <span class="tok-n">name</span><span class="tok-o">=</span><span class="tok-s2">"login"</span><span class="tok-p">),</span>
+    <span class="tok-n">path</span><span class="tok-p">(</span><span class="tok-s2">"logout"</span><span class="tok-p">,</span> <span class="tok-n">auth_views</span><span class="tok-o">.</span><span class="tok-n">LogoutView</span><span class="tok-o">.</span><span class="tok-n">as_view</span><span class="tok-p">(</span><span class="tok-n">next_page</span><span class="tok-o">=</span><span class="tok-s2">"/"</span><span class="tok-p">),</span> <span class="tok-n">name</span><span class="tok-o">=</span><span class="tok-s2">"logout"</span><span class="tok-p">),</span>
+<span class="tok-p">]</span></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>And that gets us a fully passing FT&#8212;&#8203;indeed, a fully passing test suite:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>python src/manage.py test functional_tests.test_login</strong>
+[...]
+OK
+$ <strong>cd src &amp;&amp; python manage.py test</strong>
+[...]
+Ran 57 tests in 78.124s
+
+OK</pre>
+</div>
+</div>
+<div class="admonitionblock warning">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-warning" title="Warning"></i>
+</td>
+<td class="content">
+We&#8217;re nowhere near a truly secure or acceptable login system here.
+    Since this is just an example app for a book, we&#8217;ll leave it at that,
+    but in "real life" you&#8217;d want to explore a lot more security
+    and usability issues before calling the job done.
+    We&#8217;re dangerously close to "rolling our own crypto" here,
+    and relying on a more established login system would be much safer.
+    
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>In the next chapter, we&#8217;ll start trying to put our login system to good use.
+In the meantime, do a commit and enjoy this recap:</p>
+</div>
+<div id="mocking-py-sidebar" class="sidebarblock">
+<div class="content">
+<div class="title">On Mocking in Python</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">Using mock.return_value</dt>
+<dd>
+<p>The <code>.return_value</code> attribute on a mock can be used
+to access the return value of a mocked-out function,
+and thus check on how it gets used later in your code;
+this usually happens in the "Assert" or "Then" part of your test.
+It can also be assigned to in the "Arrange" or "Given" part of your test,
+as a way to say
+"we want this mocked-out function to return a particular value"</p>
+</dd>
+<dt class="hdlist1">Mocks can ensure test isolation and reduce duplication</dt>
+<dd>
+<p>You can use mocks to isolate different parts of your code from each other,
+and thus test them independently.
+This can help you to avoid duplication,
+because you&#8217;re only testing a single layer at a time,
+rather than having to think about combinations of interactions
+of different layers.
+Used extensively, this approach leads to "London-style" TDD,
+but that&#8217;s quite different from the style I mostly follow and show in this book.
+
+</p>
+</dd>
+<dt class="hdlist1">Mocks can allow you to verify implementation details</dt>
+<dd>
+<p>Most tests should test behaviour, not implementation.
+At some point though, we decided that the fact that we used a particular implementation
+<em>was</em> important, and so we used a mock as a way to verify that,
+and document it for our future selves.</p>
+</dd>
+<dt class="hdlist1">There are alternatives to mocks, but they require rethinking how your code is structured</dt>
+<dd>
+<p>In a way, mocks make it "too easy".
+In other programming languages
+that lack Python&#8217;s dynamic ability to monkepatch things at runtime,
+developers have had to work on alternative ways to test code with dependencies.
+While these techniques can be more complex,
+they do force you to think about how your code is structured,
+to cleanly identify your dependencies,
+and to build clean abstractions and interfaces around them.
+Further discussion is beyond the scope of this book,
+but check out <a href="http://cosmicpython.com">Cosmic Python</a>.</p>
+</dd>
+</dl>
+</div>
+<div class="paragraph">
+<p>There&#8217;s a longer worked example of mocks and using them
+to improve the structure of code in <a href="/book/appendix_purist_unit_tests.html">[appendix_purist_unit_tests]</a>.</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div id="footer">
+<div id="footer-text">
+License: Creative Commons <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode">CC-BY-NC-ND</a>. Last updated: 2024-10-13 21:05:14 +0100
+</div>
+</div>
+<div class="comments" style="padding: 20px">
+  <h3>Comments</h3>
+  <div id="disqus_thread"></div>
+  <script type="text/javascript">
+    var disqus_config = function () {
+        this.page.identifier = 'chapter_21_mocking_2';
+    };
+    
+    (function() {
+        var d = document, s = d.createElement('script');
+        s.src = '//obeythetestinggoat.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+  </script>
+  <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript" rel="nofollow">comments powered by Disqus.</a></noscript>
+</div>
+
+<html><head><script>   (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){   (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),   m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)   })(window,document,'script','//www.google-analytics.com/analytics.js','ga');    ga('create', 'UA-40928035-1', 'obeythetestinggoat.com');   ga('send', 'pageview');  </script>
+</head></html></body>
+</html>

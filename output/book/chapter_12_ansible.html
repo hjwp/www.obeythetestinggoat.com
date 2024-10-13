@@ -41,7 +41,7 @@ httpRequest.send();
 </div>
 <div id="content">
 <div class="sect1">
-<h2 id="chapter_11_ansible">Infrastructure As Code: Automated Deployments With Ansible</h2>
+<h2 id="chapter_12_ansible">Infrastructure As Code: Automated Deployments With Ansible</h2>
 <div class="sectionbody">
 <div class="quoteblock">
 <blockquote>
@@ -60,7 +60,7 @@ httpRequest.send();
 <p>With Early Release ebooks, you get books in their earliest form&#8212;the author&#8217;s raw and unedited content as they write&#8212;so you can take advantage of these technologies long before the official release of these titles.</p>
 </div>
 <div class="paragraph">
-<p>This will be the 11th chapter of the final book. The GitHub repo is available at <a href="https://github.com/hjwp/book-example" class="bare">https://github.com/hjwp/book-example</a>.</p>
+<p>This will be the 12th chapter of the final book. The GitHub repo is available at <a href="https://github.com/hjwp/book-example" class="bare">https://github.com/hjwp/book-example</a>.</p>
 </div>
 <div class="paragraph">
 <p>If you have comments about how we might improve the content and/or examples in this book, or if you notice missing material within this chapter, please reach out to the author at <a href="mailto:obeythetestinggoat@gmail.com">obeythetestinggoat@gmail.com</a>.</p>
@@ -70,12 +70,11 @@ httpRequest.send();
 <div class="paragraph">
 <p>
 
-In this chapter we&#8217;re going to spin up an actual server,
-make it accessible on the Internet with a real domain name,
-and then we&#8217;re going to install our app on it, using our container.</p>
+Now that our server is up and running,
+we want to install our app on it, using our Docker image and container.</p>
 </div>
 <div class="paragraph">
-<p>We <em>could</em> do all these things manually,
+<p>We <em>could</em> do this manually,
 but a key insight of modern software engineering
 is that small, frequent deployments are a must.<sup class="footnote">[<a id="_footnoteref_1" class="footnote" href="#_footnotedef_1" title="View footnote.">1</a>]</sup>
 Frequent deployments rely on automation,
@@ -128,305 +127,19 @@ and Pull Requests.</p>
 </div>
 </div>
 <div class="sect2">
-<h3 id="_getting_a_domain_name">Getting a Domain Name</h3>
+<h3 id="_a_first_cut_of_an_ansible_playbook_for_deployment">A First Cut of an Ansible Playbook for Deployment</h3>
 <div class="paragraph">
-<p>
-We&#8217;re going to need a couple of domain names at this point in the book&#8212;&#8203;they
-can both be subdomains of a single domain.  I&#8217;m going to use
-<em>superlists.ottg.co.uk</em> and <em>staging.ottg.co.uk</em>.
-If you don&#8217;t already own a domain, this is the time to register one!
-Again, this is something I really want you to <em>actually</em> do.
-If you&#8217;ve never registered a domain before,
-just pick any old registrar and buy a cheap one&#8212;&#8203;it
-should only cost you $5 or so, and you can even find free ones.
-I promise seeing your site on a "real" website will be a thrill.</p>
-</div>
-</div>
-<div class="sect2">
-<h3 id="_manually_provisioning_a_server_to_host_our_site">Manually Provisioning a Server to Host Our Site</h3>
-<div class="paragraph">
-<p>
-
-We can separate out "deployment" into two tasks:</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p><em>Provisioning</em> a new server to be able to host the code</p>
-</li>
-<li>
-<p><em>Deploying</em> a new version of the code to an existing server</p>
-</li>
-</ul>
+<p>Let&#8217;s start using Ansible a little more seriously.
+We&#8217;re not going to jump all the way to the end though!
+Baby steps, as always.
+Let&#8217;s see if we can get it to run a simple "hello world" Docker container on our server.</p>
 </div>
 <div class="paragraph">
-<p>Infrastructure-as-code tools can let you automate both of these,
-but the provisioning parts tend to be quite vendor-specific,
-so for the purposes of this book, we can live with manual provisioning.</p>
-</div>
-<div class="admonitionblock note">
-<table>
-<tr>
-<td class="icon">
-<i class="fa icon-note" title="Note"></i>
-</td>
-<td class="content">
-I should probably stress once more that deployment is something that varies a lot,
-  and that as a result there are few universal best practices for how to do it.
-  So, rather than trying to remember the specifics of what I&#8217;m doing here,
-  you should be trying to understand the rationale,
-  so that you can apply the same kind of thinking in the specific future circumstances you encounter.
-</td>
-</tr>
-</table>
-</div>
-<div class="sect3">
-<h4 id="_choosing_where_to_host_our_site">Choosing Where to Host Our Site</h4>
-<div class="paragraph">
-<p>
-There are loads of different solutions out there these days,
-but they broadly fall into two camps:</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p>Running your own (probably virtual) server</p>
-</li>
-<li>
-<p>Using a Platform-As-A-Service (PaaS)
-offering like Heroku or my old employers, PythonAnywhere.</p>
-</li>
-</ul>
-</div>
-<div class="paragraph">
-<p>
-Particularly for small sites, a PaaS offers a lot of advantages,
-and I would definitely recommend looking into them.
-We&#8217;re not going to use a PaaS in this book however, for several reasons.
-The main reason is that I want to avoid endorsing specific commercial providers.
-Secondly, all the PaaS offerings are quite different,
-and the procedures to deploy to each vary a lot&#8212;&#8203;learning about one
-doesn&#8217;t necessarily tell you about the others.
-Any one of them might radically change their process or business model by the time you get to read this book.</p>
-</div>
-<div class="paragraph">
-<p>Instead, we&#8217;ll learn just a tiny bit of good old-fashioned server admin,
-including SSH and manual server config.
-They&#8217;re unlikely to ever go away,
-and knowing a bit about them will get you some respect
-from all the grizzled dinosaurs out there.</p>
-</div>
-</div>
-<div class="sect3">
-<h4 id="_spinning_up_a_server">Spinning Up a Server</h4>
-<div class="paragraph">
-<p>I&#8217;m not going to dictate how you spin up a server&#8212;&#8203;whether
-you choose Amazon AWS, Rackspace, Digital Ocean, your own server in a data centre,
-or a Raspberry Pi in a cupboard under the stairs,
-any solution should be fine, as long as:</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p>Your server is running Ubuntu 22.04 (aka "Jammy/LTS").</p>
-</li>
-<li>
-<p>You have root access to it.</p>
-</li>
-<li>
-<p>It&#8217;s on the public internet (ie, it has a public IP address).</p>
-</li>
-<li>
-<p>You can SSH into it.</p>
-</li>
-</ul>
-</div>
-<div class="paragraph">
-<p>I&#8217;m recommending Ubuntu as a distro because it&#8217;s popular and I&#8217;m used to it.
-If you know what you&#8217;re doing, you can probably get away with using
-something else, but I won&#8217;t be able to help you as much if you get stuck.</p>
-</div>
-<div class="paragraph">
-<p>
-If you&#8217;ve never started a Linux server before and you have absolutely no idea
-where to start, I wrote a
-<a href="https://github.com/hjwp/Book-TDD-Web-Dev-Python/blob/main/server-quickstart.md">very brief guide on GitHub</a>.</p>
-</div>
-<div class="admonitionblock note">
-<table>
-<tr>
-<td class="icon">
-<i class="fa icon-note" title="Note"></i>
-</td>
-<td class="content">
-Some people get to this chapter, and are tempted to skip the domain bit,
-    and the "getting a real server" bit, and just use a VM on their own PC.
-    Don&#8217;t do this.
-    It&#8217;s <em>not</em> the same, and you&#8217;ll have more difficulty following the instructions,
-    which are complicated enough as it is.
-    If you&#8217;re worried about cost, have a look at the guide I wrote for free options.
-    
-</td>
-</tr>
-</table>
-</div>
-</div>
-<div class="sect3">
-<h4 id="_user_accounts_ssh_and_privileges">User Accounts, SSH, and Privileges</h4>
-<div class="paragraph">
-<p>In the following instructions, I&#8217;m assuming that you have a nonroot user account set up,
-and that it has "sudo" privileges,
-so whenever we need to do something that requires root access, we use sudo,
-(or "become" in Ansible terminology);
-I&#8217;ll be explicit about that in the various instructions that follow.</p>
-</div>
-<div class="paragraph">
-<p>My user is called "elspeth", but you can call yours whatever you like!
-Just remember to substitute it in all the places I&#8217;ve hardcoded it.
-See the guide I wrote if you need tips on creating a sudo user.</p>
-</div>
-<div class="sidebarblock">
-<div class="content">
-<div class="title">Security</div>
-<div class="paragraph">
-<p>A serious discussion of server security is beyond the scope of this book,
-and I&#8217;d warn against running your own servers
-without learning a good bit more about it.
-(One reason people choose to use a PaaS to host their code
-is that it means a slightly fewer security issues to worry about.)
-If you&#8217;d like a place to start, here&#8217;s as good a place as any:
-<a href="https://www.jamesonricks.com/re-post-my-first-5-minutes-on-a-server-or-essential-security-for-linux-servers/" class="bare">https://www.jamesonricks.com/re-post-my-first-5-minutes-on-a-server-or-essential-security-for-linux-servers/</a></p>
-</div>
-<div class="paragraph">
-<p>I can definitely recommend the eye-opening experience of installing
-fail2ban and watching its logfiles to see just how quickly it picks up on
-random drive-by attempts to brute force your SSH login.  The internet is a
-wild place!
-
-</p>
-</div>
-</div>
-</div>
-</div>
-</div>
-<div class="sect2">
-<h3 id="_configuring_dns_for_staging_and_live_domains">Configuring DNS for Staging and Live Domains</h3>
-<div class="paragraph">
-<p>We don&#8217;t want to be messing about with IP addresses all the time,
-so we should point our staging and live domains to the server.
-At my registrar, the control screens looked a bit like <a href="#registrar-control-screens">Domain setup</a>.</p>
-</div>
-<div id="registrar-control-screens" class="imageblock">
-<div class="content">
-<img src="images/gandi_add_dns_a_record.png" alt="Registrar control screen for adding a DNS record">
-</div>
-<div class="title">Figure 1. Domain setup</div>
-</div>
-<div class="paragraph">
-<p>
-In the DNS system, pointing a domain at a specific IP address is called an "A-Record".
-All registrars are slightly different,
-but a bit of clicking around should get you to the right screen in yours.
-You&#8217;ll need two A-records:
-one for the staging address and one for the live one.
-No need to worry about any other type of record.</p>
-</div>
-<div class="paragraph">
-<p>DNS records take some time to "propagate" around the world
-(it&#8217;s controlled by a setting called "TTL", Time To Live),
-so once you&#8217;ve set up your A-record,
-you can check its progress on a "propagation checking" service like this one:
-<a href="https://www.whatsmydns.net/#A/staging.ottg.co.uk" class="bare">https://www.whatsmydns.net/#A/staging.ottg.co.uk</a>.</p>
-</div>
-<div class="paragraph">
-<p>I&#8217;m planning to host my staging server at <em>staging.ottg.co.uk</em></p>
-</div>
-</div>
-<div class="sect2">
-<h3 id="_ansible">Ansible</h3>
-<div class="paragraph">
-<p>Infrastructure-as-code tools, also called "configuration management" tools,
-come in lots of shapes and sizes.
-Chef and Puppet were two of the original ones,
-and you&#8217;ll probably come across Terraform,
-which is particularly strong on managing cloud services like AWS.</p>
-</div>
-<div class="paragraph">
-<p>We&#8217;re going to use Ansible, because it&#8217;s relatively popular,
-because it can do everything we need it to,
-because I&#8217;m biased that it happens to be written in Python,
-and because it&#8217;s probably the one I&#8217;m personally most familiar with.</p>
-</div>
-<div class="paragraph">
-<p>Another tool could probably have worked just as well!
-The main thing to remember is the <em>concept</em>, which is that,
-as much as possible we want to manage our server configuration <em>declaratively</em>,
-by expressing the desired state of the server in a particular configuration syntax,
-rather than specifying a procedural series of steps to be followed one by one.</p>
-</div>
-<div class="sect3">
-<h4 id="_ansible_vs_ssh_how_well_talk_to_our_server">Ansible vs SSH: How we&#8217;ll Talk to our Server</h4>
-<div class="paragraph">
-<p>See <a href="#ansible-and-ssh">Ansible and SSH</a>.</p>
-</div>
-<div id="ansible-and-ssh" class="imageblock">
-<div class="content">
-<img src="images/ansible-and-ssh.png" alt="Diagram ">
-</div>
-<div class="title">Figure 2. Ansible and SSH</div>
-</div>
-<div class="paragraph">
-<p>Our objective is to use Ansible to automate the process of deploying to our server:
-making sure that the server has everything it needs to run our app
-(mostly, Docker and our container image),
-and then telling it to start or restart our container.</p>
-</div>
-<div class="paragraph">
-<p>Now and again, we&#8217;ll want to "log on" to the server and have a look around manually:
-for that, we&#8217;ll use the <code>ssh</code> command-line on our computer,
-which can let us open up an interactive console on the server.</p>
-</div>
-<div class="paragraph">
-<p>Finally, we&#8217;ll run our functional tests against the server, once it&#8217;s running our app,
-to make sure it&#8217;s all working correctly.</p>
-</div>
-</div>
-<div class="sect3">
-<h4 id="_installing_ansible">Installing Ansible</h4>
-<div class="paragraph">
-<p>Take a look at the
-<a href="https://docs.ansible.com/ansible/latest/installation_guide/intro_installation.html">Ansible installation guide</a>
-for all the various options,
-but probably the simplest thing to do is to install Ansible into the virtualenv
-on our local machine:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>$ <strong>pip install ansible</strong>
-# we also need the Docker SDK for the ansible/docker integration to work:
-$ <strong>pip install docker</strong></pre>
-</div>
-</div>
-</div>
-<div class="sect3">
-<h4 id="_a_first_cut_of_an_ansible_playbook">A First Cut of an Ansible Playbook</h4>
-<div class="paragraph">
-<p>Let&#8217;s dip our toes into Ansible,
-and see if we can get it to run a simple "hello world" container on our server.</p>
-</div>
-<div class="paragraph">
-<p>Here&#8217;s what&#8217;s called a "playbook" in Ansible terminology.
-It&#8217;s in a format called YAML (Yet Another Markup Language),
-which, if you&#8217;ve never come across before,
-you will soon develop a love-hate relationship<sup class="footnote">[<a id="_footnoteref_3" class="footnote" href="#_footnotedef_3" title="View footnote.">3</a>]</sup>
-for.</p>
-</div>
-<div class="paragraph">
-<p>Let&#8217;s create a new folder called <em>infra</em> at the top level of our project,
-and we&#8217;ll put the provisioning script in there:</p>
+<p>Let&#8217;s delete the old content which had the "ping",
+and replace it with something like this:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">infra/ansible-provision.yaml (ch11l001)</div>
+<div class="title">infra/deploy-playbook.yaml (ch12l001)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
@@ -457,8 +170,8 @@ and we&#8217;ll put the provisioning script in there:</p>
 <table>
 <tr>
 <td><i class="conum" data-value="1"></i><b>1</b></td>
-<td>An Ansible playbook is a series of "tasks"
-(so in that sense it&#8217;s still quite sequential and procedural),
+<td>An Ansible playbook is a series of "tasks"; we now have more than one.
+In that sense it&#8217;s still quite sequential and procedural,
 but the individual tasks themselves are quite declarative.
 Each one usually has a human-readable <code>name</code> attribute.</td>
 </tr>
@@ -471,7 +184,7 @@ around the <code>apt</code> Debian &amp; Ubuntu package management tool.</td>
 <tr>
 <td><i class="conum" data-value="3"></i><b>3</b></td>
 <td>Each module then provides a bunch of parameters which control how it works.
-Here we specify the <code>name</code> of the package we want to install ("docker.io"<sup class="footnote">[<a id="_footnoteref_4" class="footnote" href="#_footnotedef_4" title="View footnote.">4</a>]</sup>)
+Here we specify the <code>name</code> of the package we want to install ("docker.io"<sup class="footnote">[<a id="_footnoteref_3" class="footnote" href="#_footnotedef_3" title="View footnote.">3</a>]</sup>)
 and tell it to update its cache first, which is required on a fresh server.</td>
 </tr>
 </table>
@@ -483,14 +196,12 @@ I often skip to the
 <a href="https://docs.ansible.com/ansible/latest/collections/ansible/builtin/apt_module.html#examples">Examples section</a>.</p>
 </div>
 <div class="paragraph">
-<p>Once we have our playbook, the command to actually execute the playbook against our server is <code>ansible-playbook</code>.
-We pass in our nonroot username with <code>--user</code>,
-and the <code>-i</code> flag points at the server we want to talk to.
-<code>-vv</code> says to print out medium-verbose output.</p>
+<p>Let&#8217;s re-run our deployment command, <code>ansible-playbook</code>,
+with the same flags we used in the last chapter.</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>$ <strong>ansible-playbook --user=elspeth -i staging.ottg.co.uk, infra/ansible-provision.yaml -vv</strong>
+<pre>$ <strong>ansible-playbook --user=elspeth -i staging.ottg.co.uk, infra/deploy-playbook.yaml -vv</strong>
 ansible-playbook [core 2.16.3]
   config file = None
   [...]
@@ -500,24 +211,24 @@ Skipping callback 'default', as we already have a stdout callback.
 Skipping callback 'minimal', as we already have a stdout callback.
 Skipping callback 'oneline', as we already have a stdout callback.
 
-PLAYBOOK: ansible-provision.yaml **********************************************
-1 plays in infra/ansible-provision.yaml
+PLAYBOOK: deploy-playbook.yaml **********************************************
+1 plays in infra/deploy-playbook.yaml
 
 PLAY [all] ********************************************************************
 
 TASK [Gathering Facts] ********************************************************
-task path: ...goat-book/superlists/infra/ansible-provision.yaml:2
+task path: ...goat-book/superlists/infra/deploy-playbook.yaml:2
 ok: [staging.ottg.co.uk]
-PLAYBOOK: ansible-provision.yaml **********************************************
-1 plays in infra/ansible-provision.yaml
+PLAYBOOK: deploy-playbook.yaml **********************************************
+1 plays in infra/deploy-playbook.yaml
 
 TASK [Install docker] *********************************************************
-task path: ...goat-book/superlists/infra/ansible-provision.yaml:6
+task path: ...goat-book/superlists/infra/deploy-playbook.yaml:6
 ok: [staging.ottg.co.uk] =&gt; {"cache_update_time": 1708981325, "cache_updated": true, "changed": false}
 
 
 TASK [Install docker] *************************************************************************************************************
-task path: ...goat-book/superlists/infra/ansible-provision.yaml:6
+task path: ...goat-book/superlists/infra/deploy-playbook.yaml:6
 changed: [staging.ottg.co.uk] =&gt; {"cache_update_time": [...]
 "cache_updated": true, "changed": true, "stderr": "", "stderr_lines": [],
 "stdout": "Reading package lists...\nBuilding dependency tree...\nReading [...]
@@ -525,7 +236,7 @@ information...\nThe following additional packages will be installed:\n
 wmdocker\nThe following NEW packages will be installed:\n  docker wmdocker\n0
 
 TASK [Run test container] *****************************************************
-task path: ...goat-book/superlists/infra/ansible-provision.yaml:13
+task path: ...goat-book/superlists/infra/deploy-playbook.yaml:13
 changed: [staging.ottg.co.uk] =&gt; {"changed": true, "container":
 {"AppArmorProfile": "docker-default", "Args": ["hello", "world"], "Config":
 [...]
@@ -555,12 +266,14 @@ You may need to use the <code>--ask-become-pass</code> argument to <code>ansible
 </table>
 </div>
 </div>
-</div>
 <div class="sect2">
 <h3 id="_sshing_into_the_server_and_viewing_container_logs">SSHing Into the Server and Viewing Container Logs</h3>
 <div class="paragraph">
-<p>Time to get into some good old-fashioned sysadmin!
-Let&#8217;s SSH into our server and see if we can see any evidence that our container has run.</p>
+<p>Ansible <em>looks</em> like it&#8217;s doing its job,
+but let&#8217;s practice our SSH skills,
+and do some good old-fashioned sysadmin.
+Let&#8217;s log into our server and see if we can see any actual evidence
+that our container has run.</p>
 </div>
 <div class="paragraph">
 <p>We use <code>docker ps -a</code> to view all containers, including old/stopped ones,
@@ -656,7 +369,7 @@ manually copy that to the server, and then re-import it.
 In Ansible config, it looks like this:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">infra/ansible-provision.yaml (ch11l002)</div>
+<div class="title">infra/deploy-playbook.yaml (ch12l002)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
@@ -745,24 +458,24 @@ and see if we can upload a docker image to our server and get it running:</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>$ <strong>ansible-playbook --user=elspeth -i staging.ottg.co.uk, infra/ansible-provision.yaml -vv</strong>
+<pre>$ <strong>ansible-playbook --user=elspeth -i staging.ottg.co.uk, infra/deploy-playbook.yaml -vv</strong>
 [...]
 
-PLAYBOOK: ansible-provision.yaml **********************************************
-1 plays in infra/ansible-provision.yaml
+PLAYBOOK: deploy-playbook.yaml **********************************************
+1 plays in infra/deploy-playbook.yaml
 
 PLAY [all] ********************************************************************
 
 TASK [Gathering Facts] ********************************************************
-task path: ...goat-book/superlists/infra/ansible-provision.yaml:2
+task path: ...goat-book/superlists/infra/deploy-playbook.yaml:2
 ok: [staging.ottg.co.uk]
 
 TASK [Install docker] *********************************************************
-task path: ...goat-book/superlists/infra/ansible-provision.yaml:5
+task path: ...goat-book/superlists/infra/deploy-playbook.yaml:5
 ok: [staging.ottg.co.uk] =&gt; {"cache_update_time": 1708982855, "cache_updated": false, "changed": false}
 
 TASK [Export container image locally] *****************************************
-task path: ...goat-book/superlists/infra/ansible-provision.yaml:11
+task path: ...goat-book/superlists/infra/deploy-playbook.yaml:11
 changed: [staging.ottg.co.uk -&gt; 127.0.0.1] =&gt; {"actions": ["Archived image
 superlists:latest to /tmp/superlists-img.tar, overwriting archive with image
 11ff3b83873f0fea93f8ed01bb4bf8b3a02afa15637ce45d71eca1fe98beab34 named
@@ -770,20 +483,20 @@ superlists:latest"], "changed": true, "image": {"Architecture": "amd64",
 [...]
 
 TASK [Upload image to server] *************************************************
-task path: ...goat-book/superlists/infra/ansible-provision.yaml:18
+task path: ...goat-book/superlists/infra/deploy-playbook.yaml:18
 changed: [staging.ottg.co.uk] =&gt; {"changed": true, "checksum":
 "313602fc0c056c9255eec52e38283522745b612c", "dest": "/tmp/superlists-img.tar",
 [...]
 
 TASK [Import container image on server] ***************************************
-task path: ...goat-book/superlists/infra/ansible-provision.yaml:23
+task path: ...goat-book/superlists/infra/deploy-playbook.yaml:23
 changed: [staging.ottg.co.uk] =&gt; {"actions": ["Loaded image superlists:latest
 from /tmp/superlists-img.tar"], "changed": true, "image": {"Architecture":
 "amd64", "Author": "", "Comment": "buildkit.dockerfile.v0", "Config":
 [...]
 
 TASK [Run container] **********************************************************
-task path: ...goat-book/superlists/infra/ansible-provision.yaml:32
+task path: ...goat-book/superlists/infra/deploy-playbook.yaml:32
 changed: [staging.ottg.co.uk] =&gt; {"changed": true, "container":
 {"AppArmorProfile": "docker-default", "Args": ["--bind", ":8888",
 "superlists.wsgi:application"], "Config": {"AttachStderr": true, "AttachStdin":
@@ -797,7 +510,7 @@ false, "AttachStdout": true, "Cmd": ["gunicorn", "--bind", ":8888",
 This means we don&#8217;t have a dependency on having run <code>docker build</code> locally.</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">infra/ansible-provision.yaml (ch11l003)</div>
+<div class="title">infra/deploy-playbook.yaml (ch12l003)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
@@ -922,7 +635,7 @@ It&#8217;s a common tool in Ansible scripts, and the syntax is very similar to D
 <p>Here&#8217;s what our template for the env file will look like:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">infra/env.j2 (ch11l004)</div>
+<div class="title">infra/env.j2 (ch12l004)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
@@ -937,7 +650,7 @@ It&#8217;s a common tool in Ansible scripts, and the syntax is very similar to D
 <p>And here&#8217;s how we use it in the provisioning script:</p>
 </div>
 <div class="exampleblock sourcecode small-code">
-<div class="title">infra/ansible-provision.yaml (ch11l005)</div>
+<div class="title">infra/deploy-playbook.yaml (ch12l005)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
@@ -1048,10 +761,10 @@ but I wanted to keep this (already long) chapter as simple as possible.</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>$ <strong>ansible-playbook --user=elspeth -i staging.ottg.co.uk, infra/ansible-provision.yaml -v</strong>
+<pre>$ <strong>ansible-playbook --user=elspeth -i staging.ottg.co.uk, infra/deploy-playbook.yaml -v</strong>
 [...]
-PLAYBOOK: ansible-provision.yaml **********************************************
-1 plays in infra/ansible-provision.yaml
+PLAYBOOK: deploy-playbook.yaml **********************************************
+1 plays in infra/deploy-playbook.yaml
 
 PLAY [all] ********************************************************************
 
@@ -1193,7 +906,7 @@ minutes             superlists</pre>
 on the server:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">infra/ansible-provision.yaml (ch11l006)</div>
+<div class="title">infra/deploy-playbook.yaml (ch12l006)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
@@ -1241,7 +954,7 @@ just like we did in local dev, and we need to run migrations each time we deploy
 <p>Here&#8217;s how to do that in our playbook:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">infra/ansible-provision.yaml (ch11l007)</div>
+<div class="title">infra/deploy-playbook.yaml (ch12l007)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
@@ -1295,7 +1008,7 @@ the container.</td>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>$ <strong>ansible-playbook --user=elspeth -i staging.ottg.co.uk, infra/ansible-provision.yaml -v</strong>
+<pre>$ <strong>ansible-playbook --user=elspeth -i staging.ottg.co.uk, infra/deploy-playbook.yaml -v</strong>
 [...]
 TASK [Run migration inside container] *****************************************
 changed: [staging.ottg.co.uk] =&gt; {"changed": true, "rc": 0, "stderr": "",
@@ -1489,15 +1202,12 @@ This goes hand-in-hand with the idea of idempotence above.</p>
 <a href="#_footnoteref_2">2</a>. Depending on where you work, what I&#8217;m calling a "staging" server, some people would call a "development" server, and some others would also like to distinguish "preproduction" servers. Whatever we call it, the point is to have somewhere we can try our code out in an environment that&#8217;s as similar as possible to the real production server. As we&#8217;ll see, Docker isn&#8217;t <em>quite</em> enough!
 </div>
 <div class="footnote" id="_footnotedef_3">
-<a href="#_footnoteref_3">3</a>. The "love" part is that YAML is very easy to <em>read</em> and scan through at a glance. The "hate" part is that the actual syntax is surprisingly fiddly to get right: the difference between lists and key/value maps is subtle and I can never quite remember it honestly.
-</div>
-<div class="footnote" id="_footnotedef_4">
-<a href="#_footnoteref_4">4</a>. In the official docker installation instructions, you&#8217;ll see a recommendation to install docker via a private package repository. I wanted to avoid that complexity for the book, but you should probably follow those instructions in a real-world scenario, to make sure your version of Docker has all the latest security patches.
+<a href="#_footnoteref_3">3</a>. In the official docker installation instructions, you&#8217;ll see a recommendation to install docker via a private package repository. I wanted to avoid that complexity for the book, but you should probably follow those instructions in a real-world scenario, to make sure your version of Docker has all the latest security patches.
 </div>
 </div>
 <div id="footer">
 <div id="footer-text">
-License: Creative Commons <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode">CC-BY-NC-ND</a>. Last updated: 2024-08-29 11:52:04 +0100
+License: Creative Commons <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode">CC-BY-NC-ND</a>. Last updated: 2024-10-13 22:20:32 +0100
 </div>
 </div>
 <div class="comments" style="padding: 20px">
@@ -1505,7 +1215,7 @@ License: Creative Commons <a href="https://creativecommons.org/licenses/by-nc-nd
   <div id="disqus_thread"></div>
   <script type="text/javascript">
     var disqus_config = function () {
-        this.page.identifier = 'chapter_11_ansible';
+        this.page.identifier = 'chapter_12_ansible';
     };
     
     (function() {
