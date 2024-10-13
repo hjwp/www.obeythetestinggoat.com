@@ -95,17 +95,97 @@ def redirect_21():
 def redirect_22():
     return redirect("/book/chapter_22_outside_in.html", code=301)
 
+
 @app.route("/book/chapter_CI.html")
 def redirect_23():
     return redirect("/book/chapter_23_CI.html", code=301)
+
 
 @app.route("/book/chapter_page_pattern.html")
 def redirect_24():
     return redirect("/book/chapter_24_page_pattern.html", code=301)
 
+
 @app.route("/book/chapter_purist_unit_tests.html")
 def redirect_25():
     return redirect("/book/appendix_purist_unit_tests.html", code=301)
+
+
+# 2 big chapter splits 2024-10-13
+@app.route("/book/chapter_11_ansible.html")
+def redirect26():
+    return redirect("/book/chapter_12_ansible.html", code=301)
+
+
+@app.route("/book/chapter_12_organising_test_files.html")
+def redirect27():
+    return redirect("/book/chapter_13_organising_test_files.html", code=301)
+
+
+@app.route("/book/chapter_13_database_layer_validation.html")
+def redirect28():
+    return redirect("/book/chapter_14_database_layer_validation.html", code=301)
+
+
+@app.route("/book/chapter_14_simple_form.html")
+def redirect29():
+    return redirect("/book/chapter_15_simple_form.html", code=301)
+
+
+@app.route("/book/chapter_15_advanced_forms.html")
+def redirect30():
+    return redirect("/book/chapter_16_advanced_forms.html", code=301)
+
+
+@app.route("/book/chapter_16_javascript.html")
+def redirect31():
+    return redirect("/book/chapter_17_javascript.html", code=301)
+
+
+@app.route("/book/chapter_17_second_deploy.html")
+def redirect32():
+    return redirect("/book/chapter_18_second_deploy.html", code=301)
+
+
+@app.route("/book/chapter_18_spiking_custom_auth.html")
+def redirect33():
+    return redirect("/book/chapter_19_spiking_custom_auth.html", code=301)
+
+
+@app.route("/book/chapter_19_mocking.html")
+def redirect34():
+    return redirect("/book/chapter_20_mocking_1.html", code=301)
+
+
+@app.route("/book/chapter_20_fixtures_and_wait_decorator.html")
+def redirect36():
+    return redirect("/book/chapter_22_fixtures_and_wait_decorator.html", code=301)
+
+
+@app.route("/book/chapter_21_server_side_debugging.html")
+def redirect37():
+    return redirect("/book/chapter_23_debugging_prod.html", code=301)
+
+
+@app.route("/book/chapter_22_outside_in.html")
+def redirect38():
+    return redirect("/book/chapter_24_outside_in.html", code=301)
+
+
+@app.route("/book/chapter_23_CI.html")
+def redirect39():
+    return redirect("/book/chapter_25_CI.html", code=301)
+
+
+@app.route("/book/chapter_24_page_pattern.html")
+def redirect40():
+    return redirect("/book/chapter_26_page_pattern.html", code=301)
+
+
+@app.route("/book/chapter_25_hot_lava.html")
+def redirect41():
+    return redirect("/book/chapter_27_hot_lava.html", code=301)
+
 
 """
 TODO  (old urls/chapters as yet not renamed)

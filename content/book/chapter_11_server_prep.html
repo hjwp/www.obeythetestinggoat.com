@@ -1,0 +1,777 @@
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="generator" content="Asciidoctor 2.0.23">
+<title>Getting A Server Ready For Deployment</title>
+<link rel="stylesheet" href="./asciidoctor.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+<link rel="stylesheet" href="./pygments-default.css">
+<script>var httpRequest = new XMLHttpRequest();
+httpRequest.onreadystatechange = function() {
+  if (httpRequest.readyState === XMLHttpRequest.DONE) {
+    if (httpRequest.status === 200) {
+      document.getElementById('header').innerHTML += httpRequest.responseText;
+      var subheaders = document.getElementsByClassName('sectlevel2');
+      var section;
+      for (var i=0; i<subheaders.length; i++) {
+        section = subheaders[i];
+        if (section.innerHTML.indexOf(window.location.pathname) === -1) {
+          section.style.display = 'none';
+        } else {
+          section.scrollIntoView && section.scrollIntoView();
+        }
+      }
+
+    }
+  }
+};
+httpRequest.open('GET', 'toc.html');
+httpRequest.send();
+
+</script></head>
+<body class="article toc2 toc-left">
+<div id="buy_the_book" style="position: absolute; top: 0; right: 0; z-index:100">
+  <a href="/pages/book.html">
+    <img src="images/buy_the_book.svg" alt="buy the book ribbon">
+  </a>
+</div>
+<div id="header">
+</div>
+<div id="content">
+<div class="sect1">
+<h2 id="chapter_11_server_prep">Getting A Server Ready For Deployment</h2>
+<div class="sectionbody">
+<div class="sidebarblock">
+<div class="content">
+<div class="title">A Note for Early Release Readers</div>
+<div class="paragraph">
+<p>With Early Release ebooks, you get books in their earliest form&#8212;the author&#8217;s raw and unedited content as they write&#8212;so you can take advantage of these technologies long before the official release of these titles.</p>
+</div>
+<div class="paragraph">
+<p>This will be the 11th chapter of the final book. The GitHub repo is available at <a href="https://github.com/hjwp/book-example" class="bare">https://github.com/hjwp/book-example</a>.</p>
+</div>
+<div class="paragraph">
+<p>If you have comments about how we might improve the content and/or examples in this book, or if you notice missing material within this chapter, please reach out to the author at <a href="mailto:obeythetestinggoat@gmail.com">obeythetestinggoat@gmail.com</a>.</p>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>
+
+This chapter is all about getting ready for our deployment.
+We&#8217;re going to spin up an actual server,
+make it accessible on the Internet with a real domain name,
+and setup the authentication and credentials we need
+to be able to control it remotely with SSH and Ansible.</p>
+</div>
+<div class="sidebarblock">
+<div class="content">
+<div class="title">Warning, chapter under construction</div>
+<div class="paragraph">
+<p>As part of my work on the third edition of the book,
+I&#8217;m making big changes to the deployment chapters.
+This chapter is still a little "bare bones"
+and could do with a bit more explanatory content and guidance,
+but the core steps are all there, so I hope you&#8217;ll be able to follow along.</p>
+</div>
+<div class="paragraph">
+<p>So as always I really, really need feedback.
+So please hit me up at <a href="mailto:obeythetestinggoat@gmail.com">obeythetestinggoat@gmail.com</a>, or via
+<a href="https://github.com/hjwp/Book-TDD-Web-Dev-Python/issues">GitHub Issues</a>
+and Pull Requests.</p>
+</div>
+<div class="paragraph">
+<p>I hope you enjoy the new version!</p>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_getting_a_domain_name">Getting a Domain Name</h3>
+<div class="paragraph">
+<p>
+We&#8217;re going to need a couple of domain names at this point in the book&#8212;&#8203;they
+can both be subdomains of a single domain.
+I&#8217;m going to use <em>superlists.ottg.co.uk</em> and <em>staging.ottg.co.uk</em>.
+If you don&#8217;t already own a domain, this is the time to register one!
+Again, this is something I really want you to <em>actually</em> do.
+If you&#8217;ve never registered a domain before,
+just pick any old registrar and buy a cheap one&#8212;&#8203;it
+should only cost you $5 or so, and you can even find free ones.
+I promise seeing your site on a "real" website will be a thrill.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_manually_provisioning_a_server_to_host_our_site">Manually Provisioning a Server to Host Our Site</h3>
+<div class="paragraph">
+<p>
+
+We can separate out "deployment" into two tasks:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><em>Provisioning</em> a new server to be able to host the code</p>
+</li>
+<li>
+<p><em>Deploying</em> a new version of the code to an existing server</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Infrastructure-as-code tools can let you automate both of these,
+but the provisioning parts tend to be quite vendor-specific,
+so for the purposes of this book, we can live with manual provisioning.</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+I should probably stress once more that deployment is something that varies a lot,
+  and that as a result there are few universal best practices for how to do it.
+  So, rather than trying to remember the specifics of what I&#8217;m doing here,
+  you should be trying to understand the rationale,
+  so that you can apply the same kind of thinking in the specific future circumstances you encounter.
+</td>
+</tr>
+</table>
+</div>
+<div class="sect3">
+<h4 id="_choosing_where_to_host_our_site">Choosing Where to Host Our Site</h4>
+<div class="paragraph">
+<p>
+There are loads of different solutions out there these days,
+but they broadly fall into two camps:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Running your own (probably virtual) server, aka VPS (Virtual Private Server)</p>
+</li>
+<li>
+<p>Using a Platform-As-A-Service (PaaS)
+offering like Heroku or my old employers, PythonAnywhere.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>
+With a PaaS, you don&#8217;t get your own server,
+instead you&#8217;re renting a "service" at a higher level of abstraction.
+Particularly for small sites,
+a PaaS offers a lot of advantages over running your own server,
+and I would definitely recommend looking into them.
+We&#8217;re not going to use a PaaS in this book however, for several reasons.
+The main reason is that I want to avoid endorsing specific commercial providers.
+Secondly, all the PaaS offerings are quite different,
+and the procedures to deploy to each vary a lot&#8212;&#8203;learning about one
+doesn&#8217;t necessarily tell you about the others.
+Any one of them might radically change their process or business model by the time you get to read this book.</p>
+</div>
+<div class="paragraph">
+<p>Instead, we&#8217;ll learn just a tiny bit of good old-fashioned server admin,
+including SSH and manual debugging.
+They&#8217;re unlikely to ever go away,
+and knowing a bit about them will get you some respect
+from all the grizzled dinosaurs out there.</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_spinning_up_our_own_server">Spinning Up Our Own Server</h4>
+<div class="paragraph">
+<p>I&#8217;m not going to dictate how you spin up a server&#8212;&#8203;whether
+you choose Amazon AWS, Rackspace, Digital Ocean, your own server in a data centre,
+or a Raspberry Pi in a cupboard under the stairs,
+any solution should be fine, as long as:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Your server is running Ubuntu 22.04 (aka "Jammy/LTS").</p>
+</li>
+<li>
+<p>You have root access to it.</p>
+</li>
+<li>
+<p>It&#8217;s on the public internet (ie, it has a public IP address).</p>
+</li>
+<li>
+<p>You can SSH into it.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>I&#8217;m recommending Ubuntu as a distro:footnote[
+Linux as an operating system comes in lots of different flavours,
+called "distros" or "distributions".
+The differences between them and their relative pros and cons are,
+like any seemingly minor detail, of tremendous interest to the right kind of nerd.
+We don&#8217;t need to care about them for this book. As I say, Ubuntu is fine.]
+because it&#8217;s popular and I&#8217;m used to it.
+If you know what you&#8217;re doing, you can probably get away with using
+something else, but I won&#8217;t be able to help you as much if you get stuck.</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>TODO: explictly recommend passwordless / public key auth.</p>
+</li>
+</ul>
+</div>
+<div id="step-by-step-guide" class="sidebarblock">
+<div class="content">
+<div class="title">Step-by-step Instructions for Spinning up a Server</div>
+<div class="paragraph">
+<p>
+I appreciate that, if you&#8217;ve never started a Linux server before
+and you have absolutely no idea where to start,
+this is a big ask, especially when I&#8217;m refusing to "dictate"
+exactly how to do it.</p>
+</div>
+<div class="paragraph">
+<p>With that in mind, I wrote a
+<a href="https://github.com/hjwp/Book-TDD-Web-Dev-Python/blob/main/server-quickstart.md">very brief guide on GitHub</a>.</p>
+</div>
+<div class="paragraph">
+<p>I didn&#8217;t want to include it in the book itself because,
+inevitably, I do end up specifying a specific commercial provider in there.</p>
+</div>
+</div>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+Some people get to this chapter, and are tempted to skip the domain bit,
+    and the "getting a real server" bit, and just use a VM on their own PC.
+    Don&#8217;t do this.
+    It&#8217;s <em>not</em> the same, and you&#8217;ll have more difficulty following the instructions,
+    which are complicated enough as it is.
+    If you&#8217;re worried about cost, have a look at the guide I wrote for free options.
+    
+</td>
+</tr>
+</table>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_configuring_dns_for_staging_and_live_domains">Configuring DNS for Staging and Live Domains</h3>
+<div class="paragraph">
+<p>We don&#8217;t want to be messing about with IP addresses all the time,
+so we should point our staging and live domains to the server.
+At my registrar, the control screens looked a bit like <a href="#registrar-control-screens">Domain setup</a>.</p>
+</div>
+<div id="registrar-control-screens" class="imageblock">
+<div class="content">
+<img src="images/gandi_add_dns_a_record.png" alt="Registrar control screen for adding a DNS record">
+</div>
+<div class="title">Figure 1. Domain setup</div>
+</div>
+<div class="paragraph">
+<p>
+In the DNS system, pointing a domain at a specific IP address is called an "A-Record".<sup class="footnote">[<a id="_footnoteref_1" class="footnote" href="#_footnotedef_1" title="View footnote.">1</a>]</sup>
+All registrars are slightly different,
+but a bit of clicking around should get you to the right screen in yours.
+You&#8217;ll need two A-records:
+one for the staging address and one for the live one.
+No need to worry about any other type of record.</p>
+</div>
+<div class="paragraph">
+<p>DNS records take some time to "propagate" around the world
+(it&#8217;s controlled by a setting called "TTL", Time To Live),
+so once you&#8217;ve set up your A-record,
+you can check its progress on a "propagation checking" service like this one:
+<a href="https://www.whatsmydns.net/#A/staging.ottg.co.uk" class="bare">https://www.whatsmydns.net/#A/staging.ottg.co.uk</a>.</p>
+</div>
+<div class="paragraph">
+<p>I&#8217;m planning to host my staging server at <em>staging.ottg.co.uk</em></p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_ansible">Ansible</h3>
+<div class="paragraph">
+<p>Infrastructure-as-code tools, also called "configuration management" tools,
+come in lots of shapes and sizes.
+Chef and Puppet were two of the original ones,
+and you&#8217;ll probably come across Terraform,
+which is particularly strong on managing cloud services like AWS.</p>
+</div>
+<div class="paragraph">
+<p>We&#8217;re going to use Ansible, because it&#8217;s relatively popular,
+because it can do everything we need it to,
+because I&#8217;m biased that it happens to be written in Python,
+and because it&#8217;s probably the one I&#8217;m personally most familiar with.</p>
+</div>
+<div class="paragraph">
+<p>Another tool could probably have worked just as well!
+The main thing to remember is the <em>concept</em>, which is that,
+as much as possible we want to manage our server configuration <em>declaratively</em>,
+by expressing the desired state of the server in a particular configuration syntax,
+rather than specifying a procedural series of steps to be followed one by one.</p>
+</div>
+<div class="sect3">
+<h4 id="_ansible_vs_ssh_how_well_talk_to_our_server">Ansible vs SSH: How we&#8217;ll Talk to our Server</h4>
+<div class="paragraph">
+<p>See <a href="#ansible-and-ssh">Ansible and SSH</a>.</p>
+</div>
+<div id="ansible-and-ssh" class="imageblock">
+<div class="content">
+<img src="images/ansible-and-ssh.png" alt="Diagram ">
+</div>
+<div class="title">Figure 2. Ansible and SSH</div>
+</div>
+<div class="paragraph">
+<p>Our objective is to use Ansible to automate the process of deploying to our server:
+making sure that the server has everything it needs to run our app
+(mostly, Docker and our container image),
+and then telling it to start or restart our container.</p>
+</div>
+<div class="paragraph">
+<p>Now and again, we&#8217;ll want to "log on" to the server and have a look around manually:
+for that, we&#8217;ll use the <code>ssh</code> command-line on our computer,
+which can let us open up an interactive console on the server.</p>
+</div>
+<div class="paragraph">
+<p>Finally, we&#8217;ll run our functional tests against the server, once it&#8217;s running our app,
+to make sure it&#8217;s all working correctly.</p>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_start_by_making_sure_we_can_ssh_in">Start by Making Sure We Can SSH In</h3>
+<div class="paragraph">
+<p>At this point and for the rest of the book,
+I&#8217;m assuming that you have a nonroot user account set up,
+and that it has "sudo" privileges,
+so whenever we need to do something that requires root access, we use sudo,
+(or "become" in Ansible terminology);
+I&#8217;ll be explicit about that in the various instructions that follow.</p>
+</div>
+<div class="paragraph">
+<p>My user is called "elspeth", but you can call yours whatever you like!
+Just remember to substitute it in all the places I&#8217;ve hardcoded it.
+See the guide I wrote (<a href="#step-by-step-guide">Step-by-step Instructions for Spinning up a Server</a>)
+if you need tips on creating a sudo user.</p>
+</div>
+<div class="paragraph">
+<p>Ansible uses SSH under the hood to talk to the server,
+so checking we can log in "manually" is a good first step:</p>
+</div>
+<div class="listingblock server-commands">
+<div class="content">
+<pre>$ <strong>ssh elspeth@staging.ottg.co.uk</strong>
+elspeth@server$: <strong>echo "hello world"</strong>
+hello world</pre>
+</div>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>TODO: suggest passwordless login with keypairs?</p>
+</li>
+</ul>
+</div>
+<div class="admonitionblock tip">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-tip" title="Tip"></i>
+</td>
+<td class="content">
+Look out for that <code>elspeth@server</code>
+    in the command-line listings in this chapter.
+    It indicates commands that must be run on the server,
+    as opposed to commands you run on your own PC.
+</td>
+</tr>
+</table>
+</div>
+<div class="sect3">
+<h4 id="_debugging_issues_with_ssh">Debugging Issues with SSH</h4>
+<div class="paragraph">
+<p>Here&#8217;s a few things to try if you can&#8217;t SSH in:</p>
+</div>
+<div class="sect4">
+<h5 id="_debugging_network_connectivity">Debugging Network Connectivity</h5>
+<div class="paragraph">
+<p>First, check network connectivity:  can we even reach the server?</p>
+</div>
+<div class="listingblock skipme">
+<div class="content">
+<pre>$ <strong>ping staging.ottg.co.uk</strong>
+
+# if that doesn't work, try the IP address
+$ <strong>ping 193.184.215.14</strong>  # or whatever your IP is
+
+# also see if the domain name resolves
+$ <strong>nslookup staging.ottg.co.uk</strong></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>If the IP works and the domain name doesn&#8217;t,
+and/or if the <code>nslookup</code> doesn&#8217;t work,
+you should go check your DNS config at your registrar.
+You may just need to wait!
+Try a DNS propagation checker like <a href="https://www.whatsmydns.net/#A/staging.ottg.co.uk" class="bare">https://www.whatsmydns.net/#A/staging.ottg.co.uk</a>.</p>
+</div>
+</div>
+<div class="sect4">
+<h5 id="_debugging_ssh_auth_issues">Debugging SSH Auth Issues</h5>
+<div class="paragraph">
+<p>Next, let&#8217;s try and debug any possible issues with authentication.</p>
+</div>
+<div class="paragraph">
+<p>First, your hosting provider might have the option to open
+a console directly from within their web UI.
+That&#8217;s worth trying, and if there are any problems there,
+then you probably need to restart your server,
+or perhaps kill it and create a new one.</p>
+</div>
+<div class="admonitionblock tip">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-tip" title="Tip"></i>
+</td>
+<td class="content">
+It&#8217;s worth double-checking your IP address at this point,
+    in your provider&#8217;s server control panel pages.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>Next we can try debugging our SSH connection</p>
+</div>
+<div class="listingblock skipme">
+<div class="content">
+<pre># try the -v flag which turn on verbose/debug output
+$ <strong>ssh -v elspeth@staging.ottg.uk</strong>
+OpenSSH_9.7p1, LibreSSL 3.3.6
+debug1: Reading configuration data ~/.ssh/config
+debug1: Reading configuration data ~/.colima/ssh_config
+debug1: Reading configuration data /etc/ssh/ssh_config
+debug1: /etc/ssh/ssh_config line 21: include /etc/ssh/ssh_config.d/* matched no files
+debug1: /etc/ssh/ssh_config line 54: Applying options for *
+debug1: Authenticator provider $SSH_SK_PROVIDER did not resolve; disabling
+debug1: Connecting to staging.ottg.uk port 22.
+ssh: Could not resolve hostname staging.ottg.uk: nodename nor servname provided, or not known
+# oops I made a typo!  it should be ottg.co.uk not ottg.uk</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>If that doesn&#8217;t help, try switching to the root user instead:</p>
+</div>
+<div class="listingblock skipme">
+<div class="content">
+<pre>$ <strong>ssh -v root@staging.ottg.co.uk</strong>
+[...]
+debug1: Authentications that can continue: publickey
+debug1: Next authentication method: publickey
+debug1: get_agent_identities: bound agent to hostkey
+debug1: get_agent_identities: agent returned 1 keys
+debug1: Will attempt key: ~/.ssh/id_ed25519 ED25519 SHA256:gZLxb9zCuGVT1Dm8vB4RRnPMThe27dRzxCSYeiSzn0E agent
+debug1: Will attempt key: ~/.ssh/id_rsa
+debug1: Will attempt key: ~/.ssh/id_ecdsa
+debug1: Will attempt key: ~/.ssh/id_ecdsa_sk
+debug1: Will attempt key: ~/.ssh/id_ed25519_sk
+debug1: Will attempt key: ~/.ssh/id_xmss
+debug1: Will attempt key: ~/.ssh/id_dsa
+debug1: Offering public key: ~/.ssh/id_ed25519 [...]
+debug1: Server accepts key: ~/.ssh/id_ed25519 [...]
+Authenticated to staging.ottg.co.uk ([165.232.110.81]:22) using "publickey".</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>That one actually worked, but in the verbose output,
+you can watch to make sure it find the right SSH keys,
+for example.</p>
+</div>
+<div class="admonitionblock tip">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-tip" title="Tip"></i>
+</td>
+<td class="content">
+If root works but your nonroot user doesn&#8217;t,
+    you may need to add your public key to
+    <code>/home/yournonrootuser/.ssh/authorized_keys</code>
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>If root doesn&#8217;t work either,
+you may need to add your public SSH key to your account settings page,
+via your provider&#8217;s web UI.
+That may or may not take effect immediately,
+you might need to delete your old server and create a new one.</p>
+</div>
+<div class="paragraph">
+<p>Remember, that probably means a new IP address!</p>
+</div>
+<div class="sidebarblock">
+<div class="content">
+<div class="title">Security</div>
+<div class="paragraph">
+<p>A serious discussion of server security is beyond the scope of this book,
+and I&#8217;d warn against running your own servers
+without learning a good bit more about it.
+(One reason people choose to use a PaaS to host their code
+is that it means a slightly fewer security issues to worry about.)
+If you&#8217;d like a place to start, here&#8217;s as good a place as any:
+<a href="https://blog.codelitt.com/my-first-10-minutes-on-a-server-primer-for-securing-ubuntu/" class="bare">https://blog.codelitt.com/my-first-10-minutes-on-a-server-primer-for-securing-ubuntu/</a></p>
+</div>
+<div class="paragraph">
+<p>I can definitely recommend the eye-opening experience of installing
+fail2ban and watching its logfiles to see just how quickly it picks up on
+random drive-by attempts to brute force your SSH login.  The internet is a
+wild place!
+
+</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_installing_ansible">Installing Ansible</h4>
+<div class="paragraph">
+<p>Assuming we can reliably SSH into the server,
+it&#8217;s time to install Ansible and make sure it can talk to our server as well.</p>
+</div>
+<div class="paragraph">
+<p>Take a look at the
+<a href="https://docs.ansible.com/ansible/latest/installation_guide/intro_installation.html">Ansible installation guide</a>
+for all the various options,
+but probably the simplest thing to do is to install Ansible into the virtualenv
+on our local machine (Ansible doesn&#8217;t need to be installed on the server):</p>
+</div>
+<div class="listingblock skipme">
+<div class="content">
+<pre>$ <strong>pip install ansible</strong>
+# we also need the Docker SDK for the ansible/docker integration to work:
+$ <strong>pip install docker</strong></pre>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_checking_ansible_can_talk_to_our_server">Checking Ansible can Talk To Our Server</h4>
+<div class="paragraph">
+<p>This is the last step in making sure we&#8217;re ready,
+making sure Ansible can talk to our server.</p>
+</div>
+<div class="paragraph">
+<p>At the core of ansible is what&#8217;s called a "playbook",
+which describes what we want to happen on our server.</p>
+</div>
+<div class="paragraph">
+<p>Let&#8217;s create one now.
+It&#8217;s probably a good idea to keep it in a folder of its own:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre><strong>mkdir infra</strong></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>And here&#8217;s a minimal playbook whose job is just to "ping"
+the server, to check we can talk to it.
+It&#8217;s in a format called YAML (Yet Another Markup Language),
+which, if you&#8217;ve never come across before,
+you will soon develop a love-hate relationship<sup class="footnote">[<a id="_footnoteref_2" class="footnote" href="#_footnotedef_2" title="View footnote.">2</a>]</sup>
+for.</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">infra/deploy-playbook.yaml (ch11l001)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="yaml"><span></span><span class="tok-p tok-p-Indicator">-</span><span class="tok-w"> </span><span class="tok-nt">hosts</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">all</span>
+<span class="tok-w">  </span><span class="tok-nt">tasks</span><span class="tok-p">:</span>
+<span class="tok-w">    </span><span class="tok-p tok-p-Indicator">-</span><span class="tok-w"> </span><span class="tok-nt">name</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">Ping to make sure we can talk to our server</span>
+<span class="tok-w">      </span><span class="tok-nt">ansible.builtin.ping</span><span class="tok-p">:</span></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>We won&#8217;t worry too much about the syntax or how it works at the moment,
+let&#8217;s just use it to make sure everything works.</p>
+</div>
+<div class="paragraph">
+<p>To invoke ansible, we use the command <code>ansible-playbook</code>,
+which will have been installed into your virutalenv when we did
+the <code>pip install ansible</code> earlier.</p>
+</div>
+<div class="paragraph">
+<p>Here&#8217;s the full command we&#8217;ll use, with an explanation of each part:</p>
+</div>
+<div class="listingblock small-code skipme">
+<div class="content">
+<pre>ansible-playbook \
+  --user=elspeth \ <i class="conum" data-value="1"></i><b>(1)</b>
+  -i staging.ottg.co.uk, \ <i class="conum" data-value="2"></i><b>(2)</b><i class="conum" data-value="3"></i><b>(3)</b>
+  infra/deploy-playbook.yaml.yaml \ <i class="conum" data-value="4"></i><b>(4)</b>
+  -vv <i class="conum" data-value="5"></i><b>(5)</b></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>The <code>--user=</code> flag lets us specify the user to use to authenticate
+with the server.  This should be the same user you can SSH with.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>The <code>-i</code> flag specifies what server to run against.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="3"></i><b>3</b></td>
+<td>Note the trailing comma after the server hostname.
+Without this it won&#8217;t work
+(it&#8217;s there because Ansible is designed to work against multiple servers
+at the same time).<sup class="footnote">[<a id="_footnoteref_3" class="footnote" href="#_footnotedef_3" title="View footnote.">3</a>]</sup></td>
+</tr>
+<tr>
+<td><i class="conum" data-value="4"></i><b>4</b></td>
+<td>Next comes the path to our playbook, as a positional argument</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="5"></i><b>5</b></td>
+<td>Finally the <code>-v</code> or <code>-vv</code> flags control how verbose the output will be.
+Useful for debugging!</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>Here&#8217;s some example output when I run it:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>ansible-playbook --user=elspeth -i staging.ottg.co.uk, infra/deploy-playbook.yaml.yaml -vv</strong>
+ansible-playbook [core 2.17.5]
+  config file = None
+  configured module search path = ['~/.ansible/plugins/modules', '/usr/share/ansible/plugins/modules']
+  ansible python module location = ...goat-book/.venv/lib/python3.13/site-packages/ansible
+  ansible collection location = ~/.ansible/collections:/usr/share/ansible/collections
+  executable location = ...goat-book/.venv/bin/ansible-playbook
+  python version = 3.13.0 (main, Oct 11 2024, 22:59:05) [Clang 15.0.0 (clang-1500.3.9.4)] (...goat-book/.venv/bin/python)
+  jinja version = 3.1.4
+  libyaml = True
+No config file found; using defaults
+Skipping callback 'default', as we already have a stdout callback.
+Skipping callback 'minimal', as we already have a stdout callback.
+Skipping callback 'oneline', as we already have a stdout callback.
+
+PLAYBOOK: deploy-playbook.yaml **************************************************************************************************************
+1 plays in infra/deploy-playbook.yaml
+
+PLAY [all] **********************************************************************************************************************************
+
+TASK [Gathering Facts] **********************************************************************************************************************
+task path: ...goat-book/source/chapter_11_server_prep/superlists/infra/deploy-playbook.yaml:1
+[WARNING]: Platform linux on host staging.ottg.co.uk is using the discovered Python interpreter at /usr/bin/python3.10, but future
+installation of another Python interpreter could change the meaning of that path. See <a href="https://docs.ansible.com/ansible-" class="bare">https://docs.ansible.com/ansible-</a>
+core/2.17/reference_appendices/interpreter_discovery.html for more information.
+ok: [staging.ottg.co.uk]
+
+TASK [Ping to make sure we can talk to our server] ******************************************************************************************
+task path: ...goat-book/source/chapter_11_server_prep/superlists/infra/deploy-playbook.yaml:3
+ok: [staging.ottg.co.uk] =&gt; {"changed": false, "ping": "pong"}
+
+PLAY RECAP **********************************************************************************************************************************
+staging.ottg.co.uk         : ok=2    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Looking good!
+In the next chapter, we&#8217;ll use Ansible to get our app up and running
+on our server.  It&#8217;ll be a thrill I promise!</p>
+</div>
+<div class="sidebarblock pagebreak-before less_space">
+<div class="content">
+<div class="title">Server prep recap</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">VPS vs PaaS</dt>
+<dd>
+<p>We discussed the tradeoffs of running your own server vs opting for a PaaS.
+A VPS is great for learning, but you might find the lower admin overhead
+of a PaaS makes sense for real projects.</p>
+</dd>
+<dt class="hdlist1">Domain Name Registration and DNS</dt>
+<dd>
+<p>This tends to be something you only do once,
+but buying a domain name and pointing it at your server
+is an unavoidable part of hosting a web app.
+Now you know your TTLs from your A-Records!</p>
+</dd>
+<dt class="hdlist1">SSH</dt>
+<dd>
+<p>SSH is the swiss army knife of server admin.
+The dream is that everything is automated,
+but now and again you just gotta open up a shell on that box!</p>
+</dd>
+<dt class="hdlist1">Ansible</dt>
+<dd>
+<p>We&#8217;ve had the barest of teasers,
+but we have Ansible and we&#8217;re ready to learn how to use it.</p>
+</dd>
+</dl>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div id="footnotes">
+<hr>
+<div class="footnote" id="_footnotedef_1">
+<a href="#_footnoteref_1">1</a>. Strictly speaking, A-records are for IPv4, and you can also use AAAA-records for IPv6. Some cheap providers only support IPv6, and there&#8217;s nothing wrong with that.
+</div>
+<div class="footnote" id="_footnotedef_2">
+<a href="#_footnoteref_2">2</a>. The "love" part is that YAML is very easy to <em>read</em> and scan through at a glance. The "hate" part is that the actual syntax is surprisingly fiddly to get right: the difference between lists and key/value maps is subtle and I can never quite remember it honestly.
+</div>
+<div class="footnote" id="_footnotedef_3">
+<a href="#_footnoteref_3">3</a>. The "i" stands for "inventory". Using the -i flag is actually a little unconventional. If you read the Ansible docs, you&#8217;ll find they usually recommend having an "inventory file" which lists all your servers, along with various bits of qualifying metadata. That&#8217;s overkill for our usecase tho!
+</div>
+</div>
+<div id="footer">
+<div id="footer-text">
+License: Creative Commons <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode">CC-BY-NC-ND</a>. Last updated: 2024-10-13 21:05:14 +0100
+</div>
+</div>
+<div class="comments" style="padding: 20px">
+  <h3>Comments</h3>
+  <div id="disqus_thread"></div>
+  <script type="text/javascript">
+    var disqus_config = function () {
+        this.page.identifier = 'chapter_11_server_prep';
+    };
+    
+    (function() {
+        var d = document, s = d.createElement('script');
+        s.src = '//obeythetestinggoat.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+  </script>
+  <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript" rel="nofollow">comments powered by Disqus.</a></noscript>
+</div>
+
+<html><head><script>   (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){   (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),   m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)   })(window,document,'script','//www.google-analytics.com/analytics.js','ga');    ga('create', 'UA-40928035-1', 'obeythetestinggoat.com');   ga('send', 'pageview');  </script>
+</head></html></body>
+</html>
