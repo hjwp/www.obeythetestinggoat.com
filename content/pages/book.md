@@ -122,15 +122,15 @@ Table of contents follows:
 * [Appendix A: PythonAnywhere](/book/appendix_I_PythonAnywhere.html)
 * [Appendix B: Django Class-Based Views](/book/appendix_Django_Class-Based_Views.html)
 * [Appendix C: Testing Database Migrations](/book/appendix_IV_testing_migrations.html)
-* [Appendix D: Behaviour-Driven Development (BDD)](/book/appendix_bdd.html)
-* [Appendix E: Building a REST API: JSON, Ajax, and Mocking with JavaScript](/book/appendix_rest_api.html)
-* [Appendix F: Django-Rest-Framework](/book/appendix_DjangoRestFramework.html)
-* [Appendix G: Test Isolation, and "Listening to Your Tests"](/book/appendix_purist_unit_tests.html)
-* [Appendix H: Cheat Sheet](/book/appendix_IX_cheat_sheet.html)
-* [Appendix I: What to Do Next](/book/appendix_X_what_to_do_next.html)
-* [Appendix J: Source Code Examples](/book/appendix_github_links.html)
+* [Appendix D: The Subtleties of Functionally Testing External Dependencies](/book/appendix_fts_for_external_dependencies.html)
+* [Appendix E: Test Isolation, and "Listening to Your Tests"](/book/appendix_purist_unit_tests.html)
+* [Appendix F: Behaviour-Driven Development (BDD)](/book/appendix_bdd.html)
+* [Appendix G: Building a REST API: JSON, Ajax, and Mocking with JavaScript](/book/appendix_rest_api.html)
+* [Appendix H: Django-Rest-Framework](/book/appendix_DjangoRestFramework.html)
+* [Appendix I: Cheat Sheet](/book/appendix_IX_cheat_sheet.html)
+* [Appendix J: What to Do Next](/book/appendix_X_what_to_do_next.html)
+* [Appendix K: Source Code Examples](/book/appendix_github_links.html)
 * [Bibliography](/book/bibliography.html)
-
 
 
 

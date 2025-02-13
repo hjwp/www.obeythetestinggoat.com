@@ -140,7 +140,7 @@ but this is just a fun toy project so let&#8217;s give it a go.</p>
 <div class="paragraph">
 <p>
 
-The first thing I did was take a look at existing Python and Django authentication
+To get this Magic Links project set up, the first thing I did was take a look at existing Python and Django authentication
 packages, like <a href="https://docs.allauth.org/en/latest/">django-allauth</a>
 and <a href="https://github.com/omab/python-social-auth">python-social-auth</a>,
 but both of them looked overcomplicated for this stage
@@ -155,8 +155,8 @@ replace the prototype with tested, production-ready code.</p>
 </div>
 <div class="paragraph">
 <p>You should go ahead and add this code to your own site too,
-and then you can have a play with it,
-try logging in with your own email address,
+and then you can have a play with it.
+Try logging in with your own email address,
 and convince yourself that it really does work.</p>
 </div>
 <div class="sect3">
@@ -164,7 +164,7 @@ and convince yourself that it really does work.</p>
 <div class="paragraph">
 <p>
 
-This spike is going to be a bit more involved that the last one,
+This spike is going to be a bit more involved than the last one,
 so we&#8217;ll be a little more rigorous with our version control.</p>
 </div>
 <div class="paragraph">
@@ -174,7 +174,7 @@ your spike commits getting mixed up with your production code:</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>$ <strong>git checkout -b passwordless-spike</strong></pre>
+<pre>$ <strong>git switch -c passwordless-spike</strong></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -247,7 +247,7 @@ and a logout link for users who are already authenticated:</p>
 
 
 
-The login theory will be something like this:</p>
+The login in theory will be something like this:</p>
 </div>
 <div class="ulist">
 <ul>
@@ -260,7 +260,7 @@ store it in the database linked to their email, and send it to them.</p>
 which will have a link to a URL that includes that token.</p>
 </li>
 <li>
-<p>When they click that link, we check whether the token exists in database,
+<p>When they click that link, we check whether the token exists in the database,
 and if so, they are logged in as the associated user.</p>
 </li>
 </ul>
@@ -376,8 +376,10 @@ with our <em>base.html</em> in the real version.)</p>
 <div class="sect3">
 <h4 id="_email_server_config_for_django">Email Server Config for Django</h4>
 <div class="paragraph">
-<p>More importantly, for the Django <code>send_mail</code> function to work,
-we need to tell Django our email server address.
+<p>The <a href="https://docs.djangoproject.com/en/5.1/topics/email/">django docs on email</a>
+explain how <code>send_mail()</code> works, as well as how you configure it
+by telling Django what email server to use,
+and how to authenticate with it.
 I&#8217;m just using my Gmail<sup class="footnote">[<a id="_footnoteref_1" class="footnote" href="#_footnotedef_1" title="View footnote.">1</a>]</sup>
 account for now.
 You can use any email provider you like, as long as they support SMTP:</p>
@@ -396,9 +398,14 @@ You can use any email provider you like, as long as they support SMTP:</p>
 </div>
 </div>
 </div>
-<div class="paragraph">
-<p>
-TIP: If you want to use Gmail as well,
+<div class="admonitionblock tip">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-tip" title="Tip"></i>
+</td>
+<td class="content">
+If you want to use Gmail as well,
     you&#8217;ll probably have to visit your Google account security settings page.
     If you&#8217;re using two-factor auth, you&#8217;ll want to set up an
     <a href="https://myaccount.google.com/apppasswords">app-specific password</a>.
@@ -406,10 +413,14 @@ TIP: If you want to use Gmail as well,
     <a href="https://www.google.com/settings/security/lesssecureapps">allow access for less secure apps</a>.
     You might want to consider creating a new Google account for this purpose,
     rather than using one containing sensitive data.
+    
 
 
 
-</p>
+
+</td>
+</tr>
+</table>
 </div>
 </div>
 <div class="sect3">
@@ -440,7 +451,7 @@ on the staging server as well.</p>
 <div class="paragraph">
 <p>
 
-How are we doing?</p>
+How are we doing? Let&#8217;s review where we&#8217;re at in the process:</p>
 </div>
 <div class="sidebarblock scratchpad">
 <div class="content">
@@ -490,7 +501,7 @@ not optimising database storage.
 We&#8217;ve got enough things we need to learn as it is!</p>
 </div>
 <div class="paragraph">
-<p>We switch on our new accounts app in <em>settings.py</em>:</p>
+<p>Let&#8217;s switch on our new accounts app in <em>settings.py</em>:</p>
 </div>
 <div class="exampleblock sourcecode">
 <div class="title">src/superlists/settings.py (ch18l008-1)</div>
@@ -512,7 +523,7 @@ We&#8217;ve got enough things we need to learn as it is!</p>
 </div>
 </div>
 <div class="paragraph">
-<p>We can do a quick migrations dance to add the token model to the db:</p>
+<p>We can then do a quick migrations dance to add the token model to the db:</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -529,7 +540,7 @@ Running migrations:
 </div>
 <div class="paragraph">
 <p>And at this point, if you actually try the email form in your browser,
-you&#8217;ll see we can actually send email! See <a href="#spike-email-sent">Looks like we might have sent an email</a> and &lt;&lt;</p>
+you&#8217;ll see we can actually send email! See <a href="#spike-email-sent">Looks like we might have sent an email</a> and <a href="#spike-email-received">Yep looks like we received it</a></p>
 </div>
 <div id="spike-email-sent" class="imageblock">
 <div class="content">
@@ -548,8 +559,7 @@ you&#8217;ll see we can actually send email! See <a href="#spike-email-sent">Loo
 <h4 id="_custom_authentication_models">Custom Authentication Models</h4>
 <div class="paragraph">
 <p>
-Before the login will work end-to-end though,
-we need to sort out user authentication in Django.</p>
+OK so we&#8217;ve done the first half of "generate and recognise unique tokens":</p>
 </div>
 <div class="sidebarblock scratchpad">
 <div class="content">
@@ -572,9 +582,11 @@ we need to sort out user authentication in Django.</p>
 </div>
 </div>
 <div class="paragraph">
-<p>The first thing we&#8217;ll need is a user model.
+<p>Before we can move on to recognising them and making the login work end-to-end though,
+we need to sort out user authentication in Django.
+The first thing we&#8217;ll need is a user model.
 I took a dive into the
-<a href="https://docs.djangoproject.com/en/5.0/topics/auth/customizing">Django
+<a href="https://docs.djangoproject.com/en/5.1/topics/auth/customizing">Django
 auth documentation</a> and tried to hack in the simplest possible one:</p>
 </div>
 <div class="exampleblock sourcecode">
@@ -659,18 +671,11 @@ Running migrations:
   Applying accounts.0002_listuser... OK</pre>
 </div>
 </div>
-<div class="paragraph">
-<p>/ch18l009-1</p>
-</div>
 </div>
 <div class="sect3">
 <h4 id="_finishing_the_custom_django_auth">Finishing the Custom Django Auth</h4>
 <div class="paragraph">
-<p>
-Almost there&#8212;&#8203;our last step combines recognising the token
-and then actually logging the user in.
-Once we&#8217;ve done this,
-we&#8217;ll be able to pretty much strike off all the items on our scratchpad:</p>
+<p>Let&#8217;s review our scratchpad:</p>
 </div>
 <div class="sidebarblock scratchpad">
 <div class="content">
@@ -691,6 +696,19 @@ we&#8217;ll be able to pretty much strike off all the items on our scratchpad:</
 </ul>
 </div>
 </div>
+</div>
+<div class="paragraph">
+<p>
+Hmm, we can&#8217;t quite cross off anything yet.
+Turns out the steps we <em>thought</em> we&#8217;d go through
+aren&#8217;t quite the same as the steps we&#8217;re <em>actually</em> going through
+(this is not uncommon as I&#8217;m sure you know).</p>
+</div>
+<div class="paragraph">
+<p>Still, we&#8217;re almost there&#8212;&#8203;our last step will combine recognising the token
+and then actually logging the user in.
+Once we&#8217;ve done this,
+we&#8217;ll be able to pretty much strike off all the items on our scratchpad.</p>
 </div>
 <div class="paragraph">
 <p>So here&#8217;s the view that actually handles the click through from the link in the
@@ -838,7 +856,7 @@ as long as we add it to settings.py:</p>
 <div class="paragraph">
 <p>And we should be all done!
 Spin up a dev server with <code>runserver</code> and try it&#8212;&#8203;believe it or not,
-it <em>acutally</em> works:
+it <em>actually</em> works:
 (<a href="#spike-login-worked">It works! It works! Mwahahahaha.</a>).</p>
 </div>
 <div id="spike-login-worked" class="imageblock">
@@ -857,6 +875,8 @@ it <em>acutally</em> works:
 If you get an <code>SMTPSenderRefused</code> error message, don&#8217;t forget to set
     the <code>EMAIL_PASSWORD</code> environment variable in the shell that&#8217;s running
     <code>runserver</code>.
+    Also, if you see a message saying "Application-specific password required.",
+    that&#8217;s a Gmail security policy.  Follow the link in the error message.
 </td>
 </tr>
 </table>
@@ -879,6 +899,26 @@ which thankfully turned out to be a red herring.
 <pre>$ <strong>git status</strong>
 $ <strong>git add src/accounts</strong>
 $ <strong>git commit -am "spiked in custom passwordless auth backend"</strong></pre>
+</div>
+</div>
+<div class="sidebarblock scratchpad">
+<div class="content">
+<div class="ulist">
+<ul>
+<li>
+<p><em><span class="strikethrough line-through">How to send emails</span></em></p>
+</li>
+<li>
+<p><em><span class="strikethrough line-through">Generating and recognising unique tokens</span></em></p>
+</li>
+<li>
+<p><em><span class="strikethrough line-through">_How to authenticate someone in Django</span></em></p>
+</li>
+<li>
+<p><em><span class="strikethrough line-through">_What steps will the user have to go through?</span></em></p>
+</li>
+</ul>
+</div>
 </div>
 </div>
 <div class="paragraph">
@@ -970,7 +1010,7 @@ Then we&#8217;ll go back to our main branch and commit just the FT.</p>
 <td>Were you worried about how we were going to handle retrieving emails in our
 tests?  Thankfully we can cheat for now! When running tests, Django gives
 us access to any emails the server tries to send via the <code>mail.outbox</code>
-attribute. We&#8217;ll discuss checking "real" emails later.</td>
+attribute. We&#8217;ll discuss checking "real" emails in chapter <em>_</em>.</td>
 </tr>
 </table>
 </div>
@@ -1004,7 +1044,7 @@ and reintroduce them one by one in a test-driven way.</p>
 <h4 id="_reverting_our_spiked_code">Reverting Our Spiked Code</h4>
 <div class="listingblock">
 <div class="content">
-<pre>$ <strong>git checkout main</strong> # switch back to main branch
+<pre>$ <strong>git switch main</strong> # switch back to main branch
 $ <strong>rm -rf src/accounts</strong> # remove any trace of spiked code
 $ <strong>git add src/functional_tests/test_login.py</strong>
 $ <strong>git commit -m "FT for login via email"</strong></pre>
@@ -1503,10 +1543,8 @@ AssertionError: '' == ''</pre>
 <p>And here we have to decide how to generate our random unique ID field.
 We could use the <code>random</code> module, but Python actually comes with another module
 specifically designed for generating unique IDs called "uuid"
-(for "universally unique id").</p>
-</div>
-<div class="paragraph">
-<p>We can use that like this:</p>
+(for "universally unique id").
+We can use it like this:</p>
 </div>
 <div class="exampleblock sourcecode">
 <div class="title">src/accounts/models.py (ch18l040)</div>
@@ -1602,7 +1640,7 @@ something to watch out for.
 </div>
 <div id="footer">
 <div id="footer-text">
-License: Creative Commons <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode">CC-BY-NC-ND</a>. Last updated: 2024-10-13 21:05:14 +0100
+License: Creative Commons <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode">CC-BY-NC-ND</a>. Last updated: 2025-02-05 18:20:04 UTC
 </div>
 </div>
 <div class="comments" style="padding: 20px">

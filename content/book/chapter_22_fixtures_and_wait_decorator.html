@@ -168,10 +168,13 @@ against the database on the staging server too.</p>
 <p>
 Because HTTP is stateless,
 servers need a way of recognising different clients with <em>every single request</em>.
-IP addresses can be shared,
-so the usual solution is to give each client a unique session ID,
-which it will store in a cookie and submit with every request.
-The server will store that ID somewhere
+We may think of just using IP addresses to associate with clients, but IP
+addresses can be shared among multiple clients, so we cannot use that.
+The usual solution is to give each client a unique session ID,
+which it will store in a cookie and submit with every request.</p>
+</div>
+<div class="paragraph">
+<p>The server will store that ID somewhere
 (by default, in the database),
 and then it can recognise each request that comes in
 as being from a particular client.</p>
@@ -222,22 +225,25 @@ In [3]: print(session.get_decoded())
 </div>
 <div class="paragraph">
 <p>You can also store any other information you like on a user&#8217;s session,
-as a way of temporarily keeping track of some state. This works for
-non&#8211;logged-in users too.  Just use <code>request.session</code> inside any
-view, and it works as a dict. There&#8217;s more information in the
-<a href="https://docs.djangoproject.com/en/5.0/topics/http/sessions/">Django docs on
-sessions</a>.</p>
+as a way of temporarily keeping track of some state.
+This works for non&#8211;logged-in users too.
+Just use <code>request.session</code> inside any view, and it works as a dict.
+There&#8217;s more information in the
+<a href="https://docs.djangoproject.com/en/5.1/topics/http/sessions/">Django docs on sessions</a>.</p>
 </div>
 </div>
 </div>
 <div class="sect3">
 <h4 id="_checking_that_it_works">Checking That It Works</h4>
 <div class="paragraph">
-<p>To check that it works, it would be good to use some of the code from our previous
-test.  Let&#8217;s make a couple of functions called <code>wait_to_be_logged_in</code> and
-<code>wait_to_be_logged_out</code>. To access them from a different test, we&#8217;ll need
-to pull them up into <code>FunctionalTest</code>. We&#8217;ll also tweak them slightly so that
-they can take an arbitrary email address as a parameter:</p>
+<p>To check that <code>create_pre_authenticated_session()</code>  system works,
+it would be good to use some of the code from our previous test.
+Let&#8217;s make a couple of functions
+called <code>wait_to_be_logged_in</code> and <code>wait_to_be_logged_out</code>.
+To access them from a different test,
+we&#8217;ll need to pull them up into <code>FunctionalTest</code>.
+We&#8217;ll also tweak them slightly so that they can take an arbitrary email address
+as a parameter:</p>
 </div>
 <div class="exampleblock sourcecode">
 <div class="title">src/functional_tests/base.py (ch20l002)</div>
@@ -346,8 +352,8 @@ OK</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>That&#8217;s
-a good place for a commit:</p>
+<p>
+That&#8217;s a good place for a commit:</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -373,8 +379,8 @@ and automatically loading them in your test runs
 using the <code>fixtures</code> class attribute on <code>TestCase</code>.</p>
 </div>
 <div class="paragraph">
-<p>More and more people are starting to say:
-<a href="http://bit.ly/1kSTyrb">don&#8217;t use JSON fixtures</a>.
+<p>You&#8217;ll find people out there saying <a href="http://bit.ly/1kSTyrb">don&#8217;t use JSON fixtures</a>,
+and I tend to agree.
 They&#8217;re a nightmare to maintain when your model changes.
 Plus it&#8217;s difficult for the reader
 to tell which of the many attribute values specified in the JSON
@@ -399,7 +405,7 @@ Once you have more than a handful of fields on a model,
     and/or several related models,
     you&#8217;ll want to factor out some nice helper methods with descriptive names
     to build out your data.
-    A lot of people also lilke
+    A lot of people also like
     <a href="https://factoryboy.readthedocs.org/"><code>factory_boy</code></a>,
     but I think the most important thing is the descriptive names.
 </td>
@@ -426,8 +432,8 @@ but it&#8217;s time to learn how they actually work by making one of our own.</p
 <div class="paragraph">
 <p>First, let&#8217;s imagine how we might want our decorator to work.
 It would be nice to be able to replace all the custom wait/retry/timeout logic
-in <code>wait_for_row_&#8203;in_list_table()</code>
-and the inline <code>self.wait_fors()</code> in the <code>wait_to_be_logged_in/out</code>.
+in <code>wait_for_row_in_list_table()</code> and the inline <code>self.wait_fors()</code>
+in the <code>wait_to_be_logged_in/out</code>.
 Something like this would look lovely:</p>
 </div>
 <div class="exampleblock sourcecode">
@@ -469,7 +475,7 @@ returns a modified version of the function that it was given.</p>
 </div>
 <div class="paragraph">
 <p>Our decorator wants to return a new function
-which will keep calling the function being decorated,
+which will keep retrying the function being decorated,
 catching our usual exceptions,
 until a timeout occurs.
 Here&#8217;s a first cut:</p>
@@ -489,6 +495,7 @@ Here&#8217;s a first cut:</p>
                 <span class="tok-k">if</span> <span class="tok-n">time</span><span class="tok-o">.</span><span class="tok-n">time</span><span class="tok-p">()</span> <span class="tok-o">-</span> <span class="tok-n">start_time</span> <span class="tok-o">&gt;</span> <span class="tok-n">MAX_WAIT</span><span class="tok-p">:</span>
                     <span class="tok-k">raise</span> <span class="tok-n">e</span>
                 <span class="tok-n">time</span><span class="tok-o">.</span><span class="tok-n">sleep</span><span class="tok-p">(</span><span class="tok-mf">0.5</span><span class="tok-p">)</span>
+
     <span class="tok-k">return</span> <span class="tok-n">modified_fn</span>  <i class="conum" data-value="2"></i><b>(2)</b></code></pre>
 </div>
 </div>
@@ -507,7 +514,7 @@ it takes a function as an <span class="keep-together">argument&#8230;&#8203;</sp
 </tr>
 <tr>
 <td><i class="conum" data-value="3"></i><b>3</b></td>
-<td>Here&#8217;s where we create our modified function.</td>
+<td>Here&#8217;s where we define our modified function.</td>
 </tr>
 <tr>
 <td><i class="conum" data-value="4"></i><b>4</b></td>
@@ -553,7 +560,7 @@ that have <span class="keep-together">arguments</span>:</p>
 <div class="paragraph">
 <p><code>wait_to_be_logged_in</code> takes <code>self</code> and <code>email</code> as positional arguments.
 But when it&#8217;s decorated, it&#8217;s replaced with <code>modified_fn</code>,
-which takes no arguments.
+which currently takes no arguments.
 How do we magically make it so our <code>modified_fn</code> can handle the same arguments
 as whatever <code>fn</code> the decorator gets given has?</p>
 </div>
@@ -578,6 +585,7 @@ apparently (I only just learned that):</p>
                 <span class="tok-k">if</span> <span class="tok-n">time</span><span class="tok-o">.</span><span class="tok-n">time</span><span class="tok-p">()</span> <span class="tok-o">-</span> <span class="tok-n">start_time</span> <span class="tok-o">&gt;</span> <span class="tok-n">MAX_WAIT</span><span class="tok-p">:</span>
                     <span class="tok-k">raise</span> <span class="tok-n">e</span>
                 <span class="tok-n">time</span><span class="tok-o">.</span><span class="tok-n">sleep</span><span class="tok-p">(</span><span class="tok-mf">0.5</span><span class="tok-p">)</span>
+
     <span class="tok-k">return</span> <span class="tok-n">modified_fn</span></code></pre>
 </div>
 </div>
@@ -700,7 +708,7 @@ types of preconditions.
 <dd>
 <p>Django makes it easy to save and restore data from the database
 in JSON format (and others) using the <code>dumpdata</code> and <code>loaddata</code> management commands.
-<span class="keep-together">Most people</span> recommend against using these for test fixtures,
+I would tend to recommend against them,
 as they are painful to manage when your database schema changes.
 Use the ORM, with some nicely named helper functions instead.
 
@@ -718,7 +726,7 @@ Use the ORM, with some nicely named helper functions instead.
 </div>
 <div id="footer">
 <div id="footer-text">
-License: Creative Commons <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode">CC-BY-NC-ND</a>. Last updated: 2024-10-13 21:05:14 +0100
+License: Creative Commons <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode">CC-BY-NC-ND</a>. Last updated: 2025-02-05 18:20:04 UTC
 </div>
 </div>
 <div class="comments" style="padding: 20px">

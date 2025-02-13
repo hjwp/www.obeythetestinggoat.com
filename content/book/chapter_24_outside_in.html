@@ -87,8 +87,9 @@ and then finally add URL routing to point to the new view.</p>
 </div>
 <div class="paragraph">
 <p>It feels comfortable because it means you&#8217;re never working on a bit of code
-that is dependent on something that hasn&#8217;t yet been implemented. Each bit of
-work on the inside is a solid foundation on which to build the next layer out.</p>
+that is dependent on something that hasn&#8217;t yet been implemented.
+Each bit of work on the inside is a solid foundation
+on which to build the next layer out.</p>
 </div>
 <div class="paragraph">
 <p>But working inside-out like this also has some weaknesses.</p>
@@ -99,48 +100,52 @@ work on the inside is a solid foundation on which to build the next layer out.</
 <div class="paragraph">
 <p>
 
-The most obvious problem with inside-out is that it requires us to stray from a
-TDD workflow. Our functional test&#8217;s first failure might be due to missing URL
-routing, but we decide to ignore that and go off adding attributes to our
-database model objects instead.</p>
+The most obvious problem with inside-out is that
+it requires us to stray from a TDD workflow.
+Our functional test&#8217;s first failure might be due to missing URL routing,
+but we decide to ignore that
+and go off adding attributes to our database model objects instead.</p>
 </div>
 <div class="paragraph">
-<p>We might have ideas in our head about the new desired behaviour of our inner
-layers like database models, and often these ideas will be pretty good, but
-they are actually just speculation about what&#8217;s really required, because
-we haven&#8217;t yet built the outer layers that will use them.</p>
+<p>We might have ideas in our head
+about the new desired behaviour of our inner layers like database models,
+and often these ideas will be pretty good,
+but they are actually just speculation about what&#8217;s really required,
+because we haven&#8217;t yet built the outer layers that will use them.</p>
 </div>
 <div class="paragraph">
-<p>One problem that can result is to build inner components that are more
-general or more capable than we actually need, which is a waste of time,
-and an added source of complexity for your project. Another common problem
-is that you create inner components with an API which is convenient for their
-own internal design, but which later turns out to be inappropriate for the
-calls your outer layers would like to make&#8230;&#8203;worse still, you might end up
-with inner components which, you later realise, don&#8217;t actually solve the
-problem that your outer layers need solved.</p>
+<p>One problem that can result is to build inner components that are more general
+or more capable than we actually need, which is a waste of time,
+and an added source of complexity for your project.
+Another common problem is that you create inner components
+with an API which is convenient for their own internal design,
+but which later turns out to be inappropriate
+for the calls your outer layers would like to make&#8230;&#8203;worse still,
+you might end up with inner components which, you later realise,
+don&#8217;t actually solve the problem that your outer layers need solved.</p>
 </div>
 <div class="paragraph">
-<p>In contrast, working outside-in allows you to use each layer to imagine the
-most convenient API you could want from the layer beneath it. Let&#8217;s see it in
-action.</p>
+<p>In contrast, working outside-in allows you to use each layer
+to imagine the most convenient API you could want from the layer beneath it.
+Let&#8217;s see it in action.</p>
 </div>
 </div>
 <div class="sect2">
 <h3 id="_the_ft_for_my_lists">The FT for "My Lists"</h3>
 <div class="paragraph">
 <p>
-As we work through the following functional test, we start with the most
-outward-facing (presentation layer), through to the view functions (or
-"controllers"), and lastly the innermost layers, which in this case will be
-model code.</p>
+As we work through the following functional test,
+we start with the most outward-facing (presentation layer),
+through to the view functions (or "controllers"),
+and lastly the innermost layers, which in this case will be model code.</p>
 </div>
 <div class="paragraph">
-<p>We know our <code>create_pre_authenticated_session</code> code works now, so we can just
-write our FT to look for a "My Lists" page:</p>
+<p>We know our <code>create_pre_authenticated_session</code> code works now,
+so we can just fill out the actual body of our FT
+to look for a "My Lists" page:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">src/functional_tests/test_my_lists.py (ch22l001)</div>
+<div class="title">src/functional_tests/test_my_lists.py (ch24l001)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
@@ -153,15 +158,23 @@ write our FT to look for a "My Lists" page:</p>
 
         <span class="tok-c1"># She goes to the home page and starts a list</span>
         <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">browser</span><span class="tok-o">.</span><span class="tok-n">get</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">live_server_url</span><span class="tok-p">)</span>
-        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">add_list_item</span><span class="tok-p">(</span><span class="tok-s2">"Reticulate splines"</span><span class="tok-p">)</span>
+        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">add_list_item</span><span class="tok-p">(</span><span class="tok-s2">"Reticulate splines"</span><span class="tok-p">)</span>  <i class="conum" data-value="1"></i><b>(1)</b>
         <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">add_list_item</span><span class="tok-p">(</span><span class="tok-s2">"Immanentize eschaton"</span><span class="tok-p">)</span>
         <span class="tok-n">first_list_url</span> <span class="tok-o">=</span> <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">browser</span><span class="tok-o">.</span><span class="tok-n">current_url</span>
 
         <span class="tok-c1"># She notices a "My lists" link, for the first time.</span>
         <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">browser</span><span class="tok-o">.</span><span class="tok-n">find_element</span><span class="tok-p">(</span><span class="tok-n">By</span><span class="tok-o">.</span><span class="tok-n">LINK_TEXT</span><span class="tok-p">,</span> <span class="tok-s2">"My lists"</span><span class="tok-p">)</span><span class="tok-o">.</span><span class="tok-n">click</span><span class="tok-p">()</span>
 
-        <span class="tok-c1"># She sees that her list is in there, named according to its</span>
-        <span class="tok-c1"># first list item</span>
+        <span class="tok-c1"># She sees her email is there in the page heading</span>
+        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">wait_for</span><span class="tok-p">(</span>
+            <span class="tok-k">lambda</span><span class="tok-p">:</span> <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertIn</span><span class="tok-p">(</span>
+                <span class="tok-s2">"edith@example.com"</span><span class="tok-p">,</span>
+                <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">browser</span><span class="tok-o">.</span><span class="tok-n">find_element</span><span class="tok-p">(</span><span class="tok-n">By</span><span class="tok-o">.</span><span class="tok-n">CSS_SELECTOR</span><span class="tok-p">,</span> <span class="tok-s2">"h1"</span><span class="tok-p">)</span><span class="tok-o">.</span><span class="tok-n">text</span><span class="tok-p">,</span>
+            <span class="tok-p">)</span>
+        <span class="tok-p">)</span>
+
+        <span class="tok-c1"># And she sees that her list is in there,</span>
+        <span class="tok-c1"># named according to its first list item</span>
         <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">wait_for</span><span class="tok-p">(</span>
             <span class="tok-k">lambda</span><span class="tok-p">:</span> <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">browser</span><span class="tok-o">.</span><span class="tok-n">find_element</span><span class="tok-p">(</span><span class="tok-n">By</span><span class="tok-o">.</span><span class="tok-n">LINK_TEXT</span><span class="tok-p">,</span> <span class="tok-s2">"Reticulate splines"</span><span class="tok-p">)</span>
         <span class="tok-p">)</span>
@@ -173,18 +186,27 @@ write our FT to look for a "My Lists" page:</p>
 </div>
 </div>
 </div>
-<div class="paragraph">
-<p>We create a list with a couple of items, and then we check that this list
-appears on a new "My Lists" page, and that it&#8217;s "named" after the first item
-in the list.</p>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>We&#8217;ll define this <code>add_list_item()</code> shortly.</td>
+</tr>
+</table>
 </div>
 <div class="paragraph">
-<p>Let&#8217;s validate that it really works by creating a second list, and seeing that
-appear on the My Lists page as well.  The FT continues, and while we&#8217;re at it,
+<p>As you can see, we create a list with a couple of items,
+then we check that this list appears on a new "My Lists" page,
+and that it&#8217;s "named" after the first item in the list.</p>
+</div>
+<div class="paragraph">
+<p>Let&#8217;s validate that it really works by creating a second list,
+and seeing that appear on the My Lists page as well.
+The FT continues, and while we&#8217;re at it,
 we check that only logged-in users can see the "My Lists" page:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">src/functional_tests/test_my_lists.py (ch22l002)</div>
+<div class="title">src/functional_tests/test_my_lists.py (ch24l002)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
@@ -219,11 +241,12 @@ we check that only logged-in users can see the "My Lists" page:</p>
 </div>
 </div>
 <div class="paragraph">
-<p>Our FT uses a new helper method, <code>add_list_item</code>, which abstracts away entering
-text into the right input box.  We define it in <em>base.py</em>:</p>
+<p>Our FT uses a new helper method, <code>add_list_item</code>,
+which abstracts away entering text into the right input box.
+We define it in <em>base.py</em>:</p>
 </div>
 <div class="exampleblock sourcecode small-code">
-<div class="title">src/functional_tests/base.py (ch22l003)</div>
+<div class="title">src/functional_tests/base.py (ch24l003)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
@@ -241,21 +264,28 @@ text into the right input box.  We define it in <em>base.py</em>:</p>
 </div>
 </div>
 <div class="paragraph">
-<p>And while we&#8217;re at it we can use it in a few of the other FTs, like this:</p>
+<p>And while we&#8217;re at it we can use it in a few of the other FTs,
+like this for example:</p>
 </div>
-<div class="exampleblock sourcecode currentcontents dofirst-ch22l004">
-<div class="title">src/functional_tests/test_list_item_validation.py</div>
+<div class="exampleblock sourcecode dofirst-ch24l004-1">
+<div class="title">src/functional_tests/test_layout_and_styling.py (ch24l004-2)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="pygments highlight"><code data-lang="python"><span></span>    <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">add_list_item</span><span class="tok-p">(</span><span class="tok-s2">"Buy wellies"</span><span class="tok-p">)</span></code></pre>
+<pre class="pygments highlight"><code data-lang="diff"><span></span><span class="tok-w"> </span>        # She starts a new list and sees the input is nicely
+<span class="tok-w"> </span>        # centered there too
+<span class="tok-gd">-        inputbox.send_keys("testing")</span>
+<span class="tok-gd">-        inputbox.send_keys(Keys.ENTER)</span>
+<span class="tok-gd">-        self.wait_for_row_in_list_table("1: testing")</span>
+<span class="tok-gi">+        self.add_list_item("testing")</span>
+<span class="tok-gi">+</span></code></pre>
 </div>
 </div>
 </div>
 </div>
 <div class="paragraph">
-<p>I think it makes the FTs a lot more readable. I made a total of six
-changes&#8212;&#8203;see if you agree with me.</p>
+<p>I think it makes the FTs a lot more readable.
+I made a total of six changes&#8212;&#8203;see if you agree with me.</p>
 </div>
 <div class="paragraph">
 <p>A quick run of all FTs, a commit, and then back to the FT we&#8217;re working on.
@@ -278,15 +308,8 @@ The test is currently failing saying that it can&#8217;t find a link saying "My 
 We can address that at the presentation layer, in <em>base.html</em>, in our navigation bar.
 Here&#8217;s the minimal code change:</p>
 </div>
-<div class="ulist">
-<ul>
-<li>
-<p>TODO: update this link for latest bootstrap / style nicely</p>
-</li>
-</ul>
-</div>
 <div class="exampleblock sourcecode small-code">
-<div class="title">src/lists/templates/base.html (ch22l005)</div>
+<div class="title">src/lists/templates/base.html (ch24l005)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
@@ -294,7 +317,7 @@ Here&#8217;s the minimal code change:</p>
         <span class="tok-p">&lt;</span><span class="tok-nt">div</span> <span class="tok-na">class</span><span class="tok-o">=</span><span class="tok-s">"container-fluid"</span><span class="tok-p">&gt;</span>
           <span class="tok-p">&lt;</span><span class="tok-nt">a</span> <span class="tok-na">class</span><span class="tok-o">=</span><span class="tok-s">"navbar-brand"</span> <span class="tok-na">href</span><span class="tok-o">=</span><span class="tok-s">"/"</span><span class="tok-p">&gt;</span>Superlists<span class="tok-p">&lt;/</span><span class="tok-nt">a</span><span class="tok-p">&gt;</span>
           {% if user.email %}
-            <span class="tok-p">&lt;</span><span class="tok-nt">a</span> <span class="tok-na">href</span><span class="tok-o">=</span><span class="tok-s">"#"</span><span class="tok-p">&gt;</span>My lists<span class="tok-p">&lt;/</span><span class="tok-nt">a</span><span class="tok-p">&gt;</span>
+            <span class="tok-p">&lt;</span><span class="tok-nt">a</span> <span class="tok-na">class</span><span class="tok-o">=</span><span class="tok-s">"navbar-link"</span> <span class="tok-na">href</span><span class="tok-o">=</span><span class="tok-s">"#"</span><span class="tok-p">&gt;</span>My lists<span class="tok-p">&lt;/</span><span class="tok-nt">a</span><span class="tok-p">&gt;</span>
             <span class="tok-p">&lt;</span><span class="tok-nt">span</span> <span class="tok-na">class</span><span class="tok-o">=</span><span class="tok-s">"navbar-text"</span><span class="tok-p">&gt;</span>Logged in as {{ user.email }}<span class="tok-p">&lt;/</span><span class="tok-nt">span</span><span class="tok-p">&gt;</span>
             <span class="tok-p">&lt;</span><span class="tok-nt">form</span> <span class="tok-na">method</span><span class="tok-o">=</span><span class="tok-s">"POST"</span> <span class="tok-na">action</span><span class="tok-o">=</span><span class="tok-s">"{% url 'logout' %}"</span><span class="tok-p">&gt;</span>
               [...]</code></pre>
@@ -303,45 +326,40 @@ Here&#8217;s the minimal code change:</p>
 </div>
 </div>
 <div class="paragraph">
-<p>Of course, that link doesn&#8217;t actually go anywhere, but it does get us along to
-the next failure:</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p>TODO: address issue with default list item ordering here.</p>
-</li>
-</ul>
+<p>Of course the <code>href="#"</code> means that link doesn&#8217;t actually go anywhere,
+but it <em>does</em> get our FT along to the next failure:</p>
 </div>
 <div class="listingblock">
 <div class="content">
 <pre>$ <strong>python src/manage.py test functional_tests.test_my_lists</strong>
 [...]
-    self.wait_for(
-    ~~~~~~~~~~~~~^
-        lambda: self.browser.find_element(By.LINK_TEXT, "Reticulate splines")
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-[...]
-selenium.common.exceptions.NoSuchElementException: Message: Unable to locate
-element: Reticulate splines; [...]</pre>
+    lambda: self.assertIn(
+            ~~~~~~~~~~~~~^
+        "edith@example.com",
+        ^^^^^^^^^^^^^^^^^^^^
+        self.browser.find_element(By.CSS_SELECTOR, "h1").text,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+AssertionError: 'edith@example.com' not found in 'Your To-Do list'</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>Which is telling us we&#8217;re going to have to build a page that lists all of a
-user&#8217;s lists by title.  Let&#8217;s start with the basics&#8212;&#8203;a URL and a placeholder
-template for it.</p>
+<p>Which is telling us we&#8217;re going to have to build a page
+that at least has the user&#8217;s email in its header.
+Let&#8217;s start with the basics&#8212;&#8203;a URL and a placeholder template for it.</p>
 </div>
 <div class="paragraph">
-<p>Again, we can go outside-in, starting at the presentation layer with just the
-URL and nothing else:</p>
+<p>Again, we can go outside-in,
+starting at the presentation layer with just the URL and nothing else:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">src/lists/templates/base.html (ch22l006)</div>
+<div class="title">src/lists/templates/base.html (ch24l006)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
 <pre class="pygments highlight"><code data-lang="html"><span></span>  {% if user.email %}
-    <span class="tok-p">&lt;</span><span class="tok-nt">a</span> <span class="tok-na">href</span><span class="tok-o">=</span><span class="tok-s">"{% url 'my_lists' user.email %}"</span><span class="tok-p">&gt;</span>My lists<span class="tok-p">&lt;/</span><span class="tok-nt">a</span><span class="tok-p">&gt;</span></code></pre>
+    <span class="tok-p">&lt;</span><span class="tok-nt">a</span> <span class="tok-na">class</span><span class="tok-o">=</span><span class="tok-s">"navbar-link"</span> <span class="tok-na">href</span><span class="tok-o">=</span><span class="tok-s">"{% url 'my_lists' user.email %}"</span><span class="tok-p">&gt;</span>My lists<span class="tok-p">&lt;/</span><span class="tok-nt">a</span><span class="tok-p">&gt;</span></code></pre>
 </div>
 </div>
 </div>
@@ -351,15 +369,35 @@ URL and nothing else:</p>
 <h3 id="_moving_down_one_layer_to_view_functions_the_controller">Moving Down One Layer to View Functions (the Controller)</h3>
 <div class="paragraph">
 <p>
-That will cause a template error, so we&#8217;ll start to move down from the
-presentation layer and URLs down to the controller layer, Django&#8217;s view
-functions.</p>
+That will cause a template error in the FT:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>./src/manage.py test functional_tests.test_my_lists</strong>
+[...]
+Internal Server Error: /
+[...]
+  File "...goat-book/src/lists/views.py", line 8, in home_page
+    return render(request, "home.html", {"form": ItemForm()})
+[...]
+django.urls.exceptions.NoReverseMatch: Reverse for 'my_lists' not found.
+'my_lists' is not a valid view function or pattern name.
+[...]
+ERROR: test_logged_in_users_lists_are_saved_as_my_lists [...]
+[...]
+selenium.common.exceptions.NoSuchElementException: [...]</pre>
+</div>
 </div>
 <div class="paragraph">
-<p>As always, we start with a test:</p>
+<p>To fix it, we&#8217;ll need to start to move from working at the presentation layer,
+gradually into the controller layer, Django&#8217;s view functions.</p>
+</div>
+<div class="paragraph">
+<p>As always, we start with a test.
+In this layer, a unit test is the way to go:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">src/lists/tests/test_views.py (ch22l007)</div>
+<div class="title">src/lists/tests/test_views.py (ch24l007)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
@@ -380,10 +418,11 @@ functions.</p>
 </div>
 </div>
 <div class="paragraph">
-<p>And we fix it, still at the presentation level, in <em>urls.py</em>:</p>
+<p>That&#8217;s because the URL doesn&#8217;t exist yet, and a 404 has no template.
+Let&#8217;s start our fix in <em>urls.py</em>:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">src/lists/urls.py (ch22l008)</div>
+<div class="title">src/lists/urls.py (ch24l008)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
@@ -397,8 +436,10 @@ functions.</p>
 </div>
 </div>
 <div class="paragraph">
-<p>That gives us a test failure, which informs us of what we should do as we
-move down to the next level:</p>
+<p>That gives us a new test failure,
+which informs us of what we should do.
+As you can see, it&#8217;s pointing us at a <em>views.py</em>,
+we&#8217;re clearly in the controller layer:</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -408,11 +449,10 @@ AttributeError: module 'lists.views' has no attribute 'my_lists'</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>We move in from the presentation layer to the views layer, and create a
-minimal placeholder:</p>
+<p>Let&#8217;s create a minimal placeholder then:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">src/lists/views.py (ch22l009)</div>
+<div class="title">src/lists/views.py (ch24l009)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
@@ -423,24 +463,33 @@ minimal placeholder:</p>
 </div>
 </div>
 <div class="paragraph">
-<p>And a minimal template:</p>
+<p>And a minimal template, with no real content
+except for the header that shows the user&#8217;s email address:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">src/lists/templates/my_lists.html (ch22l010)</div>
+<div class="title">src/lists/templates/my_lists.html (ch24l010)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
 <pre class="pygments highlight"><code data-lang="html"><span></span>{% extends 'base.html' %}
 
-{% block header_text %}My Lists{% endblock %}</code></pre>
+{% block header_text %}{{user.email}}'s Lists{% endblock %}</code></pre>
 </div>
 </div>
 </div>
 </div>
 <div class="paragraph">
-<p>That gets our unit tests passing, but our FT is still at the same point,
-saying that the "My Lists" page doesn&#8217;t yet show any lists.  It wants
-them to be clickable links named after the first item:</p>
+<p>That gets our unit tests passing.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>./src/manage.py test lists</strong>
+[...]
+OK</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>And hopefully it will address the current error in our FT:</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -450,119 +499,461 @@ selenium.common.exceptions.NoSuchElementException: Message: Unable to locate
 element: Reticulate splines; [...]</pre>
 </div>
 </div>
+<div class="paragraph">
+<p>Step by step! Sure enough, the FT get a little further.
+It <em>can</em> now find the email in the <code>&lt;h1&gt;</code>,
+but it&#8217;s now saying that the "My Lists" page doesn&#8217;t yet show any lists.
+It wants them to appear as clickable links, named after the first item.</p>
+</div>
 </div>
 <div class="sect2">
 <h3 id="_another_pass_outside_in">Another Pass, Outside-In</h3>
 <div class="paragraph">
 <p>
-At each stage, we still let the FT drive what development we do.</p>
+At each stage, we&#8217;re still letting the FT drive what development we do.</p>
 </div>
 <div class="paragraph">
 <p>Starting again at the outside layer, in the template,
 we begin to write the template code we&#8217;d like to use
-to get the "My Lists" page to work the  way we want it to.
+to get the "My Lists" page to work the way we want it to.
 As we do so, we start to specify the API we want
 from the code at the layers below.</p>
 </div>
 <div class="sect3">
-<h4 id="_a_quick_restructure_of_the_template_inheritance_hierarchy">A Quick Restructure of the Template Inheritance Hierarchy</h4>
+<h4 id="_a_quick_restructure_of_our_template_composition">A Quick Restructure of Our Template Composition</h4>
 <div class="paragraph">
 <p>
-Currently there&#8217;s no place in our base template for us to put any new content.</p>
+Let&#8217;s take a look at our base template, <em>base.html</em>.
+It currently has a lot of content that&#8217;s specific to editing todo lists,
+which our "My Lists" page doesn&#8217;t need:</p>
 </div>
-<div class="exampleblock sourcecode">
-<div class="title">src/lists/templates/base.html (ch22l011-2)</div>
+<div class="exampleblock sourcecode currentcontents">
+<div class="title">src/lists/templates/base.html</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="pygments highlight"><code data-lang="html"><span></span>      <span class="tok-p">&lt;</span><span class="tok-nt">div</span> <span class="tok-na">class</span><span class="tok-o">=</span><span class="tok-s">"row justify-content-center"</span><span class="tok-p">&gt;</span>
+<pre class="pygments highlight"><code data-lang="html"><span></span>    <span class="tok-p">&lt;</span><span class="tok-nt">div</span> <span class="tok-na">class</span><span class="tok-o">=</span><span class="tok-s">"container"</span><span class="tok-p">&gt;</span>
+
+      <span class="tok-p">&lt;</span><span class="tok-nt">nav</span> <span class="tok-na">class</span><span class="tok-o">=</span><span class="tok-s">"navbar"</span><span class="tok-p">&gt;</span>
+        [...]
+      <span class="tok-p">&lt;/</span><span class="tok-nt">nav</span><span class="tok-p">&gt;</span>
+
+      {% if messages %}
+        [...]
+      {% endif %}
+
+      <span class="tok-p">&lt;</span><span class="tok-nt">div</span> <span class="tok-na">class</span><span class="tok-o">=</span><span class="tok-s">"row justify-content-center p-5 bg-body-tertiary rounded-3"</span><span class="tok-p">&gt;</span>
+        <span class="tok-p">&lt;</span><span class="tok-nt">div</span> <span class="tok-na">class</span><span class="tok-o">=</span><span class="tok-s">"col-lg-6 text-center"</span><span class="tok-p">&gt;</span>
+          <span class="tok-p">&lt;</span><span class="tok-nt">h1</span> <span class="tok-na">class</span><span class="tok-o">=</span><span class="tok-s">"display-1 mb-4"</span><span class="tok-p">&gt;</span>{% block header_text %}{% endblock %}<span class="tok-p">&lt;/</span><span class="tok-nt">h1</span><span class="tok-p">&gt;</span>
+
+          <span class="tok-p">&lt;</span><span class="tok-nt">form</span> <span class="tok-na">method</span><span class="tok-o">=</span><span class="tok-s">"POST"</span> <span class="tok-na">action</span><span class="tok-o">=</span><span class="tok-s">"{% block form_action %}{% endblock %}"</span> <span class="tok-p">&gt;</span>  <i class="conum" data-value="1"></i><b>(1)</b>
+            [...]
+          <span class="tok-p">&lt;/</span><span class="tok-nt">form</span><span class="tok-p">&gt;</span>
+        <span class="tok-p">&lt;/</span><span class="tok-nt">div</span><span class="tok-p">&gt;</span>
+      <span class="tok-p">&lt;/</span><span class="tok-nt">div</span><span class="tok-p">&gt;</span>
+
+      <span class="tok-p">&lt;</span><span class="tok-nt">div</span> <span class="tok-na">class</span><span class="tok-o">=</span><span class="tok-s">"row justify-content-center"</span><span class="tok-p">&gt;</span>
         <span class="tok-p">&lt;</span><span class="tok-nt">div</span> <span class="tok-na">class</span><span class="tok-o">=</span><span class="tok-s">"col-lg-6"</span><span class="tok-p">&gt;</span>
-          {% block table %}
+          {% block table %}  <i class="conum" data-value="2"></i><b>(2)</b>
           {% endblock %}
         <span class="tok-p">&lt;/</span><span class="tok-nt">div</span><span class="tok-p">&gt;</span>
       <span class="tok-p">&lt;/</span><span class="tok-nt">div</span><span class="tok-p">&gt;</span>
 
-      <span class="tok-p">&lt;</span><span class="tok-nt">div</span> <span class="tok-na">class</span><span class="tok-o">=</span><span class="tok-s">"row"</span><span class="tok-p">&gt;</span>
-        <span class="tok-p">&lt;</span><span class="tok-nt">div</span> <span class="tok-na">class</span><span class="tok-o">=</span><span class="tok-s">"col-md-6 col-md-offset-3"</span><span class="tok-p">&gt;</span>
-          {% block extra_content %}
-          {% endblock %}
-        <span class="tok-p">&lt;/</span><span class="tok-nt">div</span><span class="tok-p">&gt;</span>
-      <span class="tok-p">&lt;/</span><span class="tok-nt">div</span><span class="tok-p">&gt;</span>
     <span class="tok-p">&lt;/</span><span class="tok-nt">div</span><span class="tok-p">&gt;</span>
 
-    <span class="tok-p">&lt;</span><span class="tok-nt">script</span> <span class="tok-na">src</span><span class="tok-o">=</span><span class="tok-s">"/static/lists.js"</span><span class="tok-p">&gt;&lt;/</span><span class="tok-nt">script</span><span class="tok-p">&gt;</span>
-    [...]</code></pre>
+    <span class="tok-p">&lt;</span><span class="tok-nt">script</span> <span class="tok-na">src</span><span class="tok-o">=</span><span class="tok-s">"/static/lists.js"</span><span class="tok-p">&gt;&lt;/</span><span class="tok-nt">script</span><span class="tok-p">&gt;</span>  <i class="conum" data-value="3"></i><b>(3)</b>
+      [...]</code></pre>
 </div>
 </div>
 </div>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>The <code>&lt;form&gt;</code> tag is definitely something we only want on pages where we edit lists.
+Everything else up to this point is generic enough to be on any page.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>Similarly the <code>{% block table %}</code> isn&#8217;t something we&#8217;d need on the "My Lists" page.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="3"></i><b>3</b></td>
+<td>Finally the <code>&lt;script&gt;</code> tag is specific to lists too.</td>
+</tr>
+</table>
 </div>
 <div class="paragraph">
-<p>Also, the "My Lists" page doesn&#8217;t need the new item form,
-so we&#8217;ll put that into a block too, making it optional.</p>
+<p>So we&#8217;ll want to change things so that <em>base.html</em> is a bit more generic.</p>
 </div>
-<div class="exampleblock sourcecode">
-<div class="title">src/lists/templates/base.html (ch22l011-1)</div>
+<div class="paragraph">
+<p>Let&#8217;s recap: we&#8217;ve got three actual pages we want to render:</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>The home page (where you can enter a first todo item to create a new list)</p>
+</li>
+<li>
+<p>The "list" page (where you can view an existing list and add to it)</p>
+</li>
+<li>
+<p>The "my lists" page (which is a list of all your existing lists)</p>
+<div class="ulist">
+<ul>
+<li>
+<p>The home page and list page both share the "form" elements and the lists.js javascript.</p>
+</li>
+<li>
+<p>But the lists page is the only one that needs to show the full table of list items</p>
+</li>
+<li>
+<p>The "my lists" page doesn&#8217;t need anything related to editing or displaying lists.</p>
+</li>
+</ul>
+</div>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p>So we have some things shared between all 3, and some only shared between 1 and 2.</p>
+</div>
+<div class="paragraph">
+<p>So far we&#8217;ve been using inheritance to share the common parts of our templates,
+but this is a good place to start using composition instead.
+At the moment we&#8217;re saying that "home" is a type of "base" template,
+but with the "table" section switched off, which is a bit awkward.
+Let&#8217;s not make it even more awkward by saying that "lists"
+is a "base" template with both the form and the table switched off!
+It might more sense to say that "home" is a type of base template which "includes" a list form,
+but no table, and "list" includes both the list form and the list table.</p>
+</div>
+<div class="paragraph">
+<p>
+TIP: People often say "prefer composition over inheritance",
+    because inheritance can become hard to reason about as the inheritance hierarchy grows.
+    Composition is more flexible,
+    and often makes more sense.
+    For a lengthy discussion of this topic, see
+    <a href="https://hynek.me/articles/python-subclassing-redux/">Hynek Schlawack&#8217;s definitive article on subclassing in Python</a>.</p>
+</div>
+<div class="paragraph">
+<p>So, let&#8217;s:</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>Pull out the <code>&lt;form&gt;</code> tag and the <em>lists.js</em> <code>&lt;script&gt;</code> tag into into some blocks
+we can "include" in our homepage and lists page.</p>
+</li>
+<li>
+<p>Move the <code>&lt;table&gt;</code> block so it only exists in the lists page.</p>
+</li>
+<li>
+<p>Take all the lists-specific stuff out of the <em>base.html</em> template,
+making it into a more generic page with header and a placeholder for generic content:</p>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p>We&#8217;ll use what&#8217;s called an
+<a href="https://docs.djangoproject.com/en/5.1/ref/templates/builtins/#include">include</a>
+to be able to compose reusable template fragments,
+when we don&#8217;t want to use inheritance.</p>
+</div>
+<div class="paragraph">
+<p>First let&#8217;s pull out the form and the script tag from <em>base.html</em>:</p>
+</div>
+<div class="exampleblock sourcecode small-code">
+<div class="title">src/lists/templates/base.html (ch24l010-1)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="pygments highlight"><code data-lang="diff"><span></span><span class="tok-gu">@@ -57,6 +57,7 @@</span>
+<pre class="pygments highlight"><code data-lang="diff"><span></span><span class="tok-gu">@@ -58,43 +58,19 @@</span>
 <span class="tok-w"> </span>        &lt;div class="col-lg-6 text-center"&gt;
 <span class="tok-w"> </span>          &lt;h1 class="display-1 mb-4"&gt;{% block header_text %}{% endblock %}&lt;/h1&gt;
 
-<span class="tok-gi">+          {% block list_form %}</span>
-<span class="tok-w"> </span>            &lt;form method="POST" action="{% block form_action %}{% endblock %}" &gt;
-<span class="tok-w"> </span>              {% csrf_token %}
-<span class="tok-w"> </span>              &lt;input
-<span class="tok-gu">@@ -76,6 +77,8 @@</span>
-<span class="tok-w"> </span>                &lt;/div&gt;
-<span class="tok-w"> </span>              {% endif %}
-<span class="tok-w"> </span>            &lt;/form&gt;
+<span class="tok-gd">-          &lt;form method="POST" action="{% block form_action %}{% endblock %}" &gt;</span>
+<span class="tok-gd">-            {% csrf_token %}</span>
+<span class="tok-gd">-            &lt;input</span>
+<span class="tok-gd">-              id="id_text"</span>
+<span class="tok-gd">-              name="text"</span>
+<span class="tok-gd">-              class="form-control</span>
+<span class="tok-gd">-                     form-control-lg</span>
+<span class="tok-gd">-                     {% if form.errors %}is-invalid{% endif %}"</span>
+<span class="tok-gd">-              placeholder="Enter a to-do item"</span>
+<span class="tok-gd">-              value="{{ form.text.value }}"</span>
+<span class="tok-gd">-              aria-describedby="id_text_feedback"</span>
+<span class="tok-gd">-              required</span>
+<span class="tok-gd">-            /&gt;</span>
+<span class="tok-gd">-            {% if form.errors %}</span>
+<span class="tok-gd">-              &lt;div id="id_text_feedback" class="invalid-feedback"&gt;</span>
+<span class="tok-gd">-                {{ form.errors.text.0 }}</span>
+<span class="tok-gd">-              &lt;/div&gt;</span>
+<span class="tok-gd">-            {% endif %}</span>
+<span class="tok-gd">-          &lt;/form&gt;</span>
+<span class="tok-gi">+          {% block extra_header %}</span>
 <span class="tok-gi">+          {% endblock %}</span>
 <span class="tok-gi">+</span>
 <span class="tok-w"> </span>        &lt;/div&gt;
-<span class="tok-w"> </span>      &lt;/div&gt;</code></pre>
+<span class="tok-w"> </span>      &lt;/div&gt;
+
+<span class="tok-gd">-      &lt;div class="row justify-content-center"&gt;</span>
+<span class="tok-gd">-        &lt;div class="col-lg-6"&gt;</span>
+<span class="tok-gd">-          {% block table %}</span>
+<span class="tok-gd">-          {% endblock %}</span>
+<span class="tok-gd">-        &lt;/div&gt;</span>
+<span class="tok-gd">-      &lt;/div&gt;</span>
+<span class="tok-gi">+      {% block content %}</span>
+<span class="tok-gi">+      {% endblock %}</span>
+
+<span class="tok-w"> </span>    &lt;/div&gt;
+
+<span class="tok-gd">-    &lt;script src="/static/lists.js"&gt;&lt;/script&gt;</span>
+<span class="tok-gd">-    &lt;script&gt;</span>
+<span class="tok-gd">-      window.onload = () =&gt; {</span>
+<span class="tok-gd">-        initialize("#id_text");</span>
+<span class="tok-gd">-      };</span>
+<span class="tok-gd">-    &lt;/script&gt;</span>
+<span class="tok-gi">+    {% block scripts %}</span>
+<span class="tok-gi">+    {% endblock %}</span>
+
+<span class="tok-w"> </span>  &lt;/body&gt;
+<span class="tok-w"> </span>&lt;/html&gt;</code></pre>
 </div>
 </div>
 </div>
+</div>
+<div class="paragraph">
+<p>You can see we&#8217;ve replaced all the lists-specific stuff with 3 new blocks:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>extra_header</code> for anything we want to put in the big header section</p>
+</li>
+<li>
+<p><code>content</code> for the main content of the page</p>
+</li>
+<li>
+<p><code>scripts</code> for any javascript we want to include.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Let&#8217;s paste in the <code>&lt;form&gt;</code> tag into a file at <em>src/lists/templates/form.html</em>:</p>
+</div>
+<div class="exampleblock sourcecode small-code">
+<div class="title">src/lists/templates/form.html (ch24l010-2)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="html"><span></span><span class="tok-p">&lt;</span><span class="tok-nt">form</span> <span class="tok-na">method</span><span class="tok-o">=</span><span class="tok-s">"POST"</span> <span class="tok-na">action</span><span class="tok-o">=</span><span class="tok-s">"{{ form_action }}"</span> <span class="tok-p">&gt;</span>  <i class="conum" data-value="1"></i><b>(1)</b>
+  {% csrf_token %}
+  <span class="tok-p">&lt;</span><span class="tok-nt">input</span>
+    <span class="tok-na">id</span><span class="tok-o">=</span><span class="tok-s">"id_text"</span>
+    <span class="tok-na">name</span><span class="tok-o">=</span><span class="tok-s">"text"</span>
+    <span class="tok-na">class</span><span class="tok-o">=</span><span class="tok-s">"form-control</span>
+<span class="tok-s">           form-control-lg</span>
+<span class="tok-s">           {% if form.errors %}is-invalid{% endif %}"</span>
+    <span class="tok-na">placeholder</span><span class="tok-o">=</span><span class="tok-s">"Enter a to-do item"</span>
+    <span class="tok-na">value</span><span class="tok-o">=</span><span class="tok-s">"{{ form.text.value }}"</span>
+    <span class="tok-na">aria-describedby</span><span class="tok-o">=</span><span class="tok-s">"id_text_feedback"</span>
+    <span class="tok-na">required</span>
+  <span class="tok-p">/&gt;</span>
+  {% if form.errors %}
+    <span class="tok-p">&lt;</span><span class="tok-nt">div</span> <span class="tok-na">id</span><span class="tok-o">=</span><span class="tok-s">"id_text_feedback"</span> <span class="tok-na">class</span><span class="tok-o">=</span><span class="tok-s">"invalid-feedback"</span><span class="tok-p">&gt;</span>
+      {{ form.errors.text.0 }}
+    <span class="tok-p">&lt;/</span><span class="tok-nt">div</span><span class="tok-p">&gt;</span>
+  {% endif %}
+<span class="tok-p">&lt;/</span><span class="tok-nt">form</span><span class="tok-p">&gt;</span></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>This is the only change,
+we&#8217;ve replaced the <code>{% block form_action %}</code> with <code>{{ form_action }}</code>.</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>Let&#8217;s paste the scripts tags verbatim
+into a new file at <em>src/lists/templates/scripts.html</em>:</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">src/lists/templates/scripts.html (ch24l010-3)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="html"><span></span><span class="tok-p">&lt;</span><span class="tok-nt">script</span> <span class="tok-na">src</span><span class="tok-o">=</span><span class="tok-s">"/static/lists.js"</span><span class="tok-p">&gt;&lt;/</span><span class="tok-nt">script</span><span class="tok-p">&gt;</span>
+
+<span class="tok-p">&lt;</span><span class="tok-nt">script</span><span class="tok-p">&gt;</span>
+<span class="tok-w">  </span><span class="tok-nb">window</span><span class="tok-p">.</span><span class="tok-nx">onload</span><span class="tok-w"> </span><span class="tok-o">=</span><span class="tok-w"> </span><span class="tok-p">()</span><span class="tok-w"> </span><span class="tok-p">=&gt;</span><span class="tok-w"> </span><span class="tok-p">{</span>
+<span class="tok-w">    </span><span class="tok-nx">initialize</span><span class="tok-p">(</span><span class="tok-s2">"#id_text"</span><span class="tok-p">);</span>
+<span class="tok-w">  </span><span class="tok-p">};</span>
+<span class="tok-p">&lt;/</span><span class="tok-nt">script</span><span class="tok-p">&gt;</span></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>Now let&#8217;s look at how to use the include,
+and how the <code>form_action</code> change plays out,
+in the changes to <em>home.html</em>:</p>
+</div>
+<div class="exampleblock sourcecode small-code">
+<div class="title">src/lists/templates/home.html (ch24l010-4)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="html"><span></span>{% extends 'base.html' %}
+
+{% block header_text %}Start a new To-Do list{% endblock %}
+
+{% block extra_header %}
+  {% url 'new_list' as form_action %}  <i class="conum" data-value="1"></i><b>(1)</b>
+  {% include "form.html" with form=form form_action=form_action %}  <i class="conum" data-value="2"></i><b>(2)</b>
+{% endblock %}
+
+{% block scripts %}  <i class="conum" data-value="3"></i><b>(3)</b>
+  {% include "scripts.html" %}
+{% endblock %}</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>The <code>{% url ... as %}</code> syntax lets us define a template variable in-line</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>Then we use <code>{% include ... with key=value... %}</code>
+to pull in the contents of the <code>form.html</code> template,
+with the appropriate context variables passed in&#8212;&#8203;a bit like
+calling a function.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="3"></i><b>3</b></td>
+<td>The <code>scripts</code> block is just a straightforward <code>include</code>
+with no variables.</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>Now let&#8217;s see it in <em>list.html</em>:</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">src/lists/templates/list.html (ch24l010-5)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="diff"><span></span><span class="tok-gu">@@ -2,12 +2,24 @@</span>
+
+<span class="tok-w"> </span>{% block header_text %}Your To-Do list{% endblock %}
+
+<span class="tok-gd">-{% block form_action %}{% url 'view_list' list.id %}{% endblock %}</span>
+
+<span class="tok-gd">-{% block table %}</span>
+<span class="tok-gi">+{% block extra_header %}  </span><i class="conum" data-value="1"></i><b>(1)</b>
+<span class="tok-gi">+  {% url 'view_list' list.id as form_action %}</span>
+<span class="tok-gi">+  {% include "form.html" with form=form form_action=form_action %}</span>
+<span class="tok-gi">+{% endblock %}</span>
+<span class="tok-gi">+</span>
+<span class="tok-gi">+{% block content %}  </span><i class="conum" data-value="2"></i><b>(2)</b>
+<span class="tok-gi">+&lt;div class="row justify-content-center"&gt;</span>
+<span class="tok-gi">+  &lt;div class="col-lg-6"&gt;</span>
+<span class="tok-w"> </span>    &lt;table class="table" id="id_list_table"&gt;
+<span class="tok-w"> </span>      {% for item in list.item_set.all %}
+<span class="tok-w"> </span>        &lt;tr&gt;&lt;td&gt;{{ forloop.counter }}: {{ item.text }}&lt;/td&gt;&lt;/tr&gt;
+<span class="tok-w"> </span>      {% endfor %}
+<span class="tok-w"> </span>    &lt;/table&gt;
+<span class="tok-gi">+  &lt;/div&gt;</span>
+<span class="tok-gi">+&lt;/div&gt;</span>
+<span class="tok-gi">+{% endblock %}</span>
+<span class="tok-gi">+</span>
+<span class="tok-gi">+{% block scripts %}  </span><i class="conum" data-value="3"></i><b>(3)</b>
+<span class="tok-gi">+  {% include "scripts.html" %}</span>
+<span class="tok-w"> </span>{% endblock %}</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>The <code>block table</code> becomes an <code>extra_header</code> block,
+and we use the <code>include</code> to pull in the form.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>The <code>block table</code> becomes a <code>content</code> block,
+with all the html we need for our table.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="3"></i><b>3</b></td>
+<td>And the scripts block is the same as the one from <em>home.html</em>.</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>We can have a little click around our site,
+and then a little re-run of all our FTs to make sure we haven&#8217;t broken anything, and then commit.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>./src/manage.py test functional_tests</strong>
+[...]
+selenium.common.exceptions.NoSuchElementException: Message: Unable to locate
+element: Reticulate splines; [...]
+[...]
+Ran 8 tests in X.Xs
+
+FAILED (errors=1)</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>8 tests with 1 failure, the same one we had before, we haven&#8217;t broken anything. Hooray!</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>git add src/lists/templates</strong>
+$ <strong>git commit -m "refactor templates to use composition/includes"</strong></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Now let&#8217;s get back to our outside-in process,
+and working in our template to drive out the requirements
+for our views layer:</p>
 </div>
 </div>
 <div class="sect3">
 <h4 id="_designing_our_api_using_the_template">Designing Our API Using the Template</h4>
 <div class="paragraph">
 <p>
-Meanwhile, in <em>my_lists.html</em> we override the <code>list_form</code>
-and say it should be empty&#8230;&#8203;</p>
+So, in <em>my_lists.html</em> we can now work in the <code>content</code> block:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">src/lists/templates/my_lists.html (ch22l010-1)</div>
+<div class="title">src/lists/templates/my_lists.html (ch24l010-6)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
 <pre class="pygments highlight"><code data-lang="html"><span></span>{% extends 'base.html' %}
 
-{% block header_text %}My Lists{% endblock %}
+{% block header_text %}{{user.email}}'s Lists{% endblock %}
 
-{% block list_form %}{% endblock %}</code></pre>
-</div>
-</div>
-</div>
-</div>
-<div class="paragraph">
-<p>And then we can just work inside the <code>extra_content</code> block:</p>
-</div>
-<div class="exampleblock sourcecode">
-<div class="title">src/lists/templates/my_lists.html (ch22l010-2)</div>
-<div class="content">
-<div class="listingblock">
-<div class="content">
-<pre class="pygments highlight"><code data-lang="html"><span></span>[...]
-
-{% block list_form %}{% endblock %}
-
-{% block extra_content %}
+{% block content %}
   <span class="tok-p">&lt;</span><span class="tok-nt">h2</span><span class="tok-p">&gt;</span>{{ owner.email }}'s lists<span class="tok-p">&lt;/</span><span class="tok-nt">h2</span><span class="tok-p">&gt;</span>  <i class="conum" data-value="1"></i><b>(1)</b>
   <span class="tok-p">&lt;</span><span class="tok-nt">ul</span><span class="tok-p">&gt;</span>
-    {% for list in owner.list_set.all %}  <i class="conum" data-value="2"></i><b>(2)</b>
+    {% for list in owner.lists.all %}  <i class="conum" data-value="2"></i><b>(2)</b>
       <span class="tok-p">&lt;</span><span class="tok-nt">li</span><span class="tok-p">&gt;&lt;</span><span class="tok-nt">a</span> <span class="tok-na">href</span><span class="tok-o">=</span><span class="tok-s">"{{ list.get_absolute_url }}"</span><span class="tok-p">&gt;</span>{{ list.name }}<span class="tok-p">&lt;/</span><span class="tok-nt">a</span><span class="tok-p">&gt;&lt;/</span><span class="tok-nt">li</span><span class="tok-p">&gt;</span>  <i class="conum" data-value="3"></i><b>(3)</b>
     {% endfor %}
   <span class="tok-p">&lt;/</span><span class="tok-nt">ul</span><span class="tok-p">&gt;</span>
@@ -584,8 +975,8 @@ which are going to filter their way down through the code:</p>
 <tr>
 <td><i class="conum" data-value="2"></i><b>2</b></td>
 <td>We want to be able to iterate through the lists created by the user
-using <code>owner.list_set.all</code>
-(I happen to know we get this for free from the Django ORM).</td>
+using <code>owner.lists.all</code>
+(I happen to know how to make this work with the Django ORM).</td>
 </tr>
 <tr>
 <td><i class="conum" data-value="3"></i><b>3</b></td>
@@ -604,8 +995,8 @@ which is currently specified as the text of its first element.</td>
 Outside-In TDD is sometimes called "programming by wishful thinking",<sup class="footnote">[<a id="_footnoteref_1" class="footnote" href="#_footnotedef_1" title="View footnote.">1</a>]</sup>
     and you can see why.
     We start writing code at the higher levels
-    based on what we wish we had at the lower levels,
-    even though it doesn&#8217;t exist yet!
+    based on what we <em>wish</em> we had at the lower levels, even though it doesn&#8217;t exist yet&#8230;&#8203;
+    A bit like when we write test for code that doesn&#8217;t exist yet!
 </td>
 </tr>
 </table>
@@ -647,7 +1038,7 @@ by giving it the objects it needs.
 In this case, the list owner:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">src/lists/tests/test_views.py (ch22l011)</div>
+<div class="title">src/lists/tests/test_views.py (ch24l011)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
@@ -682,7 +1073,7 @@ In this case, the list owner:</p>
 <p>So:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">src/lists/views.py (ch22l012)</div>
+<div class="title">src/lists/views.py (ch24l012)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
@@ -700,11 +1091,11 @@ In this case, the list owner:</p>
 </div>
 </div>
 <div class="paragraph">
-<p>That gets our new test passing, but we&#8217;ll also see an error from
-the previous test. We just need to add a user for it as well:</p>
+<p>That gets our new test passing, but we&#8217;ll also see an error from the previous test.
+We just need to add a user for it as well:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">src/lists/tests/test_views.py (ch22l013)</div>
+<div class="title">src/lists/tests/test_views.py (ch24l013)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
@@ -716,8 +1107,8 @@ the previous test. We just need to add a user for it as well:</p>
 </div>
 </div>
 <div class="paragraph">
-<p>And
-we get to an OK:</p>
+<p>And we get to an OK:
+</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -739,7 +1130,7 @@ if the current user is logged in to the site.</p>
 <p>Here&#8217;s a first crack at writing the test:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">src/lists/tests/test_views.py (ch22l014)</div>
+<div class="title">src/lists/tests/test_views.py (ch24l014)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
@@ -777,7 +1168,7 @@ with a logged-in user.</td>
 <p>To fix this, we can try writing code like this:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">src/lists/views.py (ch22l015)</div>
+<div class="title">src/lists/views.py (ch24l015)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
@@ -807,13 +1198,6 @@ AttributeError: 'List' object has no attribute 'owner'</pre>
 </div>
 <div class="sect3">
 <h4 id="_a_decision_point_whether_to_proceed_to_the_next_layer_with_a_failing_test">A Decision Point: Whether to Proceed to the Next Layer with a Failing Test</h4>
-<div class="ulist">
-<ul>
-<li>
-<p>TODO: rewrite this section if we do decide to drop the next chapter.</p>
-</li>
-</ul>
-</div>
 <div class="paragraph">
 <p>
 In order to get this test passing, as it&#8217;s written now,
@@ -832,6 +1216,10 @@ On the other hand, advocates of what&#8217;s known as "London School" TDD
 are very keen on the approach.   Read more in <a href="/book/appendix_purist_unit_tests.html">[appendix_purist_unit_tests]</a>.</p>
 </div>
 <div class="paragraph">
+<p>For now we&#8217;ll accept the tradeoff, moving down one layer with failing tests,
+but avoiding the extra mocks.</p>
+</div>
+<div class="paragraph">
 <p>Let&#8217;s do a commit, and then <em>tag</em> the commit as a way of remembering our
 position for that appendix:</p>
 </div>
@@ -848,13 +1236,13 @@ $ <strong>git tag revisit_this_point_with_isolated_tests</strong></pre>
 <div class="paragraph">
 <p>Our outside-in design has driven out two requirements for the model layer:
 we want to be able to assign an owner to a list using the attribute <code>.owner</code>,
-and we want to be able to access the list&#8217;s owner with the API <code>owner.list_set.all()</code>.</p>
+and we want to be able to access the list&#8217;s owner with the API <code>owner.lists.all()</code>.</p>
 </div>
 <div class="paragraph">
 <p>Let&#8217;s write a test for that:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">src/lists/tests/test_models.py (ch22l018)</div>
+<div class="title">src/lists/tests/test_models.py (ch24l018)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
@@ -872,7 +1260,7 @@ and we want to be able to access the list&#8217;s owner with the API <code>owner
     <span class="tok-k">def</span> <span class="tok-nf">test_lists_can_have_owners</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">):</span>
         <span class="tok-n">user</span> <span class="tok-o">=</span> <span class="tok-n">User</span><span class="tok-o">.</span><span class="tok-n">objects</span><span class="tok-o">.</span><span class="tok-n">create</span><span class="tok-p">(</span><span class="tok-n">email</span><span class="tok-o">=</span><span class="tok-s2">"a@b.com"</span><span class="tok-p">)</span>
         <span class="tok-n">mylist</span> <span class="tok-o">=</span> <span class="tok-n">List</span><span class="tok-o">.</span><span class="tok-n">objects</span><span class="tok-o">.</span><span class="tok-n">create</span><span class="tok-p">(</span><span class="tok-n">owner</span><span class="tok-o">=</span><span class="tok-n">user</span><span class="tok-p">)</span>
-        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertIn</span><span class="tok-p">(</span><span class="tok-n">mylist</span><span class="tok-p">,</span> <span class="tok-n">user</span><span class="tok-o">.</span><span class="tok-n">list_set</span><span class="tok-o">.</span><span class="tok-n">all</span><span class="tok-p">())</span></code></pre>
+        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertIn</span><span class="tok-p">(</span><span class="tok-n">mylist</span><span class="tok-p">,</span> <span class="tok-n">user</span><span class="tok-o">.</span><span class="tok-n">lists</span><span class="tok-o">.</span><span class="tok-n">all</span><span class="tok-p">())</span></code></pre>
 </div>
 </div>
 </div>
@@ -905,7 +1293,7 @@ is better than implicit, and tests are documentation, so let&#8217;s have a test
 that too:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">src/lists/tests/test_models.py (ch22l020)</div>
+<div class="title">src/lists/tests/test_models.py (ch24l020)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
@@ -919,7 +1307,7 @@ that too:</p>
 <p>The correct implementation is this:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">src/lists/models.py (ch22l021)</div>
+<div class="title">src/lists/models.py (ch24l021)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
@@ -928,7 +1316,11 @@ that too:</p>
 
 <span class="tok-k">class</span> <span class="tok-nc">List</span><span class="tok-p">(</span><span class="tok-n">models</span><span class="tok-o">.</span><span class="tok-n">Model</span><span class="tok-p">):</span>
     <span class="tok-n">owner</span> <span class="tok-o">=</span> <span class="tok-n">models</span><span class="tok-o">.</span><span class="tok-n">ForeignKey</span><span class="tok-p">(</span>
-        <span class="tok-n">settings</span><span class="tok-o">.</span><span class="tok-n">AUTH_USER_MODEL</span><span class="tok-p">,</span> <span class="tok-n">blank</span><span class="tok-o">=</span><span class="tok-kc">True</span><span class="tok-p">,</span> <span class="tok-n">null</span><span class="tok-o">=</span><span class="tok-kc">True</span><span class="tok-p">,</span> <span class="tok-n">on_delete</span><span class="tok-o">=</span><span class="tok-n">models</span><span class="tok-o">.</span><span class="tok-n">CASCADE</span>
+        <span class="tok-n">settings</span><span class="tok-o">.</span><span class="tok-n">AUTH_USER_MODEL</span><span class="tok-p">,</span>
+        <span class="tok-n">related_name</span><span class="tok-o">=</span><span class="tok-s2">"lists"</span><span class="tok-p">,</span>
+        <span class="tok-n">blank</span><span class="tok-o">=</span><span class="tok-kc">True</span><span class="tok-p">,</span>
+        <span class="tok-n">null</span><span class="tok-o">=</span><span class="tok-kc">True</span><span class="tok-p">,</span>
+        <span class="tok-n">on_delete</span><span class="tok-o">=</span><span class="tok-n">models</span><span class="tok-o">.</span><span class="tok-n">CASCADE</span><span class="tok-p">,</span>
     <span class="tok-p">)</span>
 
     <span class="tok-k">def</span> <span class="tok-nf">get_absolute_url</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">):</span>
@@ -959,7 +1351,7 @@ Migrations for 'lists':
 </div>
 </div>
 <div class="paragraph">
-<p>We&#8217;re almost there; a couple more failures:</p>
+<p>We&#8217;re almost there; a couple more failures in some of our old tests:</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -979,17 +1371,20 @@ be a "User" instance.</pre>
 </div>
 <div class="paragraph">
 <p>We&#8217;re moving back up to the views layer now, just doing a little tidying up.
-Notice that these are in the old test for the <code>new_list</code> view,
-when we haven&#8217;t got a logged-in user.
-We should only save the list owner when the user is actually logged in.
-The <code>.is_authenticated</code> attribute we defined in <a href="/book/chapter_19_spiking_custom_auth.html">[chapter_19_spiking_custom_auth]</a>
+Notice that these are in the existing test for the <code>new_list</code> view,
+when we haven&#8217;t got a logged-in user.</p>
+</div>
+<div class="paragraph">
+<p>The tests are reminding us to think of this use case too:
+we should only save the list owner when the user is actually logged in.
+The <code>.is_authenticated</code> attribute we came across in <a href="/book/chapter_19_spiking_custom_auth.html">[chapter_19_spiking_custom_auth]</a>
 comes in useful now
 (when they&#8217;re not logged in,
 Django represents users using a class called <code>AnonymousUser</code>,
 whose <code>.is_authenticated</code> is always <code>False</code>):</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">src/lists/views.py (ch22l023)</div>
+<div class="title">src/lists/views.py (ch24l023)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
@@ -1036,7 +1431,7 @@ which wanted to be able to access a list "name" based on the text of
 its first item:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">src/lists/tests/test_models.py (ch22l024)</div>
+<div class="title">src/lists/tests/test_models.py (ch24l024)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
@@ -1050,7 +1445,7 @@ its first item:</p>
 </div>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">src/lists/models.py (ch22l025)</div>
+<div class="title">src/lists/models.py (ch24l025)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
@@ -1074,17 +1469,25 @@ Ran 8 tests in 93.819s
 OK</pre>
 </div>
 </div>
+<div id="my-lists-page" class="imageblock">
+<div class="content">
+<img src="images/twp2_2201.png" alt="Screenshot of new My Lists page">
+</div>
+<div class="title">Figure 1. The "My Lists" page, in all its glory (and proof I did test on Windows)</div>
+</div>
 <div class="sidebarblock">
 <div class="content">
 <div class="title">The @property Decorator in Python</div>
 <div class="paragraph">
-<p>If
-you haven&#8217;t seen it before, the <code>@property</code> decorator transforms a method
+<p>
+
+
+If you haven&#8217;t seen it before, the <code>@property</code> decorator transforms a method
 on a class to make it appear to the outside world like an attribute.</p>
 </div>
 <div class="paragraph">
-<p>This
-is a powerful feature of the language, because it makes it easy to
+<p>
+This is a powerful feature of the language, because it makes it easy to
 implement "duck typing", to change the implementation of a property without
 changing the interface of the class.  In other words, if we decide to change
 <code>.name</code> into being a "real" attribute on the model, which is stored as text in
@@ -1104,17 +1507,11 @@ doesn&#8217;t apply to Python in general&#8230;&#8203;</p>
 </div>
 </div>
 <div class="paragraph">
-<p>But
-we know we cheated to get there.  The Testing Goat is eyeing us
+<p>
+But we know we cheated to get there.  The Testing Goat is eyeing us
 suspiciously.  We left a test failing at one layer while we implemented its
 dependencies at the lower layer. Let&#8217;s see how things would play out if we were
 to use better test isolation&#8230;&#8203;</p>
-</div>
-<div id="my-lists-page" class="imageblock">
-<div class="content">
-<img src="images/twp2_2201.png" alt="Screenshot of new My Lists page">
-</div>
-<div class="title">Figure 1. The "My Lists" page, in all its glory (and proof I did test on Windows)</div>
 </div>
 <div class="sidebarblock">
 <div class="content">
@@ -1123,26 +1520,30 @@ to use better test isolation&#8230;&#8203;</p>
 <dl>
 <dt class="hdlist1">Outside-In TDD</dt>
 <dd>
-<p>    A
-methodology for building code, driven by tests, which proceeds by
-    starting from the "outside" layers (presentation, GUI), and moving
-    "inwards" step by step, via view/controller layers, down towards
-    the model layer.  The idea is to drive the design of your code from
-    the use to which it is going to be put, rather than trying to anticipate
-    requirements from the ground up.</p>
+<p>A methodology for building code, driven by tests,
+which proceeds by starting from the "outside" layers (presentation, GUI),
+and moving "inwards" step by step, via view/controller layers,
+down towards the model layer.
+The idea is to drive the design of your code from how it will be used,
+rather than trying to anticipate requirements from the bottom up.
+</p>
 </dd>
 <dt class="hdlist1">Programming by wishful thinking</dt>
 <dd>
-<p>    The
-outside-in process is sometimes called "programming by wishful
-    thinking".  Actually, any kind of TDD involves some wishful thinking.
-    We&#8217;re always writing tests for things that don&#8217;t exist yet.</p>
+<p>The outside-in process is sometimes called "programming by wishful thinking".
+Actually, any kind of TDD involves some wishful thinking.
+We&#8217;re always writing tests for things that don&#8217;t exist yet.
+</p>
 </dd>
 <dt class="hdlist1">The pitfalls of outside-in</dt>
 <dd>
-<p>Outside-in isn&#8217;t a silver bullet.  It encourages us to focus on things
-that are immediately visible to the user, but it won&#8217;t automatically
-remind us to write other critical tests that are less user-visible&#8212;&#8203;things like security, for example. You&#8217;ll need to remember them yourself.</p>
+<p>Outside-in isn&#8217;t a silver bullet.
+It encourages us to focus on things that are immediately visible to the user,
+but it won&#8217;t automatically remind us to write other critical tests
+that are less user-visible&#8212;&#8203;things like security, for example.
+You&#8217;ll need to remember them yourself.
+
+</p>
 </dd>
 </dl>
 </div>
@@ -1155,12 +1556,12 @@ remind us to write other critical tests that are less user-visible&#8212;&#8203;
 <div id="footnotes">
 <hr>
 <div class="footnote" id="_footnotedef_1">
-<a href="#_footnoteref_1">1</a>. This phrase "programming by wishful thinking" was perhaps first used in     the amazing, mind-expanding textbook     <a href="https://en.wikipedia.org/wiki/Structure_and_Interpretation_of_Computer_Programs">SICP</a>,     which I <em>cannot</em> recommend highly enough.
+<a href="#_footnoteref_1">1</a>. The phrase "programming by wishful thinking" was first popularised by     the amazing, mind-expanding textbook     <a href="https://en.wikipedia.org/wiki/Structure_and_Interpretation_of_Computer_Programs">SICP</a>,     which I <em>cannot</em> recommend highly enough.
 </div>
 </div>
 <div id="footer">
 <div id="footer-text">
-License: Creative Commons <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode">CC-BY-NC-ND</a>. Last updated: 2024-10-13 21:05:14 +0100
+License: Creative Commons <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode">CC-BY-NC-ND</a>. Last updated: 2025-02-13 11:08:17 UTC
 </div>
 </div>
 <div class="comments" style="padding: 20px">

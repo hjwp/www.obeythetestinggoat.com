@@ -44,9 +44,12 @@ httpRequest.send();
 <div class="sectionbody">
 <div class="paragraph">
 <p>
-It&#8217;s time to deploy our brilliant new validation code to our live servers.
-This will be a chance to see our automated deploy scripts in action for the
-second time.</p>
+It&#8217;s time to deploy our brilliant new validation code to our live servers.</p>
+</div>
+<div class="paragraph">
+<p>This will be a chance to see our automated deploy scripts in action for the
+second time.
+Let&#8217;s take the opportunity to make a little deployment checklist.</p>
 </div>
 <div class="admonitionblock note">
 <table>
@@ -57,9 +60,9 @@ second time.</p>
 <td class="content">
 At this point I always want to say a huge thanks to Andrew Godwin
     and the whole Django team.
-    Up until Django 1.7, I used to have a whole long section,
+    In the first edition, I used to have a whole long section,
     entirely devoted to migrations.
-    Migrations now "just work", so I was able to drop it altogether.
+    Since Django 1.7, migrations now "just work", so I was able to drop it altogether.
     I mean yes this all happened nearly ten years ago,
     but still&#8212;&#8203;open source software is a gift.
     We get such amazing things, entirely for free.
@@ -81,17 +84,124 @@ Please send feedback!</p>
 </div>
 </div>
 <div class="sect2">
-<h3 id="_staging_deploy">Staging Deploy</h3>
+<h3 id="_the_deployment_checklist">The Deployment Checklist</h3>
 <div class="paragraph">
-<p>We start with the staging server:</p>
+<p>Let&#8217;s make a little checklist of pre-deployment tasks:</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>We run all our unit and functional tests in the regular way. Just in case!</p>
+</li>
+<li>
+<p>We rebuild our Docker image, and run our tests against Docker, on our local machine.</p>
+</li>
+<li>
+<p>We deploy to staging, and run our FTs against staging.</p>
+</li>
+<li>
+<p>Now we can deploy to prod.</p>
+</li>
+</ol>
+</div>
+<div class="admonitionblock tip">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-tip" title="Tip"></i>
+</td>
+<td class="content">
+A deployment checklist like this should be a temporary measure.
+  Once you&#8217;ve worked through it manually a few times,
+  you should be looking to take the next step in automation,
+  continuous deployment straight using a CI/CD pipeline.
+  We&#8217;ll touch on this in <a href="/book/chapter_25_CI.html">[chapter_25_CI]</a>.
+</td>
+</tr>
+</table>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_a_full_test_run_locally">A Full Test Run Locally</h3>
+<div class="paragraph">
+<p>Of course, under the watchful eye of the Testing Goat,
+we&#8217;re running the tests all the time! But, just in case:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>cd src &amp;&amp; python manage.py test</strong>
+[...]
+
+Ran 39 tests in 15.222s
+
+OK</pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_quick_test_run_against_docker">Quick Test Run Against Docker</h3>
+<div class="paragraph">
+<p>The next step closer to prod, is running things in Docker.
+This was one of the main reasons we went to the trouble of containerising our app,
+which is being able to repro the production environment as faithfully as possible,
+on our own machine.</p>
+</div>
+<div class="paragraph">
+<p>So let&#8217;s rebuild our Docker image and spin up a local Docker container:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ *docker build -t superlists . &amp;&amp; docker run \
+    -p 8888:8888 \
+    --mount type=bind,source="$PWD/src/db.sqlite3",target=/src/db.sqlite3 \
+    -e DJANGO_SECRET_KEY=sekrit \
+    -e DJANGO_ALLOWED_HOST=localhost \
+    -it superlists
+ =&gt; [internal] load build definition from Dockerfile                  0.0s
+ =&gt; =&gt; transferring dockerfile: 371B                                  0.0s
+ =&gt; [internal] load metadata for docker.io/library/python:3.13-slim   1.4s
+ [...]
+ =&gt; =&gt; naming to docker.io/library/superlists                         0.0s
++ docker run -p 8888:8888 --mount
+type=bind,source="$PWD/src/db.sqlite3",target=/src/db.sqlite3 -e
+DJANGO_SECRET_KEY=sekrit -e DJANGO_ALLOWED_HOST=localhost -e EMAIL_PASSWORD -it
+superlists
+[2025-01-27 21:29:37 +0000] [7] [INFO] Starting gunicorn 22.0.0
+[2025-01-27 21:29:37 +0000] [7] [INFO] Listening at: http://0.0.0.0:8888 (7)
+[2025-01-27 21:29:37 +0000] [7] [INFO] Using worker: sync
+[2025-01-27 21:29:37 +0000] [8] [INFO] Booting worker with pid: 8</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>And now, in a separate terminal, we can run our FT suite against the Docker:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>TEST_SERVER=localhost:8888 python src/manage.py test functional_tests</strong>
+[...]
+......
+ ---------------------------------------------------------------------
+Ran 6 tests in 17.047s
+
+OK</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Looking good!  Let&#8217;s move on to staging.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_staging_deploy_and_test_run">Staging Deploy and Test Run</h3>
+<div class="paragraph">
+<p>Here&#8217;s our <code>ansible-playbook</code> command to deploy to staging:</p>
 </div>
 <div class="listingblock against-server small-code">
 <div class="content">
-<pre>$ <strong>ansible-playbook --user=elspeth -i staging.ottg.co.uk, infra/ansible-provision.yaml -vv</strong>
+<pre>$ <strong>ansible-playbook --user=elspeth -i staging.ottg.co.uk, infra/deploy-playbook.yaml -vv</strong>
 [...]
 
-PLAYBOOK: ansible-provision.yaml ***********************************************
-1 plays in infra/ansible-provision.yaml
+PLAYBOOK: deploy-playbook.yaml ***********************************************
+1 plays in infra/deploy-playbook.yaml
 
 PLAY [all] *********************************************************************
 
@@ -136,7 +246,7 @@ Disconnecting from staging.ottg.co.uk... done.</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>And run the tests against staging:</p>
+<p>And now we run the FTs against staging:</p>
 </div>
 <div class="listingblock small-code">
 <div class="content">
@@ -149,13 +259,13 @@ OK</pre>
 </div>
 </div>
 <div class="sect2 pagebreak-before less_space">
-<h3 id="_live_deploy">Live Deploy</h3>
+<h3 id="_production_deploy">Production Deploy</h3>
 <div class="paragraph">
-<p>Assuming all is well, we then run our deploy against live:</p>
+<p>Since all is looking well we can deploy to prod!</p>
 </div>
 <div class="listingblock against-server">
 <div class="content">
-<pre>$ <strong>ansible-playbook --user=elspeth -i www.ottg.co.uk, infra/ansible-provision.yaml -vv</strong></pre>
+<pre>$ <strong>ansible-playbook --user=elspeth -i www.ottg.co.uk, infra/deploy-playbook.yaml -vv</strong></pre>
 </div>
 </div>
 </div>
@@ -285,7 +395,7 @@ Look up "continuous delivery" for some background reading.
 </div>
 <div id="footer">
 <div id="footer-text">
-License: Creative Commons <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode">CC-BY-NC-ND</a>. Last updated: 2024-10-13 21:05:14 +0100
+License: Creative Commons <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode">CC-BY-NC-ND</a>. Last updated: 2025-02-12 21:05:38 UTC
 </div>
 </div>
 <div class="comments" style="padding: 20px">
