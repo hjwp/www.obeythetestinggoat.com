@@ -285,13 +285,13 @@ and we can use <code>docker logs</code> to view the output from one of them:</p>
 Welcome to Ubuntu 22.04.4 LTS (GNU/Linux 5.15.0-67-generic x86_64)
  [...]
 
-elspeth@server$ <strong>docker ps -a</strong>
+elspeth@server$ <strong>sudo docker ps -a</strong>
 CONTAINER ID   IMAGE     COMMAND              CREATED      STATUS
 PORTS     NAMES
 3a2e600fbe77   busybox   "echo hello world"   2 days ago   Exited (0) 10
 minutes ago             testcontainer
 
-elspeth@server:$ <strong>docker logs testcontainer</strong>
+elspeth@server:$ <strong>sudo docker logs testcontainer</strong>
 hello world</pre>
 </div>
 </div>
@@ -314,6 +314,129 @@ Look out for that <code>elspeth@server</code>
 <p>SSHing in to check things worked is a key server debugging skill!
 It&#8217;s something we want to practice on our staging server,
 because ideally we&#8217;ll want to avoid doing it on production machines.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_allowing_rootless_docker_access">Allowing Rootless Docker access</h3>
+<div class="paragraph">
+<p>Having to use <code>sudo</code> or <code>become=True</code> to run Docker commands is a bit of a pain.
+If we add the our user to the <code>docker</code> group, we can run Docker commands without <code>sudo</code>.</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">infra/deploy-playbook.yaml (ch12l001-1)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="yaml"><span></span><span class="tok-w">  </span><span class="tok-p tok-p-Indicator">-</span><span class="tok-w"> </span><span class="tok-nt">name</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">Install docker</span>
+<span class="tok-w">        </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">[...]</span>
+
+<span class="tok-w">  </span><span class="tok-p tok-p-Indicator">-</span><span class="tok-w"> </span><span class="tok-nt">name</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">Add our user to the docker group, so we don't need sudo/become</span>
+<span class="tok-w">    </span><span class="tok-nt">ansible.builtin.user</span><span class="tok-p">:</span><span class="tok-w">  </span><i class="conum" data-value="1"></i><b>(1)</b>
+<span class="tok-w">      </span><span class="tok-nt">name</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-s">'{{</span><span class="tok-nv"> </span><span class="tok-s">ansible_user</span><span class="tok-nv"> </span><span class="tok-s">}}'</span><span class="tok-w">  </span><i class="conum" data-value="2"></i><b>(2)</b>
+<span class="tok-w">      </span><span class="tok-nt">groups</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">docker</span>
+<span class="tok-w">    </span><span class="tok-nt">become</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">true</span>
+
+<span class="tok-w">  </span><span class="tok-p tok-p-Indicator">-</span><span class="tok-w"> </span><span class="tok-nt">name</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">Reset ssh connection to allow the user/group change to take effect</span>
+<span class="tok-w">    </span><span class="tok-nt">ansible.builtin.meta</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">reset_connection</span><span class="tok-w">  </span><i class="conum" data-value="3"></i><b>(3)</b>
+
+<span class="tok-w">  </span><span class="tok-p tok-p-Indicator">-</span><span class="tok-w"> </span><span class="tok-nt">name</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">Run test container</span><span class="tok-w">  </span><i class="conum" data-value="4"></i><b>(4)</b>
+<span class="tok-w">        </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">[...]</span></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>We use the <code>builtin.user</code> module to add our user to the <code>docker</code> group.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>The <code>{{ ... }}</code> syntax allows us to interpolate some variables into
+our config file, much like in a Django template.
+<code>ansible_user</code> will be the user we&#8217;re using to connect to the server,
+ie "elspeth" in my case.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="3"></i><b>3</b></td>
+<td>As per the task name, we need this for the user/group change to take effect.
+Strictly speaking this is only needed the first time we run the script;
+if you&#8217;ve got some time, you can read up on how to
+make tasks <a href="https://docs.ansible.com/ansible/latest/playbook_guide/playbooks_conditionals.html">conditional</a>
+and configure it to only run if the <code>builtin.user</code> tasks has actually made a change.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="4"></i><b>4</b></td>
+<td>We can remove the <code>become: true</code> from this task and it should still work.</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>Let&#8217;s run that:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>ansible-playbook --user=elspeth -i staging.ottg.co.uk, infra/deploy-playbook.yaml -vv</strong>
+PLAYBOOK: deploy-playbook.yaml ************************************************
+1 plays in infra/deploy-playbook.yaml
+
+PLAY [all] ********************************************************************
+
+TASK [Gathering Facts] ********************************************************
+[...]
+ok: [staging.ottg.co.uk]
+
+TASK [Install docker] *********************************************************
+[...]
+ok: [staging.ottg.co.uk] =&gt; {"cache_update_time": 1738767216, "cache_updated": true, "changed": false}
+
+TASK [Add our user to the docker group, so we don't need sudo/become] *********
+[...]
+changed: [staging.ottg.co.uk] =&gt; {"append": false, "changed": true, [...]
+"", "group": 1000, "groups": "docker", [...]
+
+TASK [Reset ssh connection to allow the user/group change to take effect] *****
+[...]
+META: reset connection
+
+TASK [Run test container] *****************************************************
+[...]
+changed: [staging.ottg.co.uk] =&gt; {"changed": true, "container": [...]
+
+PLAY RECAP ********************************************************************
+staging.ottg.co.uk         : ok=4    changed=2    unreachable=0    failed=0
+skipped=0    rescued=0    ignored=0</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>And check that it worked:</p>
+</div>
+<div class="listingblock server-commands">
+<div class="content">
+<pre>elspeth@server$ <strong>docker ps -a</strong>  # no sudo yay!
+CONTAINER ID   IMAGE        COMMAND                  CREATED          STATUS
+PORTS     NAMES
+bd3114e43f55   busybox      "echo hello world"       12 minutes ago   Exited (0)
+6 seconds ago               testcontainer
+
+elsepth@server$ <strong>docker logs testcontainer</strong>
+hello world
+hello world</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Sure enough, we no longer need <code>sudo</code>,
+and we can see a new version of the container just ran.</p>
+</div>
+<div class="paragraph">
+<p>You know, that&#8217;s worthy of a commit!</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>git add infra/deploy-playbook.yaml</strong>
+$ <strong>git commit -m "Made a start on an ansible playbook for deployment"</strong></pre>
+</div>
 </div>
 <div class="paragraph">
 <p>Let&#8217;s move on to trying to get our actual docker container running on the server.
@@ -373,43 +496,39 @@ In Ansible config, it looks like this:</p>
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="pygments highlight"><code data-lang="yaml"><span></span><span class="tok-nn">---</span>
-<span class="tok-p tok-p-Indicator">-</span><span class="tok-w"> </span><span class="tok-nt">hosts</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">all</span>
+<pre class="pygments highlight"><code data-lang="yaml"><span></span><span class="tok-w">  </span><span class="tok-p tok-p-Indicator">-</span><span class="tok-w"> </span><span class="tok-nt">name</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">Install docker</span>
+<span class="tok-w">        </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">[...]</span>
+<span class="tok-w">  </span><span class="tok-p tok-p-Indicator">-</span><span class="tok-w"> </span><span class="tok-nt">name</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">Add our user to the docker group, so we don't need sudo/become</span>
+<span class="tok-w">        </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">[...]</span>
+<span class="tok-w">  </span><span class="tok-p tok-p-Indicator">-</span><span class="tok-w"> </span><span class="tok-nt">name</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">Reset ssh connection to allow the user/group change to take effect</span>
+<span class="tok-w">        </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">[...]</span>
 
-<span class="tok-w">  </span><span class="tok-nt">tasks</span><span class="tok-p">:</span>
-<span class="tok-w">    </span><span class="tok-p tok-p-Indicator">-</span><span class="tok-w"> </span><span class="tok-nt">name</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">Install docker</span>
-<span class="tok-w">      </span><span class="tok-nt">ansible.builtin.apt</span><span class="tok-p">:</span>
-<span class="tok-w">        </span><span class="tok-nt">name</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">docker.io</span>
-<span class="tok-w">        </span><span class="tok-nt">state</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">latest</span>
-<span class="tok-w">      </span><span class="tok-nt">become</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">true</span>
+<span class="tok-w">  </span><span class="tok-p tok-p-Indicator">-</span><span class="tok-w"> </span><span class="tok-nt">name</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">Export container image locally</span><span class="tok-w">  </span><i class="conum" data-value="1"></i><b>(1)</b>
+<span class="tok-w">    </span><span class="tok-nt">community.docker.docker_image</span><span class="tok-p">:</span>
+<span class="tok-w">      </span><span class="tok-nt">name</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">superlists</span>
+<span class="tok-w">      </span><span class="tok-nt">archive_path</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">/tmp/superlists-img.tar</span>
+<span class="tok-w">      </span><span class="tok-nt">source</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">local</span>
+<span class="tok-w">    </span><span class="tok-nt">delegate_to</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">127.0.0.1</span>
 
-<span class="tok-w">    </span><span class="tok-p tok-p-Indicator">-</span><span class="tok-w"> </span><span class="tok-nt">name</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">Export container image locally</span><span class="tok-w">  </span><i class="conum" data-value="1"></i><b>(1)</b>
-<span class="tok-w">      </span><span class="tok-nt">community.docker.docker_image</span><span class="tok-p">:</span>
-<span class="tok-w">        </span><span class="tok-nt">name</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">superlists</span>
-<span class="tok-w">        </span><span class="tok-nt">archive_path</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">/tmp/superlists-img.tar</span>
-<span class="tok-w">        </span><span class="tok-nt">source</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">local</span>
-<span class="tok-w">      </span><span class="tok-nt">delegate_to</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">127.0.0.1</span>
+<span class="tok-w">  </span><span class="tok-p tok-p-Indicator">-</span><span class="tok-w"> </span><span class="tok-nt">name</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">Upload image to server</span><span class="tok-w">  </span><i class="conum" data-value="2"></i><b>(2)</b>
+<span class="tok-w">    </span><span class="tok-nt">ansible.builtin.copy</span><span class="tok-p">:</span>
+<span class="tok-w">      </span><span class="tok-nt">src</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">/tmp/superlists-img.tar</span>
+<span class="tok-w">      </span><span class="tok-nt">dest</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">/tmp/superlists-img.tar</span>
 
-<span class="tok-w">    </span><span class="tok-p tok-p-Indicator">-</span><span class="tok-w"> </span><span class="tok-nt">name</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">Upload image to server</span><span class="tok-w">  </span><i class="conum" data-value="2"></i><b>(2)</b>
-<span class="tok-w">      </span><span class="tok-nt">ansible.builtin.copy</span><span class="tok-p">:</span>
-<span class="tok-w">        </span><span class="tok-nt">src</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">/tmp/superlists-img.tar</span>
-<span class="tok-w">        </span><span class="tok-nt">dest</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">/tmp/superlists-img.tar</span>
+<span class="tok-w">  </span><span class="tok-p tok-p-Indicator">-</span><span class="tok-w"> </span><span class="tok-nt">name</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">Import container image on server</span><span class="tok-w">  </span><i class="conum" data-value="3"></i><b>(3)</b>
+<span class="tok-w">    </span><span class="tok-nt">community.docker.docker_image</span><span class="tok-p">:</span>
+<span class="tok-w">      </span><span class="tok-nt">name</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">superlists</span>
+<span class="tok-w">      </span><span class="tok-nt">load_path</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">/tmp/superlists-img.tar</span>
+<span class="tok-w">      </span><span class="tok-nt">source</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">load</span>
+<span class="tok-w">      </span><span class="tok-nt">force_source</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">true</span><span class="tok-w">  </span><i class="conum" data-value="4"></i><b>(4)</b>
+<span class="tok-w">      </span><span class="tok-nt">state</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">present</span>
 
-<span class="tok-w">    </span><span class="tok-p tok-p-Indicator">-</span><span class="tok-w"> </span><span class="tok-nt">name</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">Import container image on server</span><span class="tok-w">  </span><i class="conum" data-value="3"></i><b>(3)</b>
-<span class="tok-w">      </span><span class="tok-nt">community.docker.docker_image</span><span class="tok-p">:</span>
-<span class="tok-w">        </span><span class="tok-nt">name</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">superlists</span>
-<span class="tok-w">        </span><span class="tok-nt">load_path</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">/tmp/superlists-img.tar</span>
-<span class="tok-w">        </span><span class="tok-nt">source</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">load</span>
-<span class="tok-w">        </span><span class="tok-nt">force_source</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">true</span><span class="tok-w">  </span><i class="conum" data-value="4"></i><b>(4)</b>
-<span class="tok-w">        </span><span class="tok-nt">state</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">present</span>
-<span class="tok-w">      </span><span class="tok-nt">become</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">true</span>
-
-<span class="tok-w">    </span><span class="tok-p tok-p-Indicator">-</span><span class="tok-w"> </span><span class="tok-nt">name</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">Run container</span>
-<span class="tok-w">      </span><span class="tok-nt">community.docker.docker_container</span><span class="tok-p">:</span>
-<span class="tok-w">        </span><span class="tok-nt">name</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">superlists</span>
-<span class="tok-w">        </span><span class="tok-nt">image</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">superlists</span>
-<span class="tok-w">        </span><span class="tok-nt">state</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">started</span>
-<span class="tok-w">        </span><span class="tok-nt">recreate</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">true</span></code></pre>
+<span class="tok-w">  </span><span class="tok-p tok-p-Indicator">-</span><span class="tok-w"> </span><span class="tok-nt">name</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">Run container</span>
+<span class="tok-w">    </span><span class="tok-nt">community.docker.docker_container</span><span class="tok-p">:</span>
+<span class="tok-w">      </span><span class="tok-nt">name</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">superlists</span>
+<span class="tok-w">      </span><span class="tok-nt">image</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">superlists</span><span class="tok-w">  </span><i class="conum" data-value="5"></i><b>(5)</b>
+<span class="tok-w">      </span><span class="tok-nt">state</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">started</span>
+<span class="tok-w">      </span><span class="tok-nt">recreate</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">true</span><span class="tok-w">  </span><i class="conum" data-value="6"></i><b>(6)</b></code></pre>
 </div>
 </div>
 </div>
@@ -421,9 +540,15 @@ In Ansible config, it looks like this:</p>
 <i class="fa icon-note" title="Note"></i>
 </td>
 <td class="content">
-Colima users on MacOS may need to set an env var to get the ansible-docker
-    integration to work in the "Export container image locally" stage:
-    <code>DOCKER_HOST=unix:///$HOME/.colima/default/docker.sock</code>
+If you see an error saying "Error connecting: Error while fetching server API version",
+    it may be because the Python Docker SDK can&#8217;t find your docker daemon.
+    Try restarting Docker Desktop if you&#8217;re on Windows or a Mac.
+    If you&#8217;re not using the standard docker engine, with Colima for example,
+    you may need to set the <code>DOCKER_HOST</code> environment variable
+    (<code>DOCKER_HOST=unix:///$HOME/.colima/default/docker.sock</code>)
+    or use a symlink to point to the right place.
+    See the
+    <a href="https://github.com/abiosoft/colima/blob/main/docs/FAQ.md#cannot-connect-to-the-docker-daemon-at-unixvarrundockersock-is-the-docker-daemon-running">Colima FAQ</a>.
 </td>
 </tr>
 </table>
@@ -450,6 +575,17 @@ to import the image back on the server</td>
 <td>the <code>force_source</code> flag tells the server to attempt the import,
 even if an image of that name already exists.</td>
 </tr>
+<tr>
+<td><i class="conum" data-value="5"></i><b>5</b></td>
+<td>We change our "Run container" task to use the <code>superlists</code> image,
+and we&#8217;ll use that as the container name too.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="6"></i><b>6</b></td>
+<td>Similarly to <code>source: load</code>, the <code>recreate</code> argument tells Ansible
+to recreate the container even if there&#8217;s already one running
+whose name and image match "superlists".</td>
+</tr>
 </table>
 </div>
 <div class="paragraph">
@@ -473,9 +609,16 @@ ok: [staging.ottg.co.uk]
 TASK [Install docker] *********************************************************
 task path: ...goat-book/superlists/infra/deploy-playbook.yaml:5
 ok: [staging.ottg.co.uk] =&gt; {"cache_update_time": 1708982855, "cache_updated": false, "changed": false}
+TASK [Add our user to the docker group, so we don't need sudo/become] *********
+task path: ...goat-book/infra/deploy-playbook.yaml:11
+ok: [staging.ottg.co.uk] =&gt; {"append": false, "changed": false, [...]
+
+TASK [Reset ssh connection to allow the user/group change to take effect] *****
+task path: ...goat-book/infra/deploy-playbook.yaml:17
+META: reset connection
 
 TASK [Export container image locally] *****************************************
-task path: ...goat-book/superlists/infra/deploy-playbook.yaml:11
+task path: ...goat-book/superlists/infra/deploy-playbook.yaml:20
 changed: [staging.ottg.co.uk -&gt; 127.0.0.1] =&gt; {"actions": ["Archived image
 superlists:latest to /tmp/superlists-img.tar, overwriting archive with image
 11ff3b83873f0fea93f8ed01bb4bf8b3a02afa15637ce45d71eca1fe98beab34 named
@@ -483,26 +626,28 @@ superlists:latest"], "changed": true, "image": {"Architecture": "amd64",
 [...]
 
 TASK [Upload image to server] *************************************************
-task path: ...goat-book/superlists/infra/deploy-playbook.yaml:18
+task path: ...goat-book/superlists/infra/deploy-playbook.yaml:27
 changed: [staging.ottg.co.uk] =&gt; {"changed": true, "checksum":
 "313602fc0c056c9255eec52e38283522745b612c", "dest": "/tmp/superlists-img.tar",
 [...]
 
 TASK [Import container image on server] ***************************************
-task path: ...goat-book/superlists/infra/deploy-playbook.yaml:23
+task path: ...goat-book/superlists/infra/deploy-playbook.yaml:32
 changed: [staging.ottg.co.uk] =&gt; {"actions": ["Loaded image superlists:latest
 from /tmp/superlists-img.tar"], "changed": true, "image": {"Architecture":
 "amd64", "Author": "", "Comment": "buildkit.dockerfile.v0", "Config":
 [...]
 
 TASK [Run container] **********************************************************
-task path: ...goat-book/superlists/infra/deploy-playbook.yaml:32
+task path: ...goat-book/superlists/infra/deploy-playbook.yaml:40
 changed: [staging.ottg.co.uk] =&gt; {"changed": true, "container":
 {"AppArmorProfile": "docker-default", "Args": ["--bind", ":8888",
 "superlists.wsgi:application"], "Config": {"AttachStderr": true, "AttachStdin":
 false, "AttachStdout": true, "Cmd": ["gunicorn", "--bind", ":8888",
 "superlists.wsgi:application"], "Domainname": "", "Entrypoint": null, "Env":
-[...]</pre>
+[...]
+staging.ottg.co.uk         : ok=7    changed=4    unreachable=0    failed=0
+skipped=0    rescued=0    ignored=0</pre>
 </div>
 </div>
 <div class="paragraph">
@@ -514,7 +659,7 @@ This means we don&#8217;t have a dependency on having run <code>docker build</co
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="pygments highlight"><code data-lang="yaml"><span></span><span class="tok-w">    </span><span class="tok-p tok-p-Indicator">-</span><span class="tok-w"> </span><span class="tok-nt">name</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">Install docker</span>
+<pre class="pygments highlight"><code data-lang="yaml"><span></span><span class="tok-w">    </span><span class="tok-p tok-p-Indicator">-</span><span class="tok-w"> </span><span class="tok-nt">name</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">Reset ssh connection to allow the user/group change to take effect</span>
 <span class="tok-w">      </span><span class="tok-p tok-p-Indicator">[</span><span class="tok-nv">...</span><span class="tok-p tok-p-Indicator">]</span>
 
 <span class="tok-w">    </span><span class="tok-p tok-p-Indicator">-</span><span class="tok-w"> </span><span class="tok-nt">name</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">Build container image locally</span>
@@ -561,10 +706,21 @@ CONTAINER ID   IMAGE     COMMAND              CREATED      STATUS
 PORTS     NAMES
 3a2e600fbe77   busybox   "echo hello world"   2 days ago   Exited (0) 10
 minutes ago             testcontainer
-129e36a42190   superlists   "/bin/sh -c 'gunicor&#8230;"   About a minute ago
-Exited (3) About a minute ago             superlists
-
-elspeth@server:$ <strong>docker logs superlists</strong>
+129e36a42190   superlists   "/bin/sh -c \'gunicor&#8230;"   About a minute ago
+Exited (3) About a minute ago             superlists</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>OK!  We can see our "superlists" container is there now.
+The Status: Exited is a bit more worrying though.</p>
+</div>
+<div class="paragraph">
+<p>Let&#8217;s take a look at the logs of our new container,
+to see if we can figure out what&#8217;s happened:</p>
+</div>
+<div class="listingblock server-commands">
+<div class="content">
+<pre>elspeth@server:$ <strong>docker logs superlists</strong>
 [2024-02-26 22:19:15 +0000] [1] [INFO] Starting gunicorn 21.2.0
 [2024-02-26 22:19:15 +0000] [1] [INFO] Listening at: http://0.0.0.0:8888 (1)
 [2024-02-26 22:19:15 +0000] [1] [INFO] Using worker: sync
@@ -573,7 +729,7 @@ elspeth@server:$ <strong>docker logs superlists</strong>
     SECRET_KEY = os.environ["DJANGO_SECRET_KEY"]
                  <sub>~</sub><sub>~</sub><sub>~</sub>~<sup>^</sup><sup>^</sup><sup>^</sup><sup>^</sup><sup>^</sup><sup>^</sup><sup>^</sup>
   File "&lt;frozen os&gt;", line 685, in <em>getitem</em>
-KeyError: 'DJANGO_SECRET_KEY'
+KeyError: <em>DJANGO_SECRET_KEY</em>
 [2024-02-26 22:19:15 +0000] [7] [INFO] Worker exiting (pid: 7)
 [2024-02-26 22:19:15 +0000] [1] [ERROR] Worker (pid:7) exited with code 3
 [2024-02-26 22:19:15 +0000] [1] [ERROR] Shutting down: Master
@@ -581,32 +737,15 @@ KeyError: 'DJANGO_SECRET_KEY'
 </div>
 </div>
 <div class="paragraph">
-<p>Whoops, we need to set those environment variables on the server too.</p>
-</div>
-<div class="admonitionblock note">
-<table>
-<tr>
-<td class="icon">
-<i class="fa icon-note" title="Note"></i>
-</td>
-<td class="content">
-If you see an error saying "Error connecting: Error while fetching server API version",
-    it may be because the Python Docker SDK can&#8217;t find your docker daemon.
-    Try restarting Docker Desktop if you&#8217;re on Windows or a Mac.
-    If you&#8217;re not using the standard docker engine, with Colima for example,
-    you may need to set the <code>DOCKER_HOST</code> environment variable
-    or use a symlink to point to the right place.
-    See the
-    <a href="https://github.com/abiosoft/colima/blob/main/docs/FAQ.md#cannot-connect-to-the-docker-daemon-at-unixvarrundockersock-is-the-docker-daemon-running">Colima FAQ</a>.
-</td>
-</tr>
-</table>
+<p>Oh whoops, it can&#8217;t find the <code>DJANGO_SECRET_KEY</code> environment variable.
+We need to set those environment variables on the server too.</p>
 </div>
 </div>
 <div class="sect2">
 <h3 id="_using_an_env_file_to_store_our_environment_variables">Using an env File to Store Our Environment Variables</h3>
 <div class="paragraph">
-<p>When we run our container manually locally, we can pass in environment variables with the <code>-e</code> flag.
+<p>When we run our container manually locally,
+we can pass in environment variables with the <code>-e</code> flag.
 But we don&#8217;t want to hard-code secrets like SECRET_KEY into our Ansible files
 and commit them to our repo!</p>
 </div>
@@ -1075,6 +1214,72 @@ to make sure it&#8217;s the same one you built locally.</p>
 </div>
 </div>
 </div>
+</div>
+<div class="sect2">
+<h3 id="_deploying_to_prod">Deploying to Prod</h3>
+<div class="paragraph">
+<p>So, let&#8217;s try using it for our live site!</p>
+</div>
+<div class="listingblock small-code against-server">
+<div class="content">
+<pre>$ pass:quotes[*ansible-playbook --user=elspeth -i www.ottg.co.uk, infra/deploy-playbook.yaml -vv*]
+[...]
+
+Done.
+Disconnecting from elspeth@www.ottg.co.uk... done.</pre>
+</div>
+</div>
+<div class="paragraph">
+<p><em>Brrp brrp brpp</em>.  Looking good?  Go take a click around your live site!</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_git_tag_the_release">Git Tag the Release</h3>
+<div class="paragraph">
+<p>
+One final bit of admin.
+In order to preserve a historical marker,
+we&#8217;ll use Git tags to mark the state of the codebase
+that reflects what&#8217;s currently live on the server:</p>
+</div>
+<div class="listingblock skipme">
+<div class="content">
+<pre>$ <strong>git tag LIVE</strong>
+$ <strong>export TAG=$(date +DEPLOYED-%F/%H%M)</strong>  # this generates a timestamp
+$ <strong>echo $TAG</strong> # should show "DEPLOYED-" and then the timestamp
+$ <strong>git tag $TAG</strong>
+$ <strong>git push origin LIVE $TAG</strong> # pushes the tags up to GitHub</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Now it&#8217;s easy, at any time, to check what the difference is
+between our current codebase and what&#8217;s live on the servers.
+This will come in useful in a few chapters,
+when we look at database migrations.
+Have a look at the tag in the history:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>git log --graph --oneline --decorate</strong>
+[...]</pre>
+</div>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+Once again, this use of git tags isn&#8217;t meant to be the One True Way.
+  We just need some sort of way of keeping track of what was deployed when.
+</td>
+</tr>
+</table>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_tell_everyone">Tell everyone!</h3>
 <div class="paragraph">
 <p>You now have a live website!  Tell all your friends!
 Tell your mum, if no one else is interested!
@@ -1098,20 +1303,17 @@ Here are some resources I used for inspiration:</p>
 <div class="ulist">
 <ul>
 <li>
-<p><a href="https://12factor.net/">The 12-factor App</a> by the Heroku team</p>
+<p>The original <a href="https://12factor.net/">12-factor App</a> manifesto from the Heroku team</p>
 </li>
 <li>
-<p><a href="http://hynek.me/talks/python-deployments">Solid Python Deployments for Everybody</a> by Hynek Schlawack</p>
+<p><a href="https://hynek.me/talks/deploy-friendly/">How to Write Deployment-Friendly Apps</a> by Hynek Schlawack</p>
 </li>
 <li>
 <p>The deployment chapter of
-<a href="https://www.feldroy.com/books/two-scoops-of-django-3-x">Two Scoops of Django</a>
+<a href="https://www.feldroy.com/two-scoops-of-django">Two Scoops of Django</a>
 by Dan Greenfeld and Audrey Roy</p>
 </li>
 </ul>
-</div>
-<div class="paragraph">
-<p>]</p>
 </div>
 <div class="sidebarblock pagebreak-before less_space">
 <div class="content">
@@ -1207,7 +1409,7 @@ This goes hand-in-hand with the idea of idempotence above.</p>
 </div>
 <div id="footer">
 <div id="footer-text">
-License: Creative Commons <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode">CC-BY-NC-ND</a>. Last updated: 2024-10-13 22:20:32 +0100
+License: Creative Commons <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode">CC-BY-NC-ND</a>. Last updated: 2025-02-05 18:20:04 UTC
 </div>
 </div>
 <div class="comments" style="padding: 20px">

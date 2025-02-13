@@ -4,7 +4,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="generator" content="Asciidoctor 2.0.23">
-<title>Mocks and Mocking 2: Using Mocks for Test Isolation</title>
+<title>Using Mocks for Test Isolation</title>
 <link rel="stylesheet" href="./asciidoctor.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
 <link rel="stylesheet" href="./pygments-default.css">
@@ -41,7 +41,7 @@ httpRequest.send();
 </div>
 <div id="content">
 <div class="sect1">
-<h2 id="chapter_21_mocking_2">Mocks and Mocking 2: Using Mocks for Test Isolation</h2>
+<h2 id="chapter_21_mocking_2">Using Mocks for Test Isolation</h2>
 <div class="sectionbody">
 <div class="sidebarblock">
 <div class="content">
@@ -61,9 +61,9 @@ of the pros and cons of mocking, which I&#8217;d love your feedback on!</p>
 <div class="paragraph">
 <p>In this chapter we&#8217;ll finish up our login system.
 While doing so, we&#8217;ll explore an alternative use of mocks:
-to isolate parts of the system from each other,
-enabling more targeted testing, fight combinatorial explosion,
-and reduce duplication between tests.</p>
+to isolate parts of the system from each other. This
+enables more targeted testing, fights combinatorial explosion,
+and reduces duplication between tests.</p>
 </div>
 <div class="admonitionblock note">
 <table>
@@ -72,7 +72,7 @@ and reduce duplication between tests.</p>
 <i class="fa icon-note" title="Note"></i>
 </td>
 <td class="content">
-In doing so, we start to drift towards what&#8217;s called "London-school TDD",
+In this chapter, we start to drift towards what&#8217;s called "London-school TDD",
     which is a variant on the "Classical" or "Detroit" style of TDD
     that I mostly show in the book.
     We won&#8217;t get into the details here,
@@ -85,7 +85,7 @@ In doing so, we start to drift towards what&#8217;s called "London-school TDD",
 </div>
 <div class="paragraph">
 <p>Along the way, we&#8217;ll learn a few more useful features of <code>unittest.mock</code>,
-and we&#8217;ll also have a discussion about how many tests is "enough".</p>
+and we&#8217;ll also have a discussion about how many tests are "enough".</p>
 </div>
 <div class="sect2">
 <h3 id="_using_our_auth_backend_in_the_login_view">Using Our Auth Backend in the Login View</h3>
@@ -152,7 +152,7 @@ This is a good time to check out the
 <h4 id="_straightforward_non_mocky_test_for_our_view">Straightforward Non-Mocky Test for our View</h4>
 <div class="paragraph">
 <p>Here&#8217;s the most obvious test we might want to write:
-we think in terms of the <em>behaviour</em> we want:</p>
+thinking in terms of the <em>behaviour</em> we want:</p>
 </div>
 <div class="olist arabic">
 <ol class="arabic">
@@ -206,7 +206,7 @@ we think in terms of the <em>behaviour</em> we want:</p>
 </tr>
 <tr>
 <td><i class="conum" data-value="3"></i><b>3</b></td>
-<td>And here&#8217;s where we check that we&#8217;ve been logged,
+<td>And here&#8217;s where we check that we&#8217;ve been logged in,
 with a user with the right email address:</td>
 </tr>
 </table>
@@ -272,9 +272,9 @@ AssertionError: False != True</pre>
 <div class="listingblock">
 <div class="content">
 <pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-k">def</span> <span class="tok-nf">login</span><span class="tok-p">(</span><span class="tok-n">request</span><span class="tok-p">):</span>
-    <span class="tok-k">if</span> <span class="tok-n">Token</span><span class="tok-o">.</span><span class="tok-n">objects</span><span class="tok-o">.</span><span class="tok-n">filter</span><span class="tok-p">(</span><span class="tok-n">uid</span><span class="tok-o">=</span><span class="tok-n">request</span><span class="tok-o">.</span><span class="tok-n">GET</span><span class="tok-p">[</span><span class="tok-s2">"token"</span><span class="tok-p">])</span><span class="tok-o">.</span><span class="tok-n">exists</span><span class="tok-p">():</span>   <i class="conum" data-value="1"></i><b>(1)</b> <i class="conum" data-value="2"></i><b>(2)</b>
+    <span class="tok-k">if</span> <span class="tok-n">Token</span><span class="tok-o">.</span><span class="tok-n">objects</span><span class="tok-o">.</span><span class="tok-n">filter</span><span class="tok-p">(</span><span class="tok-n">uid</span><span class="tok-o">=</span><span class="tok-n">request</span><span class="tok-o">.</span><span class="tok-n">GET</span><span class="tok-p">[</span><span class="tok-s2">"token"</span><span class="tok-p">])</span><span class="tok-o">.</span><span class="tok-n">exists</span><span class="tok-p">():</span>  <i class="conum" data-value="1"></i><b>(1)</b>
         <span class="tok-n">User</span> <span class="tok-o">=</span> <span class="tok-n">auth</span><span class="tok-o">.</span><span class="tok-n">get_user_model</span><span class="tok-p">()</span>
-        <span class="tok-n">user</span> <span class="tok-o">=</span> <span class="tok-n">User</span><span class="tok-o">.</span><span class="tok-n">objects</span><span class="tok-o">.</span><span class="tok-n">create</span><span class="tok-p">(</span><span class="tok-n">email</span><span class="tok-o">=</span><span class="tok-s2">"edith@example.com"</span><span class="tok-p">)</span>  <i class="conum" data-value="3"></i><b>(3)</b>
+        <span class="tok-n">user</span> <span class="tok-o">=</span> <span class="tok-n">User</span><span class="tok-o">.</span><span class="tok-n">objects</span><span class="tok-o">.</span><span class="tok-n">create</span><span class="tok-p">(</span><span class="tok-n">email</span><span class="tok-o">=</span><span class="tok-s2">"edith@example.com"</span><span class="tok-p">)</span>   <i class="conum" data-value="2"></i><b>(2)</b> <i class="conum" data-value="3"></i><b>(3)</b>
         <span class="tok-n">auth</span><span class="tok-o">.</span><span class="tok-n">login</span><span class="tok-p">(</span><span class="tok-n">request</span><span class="tok-p">,</span> <span class="tok-n">user</span><span class="tok-p">)</span>
     <span class="tok-k">else</span><span class="tok-p">:</span>
         <span class="tok-n">messages</span><span class="tok-o">.</span><span class="tok-n">error</span><span class="tok-p">(</span><span class="tok-n">request</span><span class="tok-p">,</span> <span class="tok-s2">"Invalid login link, please request a new one"</span><span class="tok-p">)</span>  <i class="conum" data-value="4"></i><b>(4)</b>
@@ -320,7 +320,7 @@ and we&#8217;re considering writing equivalent tests at the views layer.</p>
 <div class="sect2">
 <h3 id="_combinatorial_explosion">Combinatorial Explosion</h3>
 <div class="paragraph">
-<p>Let&#8217;s recap the tests we might want to write at each layer in our application:
+<p>Let&#8217;s recap the tests we might want to write at each layer in our application in table 21-1:
 </p>
 </div>
 <table class="tableblock frame-all grid-all stretch">
@@ -477,7 +477,7 @@ as well as which attributes of the inputs matter, and which don&#8217;t.</p>
 </div>
 <div class="paragraph">
 <p>Testing the first stage of the process, building the engine,
-is straightforward.  The "engine type" input has three possible values,
+is straightforward.  The "engine type" input has three possible values
 as inputs, so we need three tests of the output, which is the engine.
 If we&#8217;re testing at the end-to-end level, no matter how many tests we have in total,
 we know we&#8217;ll need at least 3 of to be the tests
@@ -570,7 +570,7 @@ from our backend</td>
 </div>
 <div class="paragraph">
 <p>But currently our tests are letting us "get away" with
-the cheating/wrong implementation.</p>
+the wrong implementation.</p>
 </div>
 <div class="paragraph">
 <p>Here are three possible options for getting ourselves to the right state:</p>
@@ -612,12 +612,12 @@ like playing with <code>.return_value</code>.</p>
 
 So far we&#8217;ve used mocks to test external dependencies,
 like Django&#8217;s mail-sending function.
-The main reason to use a mock was to isolate ourselves from external side effects,
+The main reason to use a mock we&#8217;ve discussed thus far is to isolate ourselves from external side effects,
 in this case, to avoid sending out actual emails during our tests.</p>
 </div>
 <div class="paragraph">
 <p>In this section we&#8217;ll look at a different possible use case for mocks,
-which are around testing parts of our <em>own</em> code in isolation from each other,
+which is testing parts of our <em>own</em> code in isolation from each other,
 as a way of reducing duplication and avoiding combinatorial explosion in our tests.</p>
 </div>
 <div class="sect3">
@@ -625,7 +625,7 @@ as a way of reducing duplication and avoiding combinatorial explosion in our tes
 <div class="paragraph">
 <p>On top of that, the fact that we&#8217;re using the Django <code>auth.authenticate</code> function
 rather than calling our own code directly is relevant.
-Django has already introduce an abstraction,
+Django has already introduced an abstraction,
 to decouple the specifics of authentication backends
 from the views that use them.
 This makes it easier for us to add further backends in future.</p>
@@ -643,7 +643,7 @@ and mocks are one way to enable that.</p>
 <div class="sect2">
 <h3 id="_starting_again_test_driving_our_implementation_with_mocks">Starting Again, Test-Driving our Implementation With Mocks</h3>
 <div class="paragraph">
-<p>Let&#8217;s see how things would look if we had made this decision in the first place.
+<p>Let&#8217;s see how things would look if we had decided to test-drive our implementation with mocks in the first place.
 We&#8217;ll start by reverting all the authentication stuff,
 both from our test and from our view.</p>
 </div>
@@ -786,7 +786,7 @@ the token from the GET request.
 <div class="paragraph">
 <p>
 The <code>.call_args</code> property on a mock represents the positional and keyword arguments
-hat the mock was called with.
+that the mock was called with.
 It&#8217;s a special "call" object type,
 which is essentially a tuple of <code>(positional_args, keyword_args)</code>.
 <code>positional_args</code> is itself a tuple,
@@ -1017,7 +1017,8 @@ Another little console illustration might help here:</p>
 <div class="paragraph">
 <p>If you&#8217;ve used <code>unittest.mock</code> before, you may have come across its special
 <code>assert_called...</code>
-<a href="http://bit.ly/2F9AEMY">methods</a>, and you may be wondering why I didn&#8217;t use them.
+<a href="https://docs.python.org/3/library/unittest.mock.html#unittest.mock.Mock.assert_called">methods</a>,
+and you may be wondering why I didn&#8217;t use them.
 For example, instead of doing:</p>
 </div>
 <div class="listingblock skipme">
@@ -1455,7 +1456,7 @@ So, I propose we delete the two mocky tests for the happy and unhappy paths,
 since they are reasonably covered by the non-mocky ones,
 but I think we can justify keeping the first mocky test,
 because it adds value by checking that we&#8217;re doing our authentication
-the "right" way, ie by calling into Dango&#8217;s <code>auth.authenticate()</code> function
+the "right" way, ie by calling into Django&#8217;s <code>auth.authenticate()</code> function
 (instead of, eg, instantiating and calling our auth backend ourselves,
 or even just implementing authentication inline in the view).</p>
 </div>
@@ -1508,7 +1509,7 @@ OK</pre>
 <div class="paragraph">
 <p>
 
-I think we&#8217;re just about ready to try our functional test!</p>
+We&#8217;re just about ready to try our functional test!</p>
 </div>
 <div class="paragraph">
 <p>Let&#8217;s just make sure our base template shows a different nav bar for logged-in
@@ -1641,7 +1642,7 @@ that&#8217;s a convention which makes it a hidden file, on Unix-like systems at 
 <div class="listingblock skipme">
 <div class="content">
 <pre>$ <strong>echo .env &gt;&gt; .gitignore</strong>  # we don't want to commit our secrets into git!
-$ <strong>echo EMAIL_PASSWORD="yoursekritpasswordhere" &gt;&gt; .env</strong>
+$ <strong>echo EMAIL_PASSWORD=\"yoursekritpasswordhere\" &gt;&gt; .env</strong>
 $ <strong>set -a; source .env; set +a;</strong></pre>
 </div>
 </div>
@@ -1714,7 +1715,7 @@ $ <strong>git commit -m "Custom passwordless auth backend + custom user model"</
 <h3 id="_finishing_off_our_ft_testing_logout">Finishing Off Our FT, Testing Logout</h3>
 <div class="paragraph">
 <p>
-The last thing we need to do before we call it a day is to test the logout button
+The last thing we need to do before we call it a day is to test the logout button.
 We extend the FT with a couple more steps:</p>
 </div>
 <div class="exampleblock sourcecode">
@@ -1870,7 +1871,7 @@ and thus check on how it gets used later in your code;
 this usually happens in the "Assert" or "Then" part of your test.
 It can also be assigned to in the "Arrange" or "Given" part of your test,
 as a way to say
-"we want this mocked-out function to return a particular value"</p>
+"we want this mocked-out function to return a particular value".</p>
 </dd>
 <dt class="hdlist1">Mocks can ensure test isolation and reduce duplication</dt>
 <dd>
@@ -1896,7 +1897,7 @@ and document it for our future selves.</p>
 <dd>
 <p>In a way, mocks make it "too easy".
 In other programming languages
-that lack Python&#8217;s dynamic ability to monkepatch things at runtime,
+that lack Python&#8217;s dynamic ability to monkeypatch things at runtime,
 developers have had to work on alternative ways to test code with dependencies.
 While these techniques can be more complex,
 they do force you to think about how your code is structured,
@@ -1919,7 +1920,7 @@ to improve the structure of code in <a href="/book/appendix_purist_unit_tests.ht
 </div>
 <div id="footer">
 <div id="footer-text">
-License: Creative Commons <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode">CC-BY-NC-ND</a>. Last updated: 2024-10-13 21:05:14 +0100
+License: Creative Commons <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode">CC-BY-NC-ND</a>. Last updated: 2025-02-05 18:20:04 UTC
 </div>
 </div>
 <div class="comments" style="padding: 20px">

@@ -1,0 +1,785 @@
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="generator" content="Asciidoctor 2.0.23">
+<title>The Subtleties of Functionally Testing External Dependencies</title>
+<link rel="stylesheet" href="./asciidoctor.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+<link rel="stylesheet" href="./pygments-default.css">
+<script>var httpRequest = new XMLHttpRequest();
+httpRequest.onreadystatechange = function() {
+  if (httpRequest.readyState === XMLHttpRequest.DONE) {
+    if (httpRequest.status === 200) {
+      document.getElementById('header').innerHTML += httpRequest.responseText;
+      var subheaders = document.getElementsByClassName('sectlevel2');
+      var section;
+      for (var i=0; i<subheaders.length; i++) {
+        section = subheaders[i];
+        if (section.innerHTML.indexOf(window.location.pathname) === -1) {
+          section.style.display = 'none';
+        } else {
+          section.scrollIntoView && section.scrollIntoView();
+        }
+      }
+
+    }
+  }
+};
+httpRequest.open('GET', 'toc.html');
+httpRequest.send();
+
+</script></head>
+<body class="article toc2 toc-left">
+<div id="buy_the_book" style="position: absolute; top: 0; right: 0; z-index:100">
+  <a href="/pages/book.html">
+    <img src="images/buy_the_book.svg" alt="buy the book ribbon">
+  </a>
+</div>
+<div id="header">
+</div>
+<div id="content">
+<div class="sect1">
+<h2 id="appendix_fts_for_external_dependencies">Appendix D: The Subtleties of Functionally Testing External Dependencies</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>You might remember from <a href="/book/chapter_23_debugging_prod.html#options-for-testing-real-email">[options-for-testing-real-email]</a>
+a point at which we wanted to test sending email from the server.</p>
+</div>
+<div class="paragraph">
+<p>Here were the options we considered:</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>We could build a "real" end-to-end test, and have our tests
+log in to an email server, and retrieve the email from there.
+That&#8217;s what I did in the first and second edition.</p>
+</li>
+<li>
+<p>You can use a service like Mailinator or Mailsac,
+which give you an email account to send to,
+and some APIs for checking what mail has been delivered.</p>
+</li>
+<li>
+<p>We can use an alternative, fake email backend,
+whereby Django will save the emails to a file on disk for example,
+and we can inspect them there.</p>
+</li>
+<li>
+<p>Or we could give up on testing email on the server.
+If we have a minimal smoke test that the server <em>can</em> send emails,
+then we don&#8217;t need to test that they are <em>actually</em> delivered.</p>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p>In the end we decided not to bother,
+but let&#8217;s spend a bit of time in this appendix trying out options 1 and 3,
+just to see some of the fiddliness and trade-offs involved.</p>
+</div>
+<div class="sect2">
+<h3 id="_how_to_test_email_end_to_end_with_pop3">How to Test Email End-To-End with POP3</h3>
+<div class="paragraph">
+<p>Here&#8217;s an example helper function that can retrieve a real email
+from a real POP3 email server,
+using the horrifically tortuous Python standard library POP3 client.</p>
+</div>
+<div class="paragraph">
+<p>To make it work, we&#8217;ll need an email address to receive the email.
+I signed up for a Yahoo account for testing,
+but you can use any email service you like, as long as it offers POP3 access.</p>
+</div>
+<div class="paragraph">
+<p>You will need to set the
+<code>RECEIVER_EMAIL_PASSWORD</code> environment variable in the console that&#8217;s running the FT.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>export RECEIVER_EMAIL_PASSWORD=otheremailpasswordhere</strong></pre>
+</div>
+</div>
+<div class="exampleblock sourcecode skipme">
+<div class="title">src/functional_tests/test_login.py (ch23l001)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-kn">import</span> <span class="tok-nn">os</span>
+<span class="tok-kn">import</span> <span class="tok-nn">poplib</span>
+<span class="tok-kn">import</span> <span class="tok-nn">re</span>
+<span class="tok-n">impot</span> <span class="tok-n">time</span>
+<span class="tok-p">[</span><span class="tok-o">...</span><span class="tok-p">]</span>
+
+<span class="tok-k">def</span> <span class="tok-nf">retrieve_pop3_email</span><span class="tok-p">(</span><span class="tok-n">receiver_email</span><span class="tok-p">,</span> <span class="tok-n">subject</span><span class="tok-p">,</span> <span class="tok-n">pop3_server</span><span class="tok-p">,</span> <span class="tok-n">pop3_password</span><span class="tok-p">):</span>
+    <span class="tok-n">email_id</span> <span class="tok-o">=</span> <span class="tok-kc">None</span>
+    <span class="tok-n">start</span> <span class="tok-o">=</span> <span class="tok-n">time</span><span class="tok-o">.</span><span class="tok-n">time</span><span class="tok-p">()</span>
+    <span class="tok-n">inbox</span> <span class="tok-o">=</span> <span class="tok-n">poplib</span><span class="tok-o">.</span><span class="tok-n">POP3_SSL</span><span class="tok-p">(</span><span class="tok-n">pop3_server</span><span class="tok-p">)</span>
+    <span class="tok-k">try</span><span class="tok-p">:</span>
+        <span class="tok-n">inbox</span><span class="tok-o">.</span><span class="tok-n">user</span><span class="tok-p">(</span><span class="tok-n">receiver_email</span><span class="tok-p">)</span>
+        <span class="tok-n">inbox</span><span class="tok-o">.</span><span class="tok-n">pass_</span><span class="tok-p">(</span><span class="tok-n">pop3_password</span><span class="tok-p">)</span>
+        <span class="tok-k">while</span> <span class="tok-n">time</span><span class="tok-o">.</span><span class="tok-n">time</span><span class="tok-p">()</span> <span class="tok-o">-</span> <span class="tok-n">start</span> <span class="tok-o">&lt;</span> <span class="tok-n">POP3_TIMEOUT</span><span class="tok-p">:</span>
+            <span class="tok-c1"># get 10 newest messages</span>
+            <span class="tok-n">count</span><span class="tok-p">,</span> <span class="tok-n">_</span> <span class="tok-o">=</span> <span class="tok-n">inbox</span><span class="tok-o">.</span><span class="tok-n">stat</span><span class="tok-p">()</span>
+            <span class="tok-k">for</span> <span class="tok-n">i</span> <span class="tok-ow">in</span> <span class="tok-nb">reversed</span><span class="tok-p">(</span><span class="tok-nb">range</span><span class="tok-p">(</span><span class="tok-nb">max</span><span class="tok-p">(</span><span class="tok-mi">1</span><span class="tok-p">,</span> <span class="tok-n">count</span> <span class="tok-o">-</span> <span class="tok-mi">10</span><span class="tok-p">),</span> <span class="tok-n">count</span> <span class="tok-o">+</span> <span class="tok-mi">1</span><span class="tok-p">)):</span>
+                <span class="tok-nb">print</span><span class="tok-p">(</span><span class="tok-s2">"getting msg"</span><span class="tok-p">,</span> <span class="tok-n">i</span><span class="tok-p">)</span>
+                <span class="tok-n">_</span><span class="tok-p">,</span> <span class="tok-n">lines</span><span class="tok-p">,</span> <span class="tok-n">__</span> <span class="tok-o">=</span> <span class="tok-n">inbox</span><span class="tok-o">.</span><span class="tok-n">retr</span><span class="tok-p">(</span><span class="tok-n">i</span><span class="tok-p">)</span>
+                <span class="tok-n">lines</span> <span class="tok-o">=</span> <span class="tok-p">[</span><span class="tok-n">l</span><span class="tok-o">.</span><span class="tok-n">decode</span><span class="tok-p">(</span><span class="tok-s2">"utf8"</span><span class="tok-p">)</span> <span class="tok-k">for</span> <span class="tok-n">l</span> <span class="tok-ow">in</span> <span class="tok-n">lines</span><span class="tok-p">]</span>
+                <span class="tok-nb">print</span><span class="tok-p">(</span><span class="tok-n">lines</span><span class="tok-p">)</span>
+                <span class="tok-k">if</span> <span class="tok-sa">f</span><span class="tok-s2">"Subject: </span><span class="tok-si">{</span><span class="tok-n">subject</span><span class="tok-si">}</span><span class="tok-s2">"</span> <span class="tok-ow">in</span> <span class="tok-n">lines</span><span class="tok-p">:</span>
+                    <span class="tok-n">email_id</span> <span class="tok-o">=</span> <span class="tok-n">i</span>
+                    <span class="tok-n">body</span> <span class="tok-o">=</span> <span class="tok-s2">"</span><span class="tok-se">\n</span><span class="tok-s2">"</span><span class="tok-o">.</span><span class="tok-n">join</span><span class="tok-p">(</span><span class="tok-n">lines</span><span class="tok-p">)</span>
+                    <span class="tok-k">return</span> <span class="tok-n">body</span>
+            <span class="tok-n">time</span><span class="tok-o">.</span><span class="tok-n">sleep</span><span class="tok-p">(</span><span class="tok-mi">5</span><span class="tok-p">)</span>
+    <span class="tok-k">finally</span><span class="tok-p">:</span>
+        <span class="tok-k">if</span> <span class="tok-n">email_id</span><span class="tok-p">:</span>
+            <span class="tok-n">inbox</span><span class="tok-o">.</span><span class="tok-n">dele</span><span class="tok-p">(</span><span class="tok-n">email_id</span><span class="tok-p">)</span>
+        <span class="tok-n">inbox</span><span class="tok-o">.</span><span class="tok-n">quit</span><span class="tok-p">()</span></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>If you&#8217;re curious, I&#8217;d encourage you to try this out in your FTs.
+It definitely <em>can</em> work.
+But, having tried it in the first couple of editions of the book.
+I have to say it&#8217;s fiddly to get right,
+and often flaky, which is a highly undesirable property for a testing tool.
+So let&#8217;s leave that there for now.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_using_a_fake_email_backend_for_django">Using a Fake Email Backend For Django</h3>
+<div class="paragraph">
+<p>Next let&#8217;s investigate using a filesystem-based email backend.
+As we&#8217;ll see, although it definitely has the advantage
+that everything stays local on our own machine
+(there are no calls over the internet),
+there are quite a few things to watch out for.</p>
+</div>
+<div class="paragraph">
+<p>Let&#8217;s say that, if we detect an environment variable <code>EMAIL_FILE_PATH</code>,
+we switch to Django&#8217;s file-based backend:</p>
+</div>
+<div class="exampleblock">
+<div class="title">src/superlists/settings.py (ch23l002)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-n">EMAIL_HOST</span> <span class="tok-o">=</span> <span class="tok-s2">"smtp.gmail.com"</span>
+<span class="tok-n">EMAIL_HOST_USER</span> <span class="tok-o">=</span> <span class="tok-s2">"obeythetestinggoat@gmail.com"</span>
+<span class="tok-n">EMAIL_HOST_PASSWORD</span> <span class="tok-o">=</span> <span class="tok-n">os</span><span class="tok-o">.</span><span class="tok-n">environ</span><span class="tok-o">.</span><span class="tok-n">get</span><span class="tok-p">(</span><span class="tok-s2">"EMAIL_PASSWORD"</span><span class="tok-p">)</span>
+<span class="tok-n">EMAIL_PORT</span> <span class="tok-o">=</span> <span class="tok-mi">587</span>
+<span class="tok-n">EMAIL_USE_TLS</span> <span class="tok-o">=</span> <span class="tok-kc">True</span>
+<span class="tok-c1"># Use fake file-based backend if EMAIL_FILE_PATH is set</span>
+<span class="tok-k">if</span> <span class="tok-s2">"EMAIL_FILE_PATH"</span> <span class="tok-ow">in</span> <span class="tok-n">os</span><span class="tok-o">.</span><span class="tok-n">environ</span><span class="tok-p">:</span>
+    <span class="tok-n">EMAIL_BACKEND</span> <span class="tok-o">=</span> <span class="tok-s2">"django.core.mail.backends.filebased.EmailBackend"</span>
+    <span class="tok-n">EMAIL_FILE_PATH</span> <span class="tok-o">=</span> <span class="tok-n">os</span><span class="tok-o">.</span><span class="tok-n">environ</span><span class="tok-p">[</span><span class="tok-s2">"EMAIL_FILE_PATH"</span><span class="tok-p">]</span></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>Here&#8217;s how we can adapt our tests to conditionally use the email file,
+instead of Django&#8217;s <code>mail.outbox</code>, if the env var is set when running our tests:</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">src/functional_tests/test_login.py (ch23l003)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-k">class</span> <span class="tok-nc">LoginTest</span><span class="tok-p">(</span><span class="tok-n">FunctionalTest</span><span class="tok-p">):</span>
+    <span class="tok-k">def</span> <span class="tok-nf">retrieve_email_from_file</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">,</span> <span class="tok-n">sent_to</span><span class="tok-p">,</span> <span class="tok-n">subject</span><span class="tok-p">,</span> <span class="tok-n">emails_dir</span><span class="tok-p">):</span>  <i class="conum" data-value="1"></i><b>(1)</b>
+        <span class="tok-n">latest_emails_file</span> <span class="tok-o">=</span> <span class="tok-nb">sorted</span><span class="tok-p">(</span><span class="tok-n">Path</span><span class="tok-p">(</span><span class="tok-n">emails_dir</span><span class="tok-p">)</span><span class="tok-o">.</span><span class="tok-n">iterdir</span><span class="tok-p">())[</span><span class="tok-o">-</span><span class="tok-mi">1</span><span class="tok-p">]</span>  <i class="conum" data-value="2"></i><b>(2)</b>
+        <span class="tok-n">latest_email</span> <span class="tok-o">=</span> <span class="tok-n">latest_emails_file</span><span class="tok-o">.</span><span class="tok-n">read_text</span><span class="tok-p">()</span><span class="tok-o">.</span><span class="tok-n">split</span><span class="tok-p">(</span><span class="tok-s2">"-"</span> <span class="tok-o">*</span> <span class="tok-mi">80</span><span class="tok-p">)[</span><span class="tok-o">-</span><span class="tok-mi">1</span><span class="tok-p">]</span>  <i class="conum" data-value="3"></i><b>(3)</b>
+        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertIn</span><span class="tok-p">(</span><span class="tok-n">subject</span><span class="tok-p">,</span> <span class="tok-n">latest_email</span><span class="tok-p">)</span>
+        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertIn</span><span class="tok-p">(</span><span class="tok-n">sent_to</span><span class="tok-p">,</span> <span class="tok-n">latest_email</span><span class="tok-p">)</span>
+        <span class="tok-k">return</span> <span class="tok-n">latest_email</span>
+
+    <span class="tok-k">def</span> <span class="tok-nf">retrieve_email_from_django_outbox</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">,</span> <span class="tok-n">sent_to</span><span class="tok-p">,</span> <span class="tok-n">subject</span><span class="tok-p">):</span>  <i class="conum" data-value="4"></i><b>(4)</b>
+        <span class="tok-n">email</span> <span class="tok-o">=</span> <span class="tok-n">mail</span><span class="tok-o">.</span><span class="tok-n">outbox</span><span class="tok-o">.</span><span class="tok-n">pop</span><span class="tok-p">()</span>
+        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertIn</span><span class="tok-p">(</span><span class="tok-n">sent_to</span><span class="tok-p">,</span> <span class="tok-n">email</span><span class="tok-o">.</span><span class="tok-n">to</span><span class="tok-p">)</span>
+        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertEqual</span><span class="tok-p">(</span><span class="tok-n">email</span><span class="tok-o">.</span><span class="tok-n">subject</span><span class="tok-p">,</span> <span class="tok-n">subject</span><span class="tok-p">)</span>
+        <span class="tok-k">return</span> <span class="tok-n">email</span><span class="tok-o">.</span><span class="tok-n">body</span>
+
+    <span class="tok-k">def</span> <span class="tok-nf">wait_for_email</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">,</span> <span class="tok-n">sent_to</span><span class="tok-p">,</span> <span class="tok-n">subject</span><span class="tok-p">):</span>  <i class="conum" data-value="5"></i><b>(5)</b>
+<span class="tok-w">        </span><span class="tok-sd">"""</span>
+<span class="tok-sd">        Retrieve email body,</span>
+<span class="tok-sd">        from a file if the right env var is set,</span>
+<span class="tok-sd">        or get it from django.mail.outbox by default</span>
+<span class="tok-sd">        """</span>
+        <span class="tok-k">if</span> <span class="tok-n">email_file_path</span> <span class="tok-o">:=</span> <span class="tok-n">os</span><span class="tok-o">.</span><span class="tok-n">environ</span><span class="tok-o">.</span><span class="tok-n">get</span><span class="tok-p">(</span><span class="tok-s2">"EMAIL_FILE_PATH"</span><span class="tok-p">):</span>  <i class="conum" data-value="6"></i><b>(6)</b>
+            <span class="tok-k">return</span> <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">wait_for</span><span class="tok-p">(</span>  <i class="conum" data-value="7"></i><b>(7)</b>
+                <span class="tok-k">lambda</span><span class="tok-p">:</span> <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">retrieve_email_from_file</span><span class="tok-p">(</span><span class="tok-n">sent_to</span><span class="tok-p">,</span> <span class="tok-n">subject</span><span class="tok-p">,</span> <span class="tok-n">email_file_path</span><span class="tok-p">)</span>
+            <span class="tok-p">)</span>
+        <span class="tok-k">else</span><span class="tok-p">:</span>
+            <span class="tok-k">return</span> <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">retrieve_email_from_django_outbox</span><span class="tok-p">(</span><span class="tok-n">sent_to</span><span class="tok-p">,</span> <span class="tok-n">subject</span><span class="tok-p">)</span>
+
+    <span class="tok-k">def</span> <span class="tok-nf">test_login_using_magic_link</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">):</span>
+        <span class="tok-p">[</span><span class="tok-o">...</span><span class="tok-p">]</span></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>Here&#8217;s our helper method for getting email contents from a file.
+It takes the configured email directory as an argument,
+as well as the sent-to address and expected subject.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>Django saves a new file with emails every time you restart the server.
+The filename has a timestamp in it,
+so we can get the latest one by sorting the files in our test directory.
+Check out the <a href="https://docs.python.org/3/library/pathlib.html">Pathlib</a> docs
+if you haven&#8217;t used it before, it&#8217;s a nice, relatively new way of working with files in Python.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="3"></i><b>3</b></td>
+<td>The emails in the file are separated by a line of 80 hyphens.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="4"></i><b>4</b></td>
+<td>This is the matching helper for getting the email from <code>mail.outbox</code>.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="5"></i><b>5</b></td>
+<td>Here&#8217;s where we dispatch to the right helper based on whether the env
+var is set.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="6"></i><b>6</b></td>
+<td>Checking whether an environment variable is set, and using its value if so,
+is one of the (relatively few) places where it&#8217;s nice to use the walrus operator.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="7"></i><b>7</b></td>
+<td>I&#8217;m using a <code>wait_for()</code> here because anything involving reading and writing from files,
+especially across the filesystem mounts inside and outside of Docker,
+has a potential race condition.</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>We&#8217;ll need a couple more minor changes to the FT, to use the helper:</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">src/functional_tests/test_login.py (ch23l004)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="diff"><span></span><span class="tok-gu">@@ -59,15 +59,12 @@ class LoginTest(FunctionalTest):</span>
+<span class="tok-w"> </span>        )
+
+<span class="tok-w"> </span>        # She checks her email and finds a message
+<span class="tok-gd">-        email = mail.outbox.pop()</span>
+<span class="tok-gd">-        self.assertIn(TEST_EMAIL, email.to)</span>
+<span class="tok-gd">-        self.assertEqual(email.subject, SUBJECT)</span>
+<span class="tok-gi">+        email_body = self.wait_for_email(TEST_EMAIL, SUBJECT)</span>
+
+<span class="tok-w"> </span>        # It has a URL link in it
+<span class="tok-gd">-        self.assertIn("Use this link to log in", email.body)</span>
+<span class="tok-gd">-        url_search = re.search(r"http://.+/.+$", email.body)</span>
+<span class="tok-gd">-        if not url_search:</span>
+<span class="tok-gd">-            self.fail(f"Could not find url in email body:\n{email.body}")</span>
+<span class="tok-gi">+        self.assertIn("Use this link to log in", email_body)</span>
+<span class="tok-gi">+        if not (url_search := re.search(r"http://.+/.+$", email_body, re.MULTILINE)):</span>
+<span class="tok-gi">+            self.fail(f"Could not find url in email body:\n{email_body}")</span>
+<span class="tok-w"> </span>        url = url_search.group(0)
+<span class="tok-w"> </span>        self.assertIn(self.live_server_url, url)</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>Now let&#8217;s set that file path, and mount it inside our docker container,
+so that it&#8217;s available both inside and outside the container:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre># set a local env var for our path to the emails file
+$ <strong>export EMAIL_FILE_PATH=/tmp/superlists-emails</strong>
+# make sure the file exists
+$ <strong>mkdir -p $EMAIL_FILE_PATH</strong>
+# re-run our container, with the EMAIL_FILE_PATH as an env var, and mounted.
+$ <strong>docker build -t superlists . &amp;&amp; docker run \
+    -p 8888:8888 \
+    --mount type=bind,source=./src/db.sqlite3,target=/src/db.sqlite3 \
+    --mount type=bind,source=$EMAIL_FILE_PATH,target=$EMAIL_FILE_PATH \  <i class="conum" data-value="1"></i><b>(1)</b>
+    -e DJANGO_SECRET_KEY=sekrit \
+    -e DJANGO_ALLOWED_HOST=localhost \
+    -e EMAIL_PASSWORD \
+    -e EMAIL_FILE_PATH \  <i class="conum" data-value="2"></i><b>(2)</b>
+    -it superlists</strong></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>Here&#8217;s where we mount the emails file so we can see it
+both inside and outside the container</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>And here&#8217;s where we pass the path as an env var,
+once again re-exporting the variable from the current shell.</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>And we can re-run our FT, first without using Docker or the EMAIL_FILE_PATH,
+just to check we didn&#8217;t break anything:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>./src/manage.py test functional_tests.test_login</strong>
+[...]
+OK</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>And now <em>with</em> Docker and the EMAIL_FILE_PATH:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>TEST_SERVER=localhost:8888 EMAIL_FILE_PATH=/tmp/superlists-emails \
+  python src/manage.py test functional_tests</strong>
+[...]
+OK</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>It works!  Hooray.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_double_checking_our_test_and_our_fix">Double-Checking our Test and Our Fix</h3>
+<div class="paragraph">
+<p>As always, we should be suspicious of any test that we&#8217;ve only ever seen pass!
+Let&#8217;s see if we can make this test fail.</p>
+</div>
+<div class="paragraph">
+<p>Before we do&#8212;&#8203;we&#8217;ve been in the detail for a bit,
+it&#8217;s worth reminding ourselves of what the actual bug was,
+and how we&#8217;re fixing it!
+The bug was, the server was crashing when it tried to send an email.
+The reason was, we hadn&#8217;t set the <code>EMAIL_PASSWORD</code> environment variable.
+We managed to repro the bug in Docker.
+The actual <em>fix</em> is to set that env var,
+both in Docker and eventually on the server.
+Now we want to have a <em>test</em> that our fix works,
+and we looked in to a few different options,
+settling on using the <code>filebased.EmailBackend"
+`EMAIL_BACKEND</code> setting using the <code>EMAIL_FILE_PATH</code> environment variable.</p>
+</div>
+<div class="paragraph">
+<p>Now, I say we haven&#8217;t seen the test fail,
+but actually we have, when we repro&#8217;d the bug.
+If we unset the <code>EMAIL_PASSWORD</code> env var, it will fail again.
+I&#8217;m more worried about the new parts of our tests,
+the bits where we go and read from the file at <code>EMAIL_FILE_PATH</code>.
+How can we make that part fail?</p>
+</div>
+<div class="paragraph">
+<p>Well, how about if we deliberately break our email-sending code?</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">src/accounts/views.py (ch23l005)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-k">def</span> <span class="tok-nf">send_login_email</span><span class="tok-p">(</span><span class="tok-n">request</span><span class="tok-p">):</span>
+    <span class="tok-n">email</span> <span class="tok-o">=</span> <span class="tok-n">request</span><span class="tok-o">.</span><span class="tok-n">POST</span><span class="tok-p">[</span><span class="tok-s2">"email"</span><span class="tok-p">]</span>
+    <span class="tok-n">token</span> <span class="tok-o">=</span> <span class="tok-n">Token</span><span class="tok-o">.</span><span class="tok-n">objects</span><span class="tok-o">.</span><span class="tok-n">create</span><span class="tok-p">(</span><span class="tok-n">email</span><span class="tok-o">=</span><span class="tok-n">email</span><span class="tok-p">)</span>
+    <span class="tok-n">url</span> <span class="tok-o">=</span> <span class="tok-n">request</span><span class="tok-o">.</span><span class="tok-n">build_absolute_uri</span><span class="tok-p">(</span>
+        <span class="tok-n">reverse</span><span class="tok-p">(</span><span class="tok-s2">"login"</span><span class="tok-p">)</span> <span class="tok-o">+</span> <span class="tok-s2">"?token="</span> <span class="tok-o">+</span> <span class="tok-nb">str</span><span class="tok-p">(</span><span class="tok-n">token</span><span class="tok-o">.</span><span class="tok-n">uid</span><span class="tok-p">),</span>
+    <span class="tok-p">)</span>
+    <span class="tok-n">message_body</span> <span class="tok-o">=</span> <span class="tok-sa">f</span><span class="tok-s2">"Use this link to log in:</span><span class="tok-se">\n\n</span><span class="tok-si">{</span><span class="tok-n">url</span><span class="tok-si">}</span><span class="tok-s2">"</span>
+    <span class="tok-c1"># send_mail(  </span><i class="conum" data-value="1"></i><b>(1)</b>
+    <span class="tok-c1">#     "Your login link for Superlists",</span>
+    <span class="tok-c1">#     message_body,</span>
+    <span class="tok-c1">#     "noreply@superlists",</span>
+    <span class="tok-c1">#     [email],</span>
+    <span class="tok-c1"># )</span>
+    <span class="tok-n">messages</span><span class="tok-o">.</span><span class="tok-n">success</span><span class="tok-p">(</span>
+        <span class="tok-n">request</span><span class="tok-p">,</span>
+        <span class="tok-s2">"Check your email, we've sent you a link you can use to log in."</span><span class="tok-p">,</span>
+    <span class="tok-p">)</span>
+    <span class="tok-k">return</span> <span class="tok-n">redirect</span><span class="tok-p">(</span><span class="tok-s2">"/"</span><span class="tok-p">)</span></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>We just comment out the entire send_email block.</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>We rebuild our docker image:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre># check our env var is set
+$ <strong>echo $EMAIL_FILE_PATH</strong>
+/tmp/superlists-emails
+$ <strong>docker build -t superlists . &amp;&amp; docker run \
+    -p 8888:8888 \
+    --mount type=bind,source=./src/db.sqlite3,target=/src/db.sqlite3 \
+    --mount type=bind,source=$EMAIL_FILE_PATH,target=$EMAIL_FILE_PATH \
+    -e DJANGO_SECRET_KEY=sekrit \
+    -e DJANGO_ALLOWED_HOST=localhost \
+    -e EMAIL_PASSWORD \
+    -e EMAIL_FILE_PATH \
+    -it superlists</strong></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>And we re-run our test:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ *TEST_SERVER=localhost:8888 EMAIL_FILE_PATH=/tmp/superlists-emails \
+  ./src/manage.py test functional_tests.test_login
+[...]
+Ran 1 test in 2.513s
+
+OK</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Eh?  How did that pass?</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_testing_side_effects_is_fiddly">Testing side-effects is fiddly!</h3>
+<div class="paragraph">
+<p>We&#8217;ve run into an example of the kinds of problems you often encounter
+when our tests involve side-effects.</p>
+</div>
+<div class="paragraph">
+<p>Let&#8217;s have a look in our test emails directory:</p>
+</div>
+<div class="listingblock skipme">
+<div class="content">
+<pre>$ <strong>ls $EMAIL_FILE_PATH</strong>
+20241120-153150-262004991022080.log
+20241120-153154-262004990980688.log
+20241120-153301-272143941669888.log</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Every time we restart the server, it opens a new file,
+but only when it first tries to send an email.
+Because we&#8217;ve commented out the whole email-sending block,
+our test instead picks up on an old email,
+which still has a valid url in it,
+because the token is still in the database.</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+You&#8217;ll run into a similar issue if you test with "real" emails in POP3.
+    How do you make sure you&#8217;re not picking up an email from a previous test run?
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>Let&#8217;s clear out the db:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>rm src/db.sqlite3 &amp;&amp; ./src/manage.py migrate</strong>
+Operations to perform:
+  Apply all migrations: accounts, auth, contenttypes, lists, sessions
+Running migrations:
+  Applying accounts.0001_initial... OK
+  Applying accounts.0002_token... OK
+  Applying contenttypes.0001_initial... OK
+  Applying contenttypes.0002_remove_content_type_name... OK
+  Applying auth.0001_initial... OK</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>And&#8230;&#8203;</p>
+</div>
+<div class="paragraph">
+<p>cmdgg</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>TEST_SERVER=localhost:8888 ./src/manage.py test functional_tests.test_login</strong>
+[...]
+ERROR: test_login_using_magic_link (functional_tests.test_login.LoginTest.test_login_using_magic_link)
+    self.wait_to_be_logged_in(email=TEST_EMAIL)
+    <sub>~</sub><sub>~</sub><sub>~</sub><sub>~</sub><sub>~</sub><sub>~</sub><sub>~</sub><sub>~</sub>~<sup>^</sup><sup>^</sup><sup>^</sup><sup>^</sup><sup>^</sup><sup>^</sup>
+[...]
+selenium.common.exceptions.NoSuchElementException: Message: Unable to locate element: #id_logout; [...]</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>OK sure enough, the <code>wait_to_be_logged_in()</code> helper is failing,
+because now, although we have found an email, its token is invalid.</p>
+</div>
+<div class="paragraph">
+<p>Here&#8217;s another way to make the tests fail:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>rm $EMAIL_FILE_PATH/*</strong></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Now when we run the FT:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>TEST_SERVER=localhost:8888 ./src/manage.py test functional_tests.test_login</strong>
+ERROR: test_login_using_magic_link
+(functional_tests.test_login.LoginTest.test_login_using_magic_link)
+[...]
+    email_body = self.wait_for_email(TEST_EMAIL, SUBJECT)
+[...]
+    return self.wait_for(
+           <sub>~</sub><sub>~</sub><sub>~</sub><sub>~</sub>~^
+        lambda: self.retrieve_email_from_file(sent_to, subject, email_file_path)
+        <sup>^</sup><sup>^</sup><sup>^</sup><sup>^</sup><sup>^</sup><sup>^</sup><sup>^</sup><sup>^</sup><sup>^</sup><sup>^</sup><sup>^</sup><sup>^</sup><sup>^</sup><sup>^</sup><sup>^</sup><sup>^</sup><sup>^</sup><sup>^</sup><sup>^</sup><sup>^</sup><sup>^</sup><sup>^</sup><sup>^</sup><sup>^</sup>
+[...]
+    latest_emails_file = sorted(Path(emails_dir).iterdir())[-1]
+                         <sub>~</sub><sub>~</sub><sub>~</sub><sub>~</sub><sub>~</sub><sub>~</sub><sub>~</sub><sub>~</sub><sub>~</sub><sub>~</sub><sub>~</sub>~<sup>^</sup>^
+IndexError: list index out of range</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>We see there are no email files, because we&#8217;re not sending one.</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+In this configuration of Docker + <code>filebase.EmailBackend</code>,
+  we now have to manage side effects in two locations:
+  the database at <em>src/db.sqlite3</em>, and the email files in <em>/tmp</em>.
+  What Django used to do for us thanks to LiveServerTestCase
+  is now all our responsibility, and as you can see, it&#8217;s hard to get right.
+  This is a tradeoff to be aware of when writing tests against "real" systems.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>Still, this isn&#8217;t quite satisfactory.
+Let&#8217;s try a different way to make our tests fail,
+where we <em>will</em> send an email, but we&#8217;ll give it the wrong contents:</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">src/accounts/views.py (ch23l006)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-k">def</span> <span class="tok-nf">send_login_email</span><span class="tok-p">(</span><span class="tok-n">request</span><span class="tok-p">):</span>
+    <span class="tok-n">email</span> <span class="tok-o">=</span> <span class="tok-n">request</span><span class="tok-o">.</span><span class="tok-n">POST</span><span class="tok-p">[</span><span class="tok-s2">"email"</span><span class="tok-p">]</span>
+    <span class="tok-n">token</span> <span class="tok-o">=</span> <span class="tok-n">Token</span><span class="tok-o">.</span><span class="tok-n">objects</span><span class="tok-o">.</span><span class="tok-n">create</span><span class="tok-p">(</span><span class="tok-n">email</span><span class="tok-o">=</span><span class="tok-n">email</span><span class="tok-p">)</span>
+    <span class="tok-n">url</span> <span class="tok-o">=</span> <span class="tok-n">request</span><span class="tok-o">.</span><span class="tok-n">build_absolute_uri</span><span class="tok-p">(</span>
+        <span class="tok-n">reverse</span><span class="tok-p">(</span><span class="tok-s2">"login"</span><span class="tok-p">)</span> <span class="tok-o">+</span> <span class="tok-s2">"?token="</span> <span class="tok-o">+</span> <span class="tok-nb">str</span><span class="tok-p">(</span><span class="tok-n">token</span><span class="tok-o">.</span><span class="tok-n">uid</span><span class="tok-p">),</span>
+    <span class="tok-p">)</span>
+    <span class="tok-n">message_body</span> <span class="tok-o">=</span> <span class="tok-sa">f</span><span class="tok-s2">"Use this link to log in:</span><span class="tok-se">\n\n</span><span class="tok-si">{</span><span class="tok-n">url</span><span class="tok-si">}</span><span class="tok-s2">"</span>
+    <span class="tok-n">send_mail</span><span class="tok-p">(</span>
+        <span class="tok-s2">"Your login link for Superlists"</span><span class="tok-p">,</span>
+        <span class="tok-s2">"HAHA NO LOGIN URL FOR U"</span><span class="tok-p">,</span>  <i class="conum" data-value="1"></i><b>(1)</b>
+        <span class="tok-s2">"noreply@superlists"</span><span class="tok-p">,</span>
+        <span class="tok-p">[</span><span class="tok-n">email</span><span class="tok-p">],</span>
+    <span class="tok-p">)</span>
+    <span class="tok-n">messages</span><span class="tok-o">.</span><span class="tok-n">success</span><span class="tok-p">(</span>
+        <span class="tok-n">request</span><span class="tok-p">,</span>
+        <span class="tok-s2">"Check your email, we've sent you a link you can use to log in."</span><span class="tok-p">,</span>
+    <span class="tok-p">)</span>
+    <span class="tok-k">return</span> <span class="tok-n">redirect</span><span class="tok-p">(</span><span class="tok-s2">"/"</span><span class="tok-p">)</span></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>We <em>do</em>  send an email, but it won&#8217;t contain a login URL.</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>Let&#8217;s rebuild again:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre># check our env var is set
+$ <strong>echo $EMAIL_FILE_PATH</strong>
+/tmp/superlists-emails
+$ <strong>docker build -t superlists . &amp;&amp; docker run \
+    -p 8888:8888 \
+    --mount type=bind,source=./src/db.sqlite3,target=/src/db.sqlite3 \
+    --mount type=bind,source=$EMAIL_FILE_PATH,target=$EMAIL_FILE_PATH \
+    -e DJANGO_SECRET_KEY=sekrit \
+    -e DJANGO_ALLOWED_HOST=localhost \
+    -e EMAIL_PASSWORD \
+    -e EMAIL_FILE_PATH \
+    -it superlists</strong></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Now how do our tests look?</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>TEST_SERVER=localhost:8888 python src/manage.py test functional_tests</strong>
+FAIL: test_login_using_magic_link
+(functional_tests.test_login.LoginTest.test_login_using_magic_link)
+[...]
+    email_body = self.wait_for_email(TEST_EMAIL, SUBJECT)
+[...]
+    self.assertIn("Use this link to log in", email_body)
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'Use this link to log in' not found in 'Content-Type:
+text/plain; charset="utf-8"\nMIME-Version: 1.0\nContent-Transfer-Encoding:
+7bit\nSubject: Your login link for Superlists\nFrom: noreply@superlists\nTo:
+<a href="mailto:edith@example.com">edith@example.com</a>\nDate: Wed, 13 Nov 2024 18:00:55 -0000\nMessage-ID:
+[...]\n\nHAHA NO LOGIN URL FOR
+U\n-------------------------------------------------------------------------------\n'</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>OK good, that&#8217;s the error we wanted!
+I think we can be fairly confident that this testing setup
+can genuinely test that emails are sent properly.
+Let&#8217;s revert our temporarily-broken <em>views.py</em>,
+rebuild, and make sure the tests pass once again.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>git stash</strong>
+$ <strong>docker build [...]</strong>
+# separate terminal
+$ *TEST_SERVER=localhost:8888 EMAIL_FILE_PATH=/tmp/superlists-emails [...]
+[...]
+OK</pre>
+</div>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+It may seem like I&#8217;ve gone through a lot of back-and-forth,
+  but I wanted to give you a flavour of the fiddliness involved
+  in these kinds of tests that involve a lot of side-effects.
+</td>
+</tr>
+</table>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_decision_time_which_test_strategy_will_we_keep">Decision Time: Which Test Strategy Will We Keep</h3>
+<div class="paragraph">
+<p>Let&#8217;s recap our three options:</p>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">Table 1. Testing Strategy Tradeoffs</caption>
+<colgroup>
+<col style="width: 33.3333%;">
+<col style="width: 33.3333%;">
+<col style="width: 33.3334%;">
+</colgroup>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Strategy</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Pros</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Cons</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">End-to-end with POP3</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Maximally realistic, tests the whole system</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Slow, fiddly, unreliable</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">File-based fake email backend</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Faster, more reliable, no network calls, tests end-to-end (albeit with fake components)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Still Fiddly, requires managing db &amp; filesystem side-effects</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Give up on testing email on the server/Docker</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Fast, simple</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Less confidence that things work "for real"</p></td>
+</tr>
+</tbody>
+</table>
+<div class="paragraph">
+<p>This is a common problem in testing integration with external systems,
+how far should we go?  How realistic should we make our tests?</p>
+</div>
+<div class="paragraph">
+<p>In the book in the end, I suggested we go for the last option,
+ie give up. Email itself is a well-understood protocol
+(reader, it&#8217;s been around since <em>before I was born</em>, and that&#8217;s a whiles ago now)
+and Django has supported sending email for more than a decade,
+so I think we can afford to say, in this case,
+that the costs of building testing tools for email outweigh the benefits.</p>
+</div>
+<div class="paragraph">
+<p>But not all external dependencies are as well-understood as email.
+If you&#8217;re working with a new API, or a new service,
+you may well decide it&#8217;s worth putting in the effort to get a "real" end-to-end functional test to work.</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>TODO: recap</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div id="footer">
+<div id="footer-text">
+License: Creative Commons <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode">CC-BY-NC-ND</a>. Last updated: 2025-02-12 21:05:38 UTC
+</div>
+</div>
+<div class="comments" style="padding: 20px">
+  <h3>Comments</h3>
+  <div id="disqus_thread"></div>
+  <script type="text/javascript">
+    var disqus_config = function () {
+        this.page.identifier = 'appendix_fts_for_external_dependencies';
+    };
+    
+    (function() {
+        var d = document, s = d.createElement('script');
+        s.src = '//obeythetestinggoat.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+  </script>
+  <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript" rel="nofollow">comments powered by Disqus.</a></noscript>
+</div>
+
+<html><head><script>   (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){   (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),   m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)   })(window,document,'script','//www.google-analytics.com/analytics.js','ga');    ga('create', 'UA-40928035-1', 'obeythetestinggoat.com');   ga('send', 'pageview');  </script>
+</head></html></body>
+</html>
