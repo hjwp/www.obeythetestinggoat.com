@@ -1,0 +1,560 @@
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="generator" content="Asciidoctor 2.0.23">
+<title>CD: Continuous Deployment</title>
+<link rel="stylesheet" href="./asciidoctor.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+<link rel="stylesheet" href="./pygments-default.css">
+<script>var httpRequest = new XMLHttpRequest();
+httpRequest.onreadystatechange = function() {
+  if (httpRequest.readyState === XMLHttpRequest.DONE) {
+    if (httpRequest.status === 200) {
+      document.getElementById('header').innerHTML += httpRequest.responseText;
+      var subheaders = document.getElementsByClassName('sectlevel2');
+      var section;
+      for (var i=0; i<subheaders.length; i++) {
+        section = subheaders[i];
+        if (section.innerHTML.indexOf(window.location.pathname) === -1) {
+          section.style.display = 'none';
+        } else {
+          section.scrollIntoView && section.scrollIntoView();
+        }
+      }
+
+    }
+  }
+};
+httpRequest.open('GET', 'toc.html');
+httpRequest.send();
+
+</script></head>
+<body class="article toc2 toc-left">
+<div id="buy_the_book" style="position: absolute; top: 0; right: 0; z-index:100">
+  <a href="/pages/book.html">
+    <img src="images/buy_the_book.svg" alt="buy the book ribbon">
+  </a>
+</div>
+<div id="header">
+</div>
+<div id="content">
+<div class="sect1">
+<h2 id="appendix_CD">Appendix F: CD: Continuous Deployment</h2>
+<div class="sectionbody">
+<div class="sidebarblock">
+<div class="content">
+<div class="title">Warning</div>
+<div class="paragraph">
+<p>&#128679; Warning, this appendix is just a placeholder / rough sketch.</p>
+</div>
+<div class="paragraph">
+<p>It should have the outline of what you need to set up automated deploys tho!
+Why not give it a try?</p>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>
+This is the next step after CI.
+Once we have a server that automatically does things every time we push,
+we can take the next step in automating our deploys,
+and deploy our code to staging (and even production!)
+with every push.</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>this is an appendix because we get even more tied in to the particularities
+of an individual platform</p>
+</li>
+<li>
+<p>it&#8217;s also incredibly fiddly. the feedback cycle is annoying slow,
+and you have to commit and push with every small change.
+just look at my commit history!</p>
+</li>
+</ul>
+</div>
+<div class="listingblock skipme">
+<div class="content">
+<pre>f5d58736 some tidyup
+f28411a0 disable host key checking again
+a2933ad4 dammit forgot curl
+fb4132ec use private keyfile in ssh commands
+ce7219e3 install ssh for fts
+957ca269 fix stage name
+dae47804 run fts against staging after deploy
+17999c65 fix the way we get env vars in ansible script
+87aecc62 make secrets files private for ssh
+a06d24e9 switch off host key checking
+059fc15e lets try for superverbose debug output
+021843db Revert "quick look at end of keypair"
+56d79af4 quick look at end of keypair
+bc5664c6 fix path to secure files
+857c803a install curl
+c37a538c get ssh key from secure files
+5ffbf80f install ssh on python image
+d4f39755 duh stupid typo
+c34cf933 try to deploy using gitlab registry. add stages
+62486de1 docker login using password from env
+4bdc6f53 fix tags in docker push to gitlab registry
+c5a0056c try pushing to gitlab
+81c8601f temporarily dont moujnt db
+6bd41a1f forgot dind
+2de01bf0 move python before-script stuff in to test step
+d11c21fe try to build docker
+76f15efb temporarily dont run fts
+16db3dc1 debug finding path to playbook
+1f3f77f5 remove backslashes
+ad46cd12 just do it inline
+1c887270 add deploy step
+6f77b2df venv paths
+801c8373 try and make actual ci work
+ba8be943 Gitlab yaml config</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Tricky!</p>
+</div>
+<div class="paragraph">
+<p>building and running a docker image can only be done on a <code>docker.git</code> image,
+but we want <code>python:slim</code> to run our tests,
+and to actually have ansible installed</p>
+</div>
+<div class="paragraph">
+<p>idea 1:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>build and push a docker image to gitlab registry after each ci run</p>
+</li>
+<li>
+<p>deploy to staging using the new image tag</p>
+</li>
+<li>
+<p>run tests against staging</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>idea 2:
+- run tests inside docker  (needs an image with firefox tho)
+- run fts inside docker against <em>another</em> docker container
+- deploy from inside docker</p>
+</div>
+<div class="paragraph">
+<p>I&#8217;ve seen variants on both of these.  Gave idea 1 a go first,
+and it worked out:</p>
+</div>
+<div class="paragraph">
+<p>first (or, very quickly), i commented out the fts part of the tests.
+one of the worst things about fiddling with ci is how slow it is to get feedback:</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">.gitlab-ci.yml</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="yaml"><span></span><span class="tok-nt">test</span><span class="tok-p">:</span>
+<span class="tok-w">  </span><span class="tok-nt">image</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">python:slim</span>
+
+<span class="tok-w">  </span><span class="tok-nt">before_script</span><span class="tok-p">:</span>
+<span class="tok-w">    </span><span class="tok-c1"># TODO temporarily commented out</span>
+<span class="tok-w">    </span><span class="tok-c1"># - apt update -y &amp;&amp; apt install -y firefox-esr</span>
+<span class="tok-w">    </span><span class="tok-p tok-p-Indicator">-</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">python --version ; pip --version</span><span class="tok-w">  </span><span class="tok-c1"># For debugging</span>
+<span class="tok-w">    </span><span class="tok-p tok-p-Indicator">-</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">pip install virtualenv</span>
+<span class="tok-w">    </span><span class="tok-p tok-p-Indicator">-</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">virtualenv .venv</span>
+<span class="tok-w">    </span><span class="tok-p tok-p-Indicator">-</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">source .venv/bin/activate</span>
+
+<span class="tok-w">  </span><span class="tok-nt">script</span><span class="tok-p">:</span>
+<span class="tok-w">    </span><span class="tok-p tok-p-Indicator">[</span><span class="tok-nv">...</span><span class="tok-p tok-p-Indicator">]</span></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>recap:
+1. run tests in python image (with firefox and our virtualenv / requirements.txt)
+2. build docker image in a docker-in-docker image
+3. deploy to staging (from the python image once again, needs ansible)
+4. run fts against staging (from the python image, with firefox)</p>
+</div>
+<div class="paragraph">
+<p>now, deploy playbook currently assumes we&#8217;re building the docker image
+as part of the deploy, but we can&#8217;t do that because it happened on a different image</p>
+</div>
+<div class="paragraph">
+<p>we could use cache / "build artifacts" to move the image around,
+but we may as well do something that&#8217;s more like real life.
+you remember i said the <code>docker push / docker load</code> dance was a simulation
+of <code>push+pull</code> from a "container registry"?  well let&#8217;s do that.</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>run tests (python image)</p>
+</li>
+<li>
+<p>build our image AND push to registry (docker image)</p>
+</li>
+<li>
+<p>deploy to staging referencing our image in the registry (python image)</p>
+</li>
+<li>
+<p>run fts against staging (python image, with firefox)</p>
+</li>
+</ol>
+</div>
+<div class="sect2">
+<h3 id="_building_our_docker_image_and_pushing_it_to_gitlab_registry">Building our docker image and pushing it to Gitlab registry</h3>
+<div class="paragraph">
+<p>TODO: gitlab container registry screnshot</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">.gitlab-ci.yml</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="yaml"><span></span><span class="tok-nt">build</span><span class="tok-p">:</span>
+<span class="tok-w">  </span><span class="tok-nt">image</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">docker:git</span>
+<span class="tok-w">  </span><span class="tok-nt">services</span><span class="tok-p">:</span>
+<span class="tok-w">    </span><span class="tok-p tok-p-Indicator">-</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">docker:dind</span>
+
+<span class="tok-w">  </span><span class="tok-nt">script</span><span class="tok-p">:</span>
+<span class="tok-w">    </span><span class="tok-p tok-p-Indicator">-</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">docker build</span>
+<span class="tok-w">      </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">-t registry.gitlab.com/hjwp/book-example:$CI_COMMIT_SHA</span>
+<span class="tok-w">      </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">.</span>
+<span class="tok-w">    </span><span class="tok-p tok-p-Indicator">-</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">echo "$CI_REGISTRY_PASSWORD" | docker login $CI_REGISTRY -u $CI_REGISTRY_USER --password-stdin</span>
+<span class="tok-w">    </span><span class="tok-p tok-p-Indicator">-</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">docker push</span>
+<span class="tok-w">      </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">registry.gitlab.com/hjwp/book-example:$CI_COMMIT_SHA</span></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>link to gitlab registry docs, explain docker login, image tags.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_deploying_from_ci_working_with_secrets">Deploying from CI, working with secrets</h3>
+<div class="exampleblock sourcecode">
+<div class="title">.gitlab-ci.yml</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="yaml"><span></span><span class="tok-nt">deploy</span><span class="tok-p">:</span>
+<span class="tok-w">  </span><span class="tok-nt">stage</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">staging-deploy</span>
+<span class="tok-w">  </span><span class="tok-nt">image</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">python:slim</span>
+<span class="tok-w">  </span><span class="tok-nt">variables</span><span class="tok-p">:</span>
+<span class="tok-w">    </span><span class="tok-nt">ANSIBLE_HOST_KEY_CHECKING</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-s">"False"</span><span class="tok-w">  </span><i class="conum" data-value="1"></i><b>(1)</b>
+
+<span class="tok-w">  </span><span class="tok-nt">before_script</span><span class="tok-p">:</span>
+<span class="tok-w">    </span><span class="tok-p tok-p-Indicator">-</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">apt update -y &amp;&amp; apt install -y</span>
+<span class="tok-w">      </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">curl</span>
+<span class="tok-w">      </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">openssh-client</span>
+<span class="tok-w">    </span><span class="tok-p tok-p-Indicator">-</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">python --version ; pip --version</span><span class="tok-w">  </span><span class="tok-c1"># For debugging</span>
+<span class="tok-w">    </span><span class="tok-p tok-p-Indicator">-</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">pip install virtualenv</span>
+<span class="tok-w">    </span><span class="tok-p tok-p-Indicator">-</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">virtualenv .venv</span>
+<span class="tok-w">    </span><span class="tok-p tok-p-Indicator">-</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">source .venv/bin/activate</span>
+
+<span class="tok-w">  </span><span class="tok-nt">script</span><span class="tok-p">:</span>
+<span class="tok-w">    </span><span class="tok-p tok-p-Indicator">-</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">pip install -r requirements.txt</span>
+<span class="tok-w">    </span><span class="tok-p tok-p-Indicator">-</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">pip install ansible</span>
+<span class="tok-w">    </span><span class="tok-c1"># download secure files to get private key  </span><i class="conum" data-value="2"></i><b>(2)</b>
+<span class="tok-w">    </span><span class="tok-p tok-p-Indicator">-</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">curl -s https://gitlab.com/gitlab-org/incubation-engineering/mobile-devops/download-secure-files/-/raw/main/installer | bash</span>
+<span class="tok-w">    </span><span class="tok-p tok-p-Indicator">-</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">chmod 600 .secure_files/*</span>
+
+<span class="tok-w">    </span><span class="tok-p tok-p-Indicator">-</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">ansible-playbook</span>
+<span class="tok-w">      </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">--private-key=.secure_files/keypair-for-gitlab</span><span class="tok-w">  </span><i class="conum" data-value="2"></i><b>(2)</b>
+<span class="tok-w">      </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">--user=elspeth</span>
+<span class="tok-w">      </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">-i staging.ottg.co.uk,</span>
+<span class="tok-w">      </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">-vvv</span><span class="tok-w">  </span><i class="conum" data-value="3"></i><b>(3)</b>
+<span class="tok-w">      </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">${PWD}/infra/deploy-playbook.yaml</span></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>"known hosts" checking doesnt work well in ci</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>we needed a way to give the ci server permission to access our server.
+I used a new ssh key</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="3"></i><b>3</b></td>
+<td>super-verbose was necessary</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>TODO: explain generating ssh key, adding to <code>/home/elpseth/.ssh/authorized_keys</code> on server.</p>
+</div>
+<div class="paragraph">
+<p>short listing, couple of hours of pain!</p>
+</div>
+<div class="paragraph">
+<p>eg had to run thru about 200 lines of verbose logs to find this,
+and then a bit of web-searching, to figure out that known-hosts was the problem:</p>
+</div>
+<div class="listingblock skipme">
+<div class="content">
+<pre>debug1: Server host key: ssh-ed25519 SHA256:4kXU5nf93OCxgBMuhr+OC8OUct6xb8yGsRjrqmLTJ7g
+debug1: load_hostkeys: fopen /root/.ssh/known_hosts: No such file or directory
+debug1: load_hostkeys: fopen /root/.ssh/known_hosts2: No such file or directory
+debug1: load_hostkeys: fopen /etc/ssh/ssh_known_hosts: No such file or directory
+debug1: load_hostkeys: fopen /etc/ssh/ssh_known_hosts2: No such file or directory
+debug1: hostkeys_find_by_key_hostfile: hostkeys file /root/.ssh/known_hosts does not exist
+debug1: hostkeys_find_by_key_hostfile: hostkeys file /root/.ssh/known_hosts2 does not exist
+debug1: hostkeys_find_by_key_hostfile: hostkeys file /etc/ssh/ssh_known_hosts does not exist
+debug1: hostkeys_find_by_key_hostfile: hostkeys file /etc/ssh/ssh_known_hosts2 does not exist
+debug1: read_passphrase: can't open /dev/tty: No such device or address
+Host key verification failed.", "unreachable": true}</pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_updating_deploy_playbook_to_use_the_container_registry">Updating deploy playbook to use the container registry:</h3>
+<div class="paragraph">
+<p>We delete all the stages to do with building locally and uploading and re-importing:</p>
+</div>
+<div class="exampleblock sourcecode skipme">
+<div class="title">infra/deploy-playbook.yaml</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="diff"><span></span><span class="tok-gu">@@ -19,37 +19,6 @@</span>
+<span class="tok-w"> </span>    - name: Reset ssh connection to allow the user/group change to take effect
+<span class="tok-w"> </span>      ansible.builtin.meta: reset_connection
+
+<span class="tok-gd">-    - name: Build container image locally</span>
+<span class="tok-gd">-    - name: Export container image locally</span>
+<span class="tok-gd">-    - name: Upload image to server</span>
+<span class="tok-gd">-    - name: Import container image on server</span></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>And instead, we can just use the full path to the image in our <code>docker run</code>
+(with a login to the registry first):</p>
+</div>
+<div class="exampleblock sourcecode skipme">
+<div class="title">infra/deploy-playbook.yaml</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="yaml"><span></span><span class="tok-w">    </span><span class="tok-p tok-p-Indicator">-</span><span class="tok-w"> </span><span class="tok-nt">name</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">Login to gitlab container registry</span>
+<span class="tok-w">      </span><span class="tok-nt">community.docker.docker_login</span><span class="tok-p">:</span>
+<span class="tok-w">        </span><span class="tok-nt">registry_url</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-s">"{{</span><span class="tok-nv"> </span><span class="tok-s">lookup('env',</span><span class="tok-nv"> </span><span class="tok-s">'CI_REGISTRY')</span><span class="tok-nv"> </span><span class="tok-s">}}"</span><span class="tok-w">  </span><i class="conum" data-value="1"></i><b>(1)</b>
+<span class="tok-w">        </span><span class="tok-nt">username</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-s">"{{</span><span class="tok-nv"> </span><span class="tok-s">lookup('env',</span><span class="tok-nv"> </span><span class="tok-s">'CI_REGISTRY_USER')</span><span class="tok-nv"> </span><span class="tok-s">}}"</span><span class="tok-w">  </span><i class="conum" data-value="1"></i><b>(1)</b>
+<span class="tok-w">        </span><span class="tok-nt">password</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-s">"{{</span><span class="tok-nv"> </span><span class="tok-s">lookup('env',</span><span class="tok-nv"> </span><span class="tok-s">'CI_REGISTRY_PASSWORD')</span><span class="tok-nv"> </span><span class="tok-s">}}"</span><span class="tok-w">  </span><i class="conum" data-value="1"></i><b>(1)</b>
+
+<span class="tok-w">    </span><span class="tok-p tok-p-Indicator">-</span><span class="tok-w"> </span><span class="tok-nt">name</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">Run container</span>
+<span class="tok-w">      </span><span class="tok-nt">community.docker.docker_container</span><span class="tok-p">:</span>
+<span class="tok-w">        </span><span class="tok-nt">name</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">superlists</span>
+<span class="tok-w">        </span><span class="tok-nt">image</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">registry.gitlab.com/hjwp/book-example:{{ lookup('env', 'CI_COMMIT_SHA') }}</span><span class="tok-w">  </span><i class="conum" data-value="2"></i><b>(2)</b>
+<span class="tok-w">        </span><span class="tok-nt">state</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">started</span>
+<span class="tok-w">        </span><span class="tok-nt">recreate</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">true</span>
+<span class="tok-w">        </span><span class="tok-p tok-p-Indicator">[</span><span class="tok-nv">...</span><span class="tok-p tok-p-Indicator">]</span></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>just like in the ci script, we use the env vars to get the login details</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>and we spell out the registry, with the commit sha, in the image name</td>
+</tr>
+</table>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_running_fts_against_staging">Running Fts against staging</h3>
+<div class="paragraph">
+<p>Add explicit "stages" to make things run in order:</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">.gitlab-ci.yml</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="yaml"><span></span><span class="tok-nt">stages</span><span class="tok-p">:</span>
+<span class="tok-w">  </span><span class="tok-p tok-p-Indicator">-</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">build-and-test</span>
+<span class="tok-w">  </span><span class="tok-p tok-p-Indicator">-</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">staging-deploy</span>
+<span class="tok-w">  </span><span class="tok-p tok-p-Indicator">-</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">staging-test</span>
+
+<span class="tok-nt">test</span><span class="tok-p">:</span>
+<span class="tok-w">  </span><span class="tok-nt">image</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">python:slim</span>
+<span class="tok-w">  </span><span class="tok-nt">stage</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">build-and-test</span>
+
+<span class="tok-w">  </span><span class="tok-p tok-p-Indicator">[</span><span class="tok-nv">...</span><span class="tok-p tok-p-Indicator">]</span>
+
+<span class="tok-nt">build</span><span class="tok-p">:</span>
+<span class="tok-w">  </span><span class="tok-nt">image</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">docker:git</span>
+<span class="tok-w">  </span><span class="tok-nt">services</span><span class="tok-p">:</span>
+<span class="tok-w">    </span><span class="tok-p tok-p-Indicator">-</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">docker:dind</span>
+<span class="tok-w">  </span><span class="tok-nt">stage</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">build-and-test</span>
+
+<span class="tok-w">  </span><span class="tok-nt">script</span><span class="tok-p">:</span>
+<span class="tok-w">    </span><span class="tok-p tok-p-Indicator">[</span><span class="tok-nv">...</span><span class="tok-p tok-p-Indicator">]</span>
+
+<span class="tok-nt">test-staging</span><span class="tok-p">:</span>
+<span class="tok-w">  </span><span class="tok-nt">image</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">python:slim</span>
+<span class="tok-w">  </span><span class="tok-nt">stage</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">staging-test</span>
+<span class="tok-w">  </span><span class="tok-p tok-p-Indicator">[</span><span class="tok-nv">...</span><span class="tok-p tok-p-Indicator">]</span></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>And here&#8217;s how we run the tests against staging:</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">.gitlab-ci.yml</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="yaml"><span></span><span class="tok-nt">test-staging</span><span class="tok-p">:</span>
+<span class="tok-w">  </span><span class="tok-nt">image</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">python:slim</span>
+<span class="tok-w">  </span><span class="tok-nt">stage</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">staging-test</span>
+
+<span class="tok-w">  </span><span class="tok-nt">before_script</span><span class="tok-p">:</span>
+<span class="tok-w">    </span><span class="tok-p tok-p-Indicator">-</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">apt update -y &amp;&amp; apt install -y</span>
+<span class="tok-w">      </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">curl</span>
+<span class="tok-w">      </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">firefox-esr</span><span class="tok-w">  </span><i class="conum" data-value="1"></i><b>(1)</b>
+<span class="tok-w">      </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">openssh-client</span>
+<span class="tok-w">    </span><span class="tok-p tok-p-Indicator">-</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">python --version ; pip --version</span><span class="tok-w">  </span><span class="tok-c1"># For debugging</span>
+<span class="tok-w">    </span><span class="tok-p tok-p-Indicator">-</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">pip install virtualenv</span>
+<span class="tok-w">    </span><span class="tok-p tok-p-Indicator">-</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">virtualenv .venv</span>
+<span class="tok-w">    </span><span class="tok-p tok-p-Indicator">-</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">source .venv/bin/activate</span>
+
+<span class="tok-w">  </span><span class="tok-nt">script</span><span class="tok-p">:</span>
+<span class="tok-w">    </span><span class="tok-p tok-p-Indicator">-</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">pip install -r requirements.txt</span>
+<span class="tok-w">    </span><span class="tok-p tok-p-Indicator">-</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">pip install selenium</span>
+<span class="tok-w">    </span><span class="tok-p tok-p-Indicator">-</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">curl -s https://gitlab.com/gitlab-org/incubation-engineering/mobile-devops/download-secure-files/-/raw/main/installer | bash</span>
+<span class="tok-w">    </span><span class="tok-p tok-p-Indicator">-</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">chmod 600 .secure_files/*</span><span class="tok-w">  </span><i class="conum" data-value="2"></i><b>(2)</b>
+<span class="tok-w">    </span><span class="tok-p tok-p-Indicator">-</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">env</span>
+<span class="tok-w">      </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">TEST_SERVER=staging.ottg.co.uk</span>
+<span class="tok-w">      </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">SSH_PRIVATE_KEY_PATH=.secure_files/keypair-for-gitlab</span><span class="tok-w">  </span><i class="conum" data-value="2"></i><b>(2)</b>
+<span class="tok-w">      </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">python src/manage.py test functional_tests</span></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>we need firefox for the fts</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>we needed the ssh key again, because as you might remember (i forgot!)
+the fts use ssh to talk to the db on the server,
+to manage the database.</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>So we need some changes in the base FT too:</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">lists.tests.py (ch04l004)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="python"><span></span>
+<span class="tok-k">def</span> <span class="tok-nf">_exec_in_container_on_server</span><span class="tok-p">(</span><span class="tok-n">host</span><span class="tok-p">,</span> <span class="tok-n">commands</span><span class="tok-p">):</span>
+    <span class="tok-nb">print</span><span class="tok-p">(</span><span class="tok-sa">f</span><span class="tok-s2">"Running </span><span class="tok-si">{</span><span class="tok-n">commands</span><span class="tok-si">!r}</span><span class="tok-s2"> on </span><span class="tok-si">{</span><span class="tok-n">host</span><span class="tok-si">}</span><span class="tok-s2"> inside docker container"</span><span class="tok-p">)</span>
+    <span class="tok-n">keyfile</span> <span class="tok-o">=</span> <span class="tok-n">os</span><span class="tok-o">.</span><span class="tok-n">environ</span><span class="tok-o">.</span><span class="tok-n">get</span><span class="tok-p">(</span><span class="tok-s2">"SSH_PRIVATE_KEY_PATH"</span><span class="tok-p">)</span>
+    <span class="tok-n">keyfile_arg</span> <span class="tok-o">=</span> <span class="tok-p">[</span><span class="tok-s2">"-i"</span><span class="tok-p">,</span> <span class="tok-n">keyfile</span><span class="tok-p">,</span> <span class="tok-s2">"-o"</span><span class="tok-p">,</span> <span class="tok-s2">"StrictHostKeyChecking=no"</span><span class="tok-p">]</span> <span class="tok-k">if</span> <span class="tok-n">keyfile</span> <span class="tok-k">else</span> <span class="tok-p">[]</span>  <i class="conum" data-value="1"></i><b>(1)</b> <i class="conum" data-value="2"></i><b>(2)</b>
+    <span class="tok-k">return</span> <span class="tok-n">_run_commands</span><span class="tok-p">(</span>
+        <span class="tok-p">[</span><span class="tok-s2">"ssh"</span><span class="tok-p">]</span>
+        <span class="tok-o">+</span> <span class="tok-n">keyfile_arg</span>
+        <span class="tok-o">+</span> <span class="tok-p">[</span><span class="tok-sa">f</span><span class="tok-s2">"</span><span class="tok-si">{</span><span class="tok-n">USER</span><span class="tok-si">}</span><span class="tok-s2">@</span><span class="tok-si">{</span><span class="tok-n">host</span><span class="tok-si">}</span><span class="tok-s2">"</span><span class="tok-p">,</span> <span class="tok-s2">"docker"</span><span class="tok-p">,</span> <span class="tok-s2">"exec"</span><span class="tok-p">,</span> <span class="tok-s2">"superlists"</span><span class="tok-p">]</span>
+        <span class="tok-o">+</span> <span class="tok-n">commands</span>
+    <span class="tok-p">)</span></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td><code>-i</code> tells ssh to use a specific private key</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td><code>-o StrictHostKeyChecking=no</code> is how we disable known_hosts for the ssh client
+at the command-line</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>and that works</p>
+</div>
+<div class="paragraph">
+<p>TODO it works deploy screenshot</p>
+</div>
+<div class="sidebarblock">
+<div class="content">
+<div class="title">CD Recap</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">Feedback cycles</dt>
+<dd>
+<p>Slow.  try to make faster.</p>
+</dd>
+<dt class="hdlist1">Secrets</dt>
+<dd>
+<p>secret key, email password.
+each platform is different but there&#8217;s always a way.
+careful not to print things out!</p>
+</dd>
+</dl>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div id="footer">
+<div id="footer-text">
+License: Creative Commons <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode">CC-BY-NC-ND</a>. Last updated: 2025-02-18 15:47:45 UTC
+</div>
+</div>
+<div class="comments" style="padding: 20px">
+  <h3>Comments</h3>
+  <div id="disqus_thread"></div>
+  <script type="text/javascript">
+    var disqus_config = function () {
+        this.page.identifier = 'appendix_CD';
+    };
+    
+    (function() {
+        var d = document, s = d.createElement('script');
+        s.src = '//obeythetestinggoat.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+  </script>
+  <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript" rel="nofollow">comments powered by Disqus.</a></noscript>
+</div>
+
+<html><head><script>   (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){   (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),   m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)   })(window,document,'script','//www.google-analytics.com/analytics.js','ga');    ga('create', 'UA-40928035-1', 'obeythetestinggoat.com');   ga('send', 'pageview');  </script>
+</head></html></body>
+</html>
