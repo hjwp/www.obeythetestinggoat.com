@@ -4,7 +4,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="generator" content="Asciidoctor 2.0.23">
-<title>Continuous Integration (CI)</title>
+<title>CI: Continuous Integration</title>
 <link rel="stylesheet" href="./asciidoctor.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
 <link rel="stylesheet" href="./pygments-default.css">
@@ -41,26 +41,27 @@ httpRequest.send();
 </div>
 <div id="content">
 <div class="sect1">
-<h2 id="chapter_25_CI">Continuous Integration (CI)</h2>
+<h2 id="chapter_25_CI">CI: Continuous Integration</h2>
 <div class="sectionbody">
 <div class="sidebarblock">
 <div class="content">
 <div class="title">Warning, Chapter Update in Progress</div>
 <div class="paragraph">
-<p>&#128679; Warning, this chapter is being updated,
-and still mostly the 2e version;</p>
+<p>&#128679; Warning, this chapter is very much a rough sketch at the moment. &#128679;</p>
 </div>
 <div class="paragraph">
-<p>Although it&#8217;s not got many code examples in,
-you may find it&#8217;s a little out of date.</p>
+<p>For the 3e I decided switch away from Jenkins to something more modern.
+I&#8217;ve avoided the obvious choice of GitHub Actions,
+in favour of GitLab, just to avoid tying the book too much to the dominant commercial player
+(GitLab is at least open source and optionally self-hosted!)</p>
 </div>
 <div class="paragraph">
-<p>Sneak preview / spoilers - for the third edition,
-I plan to switch away from Jenkins,
-to something more modern.
-I&#8217;m still going to avoid the obvious choice of GitHub Actions,
-I&#8217;m hoping to pick something that&#8217;s at least open source (eg GitLab),
-if not fully self-hosted / free software (like Woodpecker CI).</p>
+<p>There&#8217;s a reasonable sketch up to the point where the Python tests pass.
+Javascript tests are still todo.</p>
+</div>
+<div class="paragraph">
+<p>Have also added a sketch of a CD (automated deployments on push)
+appendix at <a href="/book/appendix_CD.html">[appendix_CD]</a>.</p>
 </div>
 </div>
 </div>
@@ -72,35 +73,15 @@ If this continues, the danger is that we&#8217;re going to stop bothering.</p>
 </div>
 <div class="paragraph">
 <p>Rather than let that happen, we can automate the running of functional tests
-by setting up a "Continuous Integration" or CI server.
+by setting up "Continuous Integration", or CI.
 That way, in day-to-day development,
 we can just run the FT that we&#8217;re working on at that time,
-and rely on the CI server to run all the other tests automatically
-and let us know if we&#8217;ve broken anything accidentally.
-The unit tests should stay fast enough that we can keep running them every few seconds.</p>
+and rely on CI to run all the other tests automatically
+and let us know if we&#8217;ve broken anything accidentally.</p>
 </div>
 <div class="paragraph">
-<p>
-The CI server of choice these days is called Jenkins.
-It&#8217;s a bit Java, a bit crashy, a bit ugly, but it&#8217;s what everyone uses,
-and it has a great plugin ecosystem, so let&#8217;s get it up and running.</p>
-</div>
-<div class="sect2">
-<h3 id="_installing_jenkins">Installing Jenkins</h3>
-<div class="ulist">
-<ul>
-<li>
-<p>TODO: update to mention github actions, gitlab etc.</p>
-</li>
-</ul>
-</div>
-<div class="paragraph">
-<p>
-
-There are several hosted-CI services out there that essentially provide you
-with a Jenkins server, ready to go.  I&#8217;ve come across Sauce Labs, Travis,
-Circle-CI, ShiningPanda, and there are probably lots more.  But I&#8217;m going to
-assume we&#8217;re installing everything on a server we control.</p>
+<p>The unit tests should stay fast enough that we can keep running
+the full suite locally, every few seconds.</p>
 </div>
 <div class="admonitionblock note">
 <table>
@@ -109,415 +90,387 @@ assume we&#8217;re installing everything on a server we control.</p>
 <i class="fa icon-note" title="Note"></i>
 </td>
 <td class="content">
-It&#8217;s not a good idea to install Jenkins on the same server as our
-    staging or production servers.  Apart from anything else, we may want
-    Jenkins to be able to reboot the staging server!
+Continuous Integration is another practice that was popularised by
+    Kent Beck&#8217;s
+    <a href="https://martinfowler.com/bliki/ExtremeProgramming.html">Extreme Programming (XP)</a>
+    movement in the 1990s.
 </td>
 </tr>
 </table>
 </div>
 <div class="paragraph">
-<p>We&#8217;ll install the latest version from the official Jenkins apt repo, because
-the Ubuntu default still has a few annoying bugs with locale/unicode support,
-and it also doesn&#8217;t set itself up to listen on the public internet by default:</p>
-</div>
-<div class="listingblock skipme">
-<div class="content">
-<pre># add jenkins repo to our apt sources
-root@server:$ <strong>wget -O /usr/share/keyrings/jenkins-keyring.asc \
-  https://pkg.jenkins.io/debian-stable/jenkins.io-2023.key</strong>
-
-root@server:$ <strong>echo "deb [signed-by=/usr/share/keyrings/jenkins-keyring.asc]" \
-  https://pkg.jenkins.io/debian-stable binary/ &gt; \
-  /etc/apt/sources.list.d/jenkins.list</strong>
-
-# update and install jenkins
-root@server:$ <strong>apt-get update</strong>
-root@server:$ <strong>apt-get install jenkins</strong></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>(Instructions lifted from the <a href="https://www.jenkins.io/doc/book/installing/linux/#debianubuntu">Jenkins site</a>.)</p>
-</div>
-<div class="paragraph">
-<p>While we&#8217;re at it, we&#8217;ll install a few other dependencies:</p>
-</div>
-<div class="listingblock skipme small-code">
-<div class="content">
-<pre># remove the default Firefox installed via snap,
-# add more reliable "extended support release" version:
-root@server:$ <strong>snap remove firefox</strong>
-root@server:$ <strong>add-apt-repository ppa:mozillateam/ppa</strong>
-root@server:$ <strong>apt update</strong>
-root@server:$ <strong>apt install firefox-esr</strong>
-
-# install the venv modules for the otherwise-broken default system python:
-root@server:$ <strong>apt install python3-venv</strong></pre>
-</div>
-</div>
-<div class="sidebarblock">
-<div class="content">
-<div class="title">Adding Some Swap</div>
-<div class="paragraph">
-<p>Jenkins is quite memory-hungry, and if  you&#8217;re running this on a small VM
-with less than a couple of gigs for RAM, you&#8217;ll probably find it gets
-OOM-killed unless you add some swap:</p>
-</div>
-<div class="listingblock skipme">
-<div class="content">
-<pre>root@server:$ <strong>fallocate -l 4G /swapfile</strong>
-root@server:$ <strong>mkswap /swapfile</strong>
-root@server:$ <strong>chmod 600 /swapfile</strong>
-root@server:$ <strong>swapon /swapfile</strong>
-root@server:$ <strong>echo "LABEL=swap  /swap.img  swap  defaults 0 0" &gt;&gt; /etc/fstab</strong></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>That should be plenty.</p>
-</div>
-</div>
-</div>
+<p>As we&#8217;ll see, one of the great frustrations of CI
+is that the feedback loop is so much slower than working locally.
+As we go along, we&#8217;ll look for ways to optimise for that, where we can.</p>
 </div>
 <div class="sect2">
-<h3 id="_configuring_jenkins">Configuring Jenkins</h3>
+<h3 id="_choosing_a_ci_service">Choosing a CI service</h3>
 <div class="paragraph">
 <p>
-
-You should now be able to visit Jenkins at the URL/IP for your server on port <code>8080</code>,
-and see something like <a href="#jenkin-unlock">Jenkins unlock screen</a>.</p>
+TODO chat re gha, hosted ci solutions, picked a relatable one.</p>
 </div>
-<div id="jenkin-unlock" class="imageblock width-75">
-<div class="content">
-<img src="images/jenkins-unlock.png" alt="Jenkins' default unlock screen">
 </div>
-<div class="title">Figure 1. Jenkins unlock screen</div>
+<div class="sect2">
+<h3 id="_getting_our_code_into_gitlab">Getting our Code into GitLab</h3>
+<div class="paragraph">
+<p>GitLab is primarily a code hosting service like GitHub,
+so the first thing thing to do is get our code up there</p>
 </div>
 <div class="sect3">
-<h4 id="_initial_unlock">Initial Unlock</h4>
+<h4 id="_starting_a_project">Starting a Project</h4>
 <div class="paragraph">
-<p>The unlock screen is telling us to read a file from disk to unlock the server for first-time use.
-I jumped over to a terminal and printed it like this:</p>
+<p>Use the <strong>New Project</strong> &#8594; <strong>Create Blank Project</strong> option, as in <a href="#gitlab-new-blank-project">Creating a New Repo on Gitlab</a>.</p>
+</div>
+<div id="gitlab-new-blank-project" class="imageblock">
+<div class="content">
+<img src="images/gitlab_new_blank_project.png" alt="New Blank Project">
+</div>
+<div class="title">Figure 1. Creating a New Repo on Gitlab</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_pushing_our_code_up_using_git_push">Pushing our Code up using Git Push</h4>
+<div class="paragraph">
+<p>First we set up gitlab as a "remote" for our project:</p>
 </div>
 <div class="listingblock skipme">
 <div class="content">
-<pre>root@server$ <strong>cat /var/lib/jenkins/secrets/initialAdminPassword</strong></pre>
+<pre># substitute your username and project name as necessary
+$ <strong>git remote add origin git@gitlab.com:yourusername/superlists.git</strong>
+# or, if you already have "origin" defined:
+$ <strong>git remote add gitlab git@gitlab.com:yourusername/superlists.git</strong>
+$ <strong>git remote -v</strong>
+gitlab	git@gitlab.com:hjwp/superlistz.git (fetch)
+gitlab	git@gitlab.com:hjwp/superlistz.git (push)
+origin	git@github.com:hjwp/book-example.git (fetch)
+origin	git@github.com:hjwp/book-example.git (push)</pre>
 </div>
 </div>
-</div>
-<div class="sect3">
-<h4 id="_suggested_plugins_for_now">Suggested Plugins for Now</h4>
 <div class="paragraph">
-<p>Next we&#8217;re offered the choice to choose "suggested" plugins.
-Suggested ones are fine for now.
-(As a self-respecting nerd, our instinct is to hit "customize" immediately,
-but I don&#8217;t think it really bought me anything.)</p>
+<p>Now we can push up our code with <code>git push</code>.
+The <code>-u</code> flag sets up a "remote-tracking" branch,
+so you can push+pull without explicitly specifying the remote + branch</p>
 </div>
-</div>
-<div class="sect3">
-<h4 id="_configuring_the_admin_user">Configuring the Admin User</h4>
-<div class="paragraph">
-<p>Next we set up a username and password to log in to Jenkins with; see <a href="#jenkins-user">Jenkins admin user config</a>.</p>
-</div>
-<div id="jenkins-user" class="imageblock width-75">
+<div class="listingblock skipme">
 <div class="content">
-<img src="images/jenkins-admin-user.png" alt="Jenkins screen asking for username and password">
+<pre># if using <em>origin</em>, it will be the default:
+$ <strong>git push -u</strong>
+# or, if you have multiple remotes:
+$ <strong>git push -u gitlab</strong>
+Enumerating objects: 706, done.
+Counting objects: 100% (706/706), done.
+Delta compression using up to 11 threads
+Compressing objects: 100% (279/279), done.
+Writing objects: 100% (706/706), 918.72 KiB | 131.25 MiB/s, done.
+Total 706 (delta 413), reused 682 (delta 408), pack-reused 0 (from 0)
+remote: Resolving deltas: 100% (413/413), done.
+To gitlab.com:hjwp/superlistz.git
+ * [new branch]        main -&gt; main
+branch <em>main</em> set up to track <em>gitlab/main</em>.</pre>
 </div>
-<div class="title">Figure 2. Jenkins admin user config</div>
 </div>
 <div class="paragraph">
-<p>And once we log in, we should see a welcome screen (<a href="#jenkin-welcome">A butler&#8212;&#8203;how quaint</a>).</p>
+<p>If you refresh the GitLab UI, you should now see your code, as in <a href="#gitlab_files_ui">CI Project Files on GitLab</a>:</p>
 </div>
-<div id="jenkin-welcome" class="imageblock width-75">
+<div id="gitlab_files_ui" class="imageblock">
 <div class="content">
-<img src="images/jenkins-welcome.png" alt="Jenkins welcome screen with invitation to create new job">
+<img src="images/gitlab_files_ui.png" alt="GitLab UI showing project files">
 </div>
-<div class="title">Figure 3. A butler&#8212;&#8203;how quaint</div>
-</div>
-</div>
-<div class="sect3">
-<h4 id="_finishing_off_with_https">Finishing Off with HTTPS</h4>
-<div class="ulist">
-<ul>
-<li>
-<p>TODO: review and update this section</p>
-</li>
-</ul>
-</div>
-<div class="paragraph">
-<p>To finish off securing your Jenkins instance, you&#8217;ll want to set up HTTPS, by
-getting nginx HTTPS to use a self-signed cert, and proxy requests from port 443
-to port 8080. Then you can even block port 8080 on the firewall.  I won&#8217;t go
-into detail on that now, but here are a few links to instructions which I found
-useful:</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p><a href="https://wiki.jenkins-ci.org/display/JENKINS/Installing+Jenkins+on+Ubuntu">Official
-Jenkins Ubuntu installation guide</a></p>
-</li>
-<li>
-<p><a href="https://www.digitalocean.com/community/tutorials/how-to-create-an-ssl-certificate-on-nginx-for-ubuntu-14-04">How
-to create a self-signed SSL certificate</a></p>
-</li>
-<li>
-<p><a href="http://serverfault.com/questions/250476/how-to-force-or-redirect-to-ssl-in-nginx#424016">How
-to redirect HTTP to HTTPS</a></p>
-</li>
-</ul>
+<div class="title">Figure 2. CI Project Files on GitLab</div>
 </div>
 </div>
 </div>
 <div class="sect2">
-<h3 id="_setting_up_our_project">Setting Up Our Project</h3>
+<h3 id="_setting_up_a_first_cut_of_a_ci_pipeline">Setting up a First Cut of a CI Pipeline</h3>
 <div class="paragraph">
-<p>Now
-we&#8217;ve got the basic Jenkins configured, let&#8217;s set up our project:</p>
+<p>TODO brief expl. "pipeline" terminology.</p>
 </div>
-<div class="ulist">
-<ul>
-<li>
-<p>Hit the New Item button.</p>
-</li>
-<li>
-<p>Enter <em>Superlists</em> as the name, and then choose "Freestyle project", and hit
-OK.</p>
-</li>
-<li>
-<p>Add the Git repo, as in <a href="#choose-git-repo">Get it from Git</a>.</p>
-</li>
-</ul>
+<div class="paragraph">
+<p>Got to <strong>Build</strong> &#8594; <strong>Pipelines</strong>, you&#8217;ll see a list of example templates.
+That&#8217;s usually a pretty good place to start
+when getting to know a new configuration language.
+I chose the <strong>Python</strong> one and made a few customisations:</p>
 </div>
-<div id="choose-git-repo" class="imageblock">
+<div class="exampleblock sourcecode">
+<div class="title">.gitlab-ci.yml (ch25l001)</div>
 <div class="content">
-<img src="images/twp2_2406.png" alt="Setting the git repo">
-</div>
-<div class="title">Figure 4. Get it from Git</div>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p>Set it to poll every hour (<a href="#poll-hourly">Poll GitHub for changes</a>; check out the help text here&#8212;&#8203;there are many other options for ways of triggering builds).</p>
-</li>
-</ul>
-</div>
-<div id="poll-hourly" class="imageblock">
+<div class="listingblock">
 <div class="content">
-<img src="images/twp2_2407.png" alt="Config polling GitHub">
+<pre class="pygments highlight"><code data-lang="yaml"><span></span><span class="tok-c1"># Use the same image as our Dockerfile</span>
+<span class="tok-nt">image</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">python:slim</span>
+
+<span class="tok-c1"># These two setting lets us cache pip-installed packages,</span>
+<span class="tok-c1"># it came from the default template</span>
+<span class="tok-nt">variables</span><span class="tok-p">:</span>
+<span class="tok-w">  </span><span class="tok-nt">PIP_CACHE_DIR</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-s">"$CI_PROJECT_DIR/.cache/pip"</span>
+<span class="tok-nt">cache</span><span class="tok-p">:</span>
+<span class="tok-w">  </span><span class="tok-nt">paths</span><span class="tok-p">:</span>
+<span class="tok-w">    </span><span class="tok-p tok-p-Indicator">-</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">.cache/pip</span>
+
+<span class="tok-c1"># "setUp" phase, before the main build</span>
+<span class="tok-nt">before_script</span><span class="tok-p">:</span>
+<span class="tok-w">  </span><span class="tok-p tok-p-Indicator">-</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">python --version ; pip --version</span><span class="tok-w">  </span><span class="tok-c1"># For debugging</span>
+<span class="tok-w">  </span><span class="tok-p tok-p-Indicator">-</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">pip install virtualenv</span>
+<span class="tok-w">  </span><span class="tok-p tok-p-Indicator">-</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">virtualenv .venv</span>
+<span class="tok-w">  </span><span class="tok-p tok-p-Indicator">-</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">source .venv/bin/activate</span>
+
+<span class="tok-c1"># This is the main build</span>
+<span class="tok-nt">test</span><span class="tok-p">:</span>
+<span class="tok-w">  </span><span class="tok-nt">script</span><span class="tok-p">:</span>
+<span class="tok-w">    </span><span class="tok-p tok-p-Indicator">-</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">pip install -r requirements.txt</span><span class="tok-w">  </span><i class="conum" data-value="1"></i><b>(1)</b>
+<span class="tok-w">    </span><span class="tok-c1"># unit tests</span>
+<span class="tok-w">    </span><span class="tok-p tok-p-Indicator">-</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">python src/manage.py test lists accounts</span><span class="tok-w">  </span><i class="conum" data-value="2"></i><b>(2)</b>
+<span class="tok-w">    </span><span class="tok-c1"># (if those pass) all tests, incl. functional.</span>
+<span class="tok-w">    </span><span class="tok-p tok-p-Indicator">-</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">pip install selenium</span><span class="tok-w">  </span><i class="conum" data-value="3"></i><b>(3)</b>
+<span class="tok-w">    </span><span class="tok-p tok-p-Indicator">-</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">cd src &amp;&amp; python manage.py test</span><span class="tok-w">  </span><i class="conum" data-value="4"></i><b>(4)</b></code></pre>
 </div>
-<div class="title">Figure 5. Poll GitHub for changes</div>
 </div>
-<div class="ulist">
-<ul>
-<li>
-<p>Run the tests inside a Python 3 virtualenv.</p>
-</li>
-<li>
-<p>Run the unit tests and functional tests separately.  See
-<a href="#virtualenv-buildstep">Virtualenv build steps</a>.</p>
-</li>
-</ul>
 </div>
-<div id="virtualenv-buildstep" class="imageblock">
+</div>
+<div class="paragraph">
+<p>YAML once again folks!</p>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>We start by installing our core requirements</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>I&#8217;ve decided to run the unit tests first.
+This gives us an "early failure" if  there&#8217;s any problem at this stage,
+and saves us from having to run, and more importantly wait for, the Fts to run.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="3"></i><b>3</b></td>
+<td>Then we need selenium for the functional tests.
+Again, I&#8217;m delaying this <code>pip install</code> until it&#8217;s absolutely necessary,
+to get feedback as quickly as possible.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="4"></i><b>4</b></td>
+<td>And here is a full test run, including the functional tests.</td>
+</tr>
+</table>
+</div>
+<div class="admonitionblock tip">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-tip" title="Tip"></i>
+</td>
+<td class="content">
+It&#8217;s a good idea in CI pipelines to try and run the quickest tests first,
+    so that you can get feedback as quickly as possible.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>If you used the web UI to edit your pipeline YAML,
+you can go check for results straight away.
+If you edited it locally (it&#8217;s just a file in the repo like any other),
+then you&#8217;ll need to <code>git push</code> up to gitlab,
+and then go check the <strong>Jobs</strong> section in the <strong>Build</strong> UI.</p>
+</div>
+<div class="listingblock skipme">
 <div class="content">
-<img src="images/twp2_2408.png" alt="Adding Python 3">
+<pre>$ *git push gitlab</pre>
 </div>
-<div class="title">Figure 6. Virtualenv build steps</div>
 </div>
 </div>
 <div class="sect2">
-<h3 id="_first_build">First Build!</h3>
+<h3 id="_first_build_and_first_failure">First Build!  (and First Failure)</h3>
 <div class="paragraph">
-<p>Hit
-"Build Now", then go and take a look at the "Console Output". You
-should see something like this:</p>
+<p>However you click through the UI and you should be able to find your way
+to see the output of the build Job.</p>
 </div>
 <div class="listingblock skipme small-code">
 <div class="content">
-<pre>Started by user harry
-Building in workspace /var/lib/jenkins/jobs/Superlists/workspace
-Fetching changes from the remote Git repository
-Fetching upstream changes from https://github.com/hjwp/book-example.git
-Checking out Revision d515acebf7e173f165ce713b30295a4a6ee17c07 (origin/master)
-[workspace] $ /bin/sh -xe /tmp/shiningpanda7260707941304155464.sh
-+ pip install -r requirements.txt
-Requirement already satisfied (use --upgrade to upgrade): Django==1.11 in
-/var/lib/jenkins/shiningpanda/jobs/ddc1aed1/virtualenvs/d41d8cd9/lib/python3.7/site-packages
-(from -r requirements.txt (line 1))
-
-Requirement already satisfied (use --upgrade to upgrade): gunicorn==17.5 in
-/var/lib/jenkins/shiningpanda/jobs/ddc1aed1/virtualenvs/d41d8cd9/lib/python3.7/site-packages
-(from -r requirements.txt (line 3))
-Downloading/unpacking requests==2.0.0 (from -r requirements.txt (line 4))
-  Running setup.py egg_info for package requests
-
-Installing collected packages: requests
-  Running setup.py install for requests
-
-Successfully installed requests
-Cleaning up...
-+ python manage.py test lists accounts
-...................................................................
- ---------------------------------------------------------------------
-Ran 67 tests in 0.429s
-
-OK
+<pre>Running with gitlab-runner 17.7.0~pre.103.g896916a8 (896916a8)
+  on green-1.saas-linux-small-amd64.runners-manager.gitlab.com/default
+  JLgUopmM, system ID: s_deaa2ca09de7
+Preparing the "docker+machine" executor 00:20
+Using Docker executor with image python:latest ...
+Pulling docker image python:latest ...
+[...]
+$ python src/manage.py test lists accounts
 Creating test database for alias 'default'...
+Found 55 test(s).
+System check identified no issues (0 silenced).
+................../builds/hjwp/book-example/.venv/lib/python3.13/site-packages/django/core/handlers/base.py:61: UserWarning: No directory at: /builds/hjwp/book-example/src/static/
+  mw_instance = middleware(adapted_handler)
+.....................................
+ ---------------------------------------------------------------------
+Ran 55 tests in 0.129s
+OK
 Destroying test database for alias 'default'...
-+ python manage.py test functional_tests
-EEEEEE
+$ pip install selenium
+Collecting selenium
+  Using cached selenium-4.28.1-py3-none-any.whl.metadata (7.1 kB)
+Collecting urllib3&lt;3,&gt;=1.26 (from urllib3[socks]&lt;3,&gt;=1.26-&gt;selenium)
+[...]
+Successfully installed attrs-25.1.0 certifi-2025.1.31 h11-0.14.0 idna-3.10 outcome-1.3.0.post0 pysocks-1.7.1 selenium-4.28.1 sniffio-1.3.1 sortedcontainers-2.4.0 trio-0.29.0 trio-websocket-0.12.1 typing_extensions-4.12.2 urllib3-2.3.0 websocket-client-1.8.0 wsproto-1.2.0
+$ cd src &amp;&amp; python manage.py test
+Creating test database for alias 'default'...
+Found 63 test(s).
+System check identified no issues (0 silenced).
+......../builds/hjwp/book-example/.venv/lib/python3.13/site-packages/django/core/handlers/base.py:61: UserWarning: No directory at: /builds/hjwp/book-example/src/static/
+  mw_instance = middleware(adapted_handler)
+...............................................EEEEEEEE
 ======================================================================
-ERROR: functional_tests.test_layout_and_styling (unittest.loader._FailedTest)
+ERROR: test_layout_and_styling (functional_tests.test_layout_and_styling.LayoutAndStylingTest.test_layout_and_styling)
  ---------------------------------------------------------------------
-ImportError: Failed to import test module: functional_tests.test_layout_and_styling
+Traceback (most recent call last):
+  File "/builds/hjwp/book-example/src/functional_tests/base.py", line 30, in setUp
+    self.browser = webdriver.Firefox()
+                   ~~~~~~~~~~~~~~~~~^^
+
 [...]
-ImportError: No module named 'selenium'
+selenium.common.exceptions.WebDriverException: Message: Process unexpectedly closed with status 255
+ ---------------------------------------------------------------------
+Ran 63 tests in 8.658s
+FAILED (errors=8)
 
-Ran 6 tests in 0.001s
-
-FAILED (errors=6)
-
-Build step 'Virtualenv Builder' marked build as failure</pre>
+selenium.common.exceptions.WebDriverException: Message: Process unexpectedly closed with status 255</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>Ah.  We need Selenium in our virtualenv.</p>
+<p>You can see we got through the unit tests,
+and then in the full test run we have 8 errors out of 63 tests.
+The FTs are all failing.</p>
 </div>
 <div class="paragraph">
-<p>Let&#8217;s add a manual installation of Selenium to our build
-steps:</p>
+<p>I&#8217;m "lucky" because I&#8217;ve done this sort of thing many times before,
+so I know what to expect:  it&#8217;s failing because Firefox isn&#8217;t installed
+in the image we&#8217;re using.</p>
 </div>
-<div class="listingblock skipme">
+<div class="paragraph">
+<p>Let&#8217;s modify the script, and an <code>apt install</code>.
+Again we&#8217;ll do it as late as possible.</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">.gitlab-ci.yml (ch25l002)</div>
 <div class="content">
-<pre>    pip install -r requirements.txt
-    python manage.py test accounts lists
-    pip install selenium fabric3
-    python manage.py test functional_tests</pre>
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="yaml"><span></span><span class="tok-c1"># This is the main build</span>
+<span class="tok-nt">test</span><span class="tok-p">:</span>
+<span class="tok-w">  </span><span class="tok-nt">script</span><span class="tok-p">:</span>
+<span class="tok-w">    </span><span class="tok-p tok-p-Indicator">-</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">pip install -r requirements.txt</span>
+<span class="tok-w">    </span><span class="tok-c1"># unit tests</span>
+<span class="tok-w">    </span><span class="tok-p tok-p-Indicator">-</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">python src/manage.py test lists accounts</span>
+<span class="tok-w">    </span><span class="tok-c1"># (if those pass) all tests, incl. functional.</span>
+<span class="tok-w">    </span><span class="tok-p tok-p-Indicator">-</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">apt update -y &amp;&amp; apt install -y firefox-esr</span><span class="tok-w">  </span><i class="conum" data-value="1"></i><b>(1)</b>
+<span class="tok-w">    </span><span class="tok-p tok-p-Indicator">-</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">pip install selenium</span>
+<span class="tok-w">    </span><span class="tok-p tok-p-Indicator">-</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">cd src &amp;&amp; python manage.py test</span></code></pre>
 </div>
 </div>
-<div class="admonitionblock tip">
+</div>
+</div>
+<div class="colist arabic">
 <table>
 <tr>
-<td class="icon">
-<i class="fa icon-tip" title="Tip"></i>
-</td>
-<td class="content">
-Some people like to use a file called <em>test-requirements.txt</em> to specify
-    packages that are needed for the tests, but not the main app.
-</td>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>We use the Debian Linux <code>apt</code> package manager to install Firefox.
+<code>firefox-esr</code> is the "extended support release",
+which is a more stable version of Firefox to test against.</td>
 </tr>
 </table>
 </div>
 <div class="paragraph">
-<p>And hit "Build Now" again.</p>
-</div>
-<div class="paragraph">
-<p>Next one of two things will happen.  Either you&#8217;ll see some error messages
-like this in your console output:</p>
-</div>
-<div class="listingblock skipme">
-<div class="content">
-<pre>    self.browser = webdriver.Firefox()
-[...]
-selenium.common.exceptions.WebDriverException: Message: 'The browser appears to
-have exited before we could connect. The output was: b"\\n(process:19757):
-GLib-CRITICAL **: g_slice_set_config: assertion \'sys_page_size == 0\'
-failed\\nError: no display specified\\n"'
-[...]
-selenium.common.exceptions.WebDriverException: Message: connection refused</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Or possibly your build will just hang altogether (that happened to me at
-least once).  The reason is that Firefox can&#8217;t start, because it doesn&#8217;t
-have a display to run on.</p>
-</div>
-</div>
-<div class="sect2">
-<h3 id="_setting_up_a_virtual_display_so_the_fts_can_run_headless">Setting Up a Virtual Display So the FTs Can Run Headless</h3>
-<div class="paragraph">
-<p>As
-you can see from the traceback, Firefox is unable to start because the
-server doesn&#8217;t have a display.</p>
-</div>
-<div class="paragraph">
-<p>There are two ways to deal with this problem. The first is to switch to using
-a headless browser, like PhantomJS or SlimerJS.  Those tools definitely have
-their place&#8212;&#8203;they&#8217;re faster, for one thing&#8212;&#8203;but they also have
-disadvantages.  The first is that they&#8217;re not "real" web browsers, so you can&#8217;t
-be sure you&#8217;re going to catch all the strange quirks and behaviours of the
-actual browsers your users use.  The second is that they can behave quite
-differently inside Selenium, and often require some rewriting of FT code.</p>
-</div>
-<div class="admonitionblock tip">
-<table>
-<tr>
-<td class="icon">
-<i class="fa icon-tip" title="Tip"></i>
-</td>
-<td class="content">
-I would look into using headless browsers as a "dev-only" tool, to speed
-    up the running of FTs on the developer&#8217;s machine, while the tests on the CI
-    server use actual browsers.
-</td>
-</tr>
-</table>
-</div>
-<div class="paragraph pagebreak-before">
-<p>The alternative is to set up a virtual display:  we get the server to pretend
-it has a screen attached to it, so Firefox runs happily. There are a few tools
-out there to do this; we&#8217;ll use one called "Xvfb"
-(X Virtual Framebuffer)<sup class="footnote">[<a id="_footnoteref_1" class="footnote" href="#_footnotedef_1" title="View footnote.">1</a>]</sup>
-because it&#8217;s easy to install and use, and because it has a convenient Jenkins
-plugin (now you know why we installed it earlier).</p>
-</div>
-<div class="paragraph">
-<p>We go back to our project and hit "Configure" again, then find the section
-called "Build Environment".  Using the virtual display is as simple as
-ticking the box marked "Start Xvfb before the build, and shut it down after",
-as in <a href="#xvfb-tickbox">Sometimes config is easy</a>.</p>
-</div>
-<div id="xvfb-tickbox" class="imageblock">
-<div class="content">
-<img src="images/twp2_2409.png" alt="Tickbox saying we want Xvfb">
-</div>
-<div class="title">Figure 7. Sometimes config is easy</div>
-</div>
-<div class="paragraph">
-<p>The build does much better now:</p>
+<p>If you run it again, and wait a bit, you&#8217;ll see we get a slightly different failure:</p>
 </div>
 <div class="listingblock skipme small-code">
 <div class="content">
-<pre>[...]
-Xvfb starting$ /usr/bin/Xvfb :2 -screen 0 1024x768x24 -fbdir
-/var/lib/jenkins/2013-11-04_03-27-221510012427739470928xvfb
+<pre>$ apt-get update -y &amp;&amp; apt-get install -y firefox-esr
+Get:1 http://deb.debian.org/debian bookworm InRelease [151 kB]
+Get:2 http://deb.debian.org/debian bookworm-updates InRelease [55.4 kB]
+Get:3 http://deb.debian.org/debian-security bookworm-security InRelease [48.0 kB]
 [...]
-+ python manage.py test lists accounts
-...............................................................
+The following NEW packages will be installed:
+  adwaita-icon-theme alsa-topology-conf alsa-ucm-conf at-spi2-common
+  at-spi2-core dbus dbus-bin dbus-daemon dbus-session-bus-common
+  dbus-system-bus-common dbus-user-session dconf-gsettings-backend
+  dconf-service dmsetup firefox-esr fontconfig fontconfig-config
+[...]
+Get:117 http://deb.debian.org/debian-security bookworm-security/main amd64
+firefox-esr amd64 128.7.0esr-1~deb12u1 [69.8 MB]
+[...]
+Selecting previously unselected package firefox-esr.
+Preparing to unpack .../105-firefox-esr_128.7.0esr-1~deb12u1_amd64.deb ...
+Adding 'diversion of /usr/bin/firefox to /usr/bin/firefox.real by firefox-esr'
+Unpacking firefox-esr (128.7.0esr-1~deb12u1) ...
+[...]
+Setting up firefox-esr (128.7.0esr-1~deb12u1) ...
+update-alternatives: using /usr/bin/firefox-esr to provide
+/usr/bin/x-www-browser (x-www-browser) in auto mode
+[...]
+======================================================================
+ERROR: test_multiple_users_can_start_lists_at_different_urls
+(functional_tests.test_simple_list_creation.NewVisitorTest.test_multiple_users_can_start_lists_at_different_urls)
  ---------------------------------------------------------------------
-Ran 63 tests in 0.410s
-
-OK
-Creating test database for alias 'default'...
-Destroying test database for alias 'default'...
-
-+ pip install selenium
-Requirement already satisfied (use --upgrade to upgrade): selenium in
-/var/lib/jenkins/shiningpanda/jobs/ddc1aed1/virtualenvs/d41d8cd9/lib/python3.7/site-packages
-Cleaning up...</pre>
+Traceback (most recent call last):
+  File "/builds/hjwp/book-example/src/functional_tests/base.py", line 30, in setUp
+    self.browser = webdriver.Firefox()
+                   ~~~~~~~~~~~~~~~~~^^
+[...]
+selenium.common.exceptions.WebDriverException: Message: Process unexpectedly
+closed with status 1
+ ---------------------------------------------------------------------
+Ran 63 tests in 3.654s
+FAILED (errors=8)</pre>
 </div>
+</div>
+<div class="paragraph">
+<p>We can see Firefox installing OK, but we still get an error.
+This time it&#8217;s exit code 1.</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>TODO: write up a debugging session here.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>The answer is that Firefox is crashing because it can&#8217;t find a display.
+Servers are "headless", meaning they don&#8217;t have a screen.
+Thankfully Firefox has a "headless' mode,
+which we can enable by setting an environment variable.</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">.gitlab-ci.yml (ch25l003)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="yaml"><span></span><span class="tok-nt">variables</span><span class="tok-p">:</span>
+<span class="tok-w">  </span><span class="tok-c1"># Put pip-cache in home folder so we can use gitlab cache</span>
+<span class="tok-w">  </span><span class="tok-nt">PIP_CACHE_DIR</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-s">"$CI_PROJECT_DIR/.cache/pip"</span>
+<span class="tok-w">  </span><span class="tok-c1"># Make Firefox run headless.</span>
+<span class="tok-w">  </span><span class="tok-nt">MOZ_HEADLESS</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-s">"1"</span></code></pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_a_common_bugbear_flaky_tests">A Common Bugbear: Flaky tests</h3>
+<div class="paragraph">
+<p>The next error I saw was unexpected:</p>
 </div>
 <div class="listingblock skipme small-code">
 <div class="content">
 <pre>+ python manage.py test functional_tests
 ......F.
 ======================================================================
-FAIL: test_can_start_a_list_for_one_user
+FAIL: test_can_start_a_todo_list
 (functional_tests.test_simple_list_creation.NewVisitorTest)
  ---------------------------------------------------------------------
 Traceback (most recent call last):
   File "...goat-book/functional_tests/test_simple_list_creation.py", line
-43, in test_can_start_a_list_for_one_user
+38, in test_can_start_a_todo_list
     self.wait_for_row_in_list_table('2: Use peacock feathers to make a fly')
   File "...goat-book/functional_tests/base.py", line 51, in
 wait_for_row_in_list_table
@@ -527,51 +480,40 @@ wait_for_row_in_list_table
     self.assertIn(row_text, [row.text for row in rows])
 AssertionError: '2: Use peacock feathers to make a fly' not found in ['1: Buy
 peacock feathers']
- ---------------------------------------------------------------------
-Ran 8 tests in 89.275s
-
-FAILED (errors=1)
-Creating test database for alias 'default'...
-[{'secure': False, 'domain': 'localhost', 'name': 'sessionid', 'expiry':
-1920011311, 'path': '/', 'value': 'a8d8bbde33nreq6gihw8a7r1cc8bf02k'}]
-Destroying test database for alias 'default'...
-Build step 'Virtualenv Builder' marked build as failure
-Xvfb stopping
-Finished: FAILURE</pre>
+ ---------------------------------------------------------------------</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>Pretty
-close!  To debug that failure, we&#8217;ll need screenshots though.</p>
+<p>You might not see this error,
+but it&#8217;s common for the switch to CI to flush out some "flaky" tests,
+things that will fail intermittently.
+In CI a common cause is the "noisy neighbour" problem,
+where the CI server might be much slower than your own machine,
+thus flushing out some race conditions, or in this case,
+just randomly hanging for a few seconds, taking us past the default timeout.</p>
 </div>
-<div class="admonitionblock note">
-<table>
-<tr>
-<td class="icon">
-<i class="fa icon-note" title="Note"></i>
-</td>
-<td class="content">
-This error was due to the performance of my Jenkins instance&#8212;&#8203;you may see
-    a different error, or none at all. In any case, the following tools for taking
-    screenshots and dealing with race conditions will come in useful. Read on!
-</td>
-</tr>
-</table>
+<div class="paragraph">
+<p>Let&#8217;s give ourselves some tools to help debug though.</p>
 </div>
 </div>
 <div class="sect2">
 <h3 id="_taking_screenshots">Taking Screenshots</h3>
 <div class="paragraph">
-<p>To
-be able to debug unexpected failures that happen on a remote PC, it
-would be good to see a picture of the screen at the moment of the failure,
-and maybe also a dump of the HTML of the page.  We can do that using some
-custom logic in our FT class <code>tearDown</code>. We have to do a bit of introspection of
-<code>unittest</code> internals, a private attribute called <code>._outcome</code>, but
-this will work:</p>
+<p>
+
+
+To be able to debug unexpected failures that happen on a remote server,
+it would be good to see a picture of the screen at the moment of the failure,
+and maybe also a dump of the HTML of the page.</p>
+</div>
+<div class="paragraph">
+<p>We can do that using some custom logic in our FT class <code>tearDown</code>.
+We&#8217;ll need to do a bit of introspection of <code>unittest</code> internals,
+a private attribute called <code>._outcome</code>,
+but this will work:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">src/functional_tests/base.py (ch23l006)</div>
+<div class="title">src/functional_tests/base.py (ch25l006)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
@@ -602,13 +544,14 @@ this will work:</p>
 </div>
 </div>
 <div class="paragraph">
-<p>We first create a directory for our screenshots if necessary. Then we
-iterate through all the open browser tabs and pages, and use some Selenium
-methods, <code>get_screenshot_as_file</code> and <code>browser.page_source</code>, for our image and
-HTML dumps:</p>
+<p>We first create a directory for our screenshots if necessary.
+Then we iterate through all the open browser tabs and pages,
+and use a Selenium methods, <code>get_screenshot_as_file()</code>
+and the attribute <code>browser.page_source</code>,
+for our image and HTML dumps, respectively:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">src/functional_tests/base.py (ch23l007)</div>
+<div class="title">src/functional_tests/base.py (ch25l007)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
@@ -625,12 +568,12 @@ HTML dumps:</p>
 </div>
 </div>
 </div>
-<div class="paragraph pagebreak-before">
-<p>And finally here&#8217;s a way of generating a unique filename identifier, which
-includes the name of the test and its class, as well as a timestamp:</p>
+<div class="paragraph">
+<p>And finally here&#8217;s a way of generating a unique filename identifier,
+which includes the name of the test and its class, as well as a timestamp:</p>
 </div>
 <div class="exampleblock sourcecode small-code">
-<div class="title">src/functional_tests/base.py (ch23l008)</div>
+<div class="title">src/functional_tests/base.py (ch25l008)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
@@ -644,338 +587,292 @@ includes the name of the test and its class, as well as a timestamp:</p>
 </div>
 </div>
 <div class="paragraph">
-<p>You can test this first locally by deliberately breaking one of the tests, with
-a <code>self.fail()</code> for example, and you&#8217;ll see something like this:</p>
+<p>You can test this first locally by deliberately breaking one of the tests,
+with a <code>self.fail()</code> for example, and you&#8217;ll see something like this:</p>
 </div>
-<div class="listingblock dofirst-ch21l009">
+<div class="listingblock dofirst-ch25l009">
 <div class="content">
-<pre>[...]
-.Fscreenshotting to ...goat-book/src/functional_tests/screendumps/MyListsTest.t
-est_logged_in_users_lists_are_saved_as_my_lists-[...]
+<pre>$ <strong>./src/manage.py test functional_tests.test_my_lists</strong>
+[...]
+Fscreenshotting to ...goat-book/src/functional_tests/screendumps/MyListsTest.te
+st_logged_in_users_lists_are_saved_as_my_lists-[...]
 dumping page HTML to ...goat-book/src/functional_tests/screendumps/MyListsTest.
-test_logged_in_users_lists_are_saved_as_my_lists-[...]</pre>
+test_logged_in_users_lists_are_saved_as_my_lists-[...]
+Fscreenshotting to ...goat-book/src/functional_tests/screendumps/MyListsTest.te
+st_logged_in_users_lists_are_saved_as_my_lists-2025-02-18T11.29.00.png
+dumping page HTML to ...goat-book/src/functional_tests/screendumps/MyListsTest.
+test_logged_in_users_lists_are_saved_as_my_lists-2025-02-18T11.29.00.html</pre>
 </div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_saving_build_outputs_or_debug_files_as_artifacts">Saving Build Outputs (or Debug Files) as Artifacts</h3>
+<div class="paragraph">
+<p>We also need to tell gitlab to "save" these files
+for us to be able to actually look at them
+This is called "artifacts":</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">.gitlab-ci.yml (ch25l012)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="yaml"><span></span><span class="tok-nt">test</span><span class="tok-p">:</span>
+<span class="tok-w">  </span><span class="tok-p tok-p-Indicator">[</span><span class="tok-nv">...</span><span class="tok-p tok-p-Indicator">]</span>
+
+<span class="tok-w">  </span><span class="tok-nt">script</span><span class="tok-p">:</span>
+<span class="tok-w">    </span><span class="tok-p tok-p-Indicator">[</span><span class="tok-nv">...</span><span class="tok-p tok-p-Indicator">]</span>
+
+<span class="tok-w">  </span><span class="tok-nt">artifacts</span><span class="tok-p">:</span><span class="tok-w"> </span><i class="conum" data-value="1"></i><b>(1)</b>
+<span class="tok-w">    </span><span class="tok-nt">when</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">always</span><span class="tok-w">  </span><i class="conum" data-value="2"></i><b>(2)</b>
+<span class="tok-w">    </span><span class="tok-nt">paths</span><span class="tok-p">:</span><span class="tok-w"> </span><i class="conum" data-value="1"></i><b>(1)</b>
+<span class="tok-w">      </span><span class="tok-p tok-p-Indicator">-</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">src/functional_tests/screendumps/</span></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td><code>artifacts</code> is the name of the key,
+and the <code>paths</code> argument is fairly self-explanatory.
+You can use wildcards here,
+more info in the <a href="https://docs.gitlab.com/ci/jobs/job_artifacts/">GitLab docs</a>.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>One thing the docs <em>didn&#8217;t</em> make obvious is that you need <code>when: always</code>
+because otherwise it won&#8217;t save artifacts for failed jobs.
+That was annoyingly hard to figure out!</td>
+</tr>
+</table>
 </div>
 <div class="paragraph">
-<p>Revert the <code>self.fail()</code>, then commit and push:</p>
+<p>In any case that should work.
+If you commit the code and then push it back to Gitlab,
+we should be able to see a new build job.</p>
 </div>
-<div class="listingblock dofirst-ch21l010">
+<div class="listingblock dofirst-ch25l010">
 <div class="content">
-<pre>$ <strong>git diff</strong>  # changes in base.py
-$ <strong>echo "src/functional_tests/screendumps" &gt;&gt; .gitignore</strong>
+<pre>$ <strong>echo "src/functional_tests/screendumps" &gt;&gt; .gitignore</strong>
 $ <strong>git commit -am "add screenshot on failure to FT runner"</strong>
 $ <strong>git push</strong></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>And when we rerun the build on Jenkins, we see something like this:</p>
+<p>In its output, we&#8217;ll see the screenshots and html dumps being saved:</p>
 </div>
-<div class="listingblock skipme">
+<div class="listingblock skipme small-code">
 <div class="content">
-<pre>screenshotting to /var/lib/jenkins/jobs/Superlists/.../functional_tests/
-screendumps/LoginTest.test_login_with_persona-window0-2014-01-22T17.45.12.png
-dumping page HTML to /var/lib/jenkins/jobs/Superlists/.../functional_tests/
-screendumps/LoginTest.test_login_with_persona-window0-2014-01-22T17.45.12.html</pre>
+<pre>screendumps/LoginTest.test_can_get_email_link_to_log_in-window0-2014-01-22T17.45.12.html
+Fscreenshotting to /builds/hjwp/book-example/src/functional_tests/screendumps/NewVisitorTest.test_can_start_a_todo_list-2025-02-17T17.51.01.png
+dumping page HTML to /builds/hjwp/book-example/src/functional_tests/screendumps/NewVisitorTest.test_can_start_a_todo_list-2025-02-17T17.51.01.html
+Not Found: /favicon.ico
+.screenshotting to /builds/hjwp/book-example/src/functional_tests/screendumps/NewVisitorTest.test_multiple_users_can_start_lists_at_different_urls-2025-02-17T17.51.06.png
+dumping page HTML to /builds/hjwp/book-example/src/functional_tests/screendumps/NewVisitorTest.test_multiple_users_can_start_lists_at_different_urls-2025-02-17T17.51.06.html
+======================================================================
+FAIL: test_can_start_a_todo_list (functional_tests.test_simple_list_creation.NewVisitorTest.test_can_start_a_todo_list)
+[...]</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>We can go and visit these in the "workspace", which is the folder Jenkins
-uses to store our source code and run the tests in, as in
-<a href="#screenshots-in-workspace">Visiting the project workspace</a>.</p>
+<p>And to the right some new UI options appear to <strong>Browse</strong> the artifacts,
+as in <a href="#gitlab_ui_for_browse_artifacts">Artifacts Appear on the Right of the Build Job</a>.</p>
 </div>
-<div id="screenshots-in-workspace" class="imageblock width-75">
+<div id="gitlab_ui_for_browse_artifacts" class="imageblock">
 <div class="content">
-<img src="images/twp2_2410.png" alt="workspace files including screenshot">
+<img src="images/gitlab_ui_for_browse_artifacts.png" alt="GitLab UI tab showing the option to browse artifacts">
 </div>
-<div class="title">Figure 8. Visiting the project workspace</div>
+<div class="title">Figure 3. Artifacts Appear on the Right of the Build Job</div>
 </div>
 <div class="paragraph">
-<p>And then we look at the screenshot, as shown in <a href="#normal-screenshot">Screenshot looking normal</a>.</p>
+<p>And if you navigate through, you&#8217;ll see something like <a href="#gitlab_ui_show_screenshot">Our Screenshot in the GitLab UI, Looking Unremarkable</a>:</p>
 </div>
-<div id="normal-screenshot" class="imageblock width-75">
+<div id="gitlab_ui_show_screenshot" class="imageblock">
 <div class="content">
-<img src="images/twp2_2411.png" alt="Screenshot of site page">
+<img src="images/gitlab_ui_show_screenshot.png" alt="GitLab UI showing a normal-looking screenshot of the site">
 </div>
-<div class="title">Figure 9. Screenshot looking normal</div>
+<div class="title">Figure 4. Our Screenshot in the GitLab UI, Looking Unremarkable</div>
 </div>
 </div>
 <div class="sect2">
 <h3 id="_if_in_doubt_try_bumping_the_timeout">If in Doubt, Try Bumping the Timeout!</h3>
-<div class="paragraph">
-<p>Hm.  No obvious clues there.  Well, when in doubt, bump the timeout, as the
-old adage goes:</p>
-</div>
-<div class="exampleblock sourcecode skipme">
-<div class="title">src/functional_tests/base.py</div>
-<div class="content">
-<div class="listingblock">
-<div class="content">
-<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-n">MAX_WAIT</span> <span class="tok-o">=</span> <span class="tok-mi">20</span></code></pre>
-</div>
-</div>
-</div>
-</div>
-<div class="paragraph">
-<p>Then we can rerun the build on Jenkins using "Build Now", and confirm it now
-works, as in <a href="#outlook-brighter">The outlook is brighter</a>.</p>
-</div>
-<div id="outlook-brighter" class="imageblock width-75">
-<div class="content">
-<img src="images/twp2_2412.png" alt="Build showing a recent pass and sun-peeking-through-clouds logo">
-</div>
-<div class="title">Figure 10. The outlook is brighter</div>
-</div>
-<div class="paragraph">
-<p>Jenkins uses blue to indicate passing builds rather than green, which is a bit
-disappointing, but look at the sun peeking through the clouds:  that&#8217;s cheery!
-It&#8217;s an indicator of a moving average ratio of passing builds to failing
-builds.  Things are looking up!</p>
-</div>
-</div>
-<div class="sect2">
-<h3 id="_running_our_qunit_javascript_tests_in_jenkins_with_phantomjs">Running Our QUnit JavaScript Tests in Jenkins with PhantomJS</h3>
-<div class="paragraph">
-<p>There&#8217;s
-a set of tests we almost forgot&#8212;&#8203;the JavaScript tests. Currently
-our "test runner" is an actual web browser.  To get Jenkins to run them, we
-need a command-line test runner.  Here&#8217;s a chance to use PhantomJS.</p>
-</div>
-<div class="sect3">
-<h4 id="_installing_node">Installing node</h4>
-<div class="paragraph">
-<p>It&#8217;s time to stop pretending we&#8217;re not in the JavaScript game.  We&#8217;re doing
-web development.  That means we do JavaScript.  That means we&#8217;re going to end
-up with node.js on our computers.  It&#8217;s just the way it has to be.</p>
-</div>
-<div class="paragraph">
-<p>Follow the instructions on the <a href="http://nodejs.org/">node.js homepage</a>. There are
-installers for Windows and Mac, and repositories for popular Linux
-distros.<sup class="footnote">[<a id="_footnoteref_2" class="footnote" href="#_footnotedef_2" title="View footnote.">2</a>]</sup></p>
-</div>
-<div class="paragraph">
-<p>Once we have node, we can install phantom:</p>
-</div>
-<div class="listingblock skipme">
-<div class="content">
-<pre>$ <strong>npm install -g phantomjs-prebuilt</strong>  # the -g means "system-wide".</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Next we pull down a QUnit/PhantomJS test runner.  There are several out there
-(I even wrote a basic one to be able to test the QUnit listings in this book),
-but the best one to get is probably the one that&#8217;s linked from the
-<a href="http://qunitjs.com/plugins/">QUnit plugins page</a>. At the time of writing, its
-repo was at <a href="https://github.com/jonkemp/qunit-phantomjs-runner" class="bare">https://github.com/jonkemp/qunit-phantomjs-runner</a>.  The only file
-you need is <em>runner.js</em>.</p>
-</div>
-<div class="paragraph">
-<p>You should end up with this:</p>
-</div>
-<div class="listingblock skipme">
-<div class="content">
-<pre>$ <strong>tree src/lists/static/tests/</strong>
-src/lists/static/tests/
-&#9500;&#9472;&#9472; qunit-2.0.1.css
-&#9500;&#9472;&#9472; qunit-2.0.1.js
-&#9500;&#9472;&#9472; runner.js
-&#9492;&#9472;&#9472; tests.html
-
-0 directories, 4 files</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Let&#8217;s try it out:</p>
-</div>
-<div class="listingblock skipme">
-<div class="content">
-<pre>$ <strong>phantomjs src/lists/static/tests/runner.js src/lists/static/tests/tests.html</strong>
-Took 24ms to run 2 tests. 2 passed, 0 failed.</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Just to be sure, let&#8217;s deliberately break something:</p>
-</div>
-<div class="exampleblock sourcecode skipme">
-<div class="title">src/lists/static/tests/Spec.js (ch23l019)</div>
-<div class="content">
-<div class="listingblock">
-<div class="content">
-<pre class="pygments highlight"><code data-lang="javascript"><span></span><span class="tok-w">  </span><span class="tok-nx">it</span><span class="tok-p">(</span><span class="tok-s2">"sense-check our html fixture"</span><span class="tok-p">,</span><span class="tok-w"> </span><span class="tok-p">()</span><span class="tok-w"> </span><span class="tok-p">=&gt;</span><span class="tok-w"> </span><span class="tok-p">{</span>
-<span class="tok-w">    </span><span class="tok-nx">expect</span><span class="tok-p">(</span><span class="tok-nx">errorMsg</span><span class="tok-p">.</span><span class="tok-nx">checkVisibility</span><span class="tok-p">()).</span><span class="tok-nx">toBe</span><span class="tok-p">(</span><span class="tok-kc">false</span><span class="tok-p">);</span>
-<span class="tok-w">  </span><span class="tok-p">});</span></code></pre>
-</div>
-</div>
-</div>
-</div>
-<div class="paragraph">
-<p>Sure enough:</p>
-</div>
-<div class="listingblock skipme">
-<div class="content">
-<pre>$ <strong>phantomjs lists/static/tests/runner.js lists/static/tests/tests.html</strong>
-
-Test failed: errors should be hidden on keypress
-    Failed assertion: expected: false, but was: true
-file://...goat-book/lists/static/tests/tests.html:27:15
-
-Took 27ms to run 2 tests. 1 passed, 1 failed.</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>All right!  Let&#8217;s unbreak that, commit and push the runner, and then add it to
-our <span class="keep-together">Jenkins</span> build:</p>
-</div>
-<div class="listingblock skipme">
-<div class="content">
-<pre>$ <strong>git checkout lists/static/list.js</strong>
-$ <strong>git add lists/static/tests/runner.js</strong>
-$ <strong>git commit -m "Add phantomjs test runner for javascript tests"</strong>
-$ <strong>git push</strong></pre>
-</div>
-</div>
-</div>
-<div class="sect3">
-<h4 id="_adding_the_build_steps_to_jenkins">Adding the Build Steps to Jenkins</h4>
-<div class="paragraph">
-<p>Edit the project configuration again, and add a step for each set of
-JavaScript tests, as per <a href="#js-unit-tests-jenkey">Add a build step for our JavaScript unit tests</a>.</p>
-</div>
-<div id="js-unit-tests-jenkey" class="imageblock">
-<div class="content">
-<img src="images/new_jenkins_phantomjs_screenshot.png" alt="JS test runner setup">
-</div>
-<div class="title">Figure 11. Add a build step for our JavaScript unit tests</div>
-</div>
-<div class="paragraph">
-<p>You&#8217;ll also need to install PhantomJS on the server:</p>
-</div>
-<div class="listingblock skipme">
-<div class="content">
-<pre>root@server:$ <strong>add-apt-repository -y ppa:chris-lea/node.js</strong>
-root@server:$ <strong>apt update</strong>
-root@server:$ <strong>apt install nodejs</strong>
-root@server:$ <strong>npm install -g phantomjs-prebuilt</strong></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>And there we are!  A complete CI build featuring all of our tests!</p>
-</div>
-<div class="listingblock skipme">
-<div class="content">
-<pre>Started by user harry
-Building in workspace /var/lib/jenkins/jobs/Superlists/workspace
-Fetching changes from the remote Git repository
-Fetching upstream changes from https://github.com/hjwp/book-example.git
-Checking out Revision 936a484038194b289312ff62f10d24e6a054fb29 (origin/chapter_1
-Xvfb starting$ /usr/bin/Xvfb :1 -screen 0 1024x768x24 -fbdir /var/lib/jenkins/20
-[workspace] $ /bin/sh -xe /tmp/shiningpanda7092102504259037999.sh
-
-+ pip install -r requirements.txt
-[...]
-
-+ python manage.py test lists
-.................................
- ---------------------------------------------------------------------
-Ran 43 tests in 0.229s
-
-OK
-Creating test database for alias 'default'...
-Destroying test database for alias 'default'...
-
-+ python manage.py test accounts
-..................
- ---------------------------------------------------------------------
-Ran 18 tests in 0.078s
-
-OK
-Creating test database for alias 'default'...
-Destroying test database for alias 'default'...
-
-[workspace] $ /bin/sh -xe /tmp/hudson2967478575201471277.sh
-+ phantomjs lists/static/tests/runner.js lists/static/tests/tests.html
-Took 32ms to run 2 tests. 2 passed, 0 failed.
-+ phantomjs lists/static/tests/runner.js accounts/static/tests/tests.html
-Took 47ms to run 11 tests. 11 passed, 0 failed.
-
-[workspace] $ /bin/sh -xe /tmp/shiningpanda7526089957247195819.sh
-+ pip install selenium
-Requirement already satisfied (use --upgrade to upgrade): selenium in /var/lib/
-
-Cleaning up...
-[workspace] $ /bin/sh -xe /tmp/shiningpanda2420240268202055029.sh
-+ python manage.py test functional_tests
-........
- ---------------------------------------------------------------------
-Ran 8 tests in 76.804s
-
-OK</pre>
-</div>
-</div>
 <div class="paragraph">
 <p>
 
 
 
 
-Nice to know that, no matter how lazy I get about running the full test suite
-on my own machine, the CI server will catch me.  Another one of the Testing
-Goat&#8217;s agents in cyberspace, watching over us&#8230;&#8203;</p>
+Hm.  No obvious clues there.
+Well, when in doubt, bump the timeout, as the old adage goes:</p>
+</div>
+<div class="exampleblock sourcecode skipme">
+<div class="title">src/functional_tests/base.py</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-n">MAX_WAIT</span> <span class="tok-o">=</span> <span class="tok-mi">10</span></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>Then we can rerun the build by pushing, and confirm it now works,</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_a_successful_python_test_run">A Successful Python Test Run</h3>
+<div class="paragraph">
+<p>At this point we should get a working pipeline, <a href="#gitlab_pipeline_success">A Successful GitLab Pipeline</a>:</p>
+</div>
+<div id="gitlab_pipeline_success" class="imageblock">
+<div class="content">
+<img src="images/gitlab_pipeline_success.png" alt="GitLab UI showing a successful pipeline run">
+</div>
+<div class="title">Figure 5. A Successful GitLab Pipeline</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_running_our_javascript_tests_in_ci">Running Our JavaScript Tests in CI</h3>
+<div class="paragraph">
+<p>
+
+There&#8217;s a set of tests we almost forgot&#8212;&#8203;the JavaScript tests.
+Currently our "test runner" is an actual web browser.q
+To get them running in CI, we need a command-line test runner.</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>TODO: npm-browser-runner</p>
+</li>
+</ul>
+</div>
+<div class="sect3">
+<h4 id="_installing_node">Installing node</h4>
+<div class="paragraph">
+<p>It&#8217;s time to stop pretending we&#8217;re not in the JavaScript game.
+We&#8217;re doing web development.  That means we do JavaScript.
+That means we&#8217;re going to end up with node.js on our computers.
+It&#8217;s just the way it has to be.</p>
+</div>
+<div class="paragraph">
+<p>Follow the instructions on the <a href="http://nodejs.org/">node.js homepage</a>.
+There are installers for Windows and Mac,
+and repositories for popular Linux distros.</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>TODO: mention nvm</p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_adding_a_build_steps_for_js">Adding A Build Steps for Js</h4>
+<div class="ulist">
+<ul>
+<li>
+<p>TODO</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>
+</p>
 </div>
 </div>
 </div>
 <div class="sect2">
-<h3 id="_more_things_to_do_with_a_ci_server">More Things to Do with a CI Server</h3>
+<h3 id="_tests_now_pass">Tests now pass</h3>
 <div class="paragraph">
-<p>I&#8217;ve
-only scratched the surface of what you can do with Jenkins and CI servers.
-For example, you can make it much smarter about how it monitors your repo for
-new commits.<sup class="footnote">[<a id="_footnoteref_3" class="footnote" href="#_footnotedef_3" title="View footnote.">3</a>]</sup></p>
+<p>And there we are!  A complete CI build featuring all of our tests!</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>TODO screenshot</p>
+</li>
+</ul>
 </div>
 <div class="paragraph">
-<p>Perhaps more interestingly, you can use your CI server to automate your staging
-tests as well as your normal functional tests.  If all the FTs pass, you can
-add a build step that deploys the code to staging, and then reruns the FTs
-against that&#8212;&#8203;automating one more step of the process, and ensuring that your
-staging server is automatically kept up to date with the latest code.</p>
+<p>Nice to know that, no matter how lazy I get
+about running the full test suite on my own machine, the CI server will catch me.
+Another one of the Testing Goat&#8217;s agents in cyberspace, watching over us&#8230;&#8203;</p>
 </div>
 <div class="paragraph">
-<p>Some people even use a CI server as the way of deploying their production
-releases!</p>
+<p>But, to really finish this off, you should really take a look at <a href="/book/appendix_CD.html">[appendix_CD]</a>.</p>
+</div>
+<div class="paragraph">
+<p>I&#8217;ve moved it to an appendix tho, cos it&#8217;s so gitlab-heavy.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_alternatives_woodpecker_and_forgejo">Alternatives: Woodpecker and Forgejo</h3>
+<div class="paragraph">
+<p>you need your own server for these.
+i managed to get forgejo up and running in about 40 minutes.</p>
+</div>
+<div class="paragraph">
+<p>be careful with security!
+these things tend to assume you&#8217;re on a private network,
+or that your code is entirely public.</p>
+</div>
+<div class="paragraph">
+<p>eg: in forgejo to avoid letting the whole internet sign up and rootle around in your ci (not that anyone would care, really, but, you know)</p>
+</div>
+<div class="listingblock skipme">
+<div class="content">
+<pre>DISABLE_REGISTRATION: true</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>In any case, onto our last chapter!</p>
 </div>
 <div class="sidebarblock">
 <div class="content">
-<div class="title">Tips on CI and Selenium Best Practices</div>
+<div class="title">Best Practices for CI (including Selenium Tips)</div>
 <div class="dlist">
 <dl>
 <dt class="hdlist1">Set up CI as soon as possible for your project</dt>
 <dd>
-<p>    As
-soon as your functional tests take more than a few seconds to run,
-    you&#8217;ll find yourself avoiding running them all. Give this job to a CI
-    server, to make sure that all your tests are getting run somewhere.</p>
+<p>As soon as your functional tests take more than a few seconds to run,
+you&#8217;ll find yourself avoiding running them all.
+Give this job to a CI server,
+to make sure that all your tests are getting run somewhere.
+
+</p>
+</dd>
+<dt class="hdlist1">Optimise for fast feedback</dt>
+<dd>
+<p>CI feedback loops can be frustratingly slow.
+Optimising things to get results quicker is worth the effort.</p>
 </dd>
 <dt class="hdlist1">Set up screenshots and HTML dumps for failures</dt>
 <dd>
-<p>    Debugging
-test failures is easier if you can see what the page looked
-    like when the failure occurred.  This is particularly useful for debugging
-    CI failures, but it&#8217;s also very useful for tests that you run locally.</p>
+<p>Debugging test failures is easier if you can see what the page looked
+like when the failure occurred.  This is particularly useful for debugging
+CI failures, but it&#8217;s also very useful for tests that you run locally.
+
+
+</p>
 </dd>
 <dt class="hdlist1">Be prepared to bump your timeouts</dt>
 <dd>
-<p>A CI server may not be as speedy as your laptop, especially if it&#8217;s under
-load, running multiple tests at the same time.  Be prepared to be even
-more generous with your timeouts, in order to minimise the chance of
-random failures.</p>
+<p>A CI server may not be as speedy as your laptop,
+especially if it&#8217;s under load, running multiple tests at the same time.
+Be prepared to be even more generous with your timeouts,
+in order to minimise the chance of random failures.
+</p>
 </dd>
-<dt class="hdlist1">Look into hooking up CI and staging</dt>
+<dt class="hdlist1">Take the next step, CD (Continuous Delivery)</dt>
 <dd>
-<p>    Tests
-that use <code>LiveServerTestCase</code> are all very well for dev boxes,
-    but the true reassurance comes from running your tests against a real
-    server.  Look into getting your CI server to deploy to your staging server,
-    and run the functional tests against that instead.  It has the side benefit
-    of testing your automated deploy scripts.</p>
+<p>Once we&#8217;re running tests automatically,
+we can take the next step which is to automated our deployments
+(when the tests pass). See <a href="/book/appendix_CD.html">[appendix_CD]</a> for a worked example.
+</p>
 </dd>
 </dl>
 </div>
@@ -985,21 +882,9 @@ that use <code>LiveServerTestCase</code> are all very well for dev boxes,
 </div>
 </div>
 </div>
-<div id="footnotes">
-<hr>
-<div class="footnote" id="_footnotedef_1">
-<a href="#_footnoteref_1">1</a>. Check out <a href="https://pypi.python.org/pypi/PyVirtualDisplay">pyvirtualdisplay</a> as a way of controlling virtual displays from Python.
-</div>
-<div class="footnote" id="_footnotedef_2">
-<a href="#_footnoteref_2">2</a>. Make sure you get the latest version. On Ubuntu, use the PPA rather than the default package.
-</div>
-<div class="footnote" id="_footnotedef_3">
-<a href="#_footnoteref_3">3</a>. See this reader&#8217;s <a href="https://blog.longearsfor.life/blog/2018/07/30/jenkins-and-github-integration-testinggoat-book/">blog post on the topic for example</a>
-</div>
-</div>
 <div id="footer">
 <div id="footer-text">
-License: Creative Commons <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode">CC-BY-NC-ND</a>. Last updated: 2025-02-13 22:00:33 UTC
+License: Creative Commons <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode">CC-BY-NC-ND</a>. Last updated: 2025-02-18 15:43:34 UTC
 </div>
 </div>
 <div class="comments" style="padding: 20px">

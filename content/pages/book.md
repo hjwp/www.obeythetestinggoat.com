@@ -111,7 +111,7 @@ Table of contents follows:
 * [Chapter 22: Test Fixtures and a Decorator for Explicit Waits](/book/chapter_22_fixtures_and_wait_decorator.html)
 * [Chapter 23: Server-Side Debugging](/book/chapter_23_debugging_prod.html)
 * [Chapter 24: Finishing "My Lists": Outside-In TDD](/book/chapter_24_outside_in.html)
-* [Chapter 25: Continuous Integration (CI)](/book/chapter_25_CI.html)
+* [Chapter 25: CI: Continuous Integration](/book/chapter_25_CI.html)
 * [Chapter 26: The Token Social Bit, the Page Pattern, and an Exercise for the Reader](/book/chapter_26_page_pattern.html)
 * [Chapter 27: Fast Tests, Slow Tests, and Hot Lava](/book/chapter_27_hot_lava.html)
 
@@ -124,12 +124,13 @@ Table of contents follows:
 * [Appendix C: Testing Database Migrations](/book/appendix_IV_testing_migrations.html)
 * [Appendix D: The Subtleties of Functionally Testing External Dependencies](/book/appendix_fts_for_external_dependencies.html)
 * [Appendix E: Test Isolation, and "Listening to Your Tests"](/book/appendix_purist_unit_tests.html)
-* [Appendix F: Behaviour-Driven Development (BDD)](/book/appendix_bdd.html)
-* [Appendix G: Building a REST API: JSON, Ajax, and Mocking with JavaScript](/book/appendix_rest_api.html)
-* [Appendix H: Django-Rest-Framework](/book/appendix_DjangoRestFramework.html)
-* [Appendix I: Cheat Sheet](/book/appendix_IX_cheat_sheet.html)
-* [Appendix J: What to Do Next](/book/appendix_X_what_to_do_next.html)
-* [Appendix K: Source Code Examples](/book/appendix_github_links.html)
+* [Appendix F: CD: Continuous Deployment](/book/appendix_CD.html)
+* [Appendix G: Behaviour-Driven Development (BDD)](/book/appendix_bdd.html)
+* [Appendix H: Building a REST API: JSON, Ajax, and Mocking with JavaScript](/book/appendix_rest_api.html)
+* [Appendix I: Django-Rest-Framework](/book/appendix_DjangoRestFramework.html)
+* [Appendix J: Cheat Sheet](/book/appendix_IX_cheat_sheet.html)
+* [Appendix K: What to Do Next](/book/appendix_X_what_to_do_next.html)
+* [Appendix L: Source Code Examples](/book/appendix_github_links.html)
 * [Bibliography](/book/bibliography.html)
 
 
