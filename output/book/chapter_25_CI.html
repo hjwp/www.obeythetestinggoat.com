@@ -45,23 +45,14 @@ httpRequest.send();
 <div class="sectionbody">
 <div class="sidebarblock">
 <div class="content">
-<div class="title">Warning, Chapter Update in Progress</div>
+<div class="title">Warning, Fresh Content</div>
 <div class="paragraph">
-<p>&#128679; Warning, this chapter is very much a rough sketch at the moment. &#128679;</p>
+<p>This chapter has had a big rewrite!</p>
 </div>
 <div class="paragraph">
-<p>For the 3e I decided switch away from Jenkins to something more modern.
-I&#8217;ve avoided the obvious choice of GitHub Actions,
-in favour of GitLab, just to avoid tying the book too much to the dominant commercial player
-(GitLab is at least open source and optionally self-hosted!)</p>
-</div>
-<div class="paragraph">
-<p>There&#8217;s a reasonable sketch up to the point where the Python tests pass.
-Javascript tests are still todo.</p>
-</div>
-<div class="paragraph">
-<p>Have also added a sketch of a CD (automated deployments on push)
-appendix at <a href="/book/appendix_CD.html">[appendix_CD]</a>.</p>
+<p>As always, feedback is welcome, but especially-especially
+since this stuff is all so new.
+Let me know how you get on :)</p>
 </div>
 </div>
 </div>
@@ -103,11 +94,59 @@ Continuous Integration is another practice that was popularised by
 is that the feedback loop is so much slower than working locally.
 As we go along, we&#8217;ll look for ways to optimise for that, where we can.</p>
 </div>
+<div class="paragraph">
+<p>While debugging, we&#8217;ll also touch on the theme of <em>reproducibility</em>,
+the idea that we want to be able to reproduce behaviours of our CI environment locally,
+in the same way we try and make our production and dev environments as similar
+as possible.</p>
+</div>
 <div class="sect2">
 <h3 id="_choosing_a_ci_service">Choosing a CI service</h3>
 <div class="paragraph">
 <p>
-TODO chat re gha, hosted ci solutions, picked a relatable one.</p>
+CI as a concept has been around since the 90s at least,
+and traditionally would be done by configuring a server,
+perhaps under a desk in the corner of the office,
+with software on it that could pull down all the code from the main branch
+at the end of each day, and scripts to compile all the code and run all the tests,
+a process that became know as a "build".
+Then each morning developers would take a look at the results,
+and deal with any "broken builds".</p>
+</div>
+<div class="paragraph">
+<p>As the practice has spread, and feedback cycles have grown faster,
+CI software has developed (Jenkins was a popular choice in the 2010s),
+and CI has become a common "cloud" service,
+designed to integrate with code hosting providers like GitHub,
+or even provided directly by the same providers:
+GitHub has "GitHub Actions", and because of its salience,
+it&#8217;s probably the most popular choice for Open Source projects these days.
+In a corporate environment, you might come across other solutions
+like CircleCI, Travis, and GitLab.</p>
+</div>
+<div class="paragraph">
+<p>It is still absolutely possible to download and self-host your own CI server;
+in the 1e and 2e I demonstrated the use of Jenkins.
+But, the installation and subsequent admin/maintenance burden is not effort-free,
+so for this edition I wanted to pick a service
+that was as much like the kind of thing you&#8217;re likely to encounter in your day job,
+while trying not to endorse the largest commercial provider.
+There&#8217;s nothing wrong with GitHub Actions!
+They just don&#8217;t need any <em>more</em> help dominating the market.</p>
+</div>
+<div class="paragraph">
+<p>So I&#8217;ve decided to use GitLab in this book.
+They are absolutely a commercial service,
+but they retain an open-source version, and you can self-host it in theory.</p>
+</div>
+<div class="paragraph">
+<p>The syntax (it&#8217;s always YAML&#8230;&#8203;) and core concepts are common across all providers,
+so the things you learn here will be replicable in whichever service
+you encounter in future.</p>
+</div>
+<div class="paragraph">
+<p>Like most of the services out there, GitLab has a free tier,
+which will work fine for our purposes.</p>
 </div>
 </div>
 <div class="sect2">
@@ -140,10 +179,10 @@ $ <strong>git remote add origin git@gitlab.com:yourusername/superlists.git</stro
 # or, if you already have "origin" defined:
 $ <strong>git remote add gitlab git@gitlab.com:yourusername/superlists.git</strong>
 $ <strong>git remote -v</strong>
-gitlab	git@gitlab.com:hjwp/superlistz.git (fetch)
-gitlab	git@gitlab.com:hjwp/superlistz.git (push)
-origin	git@github.com:hjwp/book-example.git (fetch)
-origin	git@github.com:hjwp/book-example.git (push)</pre>
+gitlab    git@gitlab.com:hjwp/superlistz.git (fetch)
+gitlab    git@gitlab.com:hjwp/superlistz.git (push)
+origin    git@github.com:hjwp/book-example.git (fetch)
+origin    git@github.com:hjwp/book-example.git (push)</pre>
 </div>
 </div>
 <div class="paragraph">
@@ -183,13 +222,19 @@ branch <em>main</em> set up to track <em>gitlab/main</em>.</pre>
 <div class="sect2">
 <h3 id="_setting_up_a_first_cut_of_a_ci_pipeline">Setting up a First Cut of a CI Pipeline</h3>
 <div class="paragraph">
-<p>TODO brief expl. "pipeline" terminology.</p>
+<p>The "Pipeline" terminology was popularised by Dave Farley and Jez Humble
+in their book <a href="https://amzn.to/4k894A3">Continuous Delivery</a>.
+The name alludes to the fact that a CI build typically has a series,
+where the process flows from one to another.</p>
 </div>
 <div class="paragraph">
 <p>Got to <strong>Build</strong> &#8594; <strong>Pipelines</strong>, you&#8217;ll see a list of example templates.
-That&#8217;s usually a pretty good place to start
-when getting to know a new configuration language.
-I chose the <strong>Python</strong> one and made a few customisations:</p>
+When getting to know a new configuration language,
+it&#8217;s nice to be able to start with something that works,
+rather than a blank slate.</p>
+</div>
+<div class="paragraph">
+<p>I chose the <strong>Python</strong> example template and made a few customisations:</p>
 </div>
 <div class="exampleblock sourcecode">
 <div class="title">.gitlab-ci.yml (ch25l001)</div>
@@ -268,10 +313,13 @@ It&#8217;s a good idea in CI pipelines to try and run the quickest tests first,
 </table>
 </div>
 <div class="paragraph">
-<p>If you used the web UI to edit your pipeline YAML,
-you can go check for results straight away.
-If you edited it locally (it&#8217;s just a file in the repo like any other),
-then you&#8217;ll need to <code>git push</code> up to gitlab,
+<p>You can use the GitLab web UI to edit your pipeline YAML,
+and then when you save it you can go check for results straight away.</p>
+</div>
+<div class="paragraph">
+<p>But it is also just a file in your repo!
+So you can edit it locally.
+You&#8217;ll need to commit it and then <code>git push</code> up to GitLab,
 and then go check the <strong>Jobs</strong> section in the <strong>Build</strong> UI.</p>
 </div>
 <div class="listingblock skipme">
@@ -284,7 +332,16 @@ and then go check the <strong>Jobs</strong> section in the <strong>Build</strong
 <h3 id="_first_build_and_first_failure">First Build!  (and First Failure)</h3>
 <div class="paragraph">
 <p>However you click through the UI and you should be able to find your way
-to see the output of the build Job.</p>
+to see the output of the build Job, as in <a href="#gitlab_first_build">First Build on GitLab</a>:</p>
+</div>
+<div id="gitlab_first_build" class="imageblock">
+<div class="content">
+<img src="images/gitlab_first_build.png" alt="GitLab UI showing the output of the first build">
+</div>
+<div class="title">Figure 3. First Build on GitLab</div>
+</div>
+<div class="paragraph">
+<p>Here&#8217;s a selection of what I saw in the output console:</p>
 </div>
 <div class="listingblock skipme small-code">
 <div class="content">
@@ -427,21 +484,273 @@ FAILED (errors=8)</pre>
 <p>We can see Firefox installing OK, but we still get an error.
 This time it&#8217;s exit code 1.</p>
 </div>
-<div class="ulist">
-<ul>
-<li>
-<p>TODO: write up a debugging session here.</p>
-</li>
-</ul>
+<div class="sect3">
+<h4 id="_trying_to_reproduce_a_ci_error_locally">Trying to reproduce a CI error locally</h4>
+<div class="paragraph">
+<p>The cycle of "change <em>.gitlab-ci.yml</em>, push, wait for a build, check results"
+is painfully slow.</p>
 </div>
 <div class="paragraph">
-<p>The answer is that Firefox is crashing because it can&#8217;t find a display.
-Servers are "headless", meaning they don&#8217;t have a screen.
-Thankfully Firefox has a "headless' mode,
-which we can enable by setting an environment variable.</p>
+<p>Let&#8217;s see if we can reproduce this error locally.</p>
+</div>
+<div class="paragraph">
+<p>To reproduce the CI environment locally, I put together a quick Dockerfile,
+by copy-pasting the steps in the <code>script</code> section, and prefixing them with <code>RUN</code> commands:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">.gitlab-ci.yml (ch25l003)</div>
+<div class="title">infra/Dockerfile.ci (ch25l003)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="dockerfile"><span></span><span class="tok-k">FROM</span><span class="tok-w"> </span><span class="tok-s">python:slim</span>
+
+<span class="tok-k">RUN</span><span class="tok-w"> </span>pip<span class="tok-w"> </span>install<span class="tok-w"> </span>virtualenv
+<span class="tok-k">RUN</span><span class="tok-w"> </span>virtualenv<span class="tok-w"> </span>.venv
+
+<span class="tok-c"># this won't work</span>
+<span class="tok-c"># RUN source .venv/bin/activate</span>
+<span class="tok-c"># use full path to venv instead.</span>
+
+<span class="tok-k">COPY</span><span class="tok-w"> </span>requirements.txt<span class="tok-w"> </span>requirements.txt
+<span class="tok-k">RUN</span><span class="tok-w"> </span>.venv/bin/pip<span class="tok-w"> </span>install<span class="tok-w"> </span>-r<span class="tok-w"> </span>requirements.txt
+<span class="tok-k">RUN</span><span class="tok-w"> </span>apt<span class="tok-w"> </span>update<span class="tok-w"> </span>-y<span class="tok-w"> </span><span class="tok-o">&amp;&amp;</span><span class="tok-w"> </span>apt<span class="tok-w"> </span>install<span class="tok-w"> </span>-y<span class="tok-w"> </span>firefox-esr
+<span class="tok-k">RUN</span><span class="tok-w"> </span>.venv/bin/pip<span class="tok-w"> </span>install<span class="tok-w"> </span>selenium
+
+<span class="tok-k">COPY</span><span class="tok-w"> </span>infra/debug-ci.py<span class="tok-w"> </span>debug-ci.py
+<span class="tok-k">CMD</span><span class="tok-w"> </span>.venv/bin/python<span class="tok-w"> </span>debug-ci.py</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>And let&#8217;s add a little debug script at <em>debug-ci.py</em>:</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">infra/debug-ci.py (ch25l004)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-kn">from</span> <span class="tok-nn">selenium</span> <span class="tok-kn">import</span> <span class="tok-n">webdriver</span>
+
+<span class="tok-c1"># just try to open a selenium session</span>
+<span class="tok-n">webdriver</span><span class="tok-o">.</span><span class="tok-n">Firefox</span><span class="tok-p">()</span><span class="tok-o">.</span><span class="tok-n">quit</span><span class="tok-p">()</span></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>We build and run it like this:</p>
+</div>
+<div class="listingblock skipme">
+<div class="content">
+<pre>$ <strong>docker build -f infra/Dockerfile.ci -t debug-ci . &amp;&amp; docker run -it debug-ci</strong>
+[...]
+ =&gt; [internal] load build definition from infra/Dockerfile.ci         0.0s
+ =&gt; =&gt; transferring dockerfile: [...]
+ =&gt; [internal] load metadata for docker.io/library/python:slim [...]
+ =&gt; [1/8] FROM docker.io/library/python:slim@sha256:[...]
+ =&gt; CACHED [2/8] RUN pip install virtualenv                           0.0s
+ =&gt; CACHED [3/8] RUN virtualenv .venv                                 0.0s
+ =&gt; CACHED [4/8] COPY requirements.txt requirements.txt               0.0s
+ =&gt; CACHED [5/8] RUN .venv/bin/pip install -r requirements.txt        0.0s
+ =&gt; CACHED [6/8] RUN apt update -y &amp;&amp; apt install -y firefox-esr      0.0s
+ =&gt; CACHED [7/8] RUN .venv/bin/pip install selenium                   0.0s
+ =&gt; [8/8] COPY infra/debug-ci.py debug-ci.py                          0.0s
+ =&gt; exporting to image                                                0.0s
+ =&gt; =&gt; exporting layers                                               0.0s
+ =&gt; =&gt; writing image sha256:[...]
+ =&gt; =&gt; naming to docker.io/library/debug-ci                           0.0s
+Traceback (most recent call last):
+  File
+  "//.venv/lib/python3.13/site-packages/selenium/webdriver/common/driver_finder.py",
+  line 67, in _binary_paths
+    output = SeleniumManager().binary_paths(self._to_args())
+[...]
+selenium.common.exceptions.WebDriverException: Message: Unsupported platform/architecture combination: linux/aarch64
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "//debug-ci.py", line 4, in &lt;module&gt;
+    webdriver.Firefox().quit()
+    ~~~~~~~~~~~~~~~~~^^
+[...]
+selenium.common.exceptions.NoSuchDriverException: Message: Unable to obtain
+driver for firefox; For documentation on this error, please visit:
+<a href="https://www.selenium.dev/documentation/webdriver/troubleshooting/errors/driver_location" class="bare">https://www.selenium.dev/documentation/webdriver/troubleshooting/errors/driver_location</a></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>You might not see this&#8212;&#8203;that "Unsupported platform/architecture combination" error is spurious,
+it&#8217;s because I was on a Mac.  Let&#8217;s try again with:</p>
+</div>
+<div class="listingblock ignore-errors">
+<div class="content">
+<pre>$ <strong>docker build -f infra/Dockerfile.ci -t debug-ci --platform=linux/amd64 . &amp;&amp; \
+  docker run --platform=linux/amd64 -it debug-ci</strong>
+[...]
+Traceback (most recent call last):
+  File "//debug-ci.py", line 4, in &lt;module&gt;
+    webdriver.Firefox().quit()
+    ^^^^^^^^^^^^^^^^^^^
+[...]
+selenium.common.exceptions.WebDriverException: Message: Process unexpectedly
+closed with status 1</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>OK, that&#8217;s a repro of our issue.  But no further clues yet!</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_enabling_debug_logs_for_selenium_firefox_webdriver">Enabling Debug Logs for Selenium / Firefox / Webdriver</h4>
+<div class="paragraph">
+<p>Getting debug information out of Selenium can be a bit fiddly.
+I tried two avenues, setting <code>options</code> and setting the <code>service</code>,
+the former of which doesn&#8217;t really work as far as I can tell,
+but the latter does.  There is some limited info in the
+<a href="https://www.selenium.dev/documentation/webdriver/browsers/firefox/#log-output">Selenium docs</a>.</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">infra/debug-ci.py (ch25l005)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-kn">import</span> <span class="tok-nn">subprocess</span>
+
+<span class="tok-kn">from</span> <span class="tok-nn">selenium</span> <span class="tok-kn">import</span> <span class="tok-n">webdriver</span>
+
+<span class="tok-n">options</span> <span class="tok-o">=</span> <span class="tok-n">webdriver</span><span class="tok-o">.</span><span class="tok-n">FirefoxOptions</span><span class="tok-p">()</span>  <i class="conum" data-value="1"></i><b>(1)</b>
+<span class="tok-n">options</span><span class="tok-o">.</span><span class="tok-n">log</span><span class="tok-o">.</span><span class="tok-n">level</span> <span class="tok-o">=</span> <span class="tok-s2">"trace"</span>
+
+<span class="tok-n">service</span> <span class="tok-o">=</span> <span class="tok-n">webdriver</span><span class="tok-o">.</span><span class="tok-n">FirefoxService</span><span class="tok-p">(</span>  <i class="conum" data-value="2"></i><b>(2)</b>
+    <span class="tok-n">log_output</span><span class="tok-o">=</span><span class="tok-n">subprocess</span><span class="tok-o">.</span><span class="tok-n">STDOUT</span><span class="tok-p">,</span> <span class="tok-n">service_args</span><span class="tok-o">=</span><span class="tok-p">[</span><span class="tok-s2">"--log"</span><span class="tok-p">,</span> <span class="tok-s2">"trace"</span><span class="tok-p">]</span>
+<span class="tok-p">)</span>
+
+<span class="tok-c1"># just try to open a selenium session</span>
+<span class="tok-n">webdriver</span><span class="tok-o">.</span><span class="tok-n">Firefox</span><span class="tok-p">(</span><span class="tok-n">options</span><span class="tok-o">=</span><span class="tok-n">options</span><span class="tok-p">,</span> <span class="tok-n">service</span><span class="tok-o">=</span><span class="tok-n">service</span><span class="tok-p">)</span><span class="tok-o">.</span><span class="tok-n">quit</span><span class="tok-p">()</span></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>This is how I attempted to increase the log level using <code>options</code>.
+I had to reverse-engineer it from the source code,
+and it doesn&#8217;t seem to work anyway,
+but I thought I"d leave it here for future reference</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>This is the <code>FirefoxService</code> config class,
+which <em>does</em> seem to let you print some debug info.
+I&#8217;m configuring it to print to standard-out.</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>Sure enough we can see some output now!</p>
+</div>
+<div class="listingblock ignore-errors small-code">
+<div class="content">
+<pre>$ <strong>docker build -f infra/Dockerfile.ci -t debug-ci --platform=linux/amd64 . &amp;&amp; \
+  docker run --platform=linux/amd64 -it debug-ci</strong>
+[...]
+1234567890111   geckodriver     INFO    Listening on 127.0.0.1:XXXX
+1234567890112   webdriver::server       DEBUG   -&gt; POST /session
+{"capabilities": {"firstMatch": [{}], "alwaysMatch": {"browserName": "firefox",
+"acceptInsecureCerts": true, ... , "moz:firefoxOptions": {"binary":
+"/usr/bin/firefox", "prefs": {"remote.active-protocols": 3}, "log": {"level":
+"trace"}}}}}
+1234567890111   geckodriver::capabilities       DEBUG   Trying to read firefox
+version from ini files
+1234567890111   geckodriver::capabilities       DEBUG   Trying to read firefox
+version from binary
+1234567890111   geckodriver::capabilities       DEBUG   Found version 128.7esr
+1740029792102   mozrunner::runner       INFO    Running command:
+MOZ_CRASHREPORTER="1" MOZ_CRASHREPORTER_NO_REPORT="1"
+MOZ_CRASHREPORTER_SHUTDOWN="1" MOZ_NO_REMOTE="1" "/usr ... te"
+"--remote-debugging-port" [...]
+"-no-remote" "-profile" "/tmp/rust_mozprofile[...]
+1234567890111   geckodriver::marionette DEBUG   Waiting 60s to connect to
+browser on 127.0.0.1
+1234567890111   geckodriver::browser    TRACE   Failed to open
+/tmp/rust_mozprofile[...]
+1234567890111   geckodriver::marionette TRACE   Retrying in 100ms
+Error: no DISPLAY environment variable specified
+1234567890111   geckodriver::browser    DEBUG   Browser process stopped: exit
+status: 1
+1234567890112   webdriver::server       DEBUG   &lt;- 500 Internal Server Error
+{"value":{"error":"unknown error","message":"Process unexpectedly closed with
+status 1","stacktrace":""}}
+Traceback (most recent call last):
+  File "//debug-ci.py", line 13, in &lt;module&gt;
+    webdriver.Firefox(options=options, service=service).quit()
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[...]
+selenium.common.exceptions.WebDriverException: Message: Process unexpectedly
+closed with status 1</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Well, it wasn&#8217;t immediately obvious what&#8217;s going on there,
+but I did eventually get a clue from the line that says <code>no DISPLAY environment variable specified</code></p>
+</div>
+<div class="paragraph">
+<p>Out of curiosity, I thought I&#8217;d try running <code>firefox</code> directly:</p>
+</div>
+<div class="listingblock ignore-errors">
+<div class="content">
+<pre>$ <strong>docker build -f infra/Dockerfile.ci -t debug-ci --platform=linux/amd64 . &amp;&amp; \
+  docker run --platform=linux/amd64 -it debug-ci firefox</strong>
+[...]
+Error: no DISPLAY environment variable specified</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Sure enough, the same error.</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_enabling_headless_mode_for_firefox">Enabling Headless Mode for Firefox</h4>
+<div class="paragraph">
+<p>And if you search around for this error,
+you&#8217;ll eventually find enough pointers to the answer:
+Firefox is crashing because it can&#8217;t find a display.
+Servers are "headless", meaning they don&#8217;t have a screen.
+Thankfully Firefox has a headless mode,
+which we can enable by setting an environment variable,
+<code>MOZ_HEADLESS</code>.</p>
+</div>
+<div class="paragraph">
+<p>Let&#8217;s confirm that locally. We&#8217;ll use the <code>-e</code> flag for <code>docker run</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>docker build -f infra/Dockerfile.ci -t debug-ci --platform=linux/amd64 . &amp;&amp; \
+  docker run -e MOZ_HEADLESS=1 --platform=linux/amd64 -it debug-ci</strong>
+1234567890111   geckodriver     INFO    Listening on 127.0.0.1:43137
+[...]
+*** You are running in headless mode.
+[...]
+1234567890112   webdriver::server       DEBUG   Teardown [...]
+1740030525996   Marionette      DEBUG   Closed connection 0
+1234567890111   geckodriver::browser    DEBUG   Browser process stopped: exit
+status: 0
+1234567890112   webdriver::server       DEBUG   &lt;- 200 OK [...]</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>It takes quite a long time to run,
+and there&#8217;s lots of debug out, but&#8230;&#8203; it looks OK!</p>
+</div>
+<div class="paragraph">
+<p>Let&#8217;s set that environment variable in our CI script:</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">.gitlab-ci.yml (ch25l006)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
@@ -454,11 +763,30 @@ which we can enable by setting an environment variable.</p>
 </div>
 </div>
 </div>
+<div class="admonitionblock tip">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-tip" title="Tip"></i>
+</td>
+<td class="content">
+Using a local Docker image to repro the CI environment
+  is a hint that it might be worth investing time in running CI
+  in a custom Docker image that you fully control;
+  this is an another way of improving <em>reproducibility</em>.
+  We won&#8217;t have time to go into detail in this book though.
+</td>
+</tr>
+</table>
+</div>
+</div>
 </div>
 <div class="sect2">
 <h3 id="_a_common_bugbear_flaky_tests">A Common Bugbear: Flaky tests</h3>
 <div class="paragraph">
-<p>The next error I saw was unexpected:</p>
+<p>That worked!  or at least it almost did.
+All but one of the FTs passed for me,
+but there was one unexpected error:</p>
 </div>
 <div class="listingblock skipme small-code">
 <div class="content">
@@ -484,7 +812,7 @@ peacock feathers']
 </div>
 </div>
 <div class="paragraph">
-<p>You might not see this error,
+<p>Now you might not see this error,
 but it&#8217;s common for the switch to CI to flush out some "flaky" tests,
 things that will fail intermittently.
 In CI a common cause is the "noisy neighbour" problem,
@@ -513,7 +841,7 @@ a private attribute called <code>._outcome</code>,
 but this will work:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">src/functional_tests/base.py (ch25l006)</div>
+<div class="title">src/functional_tests/base.py (ch25l007)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
@@ -551,7 +879,7 @@ and the attribute <code>browser.page_source</code>,
 for our image and HTML dumps, respectively:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">src/functional_tests/base.py (ch25l007)</div>
+<div class="title">src/functional_tests/base.py (ch25l008)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
@@ -573,7 +901,7 @@ for our image and HTML dumps, respectively:</p>
 which includes the name of the test and its class, as well as a timestamp:</p>
 </div>
 <div class="exampleblock sourcecode small-code">
-<div class="title">src/functional_tests/base.py (ch25l008)</div>
+<div class="title">src/functional_tests/base.py (ch25l009)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
@@ -590,7 +918,7 @@ which includes the name of the test and its class, as well as a timestamp:</p>
 <p>You can test this first locally by deliberately breaking one of the tests,
 with a <code>self.fail()</code> for example, and you&#8217;ll see something like this:</p>
 </div>
-<div class="listingblock dofirst-ch25l009">
+<div class="listingblock dofirst-ch25l010">
 <div class="content">
 <pre>$ <strong>./src/manage.py test functional_tests.test_my_lists</strong>
 [...]
@@ -653,7 +981,7 @@ That was annoyingly hard to figure out!</td>
 If you commit the code and then push it back to Gitlab,
 we should be able to see a new build job.</p>
 </div>
-<div class="listingblock dofirst-ch25l010">
+<div class="listingblock dofirst-ch25l010-1">
 <div class="content">
 <pre>$ <strong>echo "src/functional_tests/screendumps" &gt;&gt; .gitignore</strong>
 $ <strong>git commit -am "add screenshot on failure to FT runner"</strong>
@@ -684,7 +1012,7 @@ as in <a href="#gitlab_ui_for_browse_artifacts">Artifacts Appear on the Right of
 <div class="content">
 <img src="images/gitlab_ui_for_browse_artifacts.png" alt="GitLab UI tab showing the option to browse artifacts">
 </div>
-<div class="title">Figure 3. Artifacts Appear on the Right of the Build Job</div>
+<div class="title">Figure 4. Artifacts Appear on the Right of the Build Job</div>
 </div>
 <div class="paragraph">
 <p>And if you navigate through, you&#8217;ll see something like <a href="#gitlab_ui_show_screenshot">Our Screenshot in the GitLab UI, Looking Unremarkable</a>:</p>
@@ -693,7 +1021,7 @@ as in <a href="#gitlab_ui_for_browse_artifacts">Artifacts Appear on the Right of
 <div class="content">
 <img src="images/gitlab_ui_show_screenshot.png" alt="GitLab UI showing a normal-looking screenshot of the site">
 </div>
-<div class="title">Figure 4. Our Screenshot in the GitLab UI, Looking Unremarkable</div>
+<div class="title">Figure 5. Our Screenshot in the GitLab UI, Looking Unremarkable</div>
 </div>
 </div>
 <div class="sect2">
@@ -730,7 +1058,7 @@ Well, when in doubt, bump the timeout, as the old adage goes:</p>
 <div class="content">
 <img src="images/gitlab_pipeline_success.png" alt="GitLab UI showing a successful pipeline run">
 </div>
-<div class="title">Figure 5. A Successful GitLab Pipeline</div>
+<div class="title">Figure 6. A Successful GitLab Pipeline</div>
 </div>
 </div>
 <div class="sect2">
@@ -739,15 +1067,27 @@ Well, when in doubt, bump the timeout, as the old adage goes:</p>
 <p>
 
 There&#8217;s a set of tests we almost forgot&#8212;&#8203;the JavaScript tests.
-Currently our "test runner" is an actual web browser.q
+Currently our "test runner" is an actual web browser.
 To get them running in CI, we need a command-line test runner.</p>
 </div>
-<div class="ulist">
-<ul>
-<li>
-<p>TODO: npm-browser-runner</p>
-</li>
-</ul>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+Our JavaScript tests currently test the interaction
+    between our code and the bootstrap framework/CSS,
+    so we still need a real browser to be able to make our
+    visibility checks work.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>Thankfully, the Jasmine docs point us straight towards the kind of tool we need:
+<a href="https://github.com/jasmine/jasmine-browser-runner">Jasmine Browser Runner</a>.</p>
 </div>
 <div class="sect3">
 <h4 id="_installing_node">Installing node</h4>
@@ -758,26 +1098,359 @@ That means we&#8217;re going to end up with node.js on our computers.
 It&#8217;s just the way it has to be.</p>
 </div>
 <div class="paragraph">
-<p>Follow the instructions on the <a href="http://nodejs.org/">node.js homepage</a>.
-There are installers for Windows and Mac,
-and repositories for popular Linux distros.</p>
+<p>Follow the instructions on the <a href="http://nodejs.org/">node.js homepage</a>,
+and follow the instructions there.
+It should guide you through installing the "node version manager" (NVM),
+and then to getting the latest version of node.</p>
 </div>
-<div class="ulist">
-<ul>
-<li>
-<p>TODO: mention nvm</p>
-</li>
-</ul>
+<div class="listingblock skipme">
+<div class="content">
+<pre>$ <strong>nvm install 22</strong>  # or whichver the latest version is
+Installing Node v22.14.0 (arm64)
+[...]
+$ <strong>node -v</strong>
+v22.14.0</pre>
+</div>
 </div>
 </div>
 <div class="sect3">
-<h4 id="_adding_a_build_steps_for_js">Adding A Build Steps for Js</h4>
-<div class="ulist">
-<ul>
-<li>
-<p>TODO</p>
-</li>
-</ul>
+<h4 id="_installing_and_configuring_the_jasmine_browser_runner">Installing and Configuring the Jasmine Browser Runner</h4>
+<div class="paragraph">
+<p>The docs suggest we install it like this,
+and then run the <code>init</code> command to generate a default config file:</p>
+</div>
+<div class="listingblock skipme">
+<div class="content">
+<pre>$ <strong>cd src/lists/static</strong>
+
+$ <strong>npm install --save-dev jasmine-browser-runner jasmine-core</strong>
+[...]
+added 151 packages in 4s
+
+$ <strong>cat package.json</strong>  # this is the equivalent of requirement.txt
+{
+  "devDependencies": {
+    "jasmine-browser-runner": "^3.0.0",
+    "jasmine-core": "^5.6.0"
+  }
+}
+
+$ <strong>ls node_modules/</strong>
+# will show several dozen directories
+
+$ <strong>npx jasmine-browser-runner init</strong>
+Wrote configuration to spec/support/jasmine-browser.mjs.</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Well we now have about a million files in <em>node_modules/</em>
+(which is JavaScript&#8217;s verions of a virtualenv essentially),
+and we also have a new config file in <em>spec/support/jasmine-browser.mjs</em>.</p>
+</div>
+<div class="paragraph">
+<p>That&#8217;s not the ideal place, because we&#8217;ve said our tests live in a folder called <em>tests</em>,
+so let&#8217;s move the config file in there.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>mv spec/support/jasmine-browser.mjs tests/jasmine-browser-runner.config.mjs</strong>
+$ <strong>rm -rf spec</strong></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Then let&#8217;s edit it slightly, to specify a few things correctly:</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">src/lists/static/tests/jasmine-browser-runner.config.mjs (ch25l013)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="js"><span></span><span class="tok-k">export</span><span class="tok-w"> </span><span class="tok-k">default</span><span class="tok-w"> </span><span class="tok-p">{</span>
+<span class="tok-w">  </span><span class="tok-nx">srcDir</span><span class="tok-o">:</span><span class="tok-w"> </span><span class="tok-s2">"."</span><span class="tok-p">,</span><span class="tok-w">  </span><i class="conum" data-value="1"></i><b>(1)</b>
+<span class="tok-w">  </span><span class="tok-nx">srcFiles</span><span class="tok-o">:</span><span class="tok-w"> </span><span class="tok-p">[</span>
+<span class="tok-w">    </span><span class="tok-s2">"*.js"</span>
+<span class="tok-w">  </span><span class="tok-p">],</span>
+<span class="tok-w">  </span><span class="tok-nx">specDir</span><span class="tok-o">:</span><span class="tok-w"> </span><span class="tok-s2">"tests"</span><span class="tok-p">,</span><span class="tok-w">  </span><i class="conum" data-value="2"></i><b>(2)</b>
+<span class="tok-w">  </span><span class="tok-nx">specFiles</span><span class="tok-o">:</span><span class="tok-w"> </span><span class="tok-p">[</span>
+<span class="tok-w">    </span><span class="tok-s2">"**/*[sS]pec.js"</span>
+<span class="tok-w">  </span><span class="tok-p">],</span>
+<span class="tok-w">  </span><span class="tok-nx">helpers</span><span class="tok-o">:</span><span class="tok-w"> </span><span class="tok-p">[</span>
+<span class="tok-w">    </span><span class="tok-s2">"helpers/**/*.js"</span>
+<span class="tok-w">  </span><span class="tok-p">],</span>
+<span class="tok-w">  </span><span class="tok-nx">env</span><span class="tok-o">:</span><span class="tok-w"> </span><span class="tok-p">{</span>
+<span class="tok-w">    </span><span class="tok-nx">stopSpecOnExpectationFailure</span><span class="tok-o">:</span><span class="tok-w"> </span><span class="tok-kc">false</span><span class="tok-p">,</span>
+<span class="tok-w">    </span><span class="tok-nx">stopOnSpecFailure</span><span class="tok-o">:</span><span class="tok-w"> </span><span class="tok-kc">false</span><span class="tok-p">,</span>
+<span class="tok-w">    </span><span class="tok-nx">random</span><span class="tok-o">:</span><span class="tok-w"> </span><span class="tok-kc">true</span><span class="tok-p">,</span>
+<span class="tok-w">    </span><span class="tok-nx">forbidDuplicateNames</span><span class="tok-o">:</span><span class="tok-w"> </span><span class="tok-kc">true</span>
+<span class="tok-w">  </span><span class="tok-p">},</span>
+<span class="tok-w">  </span><span class="tok-nx">listenAddress</span><span class="tok-o">:</span><span class="tok-w"> </span><span class="tok-s2">"localhost"</span><span class="tok-p">,</span>
+<span class="tok-w">  </span><span class="tok-nx">hostname</span><span class="tok-o">:</span><span class="tok-w"> </span><span class="tok-s2">"localhost"</span><span class="tok-p">,</span>
+<span class="tok-w">  </span><span class="tok-nx">browser</span><span class="tok-o">:</span><span class="tok-w"> </span><span class="tok-p">{</span>
+<span class="tok-w">    </span><span class="tok-nx">name</span><span class="tok-o">:</span><span class="tok-w"> </span><span class="tok-s2">"headlessFirefox"</span><span class="tok-w">  </span><i class="conum" data-value="3"></i><b>(3)</b>
+<span class="tok-w">  </span><span class="tok-p">}</span>
+<span class="tok-p">};</span></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>our source files are in the current directory,
+<em>src/lists/static</em>, ie <em>lists.js</em></td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>and our spec files are in <em>tests/</em></td>
+</tr>
+<tr>
+<td><i class="conum" data-value="3"></i><b>3</b></td>
+<td>And here we say we want to use the "headless"
+version of Firefox.
+(we could have done this by setting <code>MOZ_HEADLESS</code>
+at the command line again, but this saves us from having to remember).</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>Let&#8217;s try running it now. We use the <code>--config</code> option to path it
+the now non-standard path to the config file:</p>
+</div>
+<div class="listingblock skipme">
+<div class="content">
+<pre>$ <strong>npx jasmine-browser-runner runSpecs --config=tests/jasmine-browser-runner.config.mjs</strong>
+Jasmine server is running here: http://localhost:62811
+Jasmine tests are here:         ...goat-book/src/lists/static/tests
+Source files are here:          ...goat-book/src/lists/static
+Running tests in the browser...
+Randomized with seed 17843
+Started
+.F.
+
+Failures:
+1) Superlists tests error message should be hidden on input
+  Message:
+    Expected true to be false.
+  Stack:
+    &lt;Jasmine&gt;
+    @http://localhost:62811/<em>spec</em>/Spec.js:46:40
+    &lt;Jasmine&gt;
+
+3 specs, 1 failure
+Finished in 0.014 seconds
+Randomized with seed 17843 (jasmine-browser-runner runSpecs --seed=17843)</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Could be worse!   1 failure out of 3 specs.</p>
+</div>
+<div class="paragraph">
+<p>Unfortunately, it&#8217;s the most important test:</p>
+</div>
+<div class="exampleblock sourcecode currentcontents">
+<div class="title">src/lists/static/tests/Spec.js</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="python"><span></span>  <span class="tok-n">it</span><span class="tok-p">(</span><span class="tok-s2">"error message should be hidden on input"</span><span class="tok-p">,</span> <span class="tok-p">()</span> <span class="tok-o">=&gt;</span> <span class="tok-p">{</span>
+    <span class="tok-n">initialize</span><span class="tok-p">(</span><span class="tok-n">inputSelector</span><span class="tok-p">);</span>
+    <span class="tok-n">textInput</span><span class="tok-o">.</span><span class="tok-n">dispatchEvent</span><span class="tok-p">(</span><span class="tok-n">new</span> <span class="tok-n">InputEvent</span><span class="tok-p">(</span><span class="tok-s2">"input"</span><span class="tok-p">));</span>
+
+    <span class="tok-n">expect</span><span class="tok-p">(</span><span class="tok-n">errorMsg</span><span class="tok-o">.</span><span class="tok-n">checkVisibility</span><span class="tok-p">())</span><span class="tok-o">.</span><span class="tok-n">toBe</span><span class="tok-p">(</span><span class="tok-n">false</span><span class="tok-p">);</span>
+  <span class="tok-p">});</span></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>Ah yes, if you remember I said, the whole reason we need to use a browser-based test runner,
+is because our visibility checks depend on the bootstrap CSS framework?</p>
+</div>
+<div class="paragraph">
+<p>In the HTML spec runner which we&#8217;d configured so far,
+we load Bootstrap using a <code>&lt;link&gt;</code> tag:</p>
+</div>
+<div class="exampleblock sourcecode currentcontents">
+<div class="title">src/lists/static/tests/SpecRunner.html</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="python"><span></span>  <span class="tok-o">&lt;</span><span class="tok-err">!</span><span class="tok-o">--</span> <span class="tok-n">Bootstrap</span> <span class="tok-n">CSS</span> <span class="tok-o">--&gt;</span>
+  <span class="tok-o">&lt;</span><span class="tok-n">link</span> <span class="tok-n">href</span><span class="tok-o">=</span><span class="tok-s2">"../bootstrap/css/bootstrap.min.css"</span> <span class="tok-n">rel</span><span class="tok-o">=</span><span class="tok-s2">"stylesheet"</span><span class="tok-o">&gt;</span></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>And here&#8217;s how we load it for <code>jasmine-browser-runner</code>:</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">src/lists/static/tests/jasmine-browser-runner.config.mjs (ch25l014)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="js"><span></span><span class="tok-k">export</span><span class="tok-w"> </span><span class="tok-k">default</span><span class="tok-w"> </span><span class="tok-p">{</span>
+<span class="tok-w">  </span><span class="tok-nx">srcDir</span><span class="tok-o">:</span><span class="tok-w"> </span><span class="tok-s2">"."</span><span class="tok-p">,</span>
+<span class="tok-w">  </span><span class="tok-nx">srcFiles</span><span class="tok-o">:</span><span class="tok-w"> </span><span class="tok-p">[</span>
+<span class="tok-w">    </span><span class="tok-s2">"*.js"</span>
+<span class="tok-w">  </span><span class="tok-p">],</span>
+<span class="tok-w">  </span><span class="tok-nx">specDir</span><span class="tok-o">:</span><span class="tok-w"> </span><span class="tok-s2">"tests"</span><span class="tok-p">,</span>
+<span class="tok-w">  </span><span class="tok-nx">specFiles</span><span class="tok-o">:</span><span class="tok-w"> </span><span class="tok-p">[</span>
+<span class="tok-w">    </span><span class="tok-s2">"**/*[sS]pec.js"</span>
+<span class="tok-w">  </span><span class="tok-p">],</span>
+<span class="tok-w">  </span><span class="tok-nx">cssFiles</span><span class="tok-o">:</span><span class="tok-w"> </span><span class="tok-p">[</span><span class="tok-w">  </span><i class="conum" data-value="1"></i><b>(1)</b>
+<span class="tok-w">    </span><span class="tok-s2">"bootstrap/css/bootstrap.min.css"</span><span class="tok-w">  </span><i class="conum" data-value="1"></i><b>(1)</b>
+<span class="tok-w">  </span><span class="tok-p">],</span>
+<span class="tok-w">  </span><span class="tok-nx">helpers</span><span class="tok-o">:</span><span class="tok-w"> </span><span class="tok-p">[</span>
+<span class="tok-w">    </span><span class="tok-s2">"helpers/**/*.js"</span>
+<span class="tok-w">  </span><span class="tok-p">],</span></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>The <code>cssFiles</code> key is how you tell the runner to load, er, some CSS.
+I found that out in the <a href="https://jasmine.github.io/api/browser-runner/edge/Configuration.html">docs</a></td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>Let&#8217;s give that a go&#8230;&#8203;</p>
+</div>
+<div class="listingblock skipme">
+<div class="content">
+<pre>$ <strong>npx jasmine-browser-runner runSpecs --config=tests/jasmine-browser-runner.config.mjs</strong>
+Jasmine server is running here: http://localhost:62901
+Jasmine tests are here:         /Users/harry.percival/workspace/Book-TDD-Web-Dev-Python/source/chapter_25_CI/superlists/src/lists/static/tests
+Source files are here:          /Users/harry.percival/workspace/Book-TDD-Web-Dev-Python/source/chapter_25_CI/superlists/src/lists/static
+Running tests in the browser...
+Randomized with seed 06504
+Started
+...
+
+
+3 specs, 0 failures
+Finished in 0.016 seconds
+Randomized with seed 06504 (jasmine-browser-runner runSpecs --seed=06504)</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Hooray!  That works locally, let&#8217;s get it into CI.</p>
+</div>
+<div class="listingblock skipme">
+<div class="content">
+<pre># add the package.json, which saves our node depenencies
+$ <strong>git add src/lists/static/package.json src/lists/static/package-lock.json</strong>
+# ignore the node_modules/ directory
+$ <strong>echo "node_modules/" &gt;&gt; .gitignore</strong>
+# and our config file
+$ <strong>git add src/lists/static/tests/jasmine-browser-runner.config.mjs</strong>
+$ <strong>git commit -m "config for node + jasmine-browser-runner for JS tests"</strong></pre>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_adding_a_build_step_for_js">Adding A Build Step for Js</h4>
+<div class="paragraph">
+<p>We now want two different build steps,
+so let&#8217;s rename <code>test</code> to <code>test-python</code> and move all its
+specific bits like <code>variables</code> and <code>before_script</code> inside it,
+and then create a separate step calleed <code>test-js</code>,
+with a similar structure:</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">.gitlab-ci.yml (ch25l018)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="yaml"><span></span><span class="tok-nt">test-python</span><span class="tok-p">:</span>
+<span class="tok-w">  </span><span class="tok-c1"># Use the same image as our Dockerfile</span>
+<span class="tok-w">  </span><span class="tok-nt">image</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">python:slim</span><span class="tok-w">  </span><i class="conum" data-value="1"></i><b>(1)</b>
+
+<span class="tok-w">  </span><span class="tok-nt">variables</span><span class="tok-p">:</span><span class="tok-w">  </span><i class="conum" data-value="1"></i><b>(1)</b>
+<span class="tok-w">    </span><span class="tok-c1"># Put pip-cache in home folder so we can use gitlab cache</span>
+<span class="tok-w">    </span><span class="tok-nt">PIP_CACHE_DIR</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-s">"$CI_PROJECT_DIR/.cache/pip"</span>
+<span class="tok-w">    </span><span class="tok-c1"># Make Firefox run headless.</span>
+<span class="tok-w">    </span><span class="tok-nt">MOZ_HEADLESS</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-s">"1"</span>
+
+<span class="tok-w">  </span><span class="tok-nt">cache</span><span class="tok-p">:</span><span class="tok-w">  </span><i class="conum" data-value="1"></i><b>(1)</b>
+<span class="tok-w">    </span><span class="tok-nt">paths</span><span class="tok-p">:</span>
+<span class="tok-w">      </span><span class="tok-p tok-p-Indicator">-</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">.cache/pip</span>
+
+<span class="tok-w">  </span><span class="tok-c1"># "setUp" phase, before the main build</span>
+<span class="tok-w">  </span><span class="tok-nt">before_script</span><span class="tok-p">:</span><span class="tok-w">  </span><i class="conum" data-value="1"></i><b>(1)</b>
+<span class="tok-w">    </span><span class="tok-p tok-p-Indicator">-</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">python --version ; pip --version</span><span class="tok-w">  </span><span class="tok-c1"># For debugging</span>
+<span class="tok-w">    </span><span class="tok-p tok-p-Indicator">-</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">pip install virtualenv</span>
+<span class="tok-w">    </span><span class="tok-p tok-p-Indicator">-</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">virtualenv .venv</span>
+<span class="tok-w">    </span><span class="tok-p tok-p-Indicator">-</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">source .venv/bin/activate</span>
+
+<span class="tok-w">  </span><span class="tok-nt">script</span><span class="tok-p">:</span>
+<span class="tok-w">    </span><span class="tok-p tok-p-Indicator">-</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">pip install -r requirements.txt</span>
+<span class="tok-w">    </span><span class="tok-c1"># unit tests</span>
+<span class="tok-w">    </span><span class="tok-p tok-p-Indicator">-</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">python src/manage.py test lists accounts</span>
+<span class="tok-w">    </span><span class="tok-c1"># (if those pass) all tests, incl. functional.</span>
+<span class="tok-w">    </span><span class="tok-p tok-p-Indicator">-</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">apt update -y &amp;&amp; apt install -y firefox-esr</span>
+<span class="tok-w">    </span><span class="tok-p tok-p-Indicator">-</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">pip install selenium</span>
+<span class="tok-w">    </span><span class="tok-p tok-p-Indicator">-</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">cd src &amp;&amp; python manage.py test</span>
+
+<span class="tok-w">  </span><span class="tok-nt">artifacts</span><span class="tok-p">:</span>
+<span class="tok-w">    </span><span class="tok-nt">when</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">always</span>
+<span class="tok-w">    </span><span class="tok-nt">paths</span><span class="tok-p">:</span>
+<span class="tok-w">      </span><span class="tok-p tok-p-Indicator">-</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">src/functional_tests/screendumps/</span>
+
+<span class="tok-nt">test-js</span><span class="tok-p">:</span><span class="tok-w">  </span><i class="conum" data-value="2"></i><b>(2)</b>
+<span class="tok-w">  </span><span class="tok-nt">image</span><span class="tok-p">:</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">node:slim</span>
+<span class="tok-w">  </span><span class="tok-nt">script</span><span class="tok-p">:</span>
+<span class="tok-w">    </span><span class="tok-p tok-p-Indicator">-</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">apt update -y &amp;&amp; apt install -y firefox-esr</span><span class="tok-w">  </span><i class="conum" data-value="3"></i><b>(3)</b>
+<span class="tok-w">    </span><span class="tok-p tok-p-Indicator">-</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">cd src/lists/static</span>
+<span class="tok-w">    </span><span class="tok-p tok-p-Indicator">-</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">npm install</span><span class="tok-w">  </span><i class="conum" data-value="4"></i><b>(4)</b>
+<span class="tok-w">    </span><span class="tok-p tok-p-Indicator">-</span><span class="tok-w"> </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">npx jasmine-browser-runner runSpecs</span>
+<span class="tok-w">      </span><span class="tok-l tok-l-Scalar tok-l-Scalar-Plain">--config=tests/jasmine-browser-runner.config.mjs</span><span class="tok-w">  </span><i class="conum" data-value="5"></i><b>(5)</b></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td><code>image</code>, <code>variables</code>, <code>cache</code>, and <code>before_script</code> all move
+out of the top level and into the <code>test-python</code> step,
+since they&#8217;re all specific to this step only, now.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>Here&#8217;s our new step, <code>test-js</code>.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="3"></i><b>3</b></td>
+<td>We install Firefox into the node image,
+just like we do for the Python one.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="4"></i><b>4</b></td>
+<td>We don&#8217;t need to specify <em>what</em> to <code>npm install</code>,
+because that&#8217;s all in the <em>package-lock.json</em> file.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="5"></i><b>5</b></td>
+<td>And here&#8217;s our command to run the tests.</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>And slap me over the head with a wet fish if that doesn&#8217;t pass first go!
+See <a href="#gitlab_pipeline_js_success">Wow, There are Those JS Tests, Passing on the First Attempt!</a> for a successful pipeline run.</p>
+</div>
+<div id="gitlab_pipeline_js_success" class="imageblock">
+<div class="content">
+<img src="images/gitlab_pipeline_js_success.png" alt="GitLab UI showing a successful pipeline run with JS tests">
+</div>
+<div class="title">Figure 7. Wow, There are Those JS Tests, Passing on the First Attempt!</div>
 </div>
 <div class="paragraph">
 <p>
@@ -788,14 +1461,13 @@ and repositories for popular Linux distros.</p>
 <div class="sect2">
 <h3 id="_tests_now_pass">Tests now pass</h3>
 <div class="paragraph">
-<p>And there we are!  A complete CI build featuring all of our tests!</p>
+<p>And there we are!  A complete CI build featuring all of our tests! <a href="#gitlab_pipeline_overview_success.png">Here are Both Our Jobs in all their Green Glory</a>:</p>
 </div>
-<div class="ulist">
-<ul>
-<li>
-<p>TODO screenshot</p>
-</li>
-</ul>
+<div id="gitlab_pipeline_overview_success.png" class="imageblock">
+<div class="content">
+<img src="images/gitlab_pipeline_overview_success.png" alt="GitLab UI the pipeline overview, with both build jobs green">
+</div>
+<div class="title">Figure 8. Here are Both Our Jobs in all their Green Glory</div>
 </div>
 <div class="paragraph">
 <p>Nice to know that, no matter how lazy I get
@@ -803,25 +1475,34 @@ about running the full test suite on my own machine, the CI server will catch me
 Another one of the Testing Goat&#8217;s agents in cyberspace, watching over us&#8230;&#8203;</p>
 </div>
 <div class="paragraph">
-<p>But, to really finish this off, you should really take a look at <a href="/book/appendix_CD.html">[appendix_CD]</a>.</p>
-</div>
-<div class="paragraph">
 <p>I&#8217;ve moved it to an appendix tho, cos it&#8217;s so gitlab-heavy.</p>
 </div>
-</div>
-<div class="sect2">
-<h3 id="_alternatives_woodpecker_and_forgejo">Alternatives: Woodpecker and Forgejo</h3>
+<div class="sidebarblock">
+<div class="content">
+<div class="title">Alternatives: Woodpecker and Forgejo</div>
 <div class="paragraph">
-<p>you need your own server for these.
-i managed to get forgejo up and running in about 40 minutes.</p>
-</div>
-<div class="paragraph">
-<p>be careful with security!
-these things tend to assume you&#8217;re on a private network,
-or that your code is entirely public.</p>
+<p>I want to give a shout out to <a href="https://woodpecker-ci.org/">Woodpecker CI</a>
+and <a href="https://forgejo.com/">Forgejo</a>, two of the newer self-hosted CI options.
+And while I&#8217;m at it, to <a href="https://www.jenkins.io/">Jenkins</a>,
+which did a great job for the first and second editions,
+and still does for many people.</p>
 </div>
 <div class="paragraph">
-<p>eg: in forgejo to avoid letting the whole internet sign up and rootle around in your ci (not that anyone would care, really, but, you know)</p>
+<p>If you want true independence from overly commercial interests,
+then self-hosted is the way to go.
+You&#8217;ll need your own server for both of these.</p>
+</div>
+<div class="paragraph">
+<p>I tried both, and managed to get them working within an hour or two.
+Their documentation is good.</p>
+</div>
+<div class="paragraph">
+<p>If you do decide to give them a go, I&#8217;d say,
+be a bit cautious about security options.</p>
+</div>
+<div class="paragraph">
+<p>For example, you might decide you don&#8217;t want any old person from the Internet
+to be able to sign up for an account on your server:</p>
 </div>
 <div class="listingblock skipme">
 <div class="content">
@@ -829,7 +1510,78 @@ or that your code is entirely public.</p>
 </div>
 </div>
 <div class="paragraph">
-<p>In any case, onto our last chapter!</p>
+<p>But more power to you for giving it a go, I say!</p>
+</div>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_some_things_we_didnt_cover">Some Things We Didn&#8217;t Cover</h3>
+<div class="sect3">
+<h4 id="_defining_a_docker_image_for_ci">Defining a Docker image for CI</h4>
+<div class="paragraph">
+<p>We spent quite a bit of time debugging, for example the unhelpful messages
+when Firefox wasn&#8217;t installed.
+Just as we did when preparing our deployment,
+being able to have an environment that you can run on your local machine
+that&#8217;s as close as possible to what you have remotely,
+is a big help;  that&#8217;s why we chose to use Docker image.</p>
+</div>
+<div class="paragraph">
+<p>In CI our tests also run a Docker image (<code>python:slim</code> and <code>node:slim</code>),
+so one common pattern is to define a Docker image,
+in your repo, that you will use for CI.
+Ideally it would also be as similar as possible to the one you use in production!
+A typical solution here is to use "multi-stage" Docker builds,
+with a base stage, a prod stage, and a dev/ci stage.
+In our case, that latter would have Firefox, selenium,
+and other test-only dependencies in it, that we don&#8217;t need for prod.</p>
+</div>
+<div class="paragraph">
+<p>You can then run your tests locally inside the same Docker image that&#8217;s used in CI.
+This</p>
+</div>
+<div class="admonitionblock tip">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-tip" title="Tip"></i>
+</td>
+<td class="content">
+<em>Reproducibility</em> is one of the key attributes we&#8217;re aiming for.
+    The more your project grows in complexity,
+    the more it&#8217;s worth investing in minimising the differences
+    between local dev, CI, and prod.
+</td>
+</tr>
+</table>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_caching">Caching</h4>
+<div class="paragraph">
+<p>We touched on the use of caches in CI for the pip download cache,
+but as CI pipelines grow in maturity,
+you&#8217;ll find you can make more and more use of caching.</p>
+</div>
+<div class="paragraph">
+<p>It&#8217;s a topic for another time, but this is yet another way
+of trying to speed up the feedback cycle.</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_automated_deployment_aka_continuous_delivery_cd">Automated Deployment, aka Continuous Delivery (CD)</h4>
+<div class="paragraph">
+<p>The natural next step is to finish our journey into automation,
+and set up a pipeline that will deploy our code all the way to production,
+each time we push code&#8230;&#8203; as long as the tests pass!</p>
+</div>
+<div class="paragraph">
+<p>I work through an example of how to do that in <a href="/book/appendix_CD.html">[appendix_CD]</a>.
+I definitely encourage you to take a look.</p>
+</div>
+<div class="paragraph">
+<p>Now, onto our last chapter of coding, everyone!</p>
 </div>
 <div class="sidebarblock">
 <div class="content">
@@ -848,7 +1600,10 @@ to make sure that all your tests are getting run somewhere.
 <dt class="hdlist1">Optimise for fast feedback</dt>
 <dd>
 <p>CI feedback loops can be frustratingly slow.
-Optimising things to get results quicker is worth the effort.</p>
+Optimising things to get results quicker is worth the effort.
+Run your fastest tests first,
+and try to minimise time spent on, eg, dependency installation,
+by using caches.</p>
 </dd>
 <dt class="hdlist1">Set up screenshots and HTML dumps for failures</dt>
 <dd>
@@ -882,9 +1637,10 @@ we can take the next step which is to automated our deployments
 </div>
 </div>
 </div>
+</div>
 <div id="footer">
 <div id="footer-text">
-License: Creative Commons <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode">CC-BY-NC-ND</a>. Last updated: 2025-02-18 15:43:34 UTC
+License: Creative Commons <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode">CC-BY-NC-ND</a>. Last updated: 2025-02-20 06:08:37 UTC
 </div>
 </div>
 <div class="comments" style="padding: 20px">

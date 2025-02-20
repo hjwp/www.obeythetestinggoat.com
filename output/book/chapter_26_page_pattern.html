@@ -76,6 +76,11 @@ I&#8217;m going to let you write your unit tests and application code by yoursel
 Don&#8217;t worry, you won&#8217;t be totally on your own!
 I&#8217;ll give an outline of the steps to take, as well as some hints and tips.</p>
 </div>
+<div class="paragraph">
+<p>But still&#8212;&#8203;if you haven&#8217;t already,
+this is the chapter where you get a chance to spread your wings.
+Enjoy!</p>
+</div>
 <div class="sect2">
 <h3 id="_an_ft_with_multiple_users_and_addcleanup">An FT with Multiple Users, and addCleanup</h3>
 <div class="paragraph">
@@ -83,7 +88,7 @@ I&#8217;ll give an outline of the steps to take, as well as some hints and tips.
 Let&#8217;s get started&#8212;&#8203;we&#8217;ll need two users for this FT:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">src/functional_tests/test_sharing.py (ch24l001)</div>
+<div class="title">src/functional_tests/test_sharing.py (ch26l001)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
@@ -150,7 +155,7 @@ test ends will already have been quit by the <code>tearDown</code> function.</p>
 <div class="paragraph">
 <p>OK, let&#8217;s see if that all works:</p>
 </div>
-<div class="listingblock dofirst-ch24l002">
+<div class="listingblock dofirst-ch26l002">
 <div class="content">
 <pre>$ <strong>python src/manage.py test functional_tests.test_sharing</strong>
 [...]
@@ -272,7 +277,7 @@ which we&#8217;ll see in action immediately.</td>
 <p>Let&#8217;s see how to use it in our test:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">src/functional_tests/test_sharing.py (ch24l004)</div>
+<div class="title">src/functional_tests/test_sharing.py (ch26l004)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
@@ -292,7 +297,7 @@ which we&#8217;ll see in action immediately.</td>
 we want to access elements from the lists page:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">src/functional_tests/test_sharing.py (ch24l008)</div>
+<div class="title">src/functional_tests/test_sharing.py (ch26l008)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
@@ -314,7 +319,7 @@ we want to access elements from the lists page:</p>
 <p>We add the following three functions to our <code>ListPage</code>:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">src/functional_tests/list_page.py (ch24l009)</div>
+<div class="title">src/functional_tests/list_page.py (ch26l009)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
@@ -368,7 +373,7 @@ and then we can have Oni log in and see the list on his "My Lists" page,
 maybe in a section called "lists shared with me":</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">src/functional_tests/test_sharing.py (ch24l010)</div>
+<div class="title">src/functional_tests/test_sharing.py (ch26l010)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
@@ -391,7 +396,7 @@ maybe in a section called "lists shared with me":</p>
 <p>That means another function in our <code>MyListsPage</code> class:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">src/functional_tests/my_lists_page.py (ch24l011)</div>
+<div class="title">src/functional_tests/my_lists_page.py (ch26l011)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
@@ -424,7 +429,7 @@ maybe in a section called "lists shared with me":</p>
 <p>In the meantime, Onesiphorus can also add things to the list:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">src/functional_tests/test_sharing.py (ch24l012)</div>
+<div class="title">src/functional_tests/test_sharing.py (ch26l012)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
@@ -448,7 +453,7 @@ maybe in a section called "lists shared with me":</p>
 <p>That&#8217;s another addition to our <code>ListPage</code> object:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">src/functional_tests/list_page.py (ch24l013)</div>
+<div class="title">src/functional_tests/list_page.py (ch26l013)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
@@ -467,16 +472,26 @@ maybe in a section called "lists shared with me":</p>
 <div class="listingblock">
 <div class="content">
 <pre>$ <strong>python src/manage.py test functional_tests.test_sharing</strong>
-
+[...]
+  File "...goat-book/src/functional_tests/test_sharing.py", line 35, in
+test_can_share_a_list_with_another_user
     share_box = list_page.get_share_box()
+    [...]
+    return self.test.browser.find_element(
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        By.CSS_SELECTOR,
+        ^^^^^^^^^^^^^^^^
+        'input[name="sharee"]',
+        ^^^^^^^^^^^^^^^^^^^^^^^
     [...]
 selenium.common.exceptions.NoSuchElementException: Message: Unable to locate
 element: input[name="sharee"]; [...]</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>That&#8217;s the expected failure; we don&#8217;t have an input for email addresses
-of people to share with. Let&#8217;s do a commit:</p>
+<p>That&#8217;s the expected failure;
+we don&#8217;t have an input for email addresses of people to share with.
+Let&#8217;s do a commit:</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -588,32 +603,37 @@ in.</p>
 <dl>
 <dt class="hdlist1">Apply DRY to your functional tests</dt>
 <dd>
-<p>Once your FT suite starts to grow, you&#8217;ll find that different tests will
-inevitably find themselves using similar parts of the UI. Try to avoid
-having constants, like the HTML IDs or classes of particular UI elements,
-duplicated between your FTs.</p>
+<p>Once your FT suite starts to grow,
+you&#8217;ll find different tests using similar parts of the UI.
+Try to avoid having constants,
+like the HTML IDs or classes of particular UI elements,
+duplicated between your FTs.
+</p>
 </dd>
 <dt class="hdlist1">The Page pattern</dt>
 <dd>
-<p>    Moving
-helper methods into a base <code>FunctionalTest</code> class can become
-    unwieldy.  Consider using individual Page objects to hold all the
-    logic for dealing with particular parts of your site.</p>
+<p>Moving helper methods into a base <code>FunctionalTest</code> class can become unwieldy.
+Consider using individual Page objects to hold all the logic
+for dealing with particular parts of your site.
+</p>
 </dd>
 <dt class="hdlist1">An exercise for the reader</dt>
 <dd>
-<p>I hope you&#8217;ve actually tried this out!  Try to follow the outside-in
-method, and occasionally try things out manually if you get stuck.
-The real exercise for the reader, of course, is to apply TDD to your
-next project.  I hope you&#8217;ll enjoy it!</p>
+<p>I hope you&#8217;ve actually tried this out!
+Try to follow the outside-in method,
+and occasionally try things out manually if you get stuck.
+The real exercise for the reader, of course,
+is to apply TDD to your next project.
+I hope you&#8217;ll enjoy it!
+
+</p>
 </dd>
 </dl>
 </div>
 </div>
 </div>
 <div class="paragraph">
-<p>In the next chapter, we&#8217;ll wrap up with a discussion of testing "best
-practices."</p>
+<p>In the next chapter, we&#8217;ll wrap up with a discussion of testing "best practices."</p>
 </div>
 </div>
 </div>
@@ -621,7 +641,7 @@ practices."</p>
 </div>
 <div id="footer">
 <div id="footer-text">
-License: Creative Commons <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode">CC-BY-NC-ND</a>. Last updated: 2025-02-12 22:29:42 UTC
+License: Creative Commons <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode">CC-BY-NC-ND</a>. Last updated: 2025-02-18 23:47:21 UTC
 </div>
 </div>
 <div class="comments" style="padding: 20px">
