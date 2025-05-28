@@ -45,6 +45,20 @@ httpRequest.send();
 <div class="sectionbody">
 <div class="sidebarblock">
 <div class="content">
+<div class="title">A Note for Early Release Readers</div>
+<div class="paragraph">
+<p>With Early Release ebooks, you get books in their earliest form&#8212;the author&#8217;s raw and unedited content as they write&#8212;so you can take advantage of these technologies long before the official release of these titles.</p>
+</div>
+<div class="paragraph">
+<p>This will be the 23rd chapter of the final book. The GitHub repo is available at <a href="https://github.com/hjwp/book-example" class="bare">https://github.com/hjwp/book-example</a>.</p>
+</div>
+<div class="paragraph">
+<p>If you have comments about how we might improve the content and/or examples in this book, or if you notice missing material within this chapter, please reach out to the author at <a href="mailto:obeythetestinggoat@gmail.com">obeythetestinggoat@gmail.com</a>.</p>
+</div>
+</div>
+</div>
+<div class="sidebarblock">
+<div class="content">
 <div class="title">Warning, Chapter Recently Updated</div>
 <div class="paragraph">
 <p>This chapter has been recently updated to Django 5, Ansible+Docker, etc.</p>
@@ -77,9 +91,10 @@ on port 8888:</p>
 <div class="content">
 <pre>$ <strong>docker build -t superlists . &amp;&amp; docker run \
     -p 8888:8888 \
-    --mount type=bind,source="$PWD/src/db.sqlite3",target=/src/db.sqlite3 \
+    --mount type=bind,source="$PWD/container.db.sqlite3",target=/home/nonroot/db.sqlite3 \
     -e DJANGO_SECRET_KEY=sekrit \
     -e DJANGO_ALLOWED_HOST=localhost \
+    -e DJANGO_DB_PATH=/home/nonroot/db.sqlite3 \
     -it superlists</strong>
 [...]
  =&gt; =&gt; naming to docker.io/library/superlists [...]
@@ -88,6 +103,48 @@ on port 8888:</p>
 [2025-01-27 22:37:02 +0000] [7] [INFO] Using worker: sync
 [2025-01-27 22:37:02 +0000] [8] [INFO] Booting worker with pid: 8</pre>
 </div>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+If you see an error about <code>bind source path does not exist</code>,
+    you&#8217;ve lost your container database somehow.
+    Create a new one with  <code>touch container.db.sqlite3</code>.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>Now let&#8217;s make sure our container database is fully up to date,
+by running <code>migrate</code> inside the container:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>docker exec $(docker ps --filter=ancestor=superlists -q) python manage.py migrate</strong>
+Operations to perform:
+  Apply all migrations: accounts, auth, contenttypes, lists, sessions
+Running migrations:
+[...]</pre>
+</div>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+That little <code>$(docker ps --filter=ancestor=superlists -q)</code>
+    is a neat way to avoid manually looking up the container ID.
+    An alternative would be to just set the container name explicitly
+    in our <code>docker run</code> commands, using <code>--name</code>.
+</td>
+</tr>
+</table>
 </div>
 <div class="paragraph">
 <p>And now let&#8217;s do an FT run:</p>
@@ -237,9 +294,10 @@ this one fishing the env var out of the shell we&#8217;re in:</p>
 <div class="content">
 <pre>$ <strong>docker build -t superlists . &amp;&amp; docker run \
     -p 8888:8888 \
-    --mount type=bind,source="$PWD/src/db.sqlite3",target=/src/db.sqlite3 \
+    --mount type=bind,source="$PWD/container.db.sqlite3",target=/home/nonroot/db.sqlite3 \
     -e DJANGO_SECRET_KEY=sekrit \
     -e DJANGO_ALLOWED_HOST=localhost \
+    -e DJANGO_DB_PATH=/home/nonroot/db.sqlite3 \
     -e EMAIL_PASSWORD \
     -it superlists</strong></pre>
 </div>
@@ -321,7 +379,7 @@ and some APIs for checking what mail has been delivered.</p>
 <li>
 <p>We can use an alternative, fake email backend,
 whereby Django will save the emails to a
-<a href="https://docs.djangoproject.com/en/5.1/topics/email/#file-backend">file on disk</a>
+<a href="https://docs.djangoproject.com/en/5.2/topics/email/#file-backend">file on disk</a>
 for example,
 and we can inspect them there.</p>
 </li>
@@ -361,7 +419,7 @@ then we don&#8217;t need to test that they are <em>actually</em> delivered.</p>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">File-based fake email backend</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Faster, more reliable, no network calls, tests end-to-end (albeit with fake components)</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Still Fiddly, requires managing db &amp; filesystem side-effects</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Still fiddly, requires managing db &amp; filesystem side-effects</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Give up on testing email on the server/Docker</p></td>
@@ -400,7 +458,7 @@ Remember, we also have unit tests for the email content!</p>
 </td>
 <td class="content">
 I explore some of the difficulties involved in getting
-  these kinds of tests to work in <a href="/book/appendix_fts_for_external_dependencies.html">[appendix_fts_for_external_dependencies]</a>,
+  these kinds of tests to work in <a href="#appendix_fts_for_external_dependencies">[appendix_fts_for_external_dependencies]</a>,
   so go check that out if this feels like a bit of a cop-out!
 </td>
 </tr>
@@ -437,7 +495,7 @@ I explore some of the difficulties involved in getting
 in Docker or on the server, so that&#8217;s good enough for now.</p>
 </div>
 <div class="paragraph">
-<p>Here&#8217;s how we populate the <code>.test_server</code> attribute:</p>
+<p>Here&#8217;s how we populate the <code>FunctionalTest.test_server</code> attribute:</p>
 </div>
 <div class="exampleblock sourcecode">
 <div class="title">src/functional_tests/base.py (ch23l010)</div>
@@ -472,47 +530,29 @@ We&#8217;ll see this come in useful later too!</td>
 </div>
 </div>
 <div class="sect2">
-<h3 id="_setting_secret_environment_variables_on_the_server">Setting Secret Environment Variables on the Server</h3>
+<h3 id="_an_alternative_method_for_setting_secret_environment_variables_on_the_server">An Alternative Method for Setting Secret Environment Variables on the Server</h3>
 <div class="paragraph">
 <p>
 
-Just as in <a href="/book/chapter_11_server_prep.html">[chapter_11_server_prep]</a>,
-the place we set environment variables on the server is in the <em>superlists.env</em> file.</p>
+In <a href="/book/chapter_12_ansible.html">[chapter_12_ansible]</a>, we dealt with setting the <code>SECRET_KEY</code> by
+generating a random value, and then saving it to a file on the server.</p>
 </div>
 <div class="paragraph">
-<p>Let&#8217;s add it to the template first:</p>
+<p>We could use a similar technique here, but just to give you an alternative,
+I&#8217;ll show how to pass the environment variable directly up to the container,
+without storing it in a file:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">infra/env.j2 (ch23l011)</div>
-<div class="content">
-<div class="listingblock">
-<div class="content">
-<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-n">DJANGO_DEBUG_FALSE</span><span class="tok-o">=</span><span class="tok-mi">1</span>
-<span class="tok-n">DJANGO_SECRET_KEY</span><span class="tok-o">=</span><span class="tok-p">{{</span> <span class="tok-n">secret_key</span> <span class="tok-p">}}</span>
-<span class="tok-n">DJANGO_ALLOWED_HOST</span><span class="tok-o">=</span><span class="tok-p">{{</span> <span class="tok-n">host</span> <span class="tok-p">}}</span>
-<span class="tok-n">EMAIL_PASSWORD</span><span class="tok-o">=</span><span class="tok-p">{{</span> <span class="tok-n">email_password</span> <span class="tok-p">}}</span></code></pre>
-</div>
-</div>
-</div>
-</div>
-<div class="paragraph">
-<p>And now we add the line to the ansible deploy playbook
-that looks up EMAIL_PASSWORD in our local environment:</p>
-</div>
-<div class="exampleblock sourcecode dofirst=ch23l012-1">
 <div class="title">infra/deploy-playbook.yaml (ch23l012)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="pygments highlight"><code data-lang="python"><span></span>    <span class="tok-o">-</span> <span class="tok-n">name</span><span class="tok-p">:</span> <span class="tok-n">Ensure</span> <span class="tok-o">.</span><span class="tok-n">env</span> <span class="tok-n">file</span> <span class="tok-n">exists</span>
-      <span class="tok-n">ansible</span><span class="tok-o">.</span><span class="tok-n">builtin</span><span class="tok-o">.</span><span class="tok-n">template</span><span class="tok-p">:</span>
-        <span class="tok-n">src</span><span class="tok-p">:</span> <span class="tok-n">env</span><span class="tok-o">.</span><span class="tok-n">j2</span>
-        <span class="tok-n">dest</span><span class="tok-p">:</span> <span class="tok-o">~/</span><span class="tok-n">superlists</span><span class="tok-o">.</span><span class="tok-n">env</span>
-        <span class="tok-n">force</span><span class="tok-p">:</span> <span class="tok-n">true</span>  <span class="tok-c1"># update file if contents changed</span>
-      <span class="tok-nb">vars</span><span class="tok-p">:</span>
-        <span class="tok-n">host</span><span class="tok-p">:</span> <span class="tok-s2">"{{ inventory_hostname }}"</span>
-        <span class="tok-n">secret_key</span><span class="tok-p">:</span> <span class="tok-s2">"{{ lookup('password', '/dev/null length=32 chars=ascii_letters') }}"</span>
-        <span class="tok-n">email_password</span><span class="tok-p">:</span> <span class="tok-s2">"{{ lookup('env', 'EMAIL_PASSWORD') }}"</span>  <i class="conum" data-value="1"></i><b>(1)</b></code></pre>
+<pre class="pygments highlight"><code data-lang="python"><span></span>        <span class="tok-n">env</span><span class="tok-p">:</span>
+          <span class="tok-n">DJANGO_DEBUG_FALSE</span><span class="tok-p">:</span> <span class="tok-s2">"1"</span>
+          <span class="tok-n">DJANGO_SECRET_KEY</span><span class="tok-p">:</span> <span class="tok-s2">"{{ secret_key.content | b64decode }}"</span>
+          <span class="tok-n">DJANGO_ALLOWED_HOST</span><span class="tok-p">:</span> <span class="tok-s2">"{{ inventory_hostname }}"</span>
+          <span class="tok-n">DJANGO_DB_PATH</span><span class="tok-p">:</span> <span class="tok-s2">"/home/nonroot/db.sqlite3"</span>
+          <span class="tok-n">EMAIL_PASSWORD</span><span class="tok-p">:</span> <span class="tok-s2">"{{ lookup('env', 'EMAIL_PASSWORD') }}"</span>  <i class="conum" data-value="1"></i><b>(1)</b></code></pre>
 </div>
 </div>
 </div>
@@ -521,11 +561,33 @@ that looks up EMAIL_PASSWORD in our local environment:</p>
 <table>
 <tr>
 <td><i class="conum" data-value="1"></i><b>1</b></td>
-<td>We use another call to <code>lookup()</code>,
-this one with the <code>env</code> parameter,
-which is equivalent to <code>os.environ.get()</code> in Python.</td>
+<td><code>lookup()</code> with <code>env</code> as its argument is how you look up <em>local</em> environment variables,
+ie the ones set on the computer you&#8217;re runing Ansible from.</td>
 </tr>
 </table>
+</div>
+<div class="paragraph">
+<p>This means you&#8217;ll need the <code>EMAIL_PASSWORD</code> environment variable
+to be set on your local machine, every time you want to run Ansible.</p>
+</div>
+<div class="paragraph">
+<p>In terms of pros and cons of the two approaches:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Saving the secret to a file on the server means you don&#8217;t need to "remember"
+or store the secret anywhere on your own machine</p>
+</li>
+<li>
+<p>In contrast, always passing it up from the local environment does
+mean you can change the value of the secret at any time.</p>
+</li>
+<li>
+<p>In terms of security they are fairly equivalent,
+since in either case the environment variable is visible via <code>docker inspect</code></p>
+</li>
+</ul>
 </div>
 </div>
 <div class="sect2">
@@ -878,7 +940,7 @@ Perhaps a little ascii-art diagram will help:</p>
 </div>
 </div>
 <div class="sect4">
-<h5 id="_against_docker_locally_2">Against Docker locally:</h5>
+<h5 id="_against_docker_on_the_server">Against Docker on the server:</h5>
 <div class="listingblock skipme small-code">
 <div class="content">
 <pre>+-----------------------------------+                           +-------------------------------------+
@@ -901,10 +963,10 @@ Perhaps a little ascii-art diagram will help:</p>
 <div class="title">An Alternative For Managing Test Database Content: Talking Directly to the DB</div>
 <div class="paragraph">
 <p>An alternative way of managing database content inside Docker,
-or on a server, would be to talk directly to the DB</p>
+or on a server, would be to talk directly to the DB.</p>
 </div>
 <div class="paragraph">
-<p>Since we&#8217;re using SQLite, that involves writing to the file directly,
+<p>Since we&#8217;re using SQLite, that involves writing to the file directly.
 This can be fiddly to get right, because when we&#8217;re running inside Django&#8217;s
 test runner, Django takes over test database creation,
 so you end up having to write raw SQL and manage your connections to the database directly.</p>
@@ -916,7 +978,7 @@ as well as needing to have the SECRET_KEY env var set to the same value as on th
 <div class="paragraph">
 <p>If we were using a "classic" database server like Postgres or MySQL,
 we&#8217;d be able to talk directly to the database over its port,
-and that&#8217;s an approach I&#8217;ve used successfully in the past (see eg <a href="https://www.cosmicpython.com/book/chapter_02_repository.html#_inverting_the_dependency_orm_depends_on_model" class="bare">https://www.cosmicpython.com/book/chapter_02_repository.html#_inverting_the_dependency_orm_depends_on_model</a>)
+and that&#8217;s an approach I&#8217;ve used successfully in the past (see e.g. <a href="https://www.cosmicpython.com/book/chapter_02_repository.html#_inverting_the_dependency_orm_depends_on_model" class="bare">https://www.cosmicpython.com/book/chapter_02_repository.html#_inverting_the_dependency_orm_depends_on_model</a>)
 but it&#8217;s still fiddly to get right and usually requires writing your own SQL.</p>
 </div>
 </div>
@@ -944,9 +1006,10 @@ OK</pre>
 <div class="content">
 <pre>$ <strong>docker build -t superlists . &amp;&amp; docker run \
     -p 8888:8888 \
-    --mount type=bind,source="$PWD/src/db.sqlite3",target=/src/db.sqlite3 \
+    --mount type=bind,source="$PWD/container.db.sqlite3",target=/home/nonroot/db.sqlite3 \
     -e DJANGO_SECRET_KEY=sekrit \
     -e DJANGO_ALLOWED_HOST=localhost \
+    -e DJANGO_DB_PATH=/home/nonroot/db.sqlite3 \
     -e EMAIL_PASSWORD \
     -it superlists</strong></pre>
 </div>
@@ -967,7 +1030,7 @@ OK</pre>
 </div>
 <div class="listingblock against-server">
 <div class="content">
-<pre>$ pass:quotes[<strong>ansible-playbook --user=elspeth -i staging.ottg.co.uk, infra/deploy-playbook.yaml.yaml -vv</strong>]</pre>
+<pre>$ pass:quotes[<strong>ansible-playbook --user=elspeth -i staging.ottg.co.uk, infra/deploy-playbook.yaml -vv</strong>]</pre>
 </div>
 </div>
 <div class="paragraph">
@@ -1050,7 +1113,7 @@ Let&#8217;s try and emulate that when we&#8217;re running against a real databas
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-kn">from</span> <span class="tok-nn">.container_commands</span> <span class="tok-kn">import</span> <span class="tok-n">reset_database</span>  <i class="conum" data-value="1"></i><b>(1)</b>
+<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-kn">from</span> <span class="tok-nn">.container_commands</span> <span class="tok-kn">import</span> <span class="tok-n">reset_database</span>
 <span class="tok-p">[</span><span class="tok-o">...</span><span class="tok-p">]</span>
 
 <span class="tok-k">class</span> <span class="tok-nc">FunctionalTest</span><span class="tok-p">(</span><span class="tok-n">StaticLiveServerTestCase</span><span class="tok-p">):</span>
@@ -1095,7 +1158,7 @@ and make it so they use different keypairs for authentication, with different pa
 <div class="paragraph">
 <p>This is similarly dangerous territory to running tests against clones of production data.
 I have a little story about accidentally sending thousands of duplicate invoices to clients
-in <a href="/book/appendix_IV_testing_migrations.html">[data-migrations-appendix]</a>. LFMF!</p>
+in <a href="#data-migrations-appendix">[data-migrations-appendix]</a>. LFMF!</p>
 </div>
 </div>
 </div>
@@ -1134,6 +1197,10 @@ explore what works for you&#8212;&#8203;SSH tunnels, for example.
 
 </p>
 </dd>
+</dl>
+</div>
+<div class="dlist">
+<dl>
 <dt class="hdlist1">Be very careful when resetting data on your servers</dt>
 <dd>
 <p>A command that can remotely wipe the entire database on one of your
@@ -1161,7 +1228,7 @@ in a file somewhere.
 </div>
 <div id="footer">
 <div id="footer-text">
-License: Creative Commons <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode">CC-BY-NC-ND</a>. Last updated: 2025-02-12 21:05:38 UTC
+License: Creative Commons <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode">CC-BY-NC-ND</a>. Last updated: 2025-05-25 22:55:00 +0100
 </div>
 </div>
 <div class="comments" style="padding: 20px">

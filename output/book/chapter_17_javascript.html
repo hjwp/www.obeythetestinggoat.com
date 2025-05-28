@@ -43,6 +43,20 @@ httpRequest.send();
 <div class="sect1">
 <h2 id="chapter_17_javascript">A Gentle Excursion Into JavaScript</h2>
 <div class="sectionbody">
+<div class="sidebarblock">
+<div class="content">
+<div class="title">A Note for Early Release Readers</div>
+<div class="paragraph">
+<p>With Early Release ebooks, you get books in their earliest form&#8212;the author&#8217;s raw and unedited content as they write&#8212;so you can take advantage of these technologies long before the official release of these titles.</p>
+</div>
+<div class="paragraph">
+<p>This will be the 17th chapter of the final book. The GitHub repo is available at <a href="https://github.com/hjwp/book-example" class="bare">https://github.com/hjwp/book-example</a>.</p>
+</div>
+<div class="paragraph">
+<p>If you have comments about how we might improve the content and/or examples in this book, or if you notice missing material within this chapter, please reach out to the author at <a href="mailto:obeythetestinggoat@gmail.com">obeythetestinggoat@gmail.com</a>.</p>
+</div>
+</div>
+</div>
 <div class="quoteblock">
 <blockquote>
 <div class="paragraph">
@@ -58,14 +72,15 @@ httpRequest.send();
 <div class="content">
 <div class="title">Warning, Fresh rewrite</div>
 <div class="paragraph">
-<p>This chapter is a very fresh rewrite for the third edition.</p>
+<p>This chapter is a fresh rewrite for the third edition.</p>
 </div>
 <div class="paragraph">
 <p>I&#8217;ve switched from QUnit to Jasmine for the JavaScript testing,
 and updated all the listings to use modern ES6 JavaScript.</p>
 </div>
 <div class="paragraph">
-<p>It&#8217;s a first draft, so I&#8217;d love your feedback! <a href="mailto:obeythetestinggoat@gmail.com">obeythetestinggoat@gmail.com</a></p>
+<p>It&#8217;s still in early drafts, so I&#8217;d love your feedback!
+<a href="mailto:obeythetestinggoat@gmail.com">obeythetestinggoat@gmail.com</a></p>
 </div>
 </div>
 </div>
@@ -73,8 +88,26 @@ and updated all the listings to use modern ES6 JavaScript.</p>
 <p>Our new validation logic is good,
 but wouldn&#8217;t it be nice if the duplicate item error messages disappeared
 once the user started fixing the problem?
-Just like our nice HTML5 validation errors do?
-For that we&#8217;d need a teeny-tiny bit of JavaScript.</p>
+Just like our nice HTML5 validation errors do?</p>
+</div>
+<div class="paragraph">
+<p>Try it&#8212;&#8203;spin up the site with <code>./src/manage.py runserver</code>,
+start a list, and if you try to submit an empty item,
+you get the "Please fill out this field" pop-up,
+and it disappears as soon as you enter some text.
+By contrast, enter an item twice,
+you get the "You&#8217;ve already got this in your list" message in red,
+but even if you edit your submission to something valid,
+the error stays there until you submit the form (see <a href="#duplicate_item_error">But I&#8217;ve fixed it!</a>).</p>
+</div>
+<div id="duplicate_item_error" class="imageblock">
+<div class="content">
+<img src="images/duplicate_item_error.png" alt="A screenshot of the 'Please fill out this field' error in red, still shown despite the fact that the input value has been modified to be different from the existing item in the list">
+</div>
+<div class="title">Figure 1. But I&#8217;ve fixed it!</div>
+</div>
+<div class="paragraph">
+<p>To get that error to disappear dynamically, we&#8217;d need a teeny-tiny bit of JavaScript.</p>
 </div>
 <div class="paragraph">
 <p>Python is a delightful language to program in.
@@ -111,7 +144,8 @@ I&#8217;m going to assume you know the basics of JavaScript syntax.
 </p>
 </div>
 <div class="paragraph">
-<p>Let&#8217;s add a new functional test to the <code>ItemValidationTest</code> class:</p>
+<p>Let&#8217;s add a new functional test to the <code>ItemValidationTest</code> class,
+that asserts that our error message disappears when we start typing:</p>
 </div>
 <div class="exampleblock sourcecode">
 <div class="title">src/functional_tests/test_list_item_validation.py (ch16l001)</div>
@@ -247,9 +281,6 @@ Let&#8217;s move the logic to a helper function:</p>
 AssertionError: True is not false</pre>
 </div>
 </div>
-<div class="paragraph">
-<p>And we can commit this as the first cut of our FT.</p>
-</div>
 <div class="admonitionblock tip">
 <table>
 <tr>
@@ -296,6 +327,16 @@ for <a href="http://stackoverflow.com/questions/249969/why-are-tdd-spikes-called
 reasons that aren&#8217;t entirely clear</a>,
 but it&#8217;s a nice memorable name.<sup class="footnote">[<a id="_footnoteref_1" class="footnote" href="#_footnotedef_1" title="View footnote.">1</a>]</sup></p>
 </div>
+<div class="paragraph">
+<p>Before we start, let&#8217;s commit our FT.  When embarking on a slate,
+you want to be able to get back to a clean slate.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>git diff</strong>  # new method in src/tests/functional_tests/test_list_item_validation.py
+$ *git commit -am"FT that validation errors disapper on type"</pre>
+</div>
+</div>
 <div class="admonitionblock tip">
 <table>
 <tr>
@@ -313,7 +354,7 @@ Always do a commit before embarking on a Spike.
 <div class="paragraph">
 <p>I hacked around for a bit,
 and here&#8217;s more or less the first thing I came up with.
-I&#8217;m adding the code inline, in a <code>&lt;script&gt;</code> tag
+I&#8217;m adding the javascript inline, in a <code>&lt;script&gt;</code> tag
 at the bottom of our <em>base.html</em> template:</p>
 </div>
 <div class="exampleblock sourcecode">
@@ -321,7 +362,8 @@ at the bottom of our <em>base.html</em> template:</p>
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="pygments highlight"><code data-lang="html"><span></span>    <span class="tok-p">&lt;/</span><span class="tok-nt">div</span><span class="tok-p">&gt;</span>
+<pre class="pygments highlight"><code data-lang="html"><span></span>    [...]
+    <span class="tok-p">&lt;/</span><span class="tok-nt">div</span><span class="tok-p">&gt;</span>
 
     <span class="tok-p">&lt;</span><span class="tok-nt">script</span><span class="tok-p">&gt;</span>
 <span class="tok-w">      </span><span class="tok-kd">const</span><span class="tok-w"> </span><span class="tok-nx">textInput</span><span class="tok-w"> </span><span class="tok-o">=</span><span class="tok-w"> </span><span class="tok-nb">document</span><span class="tok-p">.</span><span class="tok-nx">querySelector</span><span class="tok-p">(</span><span class="tok-s2">"#id_text"</span><span class="tok-p">);</span><span class="tok-w">  </span><i class="conum" data-value="1"></i><b>(1)</b>
@@ -329,7 +371,10 @@ at the bottom of our <em>base.html</em> template:</p>
 <span class="tok-w">        </span><span class="tok-kd">const</span><span class="tok-w"> </span><span class="tok-nx">errorMsg</span><span class="tok-w"> </span><span class="tok-o">=</span><span class="tok-w"> </span><span class="tok-nb">document</span><span class="tok-p">.</span><span class="tok-nx">querySelector</span><span class="tok-p">(</span><span class="tok-s2">".invalid-feedback"</span><span class="tok-p">);</span>
 <span class="tok-w">        </span><span class="tok-nx">errorMsg</span><span class="tok-p">.</span><span class="tok-nx">style</span><span class="tok-p">.</span><span class="tok-nx">display</span><span class="tok-w"> </span><span class="tok-o">=</span><span class="tok-w"> </span><span class="tok-s2">"none"</span><span class="tok-p">;</span><span class="tok-w">  </span><i class="conum" data-value="4"></i><b>(4)</b>
 <span class="tok-w">      </span><span class="tok-p">}</span>
-<span class="tok-w">    </span><span class="tok-p">&lt;/</span><span class="tok-nt">script</span><span class="tok-p">&gt;</span></code></pre>
+<span class="tok-w">    </span><span class="tok-p">&lt;/</span><span class="tok-nt">script</span><span class="tok-p">&gt;</span>
+
+  <span class="tok-p">&lt;/</span><span class="tok-nt">body</span><span class="tok-p">&gt;</span>
+<span class="tok-p">&lt;/</span><span class="tok-nt">html</span><span class="tok-p">&gt;</span></code></pre>
 </div>
 </div>
 </div>
@@ -411,7 +456,7 @@ the input is still red and invalid-looking, see <a href="#input-still-red">The e
 <div class="content">
 <img src="images/error-gone-but-input-still-red.png" alt="Screenshot of our page where the error div is gone but the input is still red.">
 </div>
-<div class="title">Figure 1. The error message is gone but the input box is still red</div>
+<div class="title">Figure 2. The error message is gone but the input box is still red</div>
 </div>
 <div class="paragraph">
 <p>You&#8217;re probably imagining that this has something to do with Bootstrap.
@@ -419,8 +464,7 @@ We might have been able to hide the error message,
 but we also need to tell bootstrap that this input no longer has invalid contents.</p>
 </div>
 <div class="paragraph">
-<p>This is where I&#8217;d normally open up the browser
-<a href="https://firefox-source-docs.mozilla.org/devtools-user/">devtools</a>.
+<p>This is where I&#8217;d normally open up devtools.
 If level 1 of hacking is spiking code directly into an inline <code>&lt;script&gt;</code> tag,
 level 2 is hacking things directly in the browser,
 where it&#8217;s not even saved to a file!</p>
@@ -429,7 +473,7 @@ where it&#8217;s not even saved to a file!</p>
 <div class="content">
 <img src="images/editing-html-via-devtools.png" alt="Screenshot of the browser devtools with us editing the classes for the input element">
 </div>
-<div class="title">Figure 2. Editing the HTML in the Browser Devtools</div>
+<div class="title">Figure 3. Editing the HTML in the Browser Devtools</div>
 </div>
 <div class="paragraph">
 <p>In <a href="#editing-html-in-devtools">Editing the HTML in the Browser Devtools</a> you can see me directly editing the HTML of the page,
@@ -439,23 +483,38 @@ It not only removes the error message,
 but also the red border around the input box.</p>
 </div>
 <div class="paragraph">
-<p>We have a reasonable solution now, time to de-spike!</p>
+<p>We have a reasonable solution now, let&#8217;s write it down:</p>
+</div>
+<div class="sidebarblock scratchpad">
+<div class="content">
+<div class="ulist">
+<ul>
+<li>
+<p>Remove <code>is-invalid</code> bootstrap css class to hide error message &amp; red border</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>Time to de-spike!</p>
 </div>
 <div class="sidebarblock">
 <div class="content">
 <div class="title">Do We Really Need to Write Unit Tests for This?</div>
 <div class="paragraph">
-<p>By this point in the book, you probably know I&#8217;m going to say "yes",
+<p>Do we really need to write unit tests for this?
+By this point in the book, you probably know I&#8217;m going to say "yes",
 but let&#8217;s talk about it anyway.</p>
 </div>
 <div class="paragraph">
-<p>Our FT definitely covers this functionality,
+<p>Our FT definitely covers the functionality that our JavaScript is delivering,
 and we could extend it if we wanted to,
 to check on the colour of the input box,
 or to look at the input element&#8217;s CSS classes.</p>
 </div>
 <div class="paragraph">
-<p>And if I was really sure that this was the only bit of JavaScript
+<p>And if I was really sure that this was the <em>only</em> bit of JavaScript
 we were ever going to write,
 I probably would be tempted to leave it at that.</p>
 </div>
@@ -485,7 +544,7 @@ exact duplicate text again?</p>
 </div>
 </div>
 <div class="sect2">
-<h3 id="_setting_up_a_basic_javascript_test_runner">Setting Up a Basic JavaScript Test Runner</h3>
+<h3 id="_choosing_a_basic_javascript_test_runner">Choosing a Basic JavaScript Test Runner</h3>
 <div class="paragraph">
 <p>
 
@@ -510,6 +569,89 @@ and because it offers a "standalone" test runner that you can use
 without needing to dive into the whole Node/NPM ecosystem.
 </p>
 </div>
+</div>
+<div class="sect2">
+<h3 id="_an_overview_of_jasmine">An Overview of Jasmine</h3>
+<div class="paragraph">
+<p>By now we&#8217;re used to the way that tests with Python&#8217;s <code>unittest</code> library works:</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>We have a tests file, separate from the code we&#8217;re actually testing</p>
+</li>
+<li>
+<p>We have a way of grouping blocks of code into "a test":
+it&#8217;s a method, whose name starts with <code>test_</code>, on a class that inherits
+from <code>unittest.TestCase</code></p>
+</li>
+<li>
+<p>We have a way of making "assertions" in the test
+(the special <code>assert</code> methods, eg <code>self.assertEqual()</code>)</p>
+</li>
+<li>
+<p>We have a way of grouping related tests together
+(putting them in the same class),</p>
+</li>
+<li>
+<p>We can specify shared "setup" and "cleanup" code
+that runs before and after all the tests in a given group,
+the <code>setUp()</code> and <code>tearDown()</code> methods.</p>
+</li>
+<li>
+<p>We have some additional helpers that set up our app in a way that simulates
+what happens "in real life"&#8201;&#8212;&#8201;whether that&#8217;s Selenium and the <code>LiveServerTestCase</code>,
+or the Django Test Client.  This is sometimes called the "test harness".</p>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p>There are going to be fairly straightforward equivalents for the first 5 of these concepts in Jasmine:</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>A tests file (<em>Spec.js</em>)</p>
+</li>
+<li>
+<p>Tests go into an anonymous function inside an <code>it()</code> block.</p>
+</li>
+<li>
+<p>Assertions use a special function called <code>expect()</code>,
+with a syntax based on method chaining for asserting equality.</p>
+</li>
+<li>
+<p>Blocks of related tests go into a function in a <code>describe()</code> block.</p>
+</li>
+<li>
+<p><code>setUp()</code> and <code>tearDown()</code> are called <code>beforeEach()</code> and <code>afterEach()</code> respectively.</p>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p>There are some differences for sure, but you&#8217;ll see over the course of the chapter
+that they&#8217;re fundamentally the same.</p>
+</div>
+<div class="paragraph">
+<p>What <em>is</em> substantially different is the "test harness" part,
+the way that Jasmine creates an environment for us to work against.</p>
+</div>
+<div class="paragraph">
+<p>Because we&#8217;re using the browser runner,
+what we&#8217;re actually going to do is define an HTML file
+(<em>SpecRunner.html</em>)
+and the "engine" for running our code is going to be an actual browser
+(with JavaScript running inside it).</p>
+</div>
+<div class="paragraph">
+<p>That html will be the "entrypoint" for our tests, so it will be in charge
+of "importing" our framework, our tests file, and the code under test.
+It&#8217;s essentially a parallel, standalone web page, that&#8217;s not actually part of our app,
+but that <em>does</em> import the same JavaScript source code as our app uses.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_setting_up_our_javascript_test_environment">Setting Up Our JavaScript Test Environment</h3>
 <div class="paragraph">
 <p>Let&#8217;s download Jasmine now:</p>
 </div>
@@ -553,7 +695,8 @@ src/lists/static/tests
 </div>
 </div>
 <div class="paragraph">
-<p>We need to go edit the <em>SpecRunner.html</em> file
+<p><em>SpecRunner.html</em> is the file that ties the proverbial room together,
+so we need to go edit it to make sure it&#8217;s pointing at the right places,
 to take into account the things we&#8217;ve moved around:</p>
 </div>
 <div class="listingblock sourcecode">
@@ -581,8 +724,11 @@ to take into account the things we&#8217;ve moved around:</p>
 and we change the "spec files" to point at the single <em>Spec.js</em> file,
 in the <em>static/tests</em> folder.</p>
 </div>
+</div>
+<div class="sect2">
+<h3 id="_our_first_smoke_test_describe_it_expect">Our First Smoke Test: Describe, It, Expect</h3>
 <div class="paragraph">
-<p>Now let&#8217;s open up the <em>Spec.js</em> file,
+<p>Now let&#8217;s open up that <em>Spec.js</em> file,
 and strip it down to a single minimal smoke test:</p>
 </div>
 <div class="exampleblock sourcecode">
@@ -607,13 +753,13 @@ and strip it down to a single minimal smoke test:</p>
 <td><i class="conum" data-value="1"></i><b>1</b></td>
 <td>The <code>describe</code> block is a way of grouping tests together,
 a bit like we use classes in our Python tests.
-It starts with a name, and then an arrow function for its body.</td>
+It starts with a string name, and then an arrow function for its body.</td>
 </tr>
 <tr>
 <td><i class="conum" data-value="2"></i><b>2</b></td>
 <td>The <code>it</code> block is a single test, a bit like a method in a Python test class.
-Similarly to the <code>describe</code> block, we have a name and then a function
-to contain the test code.</td>
+Similarly to the <code>describe</code> block,
+we have a name and then a function to contain the test code.</td>
 </tr>
 <tr>
 <td><i class="conum" data-value="3"></i><b>3</b></td>
@@ -627,6 +773,8 @@ where <code>.toEqual</code> is the equivalent of <code>assertEqual</code> in Pyt
 </tr>
 </table>
 </div>
+<div class="sect3">
+<h4 id="_running_the_tests_via_the_browser">Running The Tests Via the Browser</h4>
 <div class="paragraph">
 <p>Let&#8217;s see how that looks.
 Open up _SpecRunner.html` in your browser;
@@ -642,7 +790,7 @@ $ <strong>open src/lists/static/tests/SpecRunner.html</strong></pre>
 <div class="paragraph">
 <p>Or you can navigate to it using the address bar,
 using the <code>file://</code> protocol, something like this:
-<em><a href="file:///home/your-username/path/to/superlists/src/lists/static/tests/SpecRunner.html" class="bare">file:///home/your-username/path/to/superlists/src/lists/static/tests/SpecRunner.html</a></em></p>
+<em>file&amp;*58;//home/your-username/path/to/superlists/src/lists/static/tests/SpecRunner.html</em></p>
 </div>
 <div class="paragraph">
 <p>Either way you get there, you should see something like <a href="#jasmine-specrunner-green">The Jasmine Spec runner in action</a>.</p>
@@ -651,7 +799,7 @@ using the <code>file://</code> protocol, something like this:
 <div class="content">
 <img src="images/jasmine-in-browser-green.png" alt="Jasmine browser-based spec runner showing one passing test.">
 </div>
-<div class="title">Figure 3. The Jasmine Spec runner in action</div>
+<div class="title">Figure 4. The Jasmine Spec runner in action</div>
 </div>
 <div class="paragraph">
 <p>Let&#8217;s try adding a deliberate failure to see what that looks like:</p>
@@ -675,13 +823,14 @@ using the <code>file://</code> protocol, something like this:
 <div class="content">
 <img src="images/jasmine-in-browser-red.png" alt="Jasmine browser-based spec runner showing one failing test, with lots of red.">
 </div>
-<div class="title">Figure 4. Our Jasmine tests are now red</div>
+<div class="title">Figure 5. Our Jasmine tests are now red</div>
 </div>
 <div class="sidebarblock">
 <div class="content">
 <div class="title">Is the Jasmine Standalone Browser Test Runner Unconventional?</div>
 <div class="paragraph">
-<p>I think it probably is, to be honest.
+<p>Is the Jasmine standalone browser test runner unconventional?
+I think it probably is, to be honest.
 Although the JavaScript world moves so fast,
 I could be wrong by the time you read this.</p>
 </div>
@@ -720,10 +869,11 @@ So, look out for that!</p>
 </p>
 </div>
 </div>
+</div>
 <div class="sect2">
 <h3 id="_testing_with_some_dom_content">Testing with some DOM content</h3>
 <div class="paragraph">
-<p>What do we want to test?
+<p>What do we <em>actually</em> want to test?
 We want some JavaScript that will hide the <code>.invalid-feedback</code> error div,
 when the user starts typing into the input box.</p>
 </div>
@@ -741,11 +891,11 @@ for our tests and our code to interact with.</p>
 <div class="listingblock">
 <div class="content">
 <pre class="pygments highlight"><code data-lang="javascript"><span></span><span class="tok-nx">describe</span><span class="tok-p">(</span><span class="tok-s2">"Superlists tests"</span><span class="tok-p">,</span><span class="tok-w"> </span><span class="tok-p">()</span><span class="tok-w"> </span><span class="tok-p">=&gt;</span><span class="tok-w"> </span><span class="tok-p">{</span>
-<span class="tok-w">  </span><span class="tok-kd">let</span><span class="tok-w"> </span><span class="tok-nx">testDiv</span><span class="tok-p">;</span><span class="tok-w">  </span><i class="conum" data-value="3"></i><b>(3)</b>
+<span class="tok-w">  </span><span class="tok-kd">let</span><span class="tok-w"> </span><span class="tok-nx">testDiv</span><span class="tok-p">;</span><span class="tok-w">  </span><i class="conum" data-value="4"></i><b>(4)</b>
 
 <span class="tok-w">  </span><span class="tok-nx">beforeEach</span><span class="tok-p">(()</span><span class="tok-w"> </span><span class="tok-p">=&gt;</span><span class="tok-w"> </span><span class="tok-p">{</span><span class="tok-w">  </span><i class="conum" data-value="1"></i><b>(1)</b>
-<span class="tok-w">    </span><span class="tok-nx">testDiv</span><span class="tok-w"> </span><span class="tok-o">=</span><span class="tok-w"> </span><span class="tok-nb">document</span><span class="tok-p">.</span><span class="tok-nx">createElement</span><span class="tok-p">(</span><span class="tok-s2">"div"</span><span class="tok-p">);</span>
-<span class="tok-w">    </span><span class="tok-nx">testDiv</span><span class="tok-p">.</span><span class="tok-nx">innerHTML</span><span class="tok-w"> </span><span class="tok-o">=</span><span class="tok-w"> </span><span class="tok-sb">`  </span><i class="conum" data-value="2"></i><b>(2)</b>
+<span class="tok-w">    </span><span class="tok-nx">testDiv</span><span class="tok-w"> </span><span class="tok-o">=</span><span class="tok-w"> </span><span class="tok-nb">document</span><span class="tok-p">.</span><span class="tok-nx">createElement</span><span class="tok-p">(</span><span class="tok-s2">"div"</span><span class="tok-p">);</span><span class="tok-w">  </span><i class="conum" data-value="2"></i><b>(2)</b>
+<span class="tok-w">    </span><span class="tok-nx">testDiv</span><span class="tok-p">.</span><span class="tok-nx">innerHTML</span><span class="tok-w"> </span><span class="tok-o">=</span><span class="tok-w"> </span><span class="tok-sb">`  </span><i class="conum" data-value="3"></i><b>(3)</b>
 <span class="tok-sb">      &lt;form&gt;</span>
 <span class="tok-sb">        &lt;input</span>
 <span class="tok-sb">          id="id_text"</span>
@@ -777,13 +927,19 @@ for our tests and our code to interact with.</p>
 </tr>
 <tr>
 <td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>The <code>document</code> global is a builtin browser variable
+that represents the current HTML page.
+So in our case, it&#8217;s a reference to the <em>SpecRunner.html</em> page.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="3"></i><b>3</b></td>
 <td>We create a new div element, and populate it with some HTML that matches
 the elements we care about from our Django template.
 Notice the use of backticks (<code>`</code>) to allow us to write multi-line strings.
 Depending on your text editor, it may even nicely syntax-highlight the HTML for you.</td>
 </tr>
 <tr>
-<td><i class="conum" data-value="3"></i><b>3</b></td>
+<td><i class="conum" data-value="4"></i><b>4</b></td>
 <td>A little quirk of JavaScript here,
 because we want the same <code>testDiv</code> variable to be available inside both the
 <code>beforeEach</code> and <code>afterEach</code> functions, we declare the variable with this <code>let</code>
@@ -792,10 +948,24 @@ in the containing scope outside of both of them.</td>
 </table>
 </div>
 <div class="paragraph">
-<p>In theory, we could just add the HTML to the <code>SpecRunner.html</code> file,
+<p>In theory, we could have just added the HTML to the <code>SpecRunner.html</code> file,
 but by using <code>beforeEach</code> and <code>afterEach</code>,
 I&#8217;m making sure that each test gets a completely fresh copy of the html elements involved,
 so that one test can&#8217;t affect another.</p>
+</div>
+<div class="admonitionblock tip">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-tip" title="Tip"></i>
+</td>
+<td class="content">
+To ensure isolation between browser-based JavaScript tests,
+      use <code>beforeEach()</code> and <code>afterEach()</code> to create and tidy up any DOM elements
+      that your code needs to interact with.
+</td>
+</tr>
+</table>
 </div>
 <div class="paragraph">
 <p>Let&#8217;s now have a play with our testing framework,
@@ -827,12 +997,16 @@ that we originally used in our spiked code.</p>
 <tr>
 <td><i class="conum" data-value="1"></i><b>1</b></td>
 <td>We retrieve our error div with <code>querySelector</code> again,
-and then use another fairly new API in JavaScript-Land called <code>checkVisibility()</code>.</td>
+    and then use another fairly new API in JavaScript-Land called <code>checkVisibility()</code>
+    to check if it&#8217;s displayed or hidden.<sup class="footnote">[<a id="_footnoteref_2" class="footnote" href="#_footnotedef_2" title="View footnote.">2</a>]</sup></td>
 </tr>
 <tr>
 <td><i class="conum" data-value="2"></i><b>2</b></td>
-<td>We manually hide the element in the test,
-by setting its <code>style.display</code> to "none".</td>
+<td>We <em>manually</em> hide the element in the test,
+by setting its <code>style.display</code> to "none".
+(Again, our objective here is to smoke-test,
+both our ability to hide things,
+and our ability to test that they are hidden.)</td>
 </tr>
 <tr>
 <td><i class="conum" data-value="3"></i><b>3</b></td>
@@ -875,7 +1049,7 @@ to avoid filling the chapter with screenshots.)</p>
 <p>
 
 Now that we&#8217;re acquainted with our JavaScript testing tools,
-we can switch back to just one test and start to write the real thing:</p>
+we can start to write the real thing:</p>
 </div>
 <div class="exampleblock sourcecode small-code">
 <div class="title">src/lists/static/tests/Spec.js (ch16l012)</div>
@@ -979,18 +1153,16 @@ Expected true to be false.
 &lt;Jasmine&gt;</pre>
 </div>
 </div>
-<div class="admonitionblock note">
-<table>
-<tr>
-<td class="icon">
-<i class="fa icon-note" title="Note"></i>
-</td>
-<td class="content">
-If your Jasmine output shows <code>Script error</code> instead of <code>textInput is null</code>,
-    open up the dev tools console, and you&#8217;ll see the actual error printed in there.
-</td>
-</tr>
-</table>
+<div class="paragraph">
+<p>If your Jasmine output shows <code>Script error</code> instead of <code>textInput is null</code>,
+open up the dev tools console, and you&#8217;ll see the actual error printed in there,
+as in <a href="#typeerror-in-devools">textInput is null, one way or another</a>.<sup class="footnote">[<a id="_footnoteref_3" class="footnote" href="#_footnotedef_3" title="View footnote.">3</a>]</sup></p>
+</div>
+<div id="typeerror-in-devools" class="imageblock">
+<div class="content">
+<img src="images/typeerror_in_devools.png" alt="Screenshot of devtools console showing the textInput is null TypeError">
+</div>
+<div class="title">Figure 6. textInput is null, one way or another</div>
 </div>
 <div class="paragraph">
 <p><code>textInput is null</code> it says.   Let&#8217;s see if we can figure out why.</p>
@@ -1002,19 +1174,19 @@ If your Jasmine output shows <code>Script error</code> instead of <code>textInpu
 <p>
 
 
-</p>
-</div>
-<div class="paragraph">
-<p>One of the difficulties with JavaScript in general, and testing in particular,
+
+One of the difficulties with JavaScript in general, and testing in particular,
 is in understanding the order of execution of our code (i.e., what happens when).
-When does our code in <em>lists.js</em> run, and when does each of our tests run?  And
-how does that interact with global state, that is, the DOM of our web page,
+When does our code in <em>lists.js</em> run, and when does each of our tests run?
+And how does that interact with global state, that is, the DOM of our web page,
 and the fixtures that we&#8217;ve already seen are supposed to be cleaned up after each test?</p>
 </div>
 <div class="sect3">
 <h4 id="_console_log_for_debug_printing">console.log for Debug Printing</h4>
 <div class="paragraph">
 <p>
+
+
 Let&#8217;s add a couple of debug prints, or "console.logs":</p>
 </div>
 <div class="exampleblock sourcecode">
@@ -1072,7 +1244,7 @@ and you should see something like <a href="#jasmine-with-js-console">Jasmine tes
 <div class="content">
 <img src="images/jasmine-console-logs.png" alt="Jasmine tests with console.log debug outputs">
 </div>
-<div class="title">Figure 5. Jasmine tests with console.log debug outputs</div>
+<div class="title">Figure 7. Jasmine tests with console.log debug outputs</div>
 </div>
 <div class="paragraph">
 <p>What do we see?</p>
@@ -1097,7 +1269,7 @@ and you should see something like <a href="#jasmine-with-js-console">Jasmine tes
 </ul>
 </div>
 <div class="paragraph">
-<p>This explains the problem - when <em>lists.js</em> loads,
+<p>This explains the problem: when <em>lists.js</em> loads,
 the input node doesn&#8217;t exist yet.</p>
 </div>
 </div>
@@ -1180,16 +1352,17 @@ Superlists tests
 </div>
 </div>
 <div class="paragraph">
-<p>And now the <code>console.log</code> outputs should make more sense:</p>
+<p>And now the <code>console.log</code> outputs should be in a more sensible order:</p>
 </div>
 <div class="listingblock skipme">
 <div class="content">
-<pre>lists.js loading    lists.js:1:9
-Spec.js loading     Spec.js:1:9
-beforeEach          Spec.js:7:13
-in test 2           Spec.js:37:13
-initialize called   lists.js:3:11
-[...]</pre>
+<pre>lists.js loading            lists.js:1:9
+Spec.js loading             Spec.js:1:9
+beforeEach                  Spec.js:7:13
+in test 1                   Spec.js:31:13
+beforeEach                  Spec.js:7:13
+in test 2                   Spec.js:37:13
+initialize called           lists.js:3:11</pre>
 </div>
 </div>
 </div>
@@ -1198,10 +1371,11 @@ initialize called   lists.js:3:11
 <div class="paragraph">
 <p>I&#8217;m always nervous when I see green tests.
 We&#8217;ve copy-pasted five lines of code from our spike with just one test.
-That was a little too easy, even despite that little <code>initialize()</code> dance.</p>
+That was a little too easy,
+even if we did have to go through that little <code>initialize()</code> dance.</p>
 </div>
 <div class="paragraph">
-<p>Let&#8217;s change our <code>initialize()</code> function to deliberately break it.
+<p>So let&#8217;s change our <code>initialize()</code> function to deliberately break it.
 What if we just immediately hide errors?</p>
 </div>
 <div class="exampleblock sourcecode">
@@ -1221,7 +1395,7 @@ What if we just immediately hide errors?</p>
 </div>
 </div>
 <div class="paragraph">
-<p>Oh dear, sure enough the tests just pass:</p>
+<p>Oh dear, as I feared, the tests just pass:</p>
 </div>
 <div class="listingblock jasmine-output">
 <div class="content">
@@ -1636,8 +1810,21 @@ We&#8217;re using <code>&lt;script&gt;</code> tag to import our code,
 still left around our input box.</p>
 </div>
 <div class="paragraph">
-<p>Wait a minute!  We forgot one of the key things we learned in our spike!
-We don&#8217;t need to manually hack <code>style.display=none</code>,
+<p>Wait a minute!  We forgot one of the key things we learned in our spike!</p>
+</div>
+<div class="sidebarblock scratchpad">
+<div class="content">
+<div class="ulist">
+<ul>
+<li>
+<p>Remove <code>is-invalid</code> bootstrap css class to hide error message &amp; red border</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>We don&#8217;t need to manually hack <code>style.display=none</code>,
 we can work <em>with</em> the Bootstrap framework,
 and just remove the <code>.is-invalid</code> class.</p>
 </div>
@@ -1679,7 +1866,8 @@ Expected true to be false.
 <p>What&#8217;s happening here?</p>
 </div>
 <div class="paragraph">
-<p>Well, as hinted in the section title, we&#8217;re now relying on the integration with Bootstrap&#8217;s CSS,
+<p>Well, as hinted in the section title,
+we&#8217;re now relying on the integration with Bootstrap&#8217;s CSS,
 and our test runner doesn&#8217;t know about Bootstrap yet.</p>
 </div>
 <div class="paragraph">
@@ -1744,7 +1932,9 @@ you might have seen a warning saying:</p>
 </div>
 </div>
 <div class="paragraph">
-<p>Enjoy the way the tests keep passing even though we&#8217;re giving the function too many arguments?
+<p>Are you enjoying the way the tests keep passing
+even though we&#8217;re giving the function too many arguments?
+JavaScript is so chill, man.
 Let&#8217;s strip them down anyway:</p>
 </div>
 <div class="exampleblock sourcecode">
@@ -1774,7 +1964,8 @@ Let&#8217;s strip them down anyway:</p>
 </div>
 </div>
 <div class="paragraph">
-<p>And the base template, yay.  Nothing more satisfying than <em>deleting code</em>:</p>
+<p>And the base template, yay.
+Nothing more satisfying than <em>deleting code</em>:</p>
 </div>
 <div class="exampleblock sourcecode">
 <div class="title">src/lists/templates/base.html (ch16l033)</div>
@@ -1791,6 +1982,11 @@ Let&#8217;s strip them down anyway:</p>
 <div class="paragraph">
 <p>And we can run the FT one more time, just for safety.</p>
 </div>
+<div class="listingblock">
+<div class="content">
+<pre>OK</pre>
+</div>
+</div>
 </div>
 <div class="sect2">
 <h3 id="columbo-onload">Columbo Says: wait for Onload</h3>
@@ -1801,13 +1997,13 @@ Let&#8217;s strip them down anyway:</p>
 </div>
 </blockquote>
 <div class="attribution">
-&#8212; Columbo<br>
-<cite>fictional American detective</cite>
+&#8212; Columbo (fictional trenchcoat-wearing American detective known for his persistence)
 </div>
 </div>
 <div class="paragraph">
-<p>Finally, whenever you have some JavaScript that interacts with the DOM,
-it&#8217;s always good to wrap it in some "onload" boilerplate
+<p>As always, there&#8217;s one final thing.
+Whenever you have some JavaScript that interacts with the DOM,
+it&#8217;s good to wrap it in some "onload" boilerplate
 to make sure that the page has fully loaded before it tries to do anything.
 Currently it works anyway,
 because we&#8217;ve placed the <code>&lt;script&gt;</code> tag right at the bottom of the page,
@@ -1833,14 +2029,35 @@ but we shouldn&#8217;t rely on that.</p>
 </div>
 </div>
 </div>
+<div class="paragraph">
+<p>That&#8217;s a commit folks!</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>git status</strong>
+$ <strong>git add src/lists/static</strong>  # all our js and tests
+$ <strong>git add src/lists/templates</strong>  # changes to the base template
+$ <strong>git commit -m"Javascript to hide error messages on input"</strong></pre>
+</div>
+</div>
 </div>
 <div class="sect2">
 <h3 id="_javascript_testing_in_the_tdd_cycle">JavaScript Testing in the TDD Cycle</h3>
 <div class="paragraph">
 <p>
 
-You may be wondering how these JavaScript tests fit in with our "double loop" TDD cycle.
-The answer is that they play exactly the same role as our Python unit tests.</p>
+You may be wondering how these JavaScript tests fit in with our "double loop" TDD cycle,
+<a href="#double-loop-tdd-ch17">Double-loop TDD reminder</a>.</p>
+</div>
+<div id="double-loop-tdd-ch17" class="imageblock">
+<div class="content">
+<img src="images/double-loop-tdd-simpler.png" alt="Diagram showing an inner loop of red/green/refactor, and an outer loop of red-(inner loop)-green.">
+</div>
+<div class="title">Figure 8. Double-loop TDD reminder</div>
+</div>
+<div class="paragraph">
+<p>The answer is that the Javascript unit test/code cycle
+plays exactly the same role as the Python unit one.</p>
 </div>
 <div class="olist arabic">
 <ol class="arabic">
@@ -1862,13 +2079,12 @@ The answer is that they play exactly the same role as our Python unit tests.</p>
 </ol>
 </div>
 <div class="paragraph">
-<p>We&#8217;re almost ready to move on to <a href="/book/part3.forbook.html">[part3]</a>.  The last step is to deploy our
-new code to our servers.
-Don&#8217;t forget to do a final commit including <em>base.html</em> first!</p>
+<p>Phew. Well, hopefully some sense of closure there.
+The next step is to deploy our new code to our servers.</p>
 </div>
 <div class="paragraph">
 <p>There is more JavaScript fun in this book too!
-Have a look at the <a href="/book/appendix_rest_api.html">Rest API appendix</a>
+Have a look at the <a href="/book/appendix_rest_api.html">[appendix_rest_api]</a>
 when you&#8217;re ready for it.
 </p>
 </div>
@@ -1879,9 +2095,11 @@ when you&#8217;re ready for it.
 <i class="fa icon-note" title="Note"></i>
 </td>
 <td class="content">
-Want a little more practice with JavaScript?  See if you can get our
-    error messages to be hidden when the user clicks inside the input element,
-    as well as just when they type in it.  You should be able to FT it too.
+Want a little more practice with JS?
+    See if you can get our error messages to be hidden
+    when the user clicks inside the input element,
+    as well as just when they type in it.
+    You should be able to FT it too, if you want a bit of extra Selenium practice.
 </td>
 </tr>
 </table>
@@ -1943,10 +2161,16 @@ so I&#8217;ll let you go out and find them if you need them.</p>
 <div class="footnote" id="_footnotedef_1">
 <a href="#_footnoteref_1">1</a>. This chapter shows a very small spike. We&#8217;ll come back and look at the spiking process again, with a weightier Python/Django example, in <a href="/book/chapter_19_spiking_custom_auth.html">[chapter_19_spiking_custom_auth]</a> .
 </div>
+<div class="footnote" id="_footnotedef_2">
+<a href="#_footnoteref_2">2</a>. Read up on <code>checkVisibility()</code> at <a href="https://developer.mozilla.org/en-US/docs/Web/API/Element/checkVisibility" class="bare">https://developer.mozilla.org/en-US/docs/Web/API/Element/checkVisibility</a>
+</div>
+<div class="footnote" id="_footnotedef_3">
+<a href="#_footnoteref_3">3</a>. Some users have also reported that Google Chrome will show a different error, to do with the browser preventing loading local files. If you really can&#8217;t use Firefox, you might be able to find some solutions here: <a href="https://stackoverflow.com/questions/20748630/load-local-javascript-file-in-chrome-for-testing" class="bare">https://stackoverflow.com/questions/20748630/load-local-javascript-file-in-chrome-for-testing</a>
+</div>
 </div>
 <div id="footer">
 <div id="footer-text">
-License: Creative Commons <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode">CC-BY-NC-ND</a>. Last updated: 2025-02-18 22:32:16 UTC
+License: Creative Commons <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode">CC-BY-NC-ND</a>. Last updated: 2025-05-25 22:55:00 +0100
 </div>
 </div>
 <div class="comments" style="padding: 20px">

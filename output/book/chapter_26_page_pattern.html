@@ -355,11 +355,11 @@ example&#8212;&#8203;you have a single place to go to adjust your functional
 tests, rather than having to dig through dozens of FTs.</p>
 </div>
 <div class="paragraph">
-<p>The
-next step would be to pursue the FT refactor through our other tests. I&#8217;m
-not going to show that here, but it&#8217;s something you could do, for practice,
-to get a feel for what the trade-offs between DRY and test readability
-are like&#8230;&#8203;</p>
+<p>The next step would be to pursue the FT refactor through our other tests.
+I&#8217;m not going to show that here, but it&#8217;s something you could do for practice,
+to get a feel for what the trade-offs between DRY and test readability are like&#8230;&#8203;
+
+</p>
 </div>
 </div>
 <div class="sect2">
@@ -422,8 +422,8 @@ maybe in a section called "lists shared with me":</p>
 </div>
 </div>
 <div class="paragraph">
-<p>Once again, this is a function that would be good to carry across into
-<em>test_my_lists.py</em>, along with maybe a <code>MyListsPage</code> object.</p>
+<p>Once again, this is a function that would be good to carry across
+into <em>test_my_lists.py</em>, along with maybe a <code>MyListsPage</code> object.</p>
 </div>
 <div class="paragraph">
 <p>In the meantime, Onesiphorus can also add things to the list:</p>
@@ -505,8 +505,9 @@ $ <strong>git commit -m "Create Page objects for list pages, use in sharing FT"<
 <div class="quoteblock">
 <blockquote>
 <div class="paragraph">
-<p>I probably didn&#8217;t really understand what I was doing until after having
-completed the "Exercise for the reader" in <a href="#chapter_26_page_pattern">The Token Social Bit, the Page Pattern, and an Exercise for the Reader</a>.</p>
+<p>I probably didn&#8217;t <em>really</em> understand what I was doing
+until after having completed the "Exercise for the reader"
+in the Page Pattern chapter.</p>
 </div>
 </blockquote>
 <div class="attribution">
@@ -514,50 +515,64 @@ completed the "Exercise for the reader" in <a href="#chapter_26_page_pattern">Th
 </div>
 </div>
 <div class="paragraph">
-<p>There&#8217;s
-nothing that cements learning like taking the training wheels off,
+<p>
+There&#8217;s nothing that cements learning like taking the training wheels off,
 and getting something working on your own, so I hope you&#8217;ll give this a go.</p>
 </div>
 <div class="paragraph">
-<p>Here&#8217;s an outline of the steps you could take:</p>
+<p>By this point in the book, you should have all the elements you need
+to test-drive this new feature, from the outside in.
+The FT is there to guide you, and this feature should take you down
+into both the views and the models layers.
+So, give it a go!</p>
+</div>
+<div class="sect3">
+<h4 id="_step_by_step_guide">Step-by-step Guide</h4>
+<div class="paragraph">
+<p>If you&#8217;d like a bit more help, here&#8217;s an outline of the steps you could take:</p>
 </div>
 <div class="olist arabic">
 <ol class="arabic">
 <li>
-<p>We&#8217;ll need a new section in <em>list.html</em>, with, at first, a form with an
-input box for an email address.  That should get the FT one step further.</p>
+<p>We&#8217;ll need a new section in <em>list.html</em>, with, at first,
+a form with an input box for an email address.
+That should get the FT one step further.</p>
 </li>
 <li>
-<p>Next, we&#8217;ll need a view for the form to submit to. Start by defining the
-URL in the template, maybe something like <em>lists/&lt;list_id&gt;/share</em>.</p>
+<p>Next, we&#8217;ll need a view for the form to submit to.
+Start by defining the URL in the template,
+maybe something like <em>lists/&lt;list_id&gt;/share</em>.</p>
 </li>
 <li>
-<p>Then, our first unit test. It can be just enough to get a placeholder view
-in. We want the view to respond to POST requests, and it should respond with
-a redirect back to the list page, so the test could be called something like
+<p>Then, our first unit test.
+It can be just enough to get a placeholder view in.
+We want the view to respond to POST requests,
+and it should respond with a redirect back to the list page,
+so the test could be called something like
 <code>ShareListTest.test_post_redirects_to_lists_page</code>.</p>
 </li>
 <li>
-<p>We build out our placeholder view, as just a two-liner that finds a list and
-redirects to it.</p>
+<p>We build out our placeholder view, as just a two-liner
+that finds a list and redirects to it.</p>
 </li>
 <li>
 <p>We can then write a new unit test which creates a user and a list,
-does a POST with their email address, and checks that the user is added to
-<code>mylist.shared_with.all()</code> (a similar ORM usage to "My Lists").  That
-<code>shared_with</code> attribute won&#8217;t exist yet; we&#8217;re going outside-in.</p>
+does a POST with their email address,
+and checks that the user is added to <code>mylist.shared_with.all()</code>
+(a similar ORM usage to "My Lists").
+That <code>shared_with</code> attribute won&#8217;t exist yet; we&#8217;re going outside-in.</p>
 </li>
 <li>
-<p>So before we can get this test to pass, we have to move down to the model
-layer.  The next test, in <em>test_models.py</em>, can check that a list has a
-<code>shared_with.add</code> method, which can be called with a user&#8217;s email address and
-then check the lists' <code>shared_with.all()</code> queryset, which will subsequently
-contain that user.</p>
+<p>So before we can get this test to pass, we have to move down to the model layer.
+The next test, in <em>test_models.py</em>, can check that a list has a <code>shared_with.add</code> method,
+which can be called with a user&#8217;s email address
+and then check the lists' <code>shared_with.all()</code> queryset,
+which will subsequently contain that user.</p>
 </li>
 <li>
-<p>You&#8217;ll then need a <code>ManyToManyField</code>.  You&#8217;ll probably see an error message
-about a clashing <code>related_name</code>, which you&#8217;ll find a solution to if you look
-around the Django docs.</p>
+<p>You&#8217;ll then need a <code>ManyToManyField</code>.
+You&#8217;ll probably see an error message about a clashing <code>related_name</code>,
+which you&#8217;ll find a solution to if you look around the Django docs.</p>
 </li>
 <li>
 <p>It will need a database migration.</p>
@@ -566,23 +581,24 @@ around the Django docs.</p>
 <p>That should get the model tests passing. Pop back up to fix the view test.</p>
 </li>
 <li>
-<p>You may find the redirect view test fails, because it&#8217;s not sending a valid
-POST request.  You can either choose to ignore invalid inputs, or adjust the
-test to send a valid POST.</p>
+<p>You may find the redirect view test fails,
+because it&#8217;s not sending a valid POST request.
+You can either choose to ignore invalid inputs,
+or adjust the test to send a valid POST.</p>
 </li>
 <li>
-<p>Then back up to the template level; on the "My Lists" page we&#8217;ll want a
-<code>&lt;ul&gt;</code> with a <code>for</code> loop of the lists shared with the user. On the lists
-page, we also want to show who the list is shared with, as well as
-mention of who the list owner is. Look back at the FT for the correct classes
-and IDs to use. You could have brief unit tests for each of these if you
-like, as well.</p>
+<p>Then back up to the template level; on the "My Lists" page we&#8217;ll want a <code>&lt;ul&gt;</code>
+with a <code>for</code> loop of the lists shared with the user.
+On the lists page, we also want to show who the list is shared with,
+as well as mention of who the list owner is.
+Look back at the FT for the correct classes and IDs to use.
+You could have brief unit tests for each of these if you like, as well.</p>
 </li>
 <li>
-<p>You might find that spinning up the site with <code>runserver</code> will help you
-iron out any bugs, as well as fine-tune the layout and aesthetics.
-If you use a private browser session, you&#8217;ll be able to log multiple users
-in.</p>
+<p>You might find that spinning up the site with <code>runserver</code>
+will help you iron out any bugs,
+as well as fine-tune the layout and aesthetics.
+If you use a private browser session, you&#8217;ll be able to log multiple users in.</p>
 </li>
 </ol>
 </div>
@@ -592,7 +608,7 @@ in.</p>
 </div>
 <div id="list-sharing-example" class="imageblock">
 <div class="content">
-<img src="images/twp2_2501.png" alt="Screenshot of list sharing UI">
+<img src="images/list_with_sharing_options.png" alt="Screenshot of list sharing UI">
 </div>
 <div class="title">Figure 1. Sharing lists</div>
 </div>
@@ -633,7 +649,9 @@ I hope you&#8217;ll enjoy it!
 </div>
 </div>
 <div class="paragraph">
-<p>In the next chapter, we&#8217;ll wrap up with a discussion of testing "best practices."</p>
+<p>In the next chapter, we&#8217;ll wrap up with a discussion of tradeoffs in testing,
+and some of the considerations involved in choosing which kinds of test to use, when.</p>
+</div>
 </div>
 </div>
 </div>
@@ -641,7 +659,7 @@ I hope you&#8217;ll enjoy it!
 </div>
 <div id="footer">
 <div id="footer-text">
-License: Creative Commons <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode">CC-BY-NC-ND</a>. Last updated: 2025-02-18 23:47:21 UTC
+License: Creative Commons <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode">CC-BY-NC-ND</a>. Last updated: 2025-04-25 10:16:50 +0100
 </div>
 </div>
 <div class="comments" style="padding: 20px">

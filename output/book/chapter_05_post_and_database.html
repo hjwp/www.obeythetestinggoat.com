@@ -130,11 +130,149 @@ with <code>method="POST"</code>.</p>
 </li>
 </ol>
 </div>
+</div>
+<div class="sect2">
+<h3 id="_testing_the_contract_between_frontend_and_backend">Testing the Contract Between Frontend and Backend</h3>
+<div class="paragraph">
+<p>If you remember in the last chapter, we said we wanted to come back
+and revisit the "smoke test" of our homepage template content.
+Let&#8217;s have a quick look at our unit tests:</p>
+</div>
+<div class="exampleblock sourcecode currentcontents">
+<div class="title">lists/tests.py</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-k">class</span> <span class="tok-nc">HomePageTest</span><span class="tok-p">(</span><span class="tok-n">TestCase</span><span class="tok-p">):</span>
+    <span class="tok-k">def</span> <span class="tok-nf">test_uses_home_template</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">):</span>
+        <span class="tok-n">response</span> <span class="tok-o">=</span> <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">client</span><span class="tok-o">.</span><span class="tok-n">get</span><span class="tok-p">(</span><span class="tok-s2">"/"</span><span class="tok-p">)</span>
+        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertTemplateUsed</span><span class="tok-p">(</span><span class="tok-n">response</span><span class="tok-p">,</span> <span class="tok-s2">"home.html"</span><span class="tok-p">)</span>
+
+    <span class="tok-k">def</span> <span class="tok-nf">test_renders_homepage_content</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">):</span>
+        <span class="tok-n">response</span> <span class="tok-o">=</span> <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">client</span><span class="tok-o">.</span><span class="tok-n">get</span><span class="tok-p">(</span><span class="tok-s2">"/"</span><span class="tok-p">)</span>
+        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertContains</span><span class="tok-p">(</span><span class="tok-n">response</span><span class="tok-p">,</span> <span class="tok-s2">"To-Do"</span><span class="tok-p">)</span></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>What&#8217;s <em>important</em> about our homepage content?
+How can we obey both the "don&#8217;t test constants" rule
+and the "test behaviour, not implementation" rule?</p>
+</div>
+<div class="paragraph">
+<p>The specific spelling of the word "To-Do" is not important.
+As we&#8217;ve just seen, the most important <em>behaviour</em> that our homepage is enabling,
+is the ability to submit a to-do item.
+The way we&#8217;re going to deliver that is by adding a <code>&lt;form&gt;</code> tag with <code>method="POST"</code>,
+and inside that, making sure our <code>&lt;input&gt;</code> has a <code>name="item_text"</code>.</p>
+</div>
+<div class="paragraph">
+<p>Our FTs are telling us that it&#8217;s not working at a high level,
+so what unit tests can we write at the lower level?  Let&#8217;s start with the form:</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">lists/tests.py (ch05l001)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-k">class</span> <span class="tok-nc">HomePageTest</span><span class="tok-p">(</span><span class="tok-n">TestCase</span><span class="tok-p">):</span>
+    <span class="tok-k">def</span> <span class="tok-nf">test_uses_home_template</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">):</span>
+        <span class="tok-p">[</span><span class="tok-o">...</span><span class="tok-p">]</span>
+
+    <span class="tok-k">def</span> <span class="tok-nf">test_renders_input_form</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">):</span>  <i class="conum" data-value="1"></i><b>(1)</b>
+        <span class="tok-n">response</span> <span class="tok-o">=</span> <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">client</span><span class="tok-o">.</span><span class="tok-n">get</span><span class="tok-p">(</span><span class="tok-s2">"/"</span><span class="tok-p">)</span>
+        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertContains</span><span class="tok-p">(</span><span class="tok-n">response</span><span class="tok-p">,</span> <span class="tok-s1">'&lt;form method="POST"&gt;'</span><span class="tok-p">)</span>  <i class="conum" data-value="2"></i><b>(2)</b></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>We change the name of the test</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>And we assert on the <code>&lt;form&gt;</code> tag specifically</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>That gives us:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>python manage.py test</strong>
+[...]
+AssertionError: False is not true : Couldn't find '&lt;form method="POST"&gt;' in the
+following response
+b'&lt;html&gt;\n  &lt;head&gt;\n    &lt;title&gt;To-Do lists&lt;/title&gt;\n  &lt;/head&gt;\n  &lt;body&gt;\n
+&lt;h1&gt;Your To-Do list&lt;/h1&gt;\n    &lt;input id="id_new_item" placeholder="Enter a
+to-do item" /&gt;\n    &lt;table id="id_list_table"&gt;\n    &lt;/table&gt;\n
+&lt;/body&gt;\n&lt;/html&gt;\n'</pre>
+</div>
+</div>
 <div class="paragraph">
 <p>Let&#8217;s adjust our template at <em>lists/templates/home.html</em>:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">lists/templates/home.html (ch05l001)</div>
+<div class="title">lists/templates/home.html (ch05l002)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="html"><span></span>    <span class="tok-p">&lt;</span><span class="tok-nt">h1</span><span class="tok-p">&gt;</span>Your To-Do list<span class="tok-p">&lt;/</span><span class="tok-nt">h1</span><span class="tok-p">&gt;</span>
+    <span class="tok-p">&lt;</span><span class="tok-nt">form</span> <span class="tok-na">method</span><span class="tok-o">=</span><span class="tok-s">"POST"</span><span class="tok-p">&gt;</span>
+      <span class="tok-p">&lt;</span><span class="tok-nt">input</span> <span class="tok-na">id</span><span class="tok-o">=</span><span class="tok-s">"id_new_item"</span> <span class="tok-na">placeholder</span><span class="tok-o">=</span><span class="tok-s">"Enter a to-do item"</span> <span class="tok-p">/&gt;</span>
+    <span class="tok-p">&lt;/</span><span class="tok-nt">form</span><span class="tok-p">&gt;</span></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>That gives us passing unit tests:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>OK</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>And next let&#8217;s add a test for the <code>name=</code> attribute on the <code>&lt;input&gt;</code> tag:</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">lists/tests.py (ch05l003)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="python"><span></span>    <span class="tok-k">def</span> <span class="tok-nf">test_renders_input_form</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">):</span>
+        <span class="tok-n">response</span> <span class="tok-o">=</span> <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">client</span><span class="tok-o">.</span><span class="tok-n">get</span><span class="tok-p">(</span><span class="tok-s2">"/"</span><span class="tok-p">)</span>
+        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertContains</span><span class="tok-p">(</span><span class="tok-n">response</span><span class="tok-p">,</span> <span class="tok-s1">'&lt;form method="POST"&gt;'</span><span class="tok-p">)</span>
+        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertContains</span><span class="tok-p">(</span><span class="tok-n">response</span><span class="tok-p">,</span> <span class="tok-s1">'&lt;input name="item_text"'</span><span class="tok-p">)</span></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>That gives us this expected failure:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>[...]
+AssertionError: False is not true : Couldn't find '&lt;input name="item_text"' in
+the following response
+b'&lt;html&gt;\n  &lt;head&gt;\n    &lt;title&gt;To-Do lists&lt;/title&gt;\n  &lt;/head&gt;\n  &lt;body&gt;\n
+&lt;h1&gt;Your To-Do list&lt;/h1&gt;\n    &lt;form method="POST"&gt;\n      &lt;input
+id="id_new_item" placeholder="Enter a to-do item" /&gt;\n    &lt;/form&gt;\n    &lt;table
+id="id_list_table"&gt;\n    &lt;/table&gt;\n  &lt;/body&gt;\n&lt;/html&gt;\n'</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>And we fix it like this:</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">lists/templates/home.html (ch05l004)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
@@ -148,7 +286,24 @@ with <code>method="POST"</code>.</p>
 </div>
 </div>
 <div class="paragraph">
-<p>Now, running our FTs gives us a slightly cryptic, unexpected error:</p>
+<p>That gives us passing unit tests:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>OK</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The lesson here is that we&#8217;ve tried to identify the "contract" between
+the frontend and the backend of our site.  For our HTML form to work,
+it needs the form with the right <code>method</code>, and the input with the right <code>name</code>,
+Everything else is cosmetic. So that&#8217;s what we test for in our unit tests.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_debugging_functional_tests">Debugging functional tests</h3>
+<div class="paragraph">
+<p>Time to go back to our FT. It gives us a slightly cryptic, unexpected error:</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -199,9 +354,6 @@ How do we figure out what&#8217;s going on?</td>
 </tr>
 </table>
 </div>
-</div>
-<div class="sect2">
-<h3 id="_debugging_functional_tests">Debugging functional tests</h3>
 <div class="paragraph">
 <p>
 
@@ -232,12 +384,14 @@ things we can do to debug it:</p>
 but the <code>time.sleep</code> option is the one that leaps to mind with this kind of error in an FT.
 Let&#8217;s try it now.</p>
 </div>
+<div class="sect3">
+<h4 id="_debugging_with_time_sleep">Debugging with time.sleep</h4>
 <div class="paragraph">
 <p>Conveniently, we&#8217;ve already got a sleep just before the error occurs;
 let&#8217;s just extend it a little:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">functional_tests.py (ch05l003)</div>
+<div class="title">functional_tests.py (ch05l005)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
@@ -311,7 +465,7 @@ which has the curly-bracket/percent syntax,
 combination:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">lists/templates/home.html (ch05l004)</div>
+<div class="title">lists/templates/home.html (ch05l006)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
@@ -349,7 +503,7 @@ ignores it and displays the normal home page.</p>
 We can put our normal short <code>time.sleep</code> back now though:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">functional_tests.py (ch05l005)</div>
+<div class="title">functional_tests.py (ch05l007)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
@@ -358,6 +512,7 @@ We can put our normal short <code>time.sleep</code> back now though:</p>
     <span class="tok-n">time</span><span class="tok-o">.</span><span class="tok-n">sleep</span><span class="tok-p">(</span><span class="tok-mi">1</span><span class="tok-p">)</span>
 
     <span class="tok-n">table</span> <span class="tok-o">=</span> <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">browser</span><span class="tok-o">.</span><span class="tok-n">find_element</span><span class="tok-p">(</span><span class="tok-n">By</span><span class="tok-o">.</span><span class="tok-n">ID</span><span class="tok-p">,</span> <span class="tok-s2">"id_list_table"</span><span class="tok-p">)</span></code></pre>
+</div>
 </div>
 </div>
 </div>
@@ -379,27 +534,44 @@ That&#8217;s fine for now, let&#8217;s adapt the view to be able to deal with a 
 Open up <em>lists/tests.py</em>, and add a new method to <code>HomePageTest</code>:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">lists/tests.py (ch05l006)</div>
+<div class="title">lists/tests.py (ch05l008)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
 <pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-k">class</span> <span class="tok-nc">HomePageTest</span><span class="tok-p">(</span><span class="tok-n">TestCase</span><span class="tok-p">):</span>
     <span class="tok-k">def</span> <span class="tok-nf">test_uses_home_template</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">):</span>
+        <span class="tok-p">[</span><span class="tok-o">...</span><span class="tok-p">]</span>
+    <span class="tok-k">def</span> <span class="tok-nf">test_renders_input_form</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">):</span>
         <span class="tok-n">response</span> <span class="tok-o">=</span> <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">client</span><span class="tok-o">.</span><span class="tok-n">get</span><span class="tok-p">(</span><span class="tok-s2">"/"</span><span class="tok-p">)</span>
-        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertTemplateUsed</span><span class="tok-p">(</span><span class="tok-n">response</span><span class="tok-p">,</span> <span class="tok-s2">"home.html"</span><span class="tok-p">)</span>
+        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertContains</span><span class="tok-p">(</span><span class="tok-n">response</span><span class="tok-p">,</span> <span class="tok-s1">'&lt;form method="POST"&gt;'</span><span class="tok-p">)</span>
+        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertContains</span><span class="tok-p">(</span><span class="tok-n">response</span><span class="tok-p">,</span> <span class="tok-s1">'&lt;input name="item_text"'</span><span class="tok-p">)</span>  <i class="conum" data-value="2"></i><b>(2)</b>
 
     <span class="tok-k">def</span> <span class="tok-nf">test_can_save_a_POST_request</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">):</span>
-        <span class="tok-n">response</span> <span class="tok-o">=</span> <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">client</span><span class="tok-o">.</span><span class="tok-n">post</span><span class="tok-p">(</span><span class="tok-s2">"/"</span><span class="tok-p">,</span> <span class="tok-n">data</span><span class="tok-o">=</span><span class="tok-p">{</span><span class="tok-s2">"item_text"</span><span class="tok-p">:</span> <span class="tok-s2">"A new list item"</span><span class="tok-p">})</span>
-        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertContains</span><span class="tok-p">(</span><span class="tok-n">response</span><span class="tok-p">,</span> <span class="tok-s2">"A new list item"</span><span class="tok-p">)</span></code></pre>
+        <span class="tok-n">response</span> <span class="tok-o">=</span> <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">client</span><span class="tok-o">.</span><span class="tok-n">post</span><span class="tok-p">(</span><span class="tok-s2">"/"</span><span class="tok-p">,</span> <span class="tok-n">data</span><span class="tok-o">=</span><span class="tok-p">{</span><span class="tok-s2">"item_text"</span><span class="tok-p">:</span> <span class="tok-s2">"A new list item"</span><span class="tok-p">})</span>  <i class="conum" data-value="1"></i><b>(1)</b> <i class="conum" data-value="2"></i><b>(2)</b>
+        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertContains</span><span class="tok-p">(</span><span class="tok-n">response</span><span class="tok-p">,</span> <span class="tok-s2">"A new list item"</span><span class="tok-p">)</span>  <i class="conum" data-value="3"></i><b>(3)</b></code></pre>
 </div>
 </div>
 </div>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>To do a POST, we call <code>self.client.post</code>, and as you can see it takes
+a <code>data</code> argument which contains the form data we want to send.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>Notice the echo of the <code>item_text</code> name from earlier.<sup class="footnote">[<a id="_footnoteref_4" class="footnote" href="#_footnotedef_4" title="View footnote.">4</a>]</sup></td>
+</tr>
+<tr>
+<td><i class="conum" data-value="3"></i><b>3</b></td>
+<td>Then we check that the text from our POST request ends up in the rendered HTML.</td>
+</tr>
+</table>
 </div>
 <div class="paragraph">
-<p>To do a POST, we call <code>self.client.post</code>, and as you can see it takes
-a <code>data</code> argument which contains the form data we want to send.
-Then we check that the text from our POST request ends up in the rendered HTML.
-That gives us our expected fail:</p>
+<p>That gives us our expected fail:</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -418,11 +590,12 @@ value="[...]
 <div class="paragraph">
 <p>In (slightly exaggerated) TDD style,
 we can single-mindedly do "the simplest thing that could possibly work"
-to address this test failure, which is to add an <code>if</code> and a new code path for POST requests,
+to address this test failure,
+which is to add an <code>if</code> and a new code path for POST requests,
 with a deliberately silly return value:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">lists/views.py (ch05l007)</div>
+<div class="title">lists/views.py (ch05l009)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
@@ -431,19 +604,58 @@ with a deliberately silly return value:</p>
 
 
 <span class="tok-k">def</span> <span class="tok-nf">home_page</span><span class="tok-p">(</span><span class="tok-n">request</span><span class="tok-p">):</span>
-    <span class="tok-k">if</span> <span class="tok-n">request</span><span class="tok-o">.</span><span class="tok-n">method</span> <span class="tok-o">==</span> <span class="tok-s2">"POST"</span><span class="tok-p">:</span>
-        <span class="tok-k">return</span> <span class="tok-n">HttpResponse</span><span class="tok-p">(</span><span class="tok-s2">"You submitted: "</span> <span class="tok-o">+</span> <span class="tok-n">request</span><span class="tok-o">.</span><span class="tok-n">POST</span><span class="tok-p">[</span><span class="tok-s2">"item_text"</span><span class="tok-p">])</span>
+    <span class="tok-k">if</span> <span class="tok-n">request</span><span class="tok-o">.</span><span class="tok-n">method</span> <span class="tok-o">==</span> <span class="tok-s2">"POST"</span><span class="tok-p">:</span>  <i class="conum" data-value="1"></i><b>(1)</b>
+        <span class="tok-k">return</span> <span class="tok-n">HttpResponse</span><span class="tok-p">(</span><span class="tok-s2">"You submitted: "</span> <span class="tok-o">+</span> <span class="tok-n">request</span><span class="tok-o">.</span><span class="tok-n">POST</span><span class="tok-p">[</span><span class="tok-s2">"item_text"</span><span class="tok-p">])</span>  <i class="conum" data-value="2"></i><b>(2)</b>
     <span class="tok-k">return</span> <span class="tok-n">render</span><span class="tok-p">(</span><span class="tok-n">request</span><span class="tok-p">,</span> <span class="tok-s2">"home.html"</span><span class="tok-p">)</span></code></pre>
 </div>
 </div>
 </div>
 </div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td><code>request.method</code> lets us check whether we got a POST or a GET request</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td><code>request.POST</code> is a dictionary-like object containing the form data
+(in this case, the <code>item_text</code> value we expect from the form <code>input</code> tag).</td>
+</tr>
+</table>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>OK</pre>
+</div>
+</div>
 <div class="paragraph">
-<p>OK that gets our unit tests passing, but it&#8217;s not really what we want.<sup class="footnote">[<a id="_footnoteref_4" class="footnote" href="#_footnotedef_4" title="View footnote.">4</a>]</sup></p>
+<p>Fine, that gets our unit tests passing, but it&#8217;s not really what we want.<sup class="footnote">[<a id="_footnoteref_5" class="footnote" href="#_footnotedef_5" title="View footnote.">5</a>]</sup></p>
+</div>
+<div class="paragraph">
+<p>And even if we were genuinely hoping this was the right solution,
+our FTs are here to remind us that this isn&#8217;t how things are supposed to work:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>selenium.common.exceptions.NoSuchElementException: Message: Unable to locate
+element: [id="id_list_table"]; [...]</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The list table disappears after the form submission.
+If you didn&#8217;t see it in the FT run, try it manually with <code>runserver</code>,
+you&#8217;ll see something like <a href="#table_gone_screenshot">I see my item text but no table&#8230;&#8203;</a>.</p>
+</div>
+<div id="table_gone_screenshot" class="paragraph">
+<div class="title">I see my item text but no table&#8230;&#8203;</div>
+<p><span class="image"><img src="images/todo_list_table_disappeared.png" alt="A screenshot of the page after submission, which just has the raw text You submitted: Buy asparagus"></span></p>
 </div>
 <div class="paragraph">
 <p>What we really want to do is add the POST submission
-to the todo items table in the home page template.</p>
+to the todo items table in the home page template.
+We need some sort of way to pass data from our view,
+to be shown in the template.</p>
 </div>
 </div>
 <div class="sect2">
@@ -463,7 +675,7 @@ which is to pass variables from our Python view code into HTML templates.</p>
 The notation is <code>{{ ... }}</code>, which displays the object as a string:</p>
 </div>
 <div class="exampleblock sourcecode small-code">
-<div class="title">lists/templates/home.html (ch05l008)</div>
+<div class="title">lists/templates/home.html (ch05l010)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
@@ -494,7 +706,7 @@ The notation is <code>{{ ... }}</code>, which displays the object as a string:</
 <p>Let&#8217;s adjust our unit test so that it checks whether we are still using the template:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">lists/tests.py (ch05l009)</div>
+<div class="title">lists/tests.py (ch05l011)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
@@ -525,7 +737,7 @@ which maps template variable names to their values.</p>
 so let&#8217;s remove the <code>if request.method == "POST"</code> and simplify our view right down to:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">lists/views.py (ch05l010)</div>
+<div class="title">lists/views.py (ch05l012)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
@@ -580,7 +792,7 @@ and we can get on with fixing it straight away.
 Here&#8217;s how:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">lists/views.py (ch05l011)</div>
+<div class="title">lists/views.py (ch05l013)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
@@ -623,6 +835,9 @@ If your functional tests show you a different error at this point,
 </tr>
 </table>
 </div>
+</div>
+<div class="sect3">
+<h4 id="_improving_error_messages_in_tests">Improving Error Messages In Tests</h4>
 <div class="paragraph">
 <p>
 Hmm, not a wonderfully helpful error.
@@ -631,7 +846,7 @@ This is probably the most constructive technique,
 because those improved error messages stay around to help debug any future errors:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">functional_tests.py (ch05l012)</div>
+<div class="title">functional_tests.py (ch05l014)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
@@ -644,7 +859,7 @@ because those improved error messages stay around to help debug any future error
 </div>
 </div>
 <div class="paragraph">
-<p>That gives us a more helpful error message:</p>
+<p>That gives us a more helpful message:</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -662,7 +877,7 @@ but one of my Early Release readers (thanks, Jason!) suggested a much simpler im
 We can replace all four lines of the <code>assertTrue</code> with a single <code>assertIn</code>:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">functional_tests.py (ch05l013)</div>
+<div class="title">functional_tests.py (ch05l015)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
@@ -711,7 +926,7 @@ beginning of the first list item.</p>
 <p>The fastest way to get that to pass is with another quick "cheating" change to the template:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">lists/templates/home.html (ch05l014)</div>
+<div class="title">lists/templates/home.html (ch05l016)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
@@ -769,7 +984,7 @@ to add the check for adding a second item to the table
 we begin to see that our first cut solution really isn&#8217;t going to, um, cut it:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">functional_tests.py (ch05l015)</div>
+<div class="title">functional_tests.py (ch05l017)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
@@ -785,11 +1000,11 @@ we begin to see that our first cut solution really isn&#8217;t going to, um, cut
     <span class="tok-n">table</span> <span class="tok-o">=</span> <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">browser</span><span class="tok-o">.</span><span class="tok-n">find_element</span><span class="tok-p">(</span><span class="tok-n">By</span><span class="tok-o">.</span><span class="tok-n">ID</span><span class="tok-p">,</span> <span class="tok-s2">"id_list_table"</span><span class="tok-p">)</span>
     <span class="tok-n">rows</span> <span class="tok-o">=</span> <span class="tok-n">table</span><span class="tok-o">.</span><span class="tok-n">find_elements</span><span class="tok-p">(</span><span class="tok-n">By</span><span class="tok-o">.</span><span class="tok-n">TAG_NAME</span><span class="tok-p">,</span> <span class="tok-s2">"tr"</span><span class="tok-p">)</span>
     <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertIn</span><span class="tok-p">(</span>
-        <span class="tok-s2">"1: Buy peacock feathers"</span><span class="tok-p">,</span>
+        <span class="tok-s2">"2: Use peacock feathers to make a fly"</span><span class="tok-p">,</span>
         <span class="tok-p">[</span><span class="tok-n">row</span><span class="tok-o">.</span><span class="tok-n">text</span> <span class="tok-k">for</span> <span class="tok-n">row</span> <span class="tok-ow">in</span> <span class="tok-n">rows</span><span class="tok-p">],</span>
     <span class="tok-p">)</span>
     <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertIn</span><span class="tok-p">(</span>
-        <span class="tok-s2">"2: Use peacock feathers to make a fly"</span><span class="tok-p">,</span>
+        <span class="tok-s2">"1: Buy peacock feathers"</span><span class="tok-p">,</span>
         <span class="tok-p">[</span><span class="tok-n">row</span><span class="tok-o">.</span><span class="tok-n">text</span> <span class="tok-k">for</span> <span class="tok-n">row</span> <span class="tok-ow">in</span> <span class="tok-n">rows</span><span class="tok-p">],</span>
     <span class="tok-p">)</span>
 
@@ -804,8 +1019,8 @@ Sure enough, the functional tests return an error:</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>AssertionError: '1: Buy peacock feathers' not found in ['1: Use peacock
-feathers to make a fly']</pre>
+<pre>AssertionError: '2: Use peacock feathers to make a fly' not found in ['1: Use
+peacock feathers to make a fly']</pre>
 </div>
 </div>
 </div>
@@ -816,7 +1031,7 @@ feathers to make a fly']</pre>
 <p>
 
 
-But before we go further&#8212;&#8203;we&#8217;ve got a bad <em>code smell</em><sup class="footnote">[<a id="_footnoteref_5" class="footnote" href="#_footnotedef_5" title="View footnote.">5</a>]</sup>
+But before we go further&#8212;&#8203;we&#8217;ve got a bad <em>code smell</em><sup class="footnote">[<a id="_footnoteref_6" class="footnote" href="#_footnotedef_6" title="View footnote.">6</a>]</sup>
 in this FT.
 We have three almost identical code blocks checking for new items in the list table.
 
@@ -858,7 +1073,7 @@ only methods that begin with <code>test_</code> will get run as tests,
 so you can use other methods for your own purposes:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">functional_tests.py (ch05l016)</div>
+<div class="title">functional_tests.py (ch05l018)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
@@ -881,7 +1096,7 @@ so you can use other methods for your own purposes:</p>
 and the first test. Let&#8217;s use it in the FT:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">functional_tests.py (ch05l017)</div>
+<div class="title">functional_tests.py (ch05l019)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
@@ -900,8 +1115,8 @@ and the first test. Let&#8217;s use it in the FT:</p>
     <span class="tok-n">time</span><span class="tok-o">.</span><span class="tok-n">sleep</span><span class="tok-p">(</span><span class="tok-mi">1</span><span class="tok-p">)</span>
 
     <span class="tok-c1"># The page updates again, and now shows both items on her list</span>
-    <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">check_for_row_in_list_table</span><span class="tok-p">(</span><span class="tok-s2">"1: Buy peacock feathers"</span><span class="tok-p">)</span>
     <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">check_for_row_in_list_table</span><span class="tok-p">(</span><span class="tok-s2">"2: Use peacock feathers to make a fly"</span><span class="tok-p">)</span>
+    <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">check_for_row_in_list_table</span><span class="tok-p">(</span><span class="tok-s2">"1: Buy peacock feathers"</span><span class="tok-p">)</span>
 
     <span class="tok-c1"># Satisfied, she goes back to sleep</span></code></pre>
 </div>
@@ -913,8 +1128,8 @@ and the first test. Let&#8217;s use it in the FT:</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>AssertionError: '1: Buy peacock feathers' not found in ['1: Use peacock
-feathers to make a fly']</pre>
+<pre>AssertionError: '2: Use peacock feathers to make a fly' not found in ['1: Use
+peacock feathers to make a fly']</pre>
 </div>
 </div>
 <div class="paragraph">
@@ -927,9 +1142,15 @@ $ <strong>git commit -a</strong></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>And back to work.  If we&#8217;re ever going to handle more than one list item,
-we&#8217;re going to need some kind of persistence, and databases are a stalwart
-solution in this area.
+<p>There are a couple more bits of duplication in the FTs,
+like the repetition of finding the <code>inputbox</code>,
+but they&#8217;re not as egregious yet, so we&#8217;ll deal with them later.</p>
+</div>
+<div class="paragraph">
+<p>Instead, back to work.
+If we&#8217;re ever going to handle more than one list item,
+we&#8217;re going to need some kind of persistence,
+and databases are a stalwart solution in this area.
 
 </p>
 </div>
@@ -955,7 +1176,7 @@ since it exercises code by specifying how we want it to work.</p>
 <p>Let&#8217;s create a new class in <em>lists/tests.py</em>:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">lists/tests.py (ch05l018)</div>
+<div class="title">lists/tests.py (ch05l020)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
@@ -1029,26 +1250,24 @@ I&#8217;ve written this unit test in a very verbose style,
 </div>
 <div class="sidebarblock">
 <div class="content">
-<div class="title">Unit Tests Versus Integrated/Integration Tests, and the Database</div>
+<div class="title">Unit Tests Versus Integration Tests, and the Database</div>
 <div class="paragraph">
 <p>
 
 Some people will tell you that a "real" unit test should never touch the database,
-and that the test I&#8217;ve just written should be more properly called an
-"integrated" test, or "integration" test,
-because it doesn&#8217;t only test our code,
+and that the test I&#8217;ve just written should be more properly called an "integration" test,
+because it doesn&#8217;t <em>only</em> test our code,
 but also relies on an external system&#8212;&#8203;that is, a database.</p>
 </div>
 <div class="paragraph">
 <p>It&#8217;s OK to ignore this distinction for now&#8212;&#8203;we have two types of test,
-the high-level functional tests which test the application from the user&#8217;s
-point of view, and these lower-level tests which test it from the programmer&#8217;s
-point of view.</p>
+the high-level functional tests which test the application from the user&#8217;s point of view,
+and these lower-level tests which test it from the programmer&#8217;s point of view.</p>
 </div>
 <div class="paragraph">
 <p>We&#8217;ll come back to this topic
-and talk about the differences between unit tests, integrated tests, integration tests, and more in <a href="/book/appendix_purist_unit_tests.html">[appendix_purist_unit_tests]</a>,
-towards the end of the book.</p>
+and talk about the differences between unit tests, integration tests, and more
+in <a href="/book/chapter_27_hot_lava.html">[chapter_27_hot_lava]</a>, at the end of the book.</p>
 </div>
 </div>
 </div>
@@ -1066,7 +1285,7 @@ feeling confident so we&#8217;ll skip the <code>Item = None</code> step, and go 
 creating a class:</p>
 </div>
 <div id="first-django-model" class="exampleblock sourcecode">
-<div class="title">lists/models.py (ch05l019)</div>
+<div class="title">lists/models.py (ch05l021)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
@@ -1085,7 +1304,7 @@ creating a class:</p>
 <div class="listingblock">
 <div class="content">
 <pre>[...]
-  File "...goat-book/lists/tests.py", line 20, in
+  File "...goat-book/lists/tests.py", line 25, in
 test_saving_and_retrieving_items
     first_item.save()
     ^^^^^^^^^^^^^^^
@@ -1097,7 +1316,7 @@ AttributeError: 'Item' object has no attribute 'save'</pre>
 model, we make it inherit from the <code>Model</code> class:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">lists/models.py (ch05l020)</div>
+<div class="title">lists/models.py (ch05l022)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
@@ -1136,7 +1355,7 @@ when we need to upgrade a database that&#8217;s deployed on a live server.</p>
 </div>
 <div class="paragraph">
 <p>For now all we need to know is how to build our first database migration,
-which we do using the <code>makemigrations</code> command:<sup class="footnote">[<a id="_footnoteref_6" class="footnote" href="#_footnotedef_6" title="View footnote.">6</a>]</sup></p>
+which we do using the <code>makemigrations</code> command:<sup class="footnote">[<a id="_footnoteref_7" class="footnote" href="#_footnotedef_7" title="View footnote.">7</a>]</sup></p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -1185,13 +1404,13 @@ Python is more relaxed.</p>
 <div class="paragraph">
 <p>Classes that inherit from <code>models.Model</code> map to tables in the database.
 By default they get an auto-generated <code>id</code> attribute,
-which will be a primary key column<sup class="footnote">[<a id="_footnoteref_7" class="footnote" href="#_footnotedef_7" title="View footnote.">7</a>]</sup>
+which will be a primary key column<sup class="footnote">[<a id="_footnoteref_8" class="footnote" href="#_footnotedef_8" title="View footnote.">8</a>]</sup>
 in the database,
 but you have to define any other columns and attributes you want explicitly;
 here&#8217;s how we set up a text column:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">lists/models.py (ch05l022)</div>
+<div class="title">lists/models.py (ch05l024)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
@@ -1206,9 +1425,9 @@ here&#8217;s how we set up a text column:</p>
 <code>DateField</code>, and so on.  I&#8217;ve chosen <code>TextField</code> rather than <code>CharField</code> because
 the latter requires a length restriction, which seems arbitrary at this point.
 You can read more on field types in the Django
-<a href="https://docs.djangoproject.com/en/5.1/intro/tutorial02/#creating-models">tutorial</a>
+<a href="https://docs.djangoproject.com/en/5.2/intro/tutorial02/#creating-models">tutorial</a>
 and in the
-<a href="https://docs.djangoproject.com/en/5.1/ref/models/fields/">documentation</a>.</p>
+<a href="https://docs.djangoproject.com/en/5.2/ref/models/fields/">documentation</a>.</p>
 </div>
 </div>
 <div class="sect3">
@@ -1247,7 +1466,7 @@ Select an option:<strong>2</strong></pre>
 self-explanatory:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">lists/models.py (ch05l023)</div>
+<div class="title">lists/models.py (ch05l025)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
@@ -1278,7 +1497,7 @@ so it does get saved to the database, and the tests pass&#8230;&#8203;</p>
 <pre>$ <strong>python manage.py test</strong>
 [...]
 
-Ran 3 tests in 0.010s
+Ran 4 tests in 0.010s
 OK</pre>
 </div>
 </div>
@@ -1301,6 +1520,9 @@ $ <strong>git commit -m "Model for list Items and associated migration"</strong>
 <div class="sect2">
 <h3 id="_saving_the_post_to_the_database">Saving the POST to the Database</h3>
 <div class="paragraph">
+<p>So, we have a model, now we need to use it!</p>
+</div>
+<div class="paragraph">
 <p>
 
 
@@ -1311,7 +1533,7 @@ We can do that by adding three new lines to the existing test called
 <code>test_can_save_a_POST_request</code>:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">lists/tests.py (ch05l025)</div>
+<div class="title">lists/tests.py (ch05l027)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
@@ -1337,7 +1559,8 @@ We can do that by adding three new lines to the existing test called
 </tr>
 <tr>
 <td><i class="conum" data-value="2"></i><b>2</b></td>
-<td><code>objects.first()</code> is the same as doing <code>objects.all()[0]</code>.</td>
+<td><code>objects.first()</code> is the same as doing <code>objects.all()[0]</code>,
+except it will return <code>None</code> if there are no objects.<sup class="footnote">[<a id="_footnoteref_9" class="footnote" href="#_footnotedef_9" title="View footnote.">9</a>]</sup></td>
 </tr>
 <tr>
 <td><i class="conum" data-value="3"></i><b>3</b></td>
@@ -1366,8 +1589,48 @@ perhaps on a piece of scrap paper:</p>
 </div>
 </div>
 </div>
+<div class="sidebarblock">
+<div class="content">
+<div class="title">An Alternative Testing Strategy, Staying at the HTTP Level</div>
 <div class="paragraph">
-<p>Writing it down on a scratchpad like this reassures us that we won&#8217;t forget,
+<p>It&#8217;s a very common pattern in Django to test POST views
+by asserting on the side-effects, as seen in the database.
+Sandi Metz, a TDD guru from the Ruby world, puts it like this:
+"test commands via public side-effects."<sup class="footnote">[<a id="_footnoteref_10" class="footnote" href="#_footnotedef_10" title="View footnote.">10</a>]</sup></p>
+</div>
+<div class="paragraph">
+<p>But is the database really a public API?  That&#8217;s arguable.
+Certainly it&#8217;s at a different level of abstraction,
+or a different conceptual "layer" in the application,
+to the HTTP requests we&#8217;re working with in our current unit tests.</p>
+</div>
+<div class="paragraph">
+<p>If you wanted to write our tests in a way that stays at the HTTP level,
+that treats the application as more of an "opaque box",
+you can prove to yourself that todo items are persisted,
+by sending more than one:</p>
+</div>
+<div class="exampleblock sourcecode skipme">
+<div class="title">lists/tests/test_views.py</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-k">def</span> <span class="tok-nf">test_can_save_multiple_items</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">):</span>
+    <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">client</span><span class="tok-o">.</span><span class="tok-n">post</span><span class="tok-p">(</span><span class="tok-s2">"/"</span><span class="tok-p">,</span> <span class="tok-n">data</span><span class="tok-o">=</span><span class="tok-p">{</span><span class="tok-s2">"item_text"</span><span class="tok-p">:</span> <span class="tok-s2">"first item"</span><span class="tok-p">})</span>
+    <span class="tok-n">response</span> <span class="tok-o">=</span> <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">client</span><span class="tok-o">.</span><span class="tok-n">post</span><span class="tok-p">(</span><span class="tok-s2">"/"</span><span class="tok-p">,</span> <span class="tok-n">data</span><span class="tok-o">=</span><span class="tok-p">{</span><span class="tok-s2">"item_text"</span><span class="tok-p">:</span> <span class="tok-s2">"second item"</span><span class="tok-p">})</span>
+    <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertContains</span><span class="tok-p">(</span><span class="tok-n">response</span><span class="tok-p">,</span> <span class="tok-s2">"first item"</span><span class="tok-p">)</span>
+    <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertContains</span><span class="tok-p">(</span><span class="tok-n">response</span><span class="tok-p">,</span> <span class="tok-s2">"second item"</span><span class="tok-p">)</span></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>If you feel like going off-road, why not give it a try?</p>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>Writing things down on a scratchpad like this reassures us that we won&#8217;t forget them,
 so we are comfortable getting back to what we were working on.
 We rerun the tests and see an expected failure:</p>
 </div>
@@ -1381,7 +1644,7 @@ AssertionError: 0 != 1</pre>
 <p>Let&#8217;s adjust our view:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">lists/views.py (ch05l026)</div>
+<div class="title">lists/views.py (ch05l028)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
@@ -1423,7 +1686,7 @@ and sometimes the problem may be so major as to warrant a stop and rethink.</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>Ran 3 tests in 0.010s
+<pre>Ran 4 tests in 0.010s
 
 OK</pre>
 </div>
@@ -1460,7 +1723,7 @@ but it&#8217;s best to keep unit tests to testing one thing at a time,
 so let&#8217;s add a new one:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">lists/tests.py (ch05l027)</div>
+<div class="title">lists/tests.py (ch05l029)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
@@ -1483,14 +1746,14 @@ so let&#8217;s add a new one:</p>
 <code>if request.method</code> check back and putting the Item creation in there:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">lists/views.py (ch05l028)</div>
+<div class="title">lists/views.py (ch05l030)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
 <pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-k">def</span> <span class="tok-nf">home_page</span><span class="tok-p">(</span><span class="tok-n">request</span><span class="tok-p">):</span>
-    <span class="tok-k">if</span> <span class="tok-n">request</span><span class="tok-o">.</span><span class="tok-n">method</span> <span class="tok-o">==</span> <span class="tok-s2">"POST"</span><span class="tok-p">:</span>
+    <span class="tok-k">if</span> <span class="tok-n">request</span><span class="tok-o">.</span><span class="tok-n">method</span> <span class="tok-o">==</span> <span class="tok-s2">"POST"</span><span class="tok-p">:</span>  <i class="conum" data-value="1"></i><b>(1)</b>
         <span class="tok-n">item</span> <span class="tok-o">=</span> <span class="tok-n">Item</span><span class="tok-p">()</span>
-        <span class="tok-n">item</span><span class="tok-o">.</span><span class="tok-n">text</span> <span class="tok-o">=</span> <span class="tok-n">request</span><span class="tok-o">.</span><span class="tok-n">POST</span><span class="tok-p">[</span><span class="tok-s2">"item_text"</span><span class="tok-p">]</span>
+        <span class="tok-n">item</span><span class="tok-o">.</span><span class="tok-n">text</span> <span class="tok-o">=</span> <span class="tok-n">request</span><span class="tok-o">.</span><span class="tok-n">POST</span><span class="tok-p">[</span><span class="tok-s2">"item_text"</span><span class="tok-p">]</span>  <i class="conum" data-value="2"></i><b>(2)</b>
         <span class="tok-n">item</span><span class="tok-o">.</span><span class="tok-n">save</span><span class="tok-p">()</span>
 
     <span class="tok-k">return</span> <span class="tok-n">render</span><span class="tok-p">(</span>
@@ -1502,6 +1765,21 @@ so let&#8217;s add a new one:</p>
 </div>
 </div>
 </div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>We bring back the <code>request.method</code> check</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>And we can switch from using <code>request.POST.get()</code> to <code>request.POST[]</code>
+with square brackets,
+because we know for sure that the <code>item_text</code> key should be in there,
+and it&#8217;s better to fail hard if it isn&#8217;t.</td>
+</tr>
+</table>
+</div>
 <div class="paragraph">
 <p>
 
@@ -1510,7 +1788,7 @@ And that gets the test passing:</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>Ran 4 tests in 0.010s
+<pre>Ran 5 tests in 0.010s
 
 OK</pre>
 </div>
@@ -1536,7 +1814,7 @@ instead of expecting a response with the item in it,
 we want it to expect a redirect back to the home page.</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">lists/tests.py (ch05l029)</div>
+<div class="title">lists/tests.py (ch05l031)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
@@ -1579,7 +1857,7 @@ code was 200 (expected 302)</pre>
 <p>We can now tidy up our view substantially:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">lists/views.py (ch05l030)</div>
+<div class="title">lists/views.py (ch05l032)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
@@ -1608,7 +1886,7 @@ code was 200 (expected 302)</pre>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>Ran 4 tests in 0.010s
+<pre>Ran 5 tests in 0.010s
 
 OK</pre>
 </div>
@@ -1684,7 +1962,7 @@ so we&#8217;ll put it just before that one:</td>
 helper method that Django provides, for one-line creation of objects:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">lists/views.py (ch05l031)</div>
+<div class="title">lists/views.py (ch05l033)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
@@ -1723,7 +2001,7 @@ the saving of objects that&#8217;s broken, or the type of response.</p>
 first go, but now feels like a good time to separate out our concerns:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">lists/tests.py (ch05l032)</div>
+<div class="title">lists/tests.py (ch05l034)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
@@ -1744,11 +2022,11 @@ first go, but now feels like a good time to separate out our concerns:</p>
 <p>
 
 
-And we should now see five tests pass instead of four:</p>
+And we should now see six tests pass instead of five:</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>Ran 5 tests in 0.010s
+<pre>Ran 6 tests in 0.010s
 
 OK</pre>
 </div>
@@ -1795,24 +2073,90 @@ and pass them to the template for rendering.
 Let&#8217;s have a new unit test for that:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">lists/tests.py (ch05l033)</div>
+<div class="title">lists/tests.py (ch05l035)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
 <pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-k">class</span> <span class="tok-nc">HomePageTest</span><span class="tok-p">(</span><span class="tok-n">TestCase</span><span class="tok-p">):</span>
     <span class="tok-k">def</span> <span class="tok-nf">test_uses_home_template</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">):</span>
         <span class="tok-p">[</span><span class="tok-o">...</span><span class="tok-p">]</span>
+    <span class="tok-k">def</span> <span class="tok-nf">test_renders_input_form</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">):</span>
+        <span class="tok-p">[</span><span class="tok-o">...</span><span class="tok-p">]</span>
 
     <span class="tok-k">def</span> <span class="tok-nf">test_displays_all_list_items</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">):</span>
         <span class="tok-n">Item</span><span class="tok-o">.</span><span class="tok-n">objects</span><span class="tok-o">.</span><span class="tok-n">create</span><span class="tok-p">(</span><span class="tok-n">text</span><span class="tok-o">=</span><span class="tok-s2">"itemey 1"</span><span class="tok-p">)</span>
         <span class="tok-n">Item</span><span class="tok-o">.</span><span class="tok-n">objects</span><span class="tok-o">.</span><span class="tok-n">create</span><span class="tok-p">(</span><span class="tok-n">text</span><span class="tok-o">=</span><span class="tok-s2">"itemey 2"</span><span class="tok-p">)</span>
+
         <span class="tok-n">response</span> <span class="tok-o">=</span> <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">client</span><span class="tok-o">.</span><span class="tok-n">get</span><span class="tok-p">(</span><span class="tok-s2">"/"</span><span class="tok-p">)</span>
+
         <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertContains</span><span class="tok-p">(</span><span class="tok-n">response</span><span class="tok-p">,</span> <span class="tok-s2">"itemey 1"</span><span class="tok-p">)</span>
         <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertContains</span><span class="tok-p">(</span><span class="tok-n">response</span><span class="tok-p">,</span> <span class="tok-s2">"itemey 2"</span><span class="tok-p">)</span>
 
     <span class="tok-k">def</span> <span class="tok-nf">test_can_save_a_POST_request</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">):</span>
         <span class="tok-p">[</span><span class="tok-o">...</span><span class="tok-p">]</span></code></pre>
 </div>
+</div>
+</div>
+</div>
+<div class="sidebarblock">
+<div class="content">
+<div class="title">Arrange-Act-Assert or, Given, When, Then</div>
+<div class="paragraph">
+<p>Did you notice the use of whitespace in this test?
+I&#8217;m visually separating out the code into three blocks:
+
+</p>
+</div>
+<div class="exampleblock sourcecode currentcontentss">
+<div class="title">lists/tests.py</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="python"><span></span>    <span class="tok-k">def</span> <span class="tok-nf">test_displays_all_list_items</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">):</span>
+        <span class="tok-n">Item</span><span class="tok-o">.</span><span class="tok-n">objects</span><span class="tok-o">.</span><span class="tok-n">create</span><span class="tok-p">(</span><span class="tok-n">text</span><span class="tok-o">=</span><span class="tok-s2">"itemey 1"</span><span class="tok-p">)</span>  <i class="conum" data-value="1"></i><b>(1)</b>
+        <span class="tok-n">Item</span><span class="tok-o">.</span><span class="tok-n">objects</span><span class="tok-o">.</span><span class="tok-n">create</span><span class="tok-p">(</span><span class="tok-n">text</span><span class="tok-o">=</span><span class="tok-s2">"itemey 2"</span><span class="tok-p">)</span>  <i class="conum" data-value="1"></i><b>(1)</b>
+
+        <span class="tok-n">response</span> <span class="tok-o">=</span> <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">client</span><span class="tok-o">.</span><span class="tok-n">get</span><span class="tok-p">(</span><span class="tok-s2">"/"</span><span class="tok-p">)</span>  <i class="conum" data-value="2"></i><b>(2)</b>
+
+        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertContains</span><span class="tok-p">(</span><span class="tok-n">response</span><span class="tok-p">,</span> <span class="tok-s2">"itemey 1"</span><span class="tok-p">)</span>  <i class="conum" data-value="3"></i><b>(3)</b>
+        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertContains</span><span class="tok-p">(</span><span class="tok-n">response</span><span class="tok-p">,</span> <span class="tok-s2">"itemey 2"</span><span class="tok-p">)</span>  <i class="conum" data-value="3"></i><b>(3)</b></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>Arrange: where we set up the data we need for the test.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>Act: where we call the code under test</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="3"></i><b>3</b></td>
+<td>Assert: where we check on the results</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>This isn&#8217;t obligatory, but it&#8217;s a common convention,
+and it does help see the structure of the test.</p>
+</div>
+<div class="paragraph">
+<p>Another popular way to talk about this structure is <em>Given, When, Then</em>:
+* <em>Given</em> the database contains our list with two items,
+* <em>When</em> I make a GET request for our list,
+* <em>Then</em> I see the both items in our list</p>
+</div>
+<div class="paragraph">
+<p>This latter phrasing comes from the world of BDD,
+and I actually prefer it somewhat.
+You can see that it encourages phrasing things in a more natural way,
+and we&#8217;re gently nudged to think of things in terms of behaviour,
+and the perspective of the user.
+</p>
 </div>
 </div>
 </div>
@@ -1834,7 +2178,7 @@ The Django template syntax has a tag for iterating through lists,
 <code>{% for .. in .. %}</code>; we can use it like this:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">lists/templates/home.html (ch05l034)</div>
+<div class="title">lists/templates/home.html (ch05l036)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
@@ -1853,14 +2197,14 @@ will render with multiple <code>&lt;tr&gt;</code> rows, one for each item in the
 <code>items</code>.  Pretty neat!  I&#8217;ll introduce a few more bits of Django template
 magic as we go, but at some point you&#8217;ll want to go and read up on the rest of
 them in the
-<a href="https://docs.djangoproject.com/en/5.1/topics/templates/">Django docs</a>.</p>
+<a href="https://docs.djangoproject.com/en/5.2/topics/templates/">Django docs</a>.</p>
 </div>
 <div class="paragraph">
 <p>Just changing the template doesn&#8217;t get our tests to green; we need to actually
 pass the items to it from our home page view:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">lists/views.py (ch05l035)</div>
+<div class="title">lists/views.py (ch05l037)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
@@ -1892,11 +2236,12 @@ AssertionError: 'To-Do' not found in 'OperationalError at /'</pre>
 Oops, apparently not.  Let&#8217;s use another functional test debugging technique,
 and it&#8217;s one of the most straightforward: manually visiting the site!
 Open up <em>http://localhost:8000</em> in your web browser,
-and you&#8217;ll see a Django debug page saying "no such table: lists_item", as in <a href="#operationalerror">Another helpful debug message</a>.</p>
+and you&#8217;ll see a Django debug page saying "no such table: lists_item",
+as in <a href="#operationalerror">Another helpful debug message</a>.</p>
 </div>
 <div id="operationalerror" class="imageblock width-75">
 <div class="content">
-<img src="images/twp2_0502.png" alt="OperationalError at / no such table: lists_item">
+<img src="images/django_operationalerror.png" alt="Screenshot of Django debug page, saying OperationalError at / no such table: lists_item">
 </div>
 <div class="title">Figure 2. Another helpful debug message</div>
 </div>
@@ -1925,7 +2270,7 @@ called <em>db.sqlite3</em> in the base project directory:</p>
 <div class="content">
 <pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-p">[</span><span class="tok-o">...</span><span class="tok-p">]</span>
 <span class="tok-c1"># Database</span>
-<span class="tok-c1"># https://docs.djangoproject.com/en/5.1/ref/settings/#databases</span>
+<span class="tok-c1"># https://docs.djangoproject.com/en/5.2/ref/settings/#databases</span>
 
 <span class="tok-n">DATABASES</span> <span class="tok-o">=</span> <span class="tok-p">{</span>
     <span class="tok-s2">"default"</span><span class="tok-p">:</span> <span class="tok-p">{</span>
@@ -1972,9 +2317,16 @@ Running migrations:
 </div>
 </div>
 <div class="paragraph">
-<p>Now we can refresh the page on <em>localhost</em>, see that our error is gone, and try
-running the functional tests
-again:<sup class="footnote">[<a id="_footnoteref_8" class="footnote" href="#_footnotedef_8" title="View footnote.">8</a>]</sup></p>
+<p>It seems to be doing quite a lot of work!
+That&#8217;s because it&#8217;s the first ever migration,
+and Django is creating tables for all its built-in "batteries included"
+apps, like the admin site and the built-in auth modules.
+We don&#8217;t need to pay attention to them for now.
+But you can see our <code>lists.0001_initial</code> and <code>lists.0002_item_text</code> in there!</p>
+</div>
+<div class="paragraph">
+<p>At this point you can refresh the page on <em>localhost</em> and see that the error is gone.
+Let&#8217;s try running the functional tests again:<sup class="footnote">[<a id="_footnoteref_11" class="footnote" href="#_footnotedef_11" title="View footnote.">11</a>]</sup></p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -1983,11 +2335,11 @@ peacock feathers', '1: Use peacock feathers to make a fly']</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>So close!  We just need to get our list numbering right.  Another awesome
-Django template tag, <code>forloop.counter</code>, will help here:</p>
+<p>So close!  We just need to get our list numbering right.
+Another awesome Django template tag, <code>forloop.counter</code>, will help here:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">lists/templates/home.html (ch05l036)</div>
+<div class="title">lists/templates/home.html (ch05l038)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
@@ -2200,6 +2552,7 @@ re-usable part to refactor out.
 <dd>
 <p>A place to write down things that occur to us as we&#8217;re coding,
 so that we can finish up what we&#8217;re doing and come back to them later.
+Love a good old-fashioned piece of paper now and again!
 
 </p>
 </dd>
@@ -2223,24 +2576,33 @@ so that we can finish up what we&#8217;re doing and come back to them later.
 <a href="#_footnoteref_3">3</a>. Another common technique for debugging tests is to use <code>breakpoint()</code> to drop into a debugger like <code>pdb</code>. This is more useful for <em>unit</em> tests rather than FTs though, because in an FT you usually can&#8217;t step into actual application code. Personally I only find debuggers useful for really fiddly algorithms, which we won&#8217;t see in this book.)
 </div>
 <div class="footnote" id="_footnotedef_4">
-<a href="#_footnoteref_4">4</a>. But we <em>did</em> learn about <code>request.method</code> and <code>request.POST</code> right? I know it might seem that I&#8217;m overdoing it, but doing things in tiny little steps really does have a lot of advantages, and one of them is that you can really think about (or in this case, learn) one thing at a time.
+<a href="#_footnoteref_4">4</a>. You could even define a constant for this, to make the link more explicit.
 </div>
 <div class="footnote" id="_footnotedef_5">
-<a href="#_footnoteref_5">5</a>. If you&#8217;ve not come across the concept, a "code smell" is something about a piece of code that makes you want to rewrite it. Jeff Atwood has <a href="https://blog.codinghorror.com/code-smells/">a compilation on his blog Coding Horror</a>. The more experience you gain as a programmer, the more fine-tuned your nose becomes to code smells&#8230;&#8203;
+<a href="#_footnoteref_5">5</a>. But we <em>did</em> learn about <code>request.method</code> and <code>request.POST</code> right? I know it might seem that I&#8217;m overdoing it, but doing things in tiny little steps really does have a lot of advantages, and one of them is that you can really think about (or in this case, learn) one thing at a time.
 </div>
 <div class="footnote" id="_footnotedef_6">
-<a href="#_footnoteref_6">6</a>. If you&#8217;ve done a bit of Django before, you may be wondering about when we&#8217;re going to run "migrate" as well as "makemigrations"? Read on; that&#8217;s coming up later in the chapter.
+<a href="#_footnoteref_6">6</a>. If you&#8217;ve not come across the concept, a "code smell" is something about a piece of code that makes you want to rewrite it. Jeff Atwood has <a href="https://blog.codinghorror.com/code-smells/">a compilation on his blog Coding Horror</a>. The more experience you gain as a programmer, the more fine-tuned your nose becomes to code smells&#8230;&#8203;
 </div>
 <div class="footnote" id="_footnotedef_7">
-<a href="#_footnoteref_7">7</a>. Database tables usually have a special column called a "primary key", which is the unique identifier for each row in the table. It&#8217;s worth brushing up on a <em>tiny</em> bit of relational database theory, if you&#8217;re not familiar with the concept or why it&#8217;s useful. The top three articles I found when searching for "introduction to databases" all seemed pretty good, at the time of writing.
+<a href="#_footnoteref_7">7</a>. If you&#8217;ve done a bit of Django before, you may be wondering about when we&#8217;re going to run "migrate" as well as "makemigrations"? Read on; that&#8217;s coming up later in the chapter.
 </div>
 <div class="footnote" id="_footnotedef_8">
-<a href="#_footnoteref_8">8</a>. If you get a different error at this point, try restarting your dev server&#8212;&#8203;it may have gotten confused by the changes to the database happening under its feet.
+<a href="#_footnoteref_8">8</a>. Database tables usually have a special column called a "primary key", which is the unique identifier for each row in the table. It&#8217;s worth brushing up on a <em>tiny</em> bit of relational database theory, if you&#8217;re not familiar with the concept or why it&#8217;s useful. The top three articles I found when searching for "introduction to databases" all seemed pretty good, at the time of writing.
+</div>
+<div class="footnote" id="_footnotedef_9">
+<a href="#_footnoteref_9">9</a>. You can also use <code>objects.get()</code> which will immediately raise an exception if there are no objects in the DB, or if there are more than one. On the plus hand you get a more immediate failure, and you get warned if there are too many objects. The downside is that I find it slightly less readable. As so often, it&#8217;s a trade-off.
+</div>
+<div class="footnote" id="_footnotedef_10">
+<a href="#_footnoteref_10">10</a>. This advice is in her talk <a href="https://www.youtube.com/watch?v=URSWYvyc42M">The Magic Tricks of Testing</a>, which I highly recommend watching.
+</div>
+<div class="footnote" id="_footnotedef_11">
+<a href="#_footnoteref_11">11</a>. If you get a different error at this point, try restarting your dev server&#8212;&#8203;it may have gotten confused by the changes to the database happening under its feet.
 </div>
 </div>
 <div id="footer">
 <div id="footer-text">
-License: Creative Commons <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode">CC-BY-NC-ND</a>. Last updated: 2025-02-05 18:20:04 UTC
+License: Creative Commons <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode">CC-BY-NC-ND</a>. Last updated: 2025-05-25 22:55:00 +0100
 </div>
 </div>
 <div class="comments" style="padding: 20px">

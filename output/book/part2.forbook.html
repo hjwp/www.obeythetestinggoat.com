@@ -4,7 +4,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="generator" content="Asciidoctor 2.0.23">
-<title>Web Development Sine Qua Nons</title>
+<title>Going To Production</title>
 <link rel="stylesheet" href="./asciidoctor.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
 <script>var httpRequest = new XMLHttpRequest();
@@ -37,57 +37,317 @@ httpRequest.send();
   </a>
 </div>
 <div id="header">
-<h1>Web Development <em>Sine Qua Nons</em></h1>
+<h1>Going To Production</h1>
 </div>
 <div id="content">
 <div class="quoteblock">
 <blockquote>
 <div class="paragraph">
-<p>Real developers ship.</p>
+<p>Is all fun and game until you are need of put it in production.</p>
 </div>
 </blockquote>
 <div class="attribution">
-&#8212; Jeff Atwood
+&#8212; <a href="http://bit.ly/2uhCXnH">Devops Borat</a>
 </div>
 </div>
 <div class="paragraph">
-<p>If this were just a guide to TDD in a normal programming field, we might be
-able to congratulate ourselves about now. After all, we&#8217;ve got some solid
-basics of TDD and Django under our belts; we&#8217;ve got all we need to start
-building a website.</p>
+<p>It&#8217;s time to deploy the first version of our site and make it public.
+They say that if you wait until you feel <em>ready</em> to ship,
+then you&#8217;ve waited too long.</p>
 </div>
 <div class="paragraph">
-<p>But, real developers ship, and in order to ship, we&#8217;re going to have to tackle
-some of the trickier but unavoidable aspects of web development: static files,
-form data validation, the dreaded JavaScript, but most hairy of all, deployment
-to a production server.</p>
+<p>Is our site usable? Is it better than nothing? Can we make lists on it?
+Yes, yes, yes.</p>
 </div>
 <div class="paragraph">
-<p>At every stage, TDD can help us to get these things right too.</p>
+<p>No, you can&#8217;t log in yet.
+No, you can&#8217;t mark tasks as completed.
+But do we really need any of that stuff?
+Not really&#8212;&#8203;and you can never be sure
+what your users are <em>actually</em> going to do with your site
+once they get their hands on it.
+We think our users want to use the site for to-do lists,
+but maybe they actually want to use it
+to make "top 10 best fly-fishing spots" lists,
+for which you don&#8217;t <em>need</em> any kind of "mark completed" function.
+We won&#8217;t know until we put it out there.</p>
 </div>
 <div class="paragraph">
-<p>In this section, I&#8217;m still trying to keep the learning curve relatively
-soft, but we will meet several major new concepts and technologies. I&#8217;ll only
-be able to dip lightly into each one&#8212;&#8203;I hope to demonstrate enough of each
-to get you started when you get to your own project, but you will also need
-to do your own reading around when you start to apply these topics in "real
-life".</p>
+<p>Over the next couple of chapters we&#8217;re going to go through
+and actually deploy our site to a real, live web server.</p>
 </div>
 <div class="paragraph">
-<p>For example, if you weren&#8217;t familiar with Django before starting on the book,
-you may find that taking a little time to run through the
-<a href="https://docs.djangoproject.com/en/1.11/intro/tutorial01/#creating-models">official Django tutorial</a>
-at this point would complement what you&#8217;ve learned so far nicely,
-and will leave you more confident with the Django stuff over the next few
-chapters, so you can focus on the core concepts.</p>
+<p>You might be tempted to skip this bit&#8212;&#8203;there&#8217;s lots of daunting stuff in it,
+and maybe you think this isn&#8217;t what you signed up for.
+But I <em>strongly</em> urge you to give it a go.
+This is one of the sections of the book I&#8217;m most pleased with,
+and it&#8217;s one that people often write to me
+saying they were really glad they stuck through it.</p>
+</div>
+<div class="paragraph">
+<p>If you&#8217;ve never done a server deployment before,
+it will demystify a whole world for you,
+and there&#8217;s nothing like the feeling of seeing your site live
+on the actual internet.
+Give it a buzzword name like "DevOps"
+if that&#8217;s what it takes to convince you it&#8217;s worth it.</p>
+</div>
+<div class="sidebarblock">
+<div class="content">
+<div class="title">New content alert!  Pls send feedback.</div>
+<div class="paragraph">
+<p>As part of my work on the third edition of the book,
+I&#8217;ve made big changes to the deployment chapters,
+so this stuff is all very fresh.</p>
+</div>
+<div class="paragraph">
+<p>What that means is that I&#8217;d, really, really love feedback from readers.
+Please have a go at following along and let me know what you think!
+I&#8217;m <a href="mailto:obeythetestinggoat@gmail.com">obeythetestinggoat@gmail.com</a>, or you can open up
+<a href="https://github.com/hjwp/Book-TDD-Web-Dev-Python/issues">GitHub Issues</a>
+or Pull Requests.</p>
+</div>
+<div class="paragraph">
+<p>Let me know how you got on, if you get stuck on anything,
+if any explanations don&#8217;t make sense,
+or if any of the instructions don&#8217;t work for you.</p>
+</div>
+<div class="paragraph">
+<p>I hope you enjoy the new version!</p>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p></p><h3>The Danger Areas of Deployment</h3>
+</div>
+<div class="paragraph">
+<p>Deploying a site to a live web server can be a tricky topic.
+Oft-heard is the forlorn cry <em>"but it works on my machine!"</em></p>
+</div>
+<div class="paragraph">
+<p>
+Some of the danger areas of deployment include:</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">Networking</dt>
+<dd>
+<p>Once we&#8217;re off our own machine, networking issues come in:
+making sure that DNS is routing our domain to the correct IP address for our server,
+making sure our server is configured to listen to traffic coming in from the world,
+making sure it&#8217;s using the right ports,
+and making sure any firewalls in the way are configured to let traffic through.</p>
+</dd>
+<dt class="hdlist1">Dependencies</dt>
+<dd>
+<p>We need to make sure that the packages our software relies on
+(Python, Django, and so on) are installed on the server,
+and have the correct versions.</p>
+</dd>
+<dt class="hdlist1">The database</dt>
+<dd>
+<p>There can be permissions and path issues,
+and we need to be careful about preserving data between deploys.</p>
+</dd>
+<dt class="hdlist1">Static files (CSS, JavaScript, images, etc.)</dt>
+<dd>
+<p>Web servers usually need special configuration for serving these.
+</p>
+</dd>
+<dt class="hdlist1">Security and Configuration</dt>
+<dd>
+<p>Once we&#8217;re on the public internet,
+we need to worry more about security.
+Various settings that are really useful for local development
+(like the Django debug page)
+become dangerous in production
+(because they expose our source code in tracebacks).</p>
+</dd>
+<dt class="hdlist1">Reproducibility and Divergence between local dev and prod</dt>
+<dd>
+<p>All of the above add up to differences between your local development environemnt
+and the way code runs in production.
+We want to be able to reproduce the way things work on our machine,
+as closely as possible, in production (and vice-versa)
+to give us as much confidence as possible that
+"it works on my machine" means "it&#8217;s going to work in production".</p>
+</dd>
+</dl>
+</div>
+<div class="paragraph">
+<p>One way to approach the problem is to get a server
+and start manually configuring and installing everything,
+hacking about until it works,
+and maybe think about automating things later<sup class="footnote">[<a id="_footnoteref_1" class="footnote" href="#_footnotedef_1" title="View footnote.">1</a>]</sup>.</p>
+</div>
+<div class="paragraph">
+<p>But if there&#8217;s one thing we&#8217;ve learned
+in the world of agile/lean software development,
+it&#8217;s that taking smaller steps usually pays off.</p>
+</div>
+<div class="paragraph">
+<p>How can we take smaller, safer steps towards a production deployment?
+Can we <em>simulate</em> the process of moving to a server
+so that we can iron out all the bugs
+before we actually take the plunge?
+Can we then make small changes one at a time,
+solving problems one by one,
+rather than having to bite off everything in one mouthful?
+Can we use our existing test suite to make sure things
+work on the server, as well as locally?</p>
+</div>
+<div class="paragraph">
+<p>Absolutely we can.  And if you&#8217;ve looked at the table of contents,
+I&#8217;m sure you&#8217;re already guessing that Docker is going
+to be part of the answer.</p>
+</div>
+<div class="paragraph">
+<p></p><h3>An Overview of Our Deployment Procedure</h3>
+</div>
+<div class="paragraph">
+<p>Over the next three chapters, I&#8217;m going to go through <em>a</em> deployment procedure.
+It isn&#8217;t meant to be the <em>perfect</em> deployment procedure,
+so please don&#8217;t take it as being best practice,
+or a recommendation&#8212;&#8203;it&#8217;s meant to be an illustration,
+to show the kinds of issues involved in putting code into production,
+and where testing fits in.</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1"><a href="/book/chapter_09_docker.html">[chapter_09_docker]</a></dt>
+<dd>
+<div class="ulist">
+<ul>
+<li>
+<p>Adapt our FTs so they can run against a container.</p>
+</li>
+<li>
+<p>Build a minimal Dockerfile with everything we need to run our site.</p>
+</li>
+<li>
+<p>Learn how to build and run a container on our machine.</p>
+</li>
+<li>
+<p>Get a first cut of our code up and running inside Docker,
+with passing tests.</p>
+</li>
+</ul>
+</div>
+</dd>
+<dt class="hdlist1"><a href="/book/chapter_10_production_readiness.html">[chapter_10_production_readiness]</a></dt>
+<dd>
+<div class="ulist">
+<ul>
+<li>
+<p>Gradually, incrementally change the container configuration
+to make it production-ready.</p>
+</li>
+<li>
+<p>Regularly re-run the FTs to check we didn&#8217;t break anything.</p>
+</li>
+<li>
+<p>Address issues to do with the database, static files, secrets, and so on.</p>
+</li>
+</ul>
+</div>
+</dd>
+<dt class="hdlist1"><a href="/book/chapter_11_server_prep.html">[chapter_11_server_prep]</a></dt>
+<dd>
+<div class="ulist">
+<ul>
+<li>
+<p>We&#8217;ll set up a "staging"<sup class="footnote">[<a id="_footnoteref_2" class="footnote" href="#_footnotedef_2" title="View footnote.">2</a>]</sup>
+server, using the same infrastructure a we plan to use for production.</p>
+</li>
+<li>
+<p>Set up a real domain name and point it at this server</p>
+</li>
+<li>
+<p>Install Ansible and flush out any networking issues</p>
+</li>
+</ul>
+</div>
+</dd>
+<dt class="hdlist1"><a href="/book/chapter_12_ansible.html">[chapter_12_ansible]</a></dt>
+<dd>
+<div class="ulist">
+<ul>
+<li>
+<p>Gradually build up an Ansible playbook to deploy our containers on a real server.</p>
+</li>
+<li>
+<p>Again, use our FTs to check for any problems.</p>
+</li>
+<li>
+<p>Learn how to SSH in to the server to debug things,
+where to find logs and other useful information.</p>
+</li>
+<li>
+<p>Confidently deploy to production once we have a working deployment script for staging.</p>
+</li>
+</ul>
+</div>
+</dd>
+</dl>
+</div>
+<div class="paragraph">
+<p></p><h3>TDD and Docker vs the Danger Areas of Deployment</h3>
+</div>
+<div class="paragraph">
+<p>Hopefully you can start to see how the combination of TDD, Docker, Staging,
+and automation are going to help minimise the risk of the various "Danger Areas".</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Containers will act as mini-servers
+letting us flush out issues with dependencies, static files, and so on.
+A key advantage is that they&#8217;ll give us a way of getting faster feedback cycles,
+because we can spin them up locally almost instaneously,
+we can very quicly see the effect off any changes.</p>
+</li>
+<li>
+<p>Our containers will package up both our Python and system dependencies,
+including a production-ready web server and static files system.
+as well as many production settings and configuration differences.
+This minimises the difference between what we can test locally,
+and what we will have on our servers.
+As we&#8217;ll see, it will give us a reliable way to reproduce bugs we see in production,
+on our local machine.</p>
+</li>
+<li>
+<p>Our FTs mean that we&#8217;ll have a fully automated way of checking
+that everything works.</p>
+</li>
+<li>
+<p>Later, when we deploy our containers to a staging server,
+we can run the FTs against that too.
+It&#8217;ll be slightly slower and might involve some fiddly compromises,
+but it&#8217;ll give us one more layer of reassurance.</p>
+</li>
+<li>
+<p>Finally, by fully automating container creation and deployment,
+and by testing the end results of both these things,
+we maximise reproducibility, thus minimising the risk of deployment to production.</p>
+</li>
+</ul>
 </div>
 <div class="paragraph">
 <p>Oh, but there&#8217;s lots of fun stuff coming up!  Just you wait!</p>
 </div>
 </div>
+<div id="footnotes">
+<hr>
+<div class="footnote" id="_footnotedef_1">
+<a href="#_footnoteref_1">1</a>. This was, more or less, the approach I took in earlier editions of the book. With a fair bit of testing thrown in of course.
+</div>
+<div class="footnote" id="_footnotedef_2">
+<a href="#_footnoteref_2">2</a>. Some people prefer the term pre-prod or test environment. It&#8217;s all the same idea.
+</div>
+</div>
 <div id="footer">
 <div id="footer-text">
-License: Creative Commons <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode">CC-BY-NC-ND</a>. Last updated: 2025-02-05 18:20:04 UTC
+License: Creative Commons <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode">CC-BY-NC-ND</a>. Last updated: 2025-05-28 13:18:19 +0100
 </div>
 </div>
 <div class="comments" style="padding: 20px">
