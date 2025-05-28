@@ -43,18 +43,32 @@ httpRequest.send();
 <div class="sect1">
 <h2 id="chapter_15_simple_form">A Simple Form</h2>
 <div class="sectionbody">
+<div class="sidebarblock">
+<div class="content">
+<div class="title">A Note for Early Release Readers</div>
+<div class="paragraph">
+<p>With Early Release ebooks, you get books in their earliest form&#8212;the author&#8217;s raw and unedited content as they write&#8212;so you can take advantage of these technologies long before the official release of these titles.</p>
+</div>
+<div class="paragraph">
+<p>This will be the 15th chapter of the final book. The GitHub repo is available at <a href="https://github.com/hjwp/book-example" class="bare">https://github.com/hjwp/book-example</a>.</p>
+</div>
+<div class="paragraph">
+<p>If you have comments about how we might improve the content and/or examples in this book, or if you notice missing material within this chapter, please reach out to the author at <a href="mailto:obeythetestinggoat@gmail.com">obeythetestinggoat@gmail.com</a>.</p>
+</div>
+</div>
+</div>
 <div class="paragraph">
 <p>At the end of the last chapter,
 we were left with the thought that there was too much duplication
 in the validation handling bits of our views.
 Django encourages you to use form classes to do the work of validating user input,
-and choosing what error messages to display.
-Let&#8217;s see how that works.</p>
+and choosing what error messages to display.</p>
 </div>
 <div class="paragraph">
-<p>As we go through the chapter,
-we&#8217;ll also spend a bit of time tidying up our unit tests,
-and making sure each of them tests only one thing at a time.</p>
+<p>We&#8217;ll use tests to explore the way Django forms work,
+and then we&#8217;ll refactor our views to use them.
+As we go along, we&#8217;ll see our unit tests and functional tests,
+in combination, will protect us from regressions.</p>
 </div>
 <div class="sect2">
 <h3 id="_moving_validation_logic_into_a_form">Moving Validation Logic into a Form</h3>
@@ -112,7 +126,7 @@ enough that they&#8217;ll make sense if you&#8217;ve never seen them before.</p>
 just looks at the form HTML:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">src/lists/tests/test_forms.py</div>
+<div class="title">src/lists/tests/test_forms.py (ch15l001)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
@@ -139,11 +153,12 @@ session, although you&#8217;d need to keep reloading your code for each change.<
 a single field called <code>item_text</code>:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">src/lists/forms.py</div>
+<div class="title">src/lists/forms.py (ch15l002)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
 <pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-kn">from</span> <span class="tok-nn">django</span> <span class="tok-kn">import</span> <span class="tok-n">forms</span>
+
 
 <span class="tok-k">class</span> <span class="tok-nc">ItemForm</span><span class="tok-p">(</span><span class="tok-n">forms</span><span class="tok-o">.</span><span class="tok-n">Form</span><span class="tok-p">):</span>
     <span class="tok-n">item_text</span> <span class="tok-o">=</span> <span class="tok-n">forms</span><span class="tok-o">.</span><span class="tok-n">CharField</span><span class="tok-p">()</span></code></pre>
@@ -170,27 +185,38 @@ the placeholder attribute and the Bootstrap CSS classes.  Let&#8217;s make our
 unit test into a test for that:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">src/lists/tests/test_forms.py</div>
+<div class="title">src/lists/tests/test_forms.py (ch15l003)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
 <pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-k">class</span> <span class="tok-nc">ItemFormTest</span><span class="tok-p">(</span><span class="tok-n">TestCase</span><span class="tok-p">):</span>
-
     <span class="tok-k">def</span> <span class="tok-nf">test_form_item_input_has_placeholder_and_css_classes</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">):</span>
         <span class="tok-n">form</span> <span class="tok-o">=</span> <span class="tok-n">ItemForm</span><span class="tok-p">()</span>
-        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertIn</span><span class="tok-p">(</span><span class="tok-s1">'placeholder="Enter a to-do item"'</span><span class="tok-p">,</span> <span class="tok-n">form</span><span class="tok-o">.</span><span class="tok-n">as_p</span><span class="tok-p">())</span>
-        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertIn</span><span class="tok-p">(</span><span class="tok-s1">'class="form-control form-control-lg"'</span><span class="tok-p">,</span> <span class="tok-n">form</span><span class="tok-o">.</span><span class="tok-n">as_p</span><span class="tok-p">())</span></code></pre>
+
+        <span class="tok-n">rendered</span> <span class="tok-o">=</span> <span class="tok-n">form</span><span class="tok-o">.</span><span class="tok-n">as_p</span><span class="tok-p">()</span>
+
+        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertIn</span><span class="tok-p">(</span><span class="tok-s1">'placeholder="Enter a to-do item"'</span><span class="tok-p">,</span> <span class="tok-n">rendered</span><span class="tok-p">)</span>
+        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertIn</span><span class="tok-p">(</span><span class="tok-s1">'class="form-control form-control-lg"'</span><span class="tok-p">,</span> <span class="tok-n">rendered</span><span class="tok-p">)</span></code></pre>
 </div>
 </div>
 </div>
 </div>
 <div class="paragraph">
-<p>That gives us a fail which justifies some real coding.
-How can we customise the input for a form field? Using a "widget".
+<p>That gives us a fail which justifies some real coding:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>    self.assertIn('placeholder="Enter a to-do item"', rendered)
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'placeholder="Enter a to-do item"' not found in [...]</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>How can we customise the input for a form field? Using a "widget".
 Here it is with just the placeholder:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">src/lists/forms.py</div>
+<div class="title">src/lists/forms.py (ch15l004)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
@@ -221,14 +247,14 @@ name="item_text" placeholder="Enter a to-do item" required id="id_item_text"&gt;
 <p>And then:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">src/lists/forms.py</div>
+<div class="title">src/lists/forms.py (ch15l005)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="pygments highlight"><code data-lang="python"><span></span>        <span class="tok-n">widget</span><span class="tok-o">=</span><span class="tok-n">forms</span><span class="tok-o">.</span><span class="tok-n">fields</span><span class="tok-o">.</span><span class="tok-n">TextInput</span><span class="tok-p">(</span>
+<pre class="pygments highlight"><code data-lang="python"><span></span>        <span class="tok-n">widget</span><span class="tok-o">=</span><span class="tok-n">forms</span><span class="tok-o">.</span><span class="tok-n">widgets</span><span class="tok-o">.</span><span class="tok-n">TextInput</span><span class="tok-p">(</span>
             <span class="tok-n">attrs</span><span class="tok-o">=</span><span class="tok-p">{</span>
                 <span class="tok-s2">"placeholder"</span><span class="tok-p">:</span> <span class="tok-s2">"Enter a to-do item"</span><span class="tok-p">,</span>
-                <span class="tok-s2">"class"</span><span class="tok-p">:</span> <span class="tok-s2">"form-control input-lg"</span><span class="tok-p">,</span>
+                <span class="tok-s2">"class"</span><span class="tok-p">:</span> <span class="tok-s2">"form-control form-control-lg"</span><span class="tok-p">,</span>
             <span class="tok-p">}</span>
         <span class="tok-p">),</span></code></pre>
 </div>
@@ -271,7 +297,7 @@ and rewrite it properly later).</p>
 </div>
 <div class="paragraph">
 <p>Here we&#8217;re actually using a unit test as a way of experimenting with the forms API.
-It&#8217;s actually a pretty good way of learning how it works.</p>
+It can be a surprisingly good way of learning how something works.</p>
 </div>
 </div>
 </div>
@@ -283,10 +309,10 @@ It&#8217;s actually a pretty good way of learning how it works.</p>
 What&#8217;s next?
 We want our form to reuse the validation code that we&#8217;ve already defined on our model.
 Django provides a special class that can autogenerate a form for a model, called <code>ModelForm</code>.
-As you&#8217;ll see, it&#8217;s configured using a special attribute called <code>Meta</code>:</p>
+As you&#8217;ll see, it&#8217;s configured using a special inner class called <code>Meta</code>:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">src/lists/forms.py</div>
+<div class="title">src/lists/forms.py (ch15l006)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
@@ -296,24 +322,41 @@ As you&#8217;ll see, it&#8217;s configured using a special attribute called <cod
 
 
 <span class="tok-k">class</span> <span class="tok-nc">ItemForm</span><span class="tok-p">(</span><span class="tok-n">forms</span><span class="tok-o">.</span><span class="tok-n">models</span><span class="tok-o">.</span><span class="tok-n">ModelForm</span><span class="tok-p">):</span>
-
-    <span class="tok-k">class</span> <span class="tok-nc">Meta</span><span class="tok-p">:</span>
+    <span class="tok-k">class</span> <span class="tok-nc">Meta</span><span class="tok-p">:</span>  <i class="conum" data-value="1"></i><b>(1)</b>
         <span class="tok-n">model</span> <span class="tok-o">=</span> <span class="tok-n">Item</span>
-        <span class="tok-n">fields</span> <span class="tok-o">=</span> <span class="tok-p">(</span><span class="tok-s2">"text"</span><span class="tok-p">,)</span></code></pre>
+        <span class="tok-n">fields</span> <span class="tok-o">=</span> <span class="tok-p">(</span><span class="tok-s2">"text"</span><span class="tok-p">,)</span>
+
+    <span class="tok-c1"># item_text = forms.CharField(  </span><i class="conum" data-value="2"></i><b>(2)</b>
+    <span class="tok-c1">#     widget=forms.widgets.TextInput(</span>
+    <span class="tok-c1">#         attrs={</span>
+    <span class="tok-c1">#             "placeholder": "Enter a to-do item",</span>
+    <span class="tok-c1">#             "class": "form-control form-control-lg",</span>
+    <span class="tok-c1">#         }</span>
+    <span class="tok-c1">#     ),</span>
+    <span class="tok-c1"># )</span></code></pre>
 </div>
 </div>
 </div>
 </div>
-<div class="paragraph">
-<p>In <code>Meta</code> we specify which model the form is for,
-and which fields we want it to use.</p>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>In <code>Meta</code> we specify which model the form is for,
+and which fields we want it to use.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>We&#8217;ll comment out our manually-created field for now.</td>
+</tr>
+</table>
 </div>
 <div class="paragraph">
 <p><code>ModelForm</code>s do all sorts of smart stuff,
 like assigning sensible HTML form input types to different types of field,
 and applying default validation.
 Check out the
-<a href="https://docs.djangoproject.com/en/5.1/topics/forms/modelforms/">docs</a>
+<a href="https://docs.djangoproject.com/en/5.2/topics/forms/modelforms/">docs</a>
 for more info.</p>
 </div>
 <div class="paragraph">
@@ -328,14 +371,17 @@ rows="10" required id="id_text"&gt;\n&lt;/textarea&gt;\n    \n    \n      \n    
 </div>
 </div>
 <div class="paragraph">
-<p>It&#8217;s lost our placeholder and CSS class. But you can also see that it&#8217;s using
-<code>name="text"</code> instead of <code>name="item_text"</code>. We can probably live with that.
-But it&#8217;s using a <code>textarea</code> instead of a normal input, and that&#8217;s not the UI we
-want for our app. Thankfully, you can override widgets for <code>ModelForm</code> fields,
+<p>It&#8217;s lost our placeholder and CSS class.
+And you can also see that it&#8217;s using
+<code>name="text"</code> instead of <code>name="item_text"</code>.
+We can probably live with that.
+But it&#8217;s using a <code>textarea</code> instead of a normal input,
+and that&#8217;s not the UI we want for our app.
+Thankfully, you can override widgets for <code>ModelForm</code> fields,
 similarly to the way we did it with the normal form:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">src/lists/forms.py</div>
+<div class="title">src/lists/forms.py (ch15l007)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
@@ -343,7 +389,7 @@ similarly to the way we did it with the normal form:</p>
     <span class="tok-k">class</span> <span class="tok-nc">Meta</span><span class="tok-p">:</span>
         <span class="tok-n">model</span> <span class="tok-o">=</span> <span class="tok-n">Item</span>
         <span class="tok-n">fields</span> <span class="tok-o">=</span> <span class="tok-p">(</span><span class="tok-s2">"text"</span><span class="tok-p">,)</span>
-        <span class="tok-n">widgets</span> <span class="tok-o">=</span> <span class="tok-p">{</span>
+        <span class="tok-n">widgets</span> <span class="tok-o">=</span> <span class="tok-p">{</span>  <i class="conum" data-value="1"></i><b>(1)</b>
             <span class="tok-s2">"text"</span><span class="tok-p">:</span> <span class="tok-n">forms</span><span class="tok-o">.</span><span class="tok-n">widgets</span><span class="tok-o">.</span><span class="tok-n">TextInput</span><span class="tok-p">(</span>
                 <span class="tok-n">attrs</span><span class="tok-o">=</span><span class="tok-p">{</span>
                     <span class="tok-s2">"placeholder"</span><span class="tok-p">:</span> <span class="tok-s2">"Enter a to-do item"</span><span class="tok-p">,</span>
@@ -355,6 +401,16 @@ similarly to the way we did it with the normal form:</p>
 </div>
 </div>
 </div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>We restore some of our commented-out code here,
+but modified slightly, from being an attribute declaration,
+to a key in a dict.</td>
+</tr>
+</table>
+</div>
 <div class="paragraph">
 <p>That gets the test passing.</p>
 </div>
@@ -362,16 +418,19 @@ similarly to the way we did it with the normal form:</p>
 <div class="sect3">
 <h4 id="_testing_and_customising_form_validation">Testing and Customising Form Validation</h4>
 <div class="paragraph">
-<p>Now let&#8217;s see if the <code>ModelForm</code> has picked up the same validation rules which we
-defined on the model.  We&#8217;ll also learn how to pass data into the form, as if
-it came from the user:</p>
+<p>Now let&#8217;s see if the <code>ModelForm</code> has picked up the same validation rules
+which we defined on the model.
+We&#8217;ll also learn how to pass data into the form, as if it came from the user:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">src/lists/tests/test_forms.py (ch11l008)</div>
+<div class="title">src/lists/tests/test_forms.py (ch15l008)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="pygments highlight"><code data-lang="python"><span></span>    <span class="tok-k">def</span> <span class="tok-nf">test_form_validation_for_blank_items</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">):</span>
+<pre class="pygments highlight"><code data-lang="python"><span></span>    <span class="tok-k">def</span> <span class="tok-nf">test_form_item_input_has_placeholder_and_css_classes</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">):</span>
+        <span class="tok-p">[</span><span class="tok-o">...</span><span class="tok-p">]</span>
+
+    <span class="tok-k">def</span> <span class="tok-nf">test_form_validation_for_blank_items</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">):</span>
         <span class="tok-n">form</span> <span class="tok-o">=</span> <span class="tok-n">ItemForm</span><span class="tok-p">(</span><span class="tok-n">data</span><span class="tok-o">=</span><span class="tok-p">{</span><span class="tok-s2">"text"</span><span class="tok-p">:</span> <span class="tok-s2">""</span><span class="tok-p">})</span>
         <span class="tok-n">form</span><span class="tok-o">.</span><span class="tok-n">save</span><span class="tok-p">()</span></code></pre>
 </div>
@@ -395,11 +454,17 @@ want.  The API for checking form validation <em>before</em> we try to save any
 data is a function called <code>is_valid</code>:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">src/lists/tests/test_forms.py (ch11l009)</div>
+<div class="title">src/lists/tests/test_forms.py (ch15l009)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-k">def</span> <span class="tok-nf">test_form_validation_for_blank_items</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">):</span>
+<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-k">def</span> <span class="tok-nf">test_form_item_input_has_placeholder_and_css_classes</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">):</span>
+    <span class="tok-p">[</span><span class="tok-o">...</span><span class="tok-p">]</span>
+
+<span class="tok-k">def</span> <span class="tok-nf">test_form_validation_for_blank_items</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">):</span>
+    <span class="tok-p">[</span><span class="tok-o">...</span><span class="tok-p">]</span>
+
+<span class="tok-k">def</span> <span class="tok-nf">test_form_validation_for_blank_items</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">):</span>
     <span class="tok-n">form</span> <span class="tok-o">=</span> <span class="tok-n">ItemForm</span><span class="tok-p">(</span><span class="tok-n">data</span><span class="tok-o">=</span><span class="tok-p">{</span><span class="tok-s2">"text"</span><span class="tok-p">:</span> <span class="tok-s2">""</span><span class="tok-p">})</span>
     <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertFalse</span><span class="tok-p">(</span><span class="tok-n">form</span><span class="tok-o">.</span><span class="tok-n">is_valid</span><span class="tok-p">())</span>
     <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertEqual</span><span class="tok-p">(</span><span class="tok-n">form</span><span class="tok-o">.</span><span class="tok-n">errors</span><span class="tok-p">[</span><span class="tok-s2">"text"</span><span class="tok-p">],</span> <span class="tok-p">[</span><span class="tok-s2">"You can't have an empty list item"</span><span class="tok-p">])</span></code></pre>
@@ -408,11 +473,11 @@ data is a function called <code>is_valid</code>:</p>
 </div>
 </div>
 <div class="paragraph">
-<p>Calling <code>form.is_valid()</code> returns <code>True</code> or <code>False</code>, but it also has the
-side effect of validating the input data, and populating the <code>errors</code>
-attribute.  It&#8217;s a dictionary mapping the names of fields to lists of
-errors for those fields (it&#8217;s possible for a field to have more than
-one error).</p>
+<p>Calling <code>form.is_valid()</code> returns <code>True</code> or <code>False</code>,
+but it also has the side effect of validating the input data,
+and populating the <code>errors</code> attribute.
+It&#8217;s a dictionary mapping the names of fields to lists of errors for those fields
+(it&#8217;s possible for a field to have more than one error).</p>
 </div>
 <div class="paragraph">
 <p>That gives us:</p>
@@ -424,13 +489,14 @@ item"]</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>Django already has a default error message that we could present to the
-user&#8212;&#8203;you might use it if you were in a hurry to build your web app,
-but we care enough to make our message special.  Customising it means
-changing <code>error_messages</code>, another <code>Meta</code> variable:</p>
+<p>Django already has a default error message
+that we could present to the user&#8212;&#8203;you might use it
+if you were in a hurry to build your web app,
+but we care enough to make our message special.
+Customising it means changing <code>error_messages</code>, another <code>Meta</code> variable:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">src/lists/forms.py (ch11l010)</div>
+<div class="title">src/lists/forms.py (ch15l010)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
@@ -456,11 +522,11 @@ changing <code>error_messages</code>, another <code>Meta</code> variable:</p>
 </div>
 </div>
 <div class="paragraph">
-<p>You know what would be even better than messing about with all these
-error strings?  Having a constant:</p>
+<p>You know what would be even better than messing about with all these error strings?
+Having a constant:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">src/lists/forms.py (ch11l011)</div>
+<div class="title">src/lists/forms.py (ch15l011)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
@@ -472,10 +538,11 @@ error strings?  Having a constant:</p>
 </div>
 </div>
 <div class="paragraph">
-<p>Rerun the tests to see that they pass&#8230;&#8203;OK.  Now we change the test:</p>
+<p>Rerun the tests to see that they pass&#8230;&#8203;OK.
+Now we can change the tests too.</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">src/lists/tests/test_forms.py (ch11l012)</div>
+<div class="title">src/lists/tests/test_forms.py (ch15l012)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
@@ -489,6 +556,19 @@ error strings?  Having a constant:</p>
 </div>
 </div>
 </div>
+</div>
+<div class="admonitionblock tip">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-tip" title="Tip"></i>
+</td>
+<td class="content">
+This is a good example of re-using constants in tests.
+    It makes it easier to change the error message later.
+</td>
+</tr>
+</table>
 </div>
 <div class="paragraph">
 <p>And the tests still pass:</p>
@@ -511,77 +591,46 @@ $ <strong>git commit -m "new form for list items"</strong></pre>
 </div>
 </div>
 <div class="sect2">
-<h3 id="_using_the_form_in_our_views">Using the Form in Our Views</h3>
+<h3 id="_attempting_to_use_the_form_in_our_views">Attempting to Use the Form in Our Views</h3>
 <div class="paragraph">
 <p>
-I had originally thought to extend this form to capture uniqueness validation
-as well as empty-item validation.  But there&#8217;s a sort of corollary to the
-"deploy as early as possible" lean methodology, which is "merge code as early
-as possible".  In other words: while building this bit of forms code, it would
-be easy to go on for ages, adding more and more functionality to the form&#8212;&#8203;I
-should know, because that&#8217;s exactly what I did during the drafting of this
-chapter, and I ended up doing all sorts of work making an all-singing,
-all-dancing form class before I realised it wouldn&#8217;t really work for our most
-basic use case.</p>
+At this point we may be tempted to carry on,
+perhaps extend the form to capture uniqueness validation
+as well as empty-item validation.</p>
 </div>
 <div class="paragraph">
-<p>So, instead, try to use your new bit of code as soon as possible.  This makes
-sure you never have unused bits of code lying around, and that you start
-checking your code against "the real world" as soon as possible.</p>
+<p>But there&#8217;s a sort of corollary to the "deploy as early as possible" lean methodology,
+which is "merge code as early as possible".
+In other words: while building this bit of forms code,
+it would be easy to go on for ages,
+adding more and more functionality to the form&#8212;&#8203;I should know,
+because that&#8217;s exactly what I did during the drafting of this chapter,
+and I ended up doing all sorts of work
+making an all-singing, all-dancing form class
+before I realised it wouldn&#8217;t <em>actually</em> work for our most basic use case.</p>
 </div>
 <div class="paragraph">
-<p>We have a form class that can render some HTML and do validation of at
-least one kind of error&#8212;&#8203;let&#8217;s start using it!  We should be able to use
-it in our <em>base.html</em> template, and so in all of our views.</p>
+<p>So, instead, try to use your new bit of code as soon as possible.
+This makes sure you never have unused bits of code lying around,
+and that you start checking your code against "the real world" as soon as possible.</p>
+</div>
+<div class="paragraph">
+<p>We have a form class that can render some HTML
+and do validation of at least one kind of error&#8212;&#8203;let&#8217;s start using it!
+We should be able to use it in our <em>base.html</em> template,
+and so in all of our views.</p>
 </div>
 <div class="sect3">
 <h4 id="_using_the_form_in_a_view_with_a_get_request">Using the Form in a View with a GET Request</h4>
 <div class="paragraph">
 <p>
-
-Let&#8217;s start with our unit tests for the home view.
-We&#8217;ll add a new method that checks whether we&#8217;re using the right kind of form:</p>
-</div>
-<div class="exampleblock sourcecode">
-<div class="title">src/lists/tests/test_views.py (ch11l013)</div>
-<div class="content">
-<div class="listingblock">
-<div class="content">
-<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-kn">from</span> <span class="tok-nn">lists.forms</span> <span class="tok-kn">import</span> <span class="tok-n">ItemForm</span>
-<span class="tok-p">[</span><span class="tok-o">...</span><span class="tok-p">]</span>
-
-<span class="tok-k">class</span> <span class="tok-nc">HomePageTest</span><span class="tok-p">(</span><span class="tok-n">TestCase</span><span class="tok-p">):</span>
-    <span class="tok-k">def</span> <span class="tok-nf">test_uses_home_template</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">):</span>
-        <span class="tok-p">[</span><span class="tok-o">...</span><span class="tok-p">]</span>
-
-    <span class="tok-k">def</span> <span class="tok-nf">test_home_page_uses_item_form</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">):</span>
-        <span class="tok-n">response</span> <span class="tok-o">=</span> <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">client</span><span class="tok-o">.</span><span class="tok-n">get</span><span class="tok-p">(</span><span class="tok-s2">"/"</span><span class="tok-p">)</span>
-        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertIsInstance</span><span class="tok-p">(</span><span class="tok-n">response</span><span class="tok-o">.</span><span class="tok-n">context</span><span class="tok-p">[</span><span class="tok-s2">"form"</span><span class="tok-p">],</span> <span class="tok-n">ItemForm</span><span class="tok-p">)</span>  <i class="conum" data-value="1"></i><b>(1)</b></code></pre>
-</div>
-</div>
-</div>
-</div>
-<div class="colist arabic">
-<table>
-<tr>
-<td><i class="conum" data-value="1"></i><b>1</b></td>
-<td><code>assertIsInstance</code> checks that our form is of the correct class.</td>
-</tr>
-</table>
+</p>
 </div>
 <div class="paragraph">
-<p>That gives us:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>KeyError: 'form'</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>So we use the form in our home page view:</p>
+<p>So let&#8217;s start using our form in our home page view:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">src/lists/views.py (ch11l014)</div>
+<div class="title">src/lists/views.py (ch15l013)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
@@ -601,12 +650,12 @@ We&#8217;ll add a new method that checks whether we&#8217;re using the right kin
 replace the old <code>&lt;input ..&gt;</code> with <code>{{ form.text }}</code>:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">src/lists/templates/base.html (ch11l015)</div>
+<div class="title">src/lists/templates/base.html (ch15l014)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
 <pre class="pygments highlight"><code data-lang="html"><span></span>  <span class="tok-p">&lt;</span><span class="tok-nt">form</span> <span class="tok-na">method</span><span class="tok-o">=</span><span class="tok-s">"POST"</span> <span class="tok-na">action</span><span class="tok-o">=</span><span class="tok-s">"{% block form_action %}{% endblock %}"</span> <span class="tok-p">&gt;</span>
-    {{ form.text }}
+    {{ form.text }}  <i class="conum" data-value="1"></i><b>(1)</b>
     {% csrf_token %}
     {% if error %}
       <span class="tok-p">&lt;</span><span class="tok-nt">div</span> <span class="tok-na">class</span><span class="tok-o">=</span><span class="tok-s">"invalid-feedback"</span><span class="tok-p">&gt;</span>{{ error }}<span class="tok-p">&lt;/</span><span class="tok-nt">div</span><span class="tok-p">&gt;</span>
@@ -616,75 +665,507 @@ replace the old <code>&lt;input ..&gt;</code> with <code>{{ form.text }}</code>:
 </div>
 </div>
 </div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td><code>{{ form.text }}</code> renders just the HTML input for the <code>text</code> field of the form.</td>
+</tr>
+</table>
+</div>
 <div class="paragraph">
-<p><code>{{ form.text }}</code> renders just the HTML input for the <code>text</code> field of the form.</p>
+<p>That causes our two unit tests that check on the form input to fail:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>[...]
+======================================================================
+FAIL: test_renders_input_form
+(lists.tests.test_views.HomePageTest.test_renders_input_form)
+ ---------------------------------------------------------------------
+Traceback (most recent call last):
+  File "...goat-book/src/lists/tests/test_views.py", line 19, in
+test_renders_input_form
+    self.assertIn("item_text", [input.get("name") for input in inputs])
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'item_text' not found in ['text', 'csrfmiddlewaretoken']  <i class="conum" data-value="1"></i><b>(1)</b>
+
+======================================================================
+FAIL: test_renders_input_form
+(lists.tests.test_views.ListViewTest.test_renders_input_form)
+ ---------------------------------------------------------------------
+Traceback (most recent call last):
+  File "...goat-book/src/lists/tests/test_views.py", line 60, in
+test_renders_input_form
+    self.assertIn("item_text", [input.get("name") for input in inputs])
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'item_text' not found in ['csrfmiddlewaretoken']  <i class="conum" data-value="2"></i><b>(2)</b>
+
+Ran 18 tests in 0.022s
+
+FAILED (failures=2)</pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>The test for the home page is failing because the <code>name</code> attribute
+of the input box is now <code>text</code>, not <code>item_text</code>.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>The test for the list view is failing because
+because we&#8217;re not instantiating a form in that view,
+so there&#8217;s on <code>form</code> variable in the template,
+the input box is not even being rendered at all,</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>Let&#8217;s fix things one at a time.
+First, let&#8217;s back out our change and restore the hand-coded html input
+in cases where <code>{{ form }}</code> is not defined:</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">src/lists/templates/base.html (ch15l015)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="html"><span></span>          <span class="tok-p">&lt;</span><span class="tok-nt">form</span> <span class="tok-na">method</span><span class="tok-o">=</span><span class="tok-s">"POST"</span> <span class="tok-na">action</span><span class="tok-o">=</span><span class="tok-s">"{% block form_action %}{% endblock %}"</span> <span class="tok-p">&gt;</span>
+            {% if form %}
+              {{ form.text }}
+            {% else %}
+              <span class="tok-p">&lt;</span><span class="tok-nt">input</span>
+                <span class="tok-na">class</span><span class="tok-o">=</span><span class="tok-s">"form-control form-control-lg {% if error %}is-invalid{% endif %}"</span>
+                <span class="tok-na">name</span><span class="tok-o">=</span><span class="tok-s">"item_text"</span>
+                <span class="tok-na">id</span><span class="tok-o">=</span><span class="tok-s">"id_new_item"</span>
+                <span class="tok-na">placeholder</span><span class="tok-o">=</span><span class="tok-s">"Enter a to-do item"</span>
+              <span class="tok-p">/&gt;</span>
+            {% endif %}
+            {% csrf_token %}
+            {% if error %}
+              <span class="tok-p">&lt;</span><span class="tok-nt">div</span> <span class="tok-na">class</span><span class="tok-o">=</span><span class="tok-s">"invalid-feedback"</span><span class="tok-p">&gt;</span>{{ error }}<span class="tok-p">&lt;/</span><span class="tok-nt">div</span><span class="tok-p">&gt;</span>
+            {% endif %}
+          <span class="tok-p">&lt;/</span><span class="tok-nt">form</span><span class="tok-p">&gt;</span></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>That takes us down to 1 failure:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>AssertionError: 'item_text' not found in ['text', 'csrfmiddlewaretoken']</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Let&#8217;s make a note to come back and tidy this up,
+then talk about what&#8217;s happened and how to deal with it.</p>
+</div>
+<div class="sidebarblock scratchpad">
+<div class="content">
+<div class="ulist">
+<ul>
+<li>
+<p><em>Remove duplication of validation logic in views</em></p>
+</li>
+<li>
+<p><em>Remove if branch and hardcoded input tag from base.html</em></p>
+</li>
+</ul>
+</div>
+</div>
 </div>
 </div>
 <div class="sect3">
-<h4 id="_a_big_find_and_replace">A Big Find and Replace</h4>
+<h4 id="_the_tradeoffs_of_django_modelforms_the_frontend_is_coupled_to_the_database">The Tradeoffs of Django ModelForms: The Frontend is Coupled to the Database</h4>
+<div class="paragraph">
+<p>This highlights one of the tradeoffs of using <code>ModelForm</code>:
+by auto-generating the form from the model,
+we tie the <code>name=</code> attribute of our form&#8217;s HTML <code>&lt;input&gt;</code>
+to the name of the model field in the database.</p>
+</div>
+<div class="paragraph">
+<p>In a simple CRUD app like ours, that&#8217;s probably a good deal.
+But it does mean we need to go back and change our assumptions about
+what the <code>name=</code> attribute of the input box is going to be.</p>
+</div>
+<div class="paragraph">
+<p>While we&#8217;re at it, it&#8217;s worth doing an FT run too:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>python src/manage.py test functional_tests</strong>
+[...]
+selenium.common.exceptions.NoSuchElementException: Message: Unable to locate
+element: [id="id_new_item"]; [...]
+[...]
+
+FAILED (errors=4)</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Looks like something else has changed.</p>
+</div>
+<div class="paragraph">
+<p>If you pause the FTs or inspect the HTML manually in a browser,
+you&#8217;ll see that the <code>ModelForm</code> also changes the <code>id</code> attribute
+to being <code>id_text</code>.<sup class="footnote">[<a id="_footnoteref_1" class="footnote" href="#_footnotedef_1" title="View footnote.">1</a>]</sup>.</p>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_a_big_find_and_replace">A Big Find and Replace</h3>
 <div class="paragraph">
 <p>
 
-One thing we have done, though, is change our form&#8212;&#8203;it no longer uses
-the same <code>id</code> and <code>name</code> attributes.  You&#8217;ll see if we run our functional
-tests that they fail the first time they try to find the input box:</p>
+If we want to change our assumption about these two attributes,
+we&#8217;ll need to embark on a couple of big find and replaces basically:</p>
 </div>
-<div class="listingblock">
+<div class="sidebarblock scratchpad">
 <div class="content">
-<pre>selenium.common.exceptions.NoSuchElementException: Message: Unable to locate
-element: [id="id_new_item"]; [...]</pre>
+<div class="ulist">
+<ul>
+<li>
+<p><em>Remove duplication of validation logic in views</em></p>
+</li>
+<li>
+<p><em>Remove if branch and hardcoded input tag from base.html</em></p>
+</li>
+<li>
+<p><em>change input name attribute from item_text to just text</em></p>
+</li>
+<li>
+<p><em>change input id from id_new_item to id_text</em></p>
+</li>
+</ul>
+</div>
 </div>
 </div>
 <div class="paragraph">
-<p>We&#8217;ll need to fix this, and it&#8217;s going to involve a big find and replace.
-Before we do that, let&#8217;s do a commit, to keep the rename separate from
-the logic change:</p>
+<p>But before we do that,
+let&#8217;s back out the rest of our changes and get back to a working state.</p>
+</div>
+<div class="sect3">
+<h4 id="_backing_out_our_changes_and_getting_to_a_working_state">Backing Out Our Changes and Getting To A Working State</h4>
+<div class="paragraph">
+<p>The simplest way to back out changes is with <code>git</code>.
+But in this case, leaving a couple of placeholders does no harm,
+and they&#8217;ll be helpful to come back to later.</p>
+</div>
+<div class="paragraph">
+<p>So we can leave the <code>{{ form.text }}</code> in the HTML,
+but we&#8217;ll make sure that branch is never actually exercised,
+by backing out the change in the view.
+Again, to leave ourselves a little placeholder,
+we&#8217;ll comment out our code rather than deleting it.</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">src/lists/views.py (ch15l016)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-k">def</span> <span class="tok-nf">home_page</span><span class="tok-p">(</span><span class="tok-n">request</span><span class="tok-p">):</span>
+    <span class="tok-c1"># return render(request, "home.html", {"form": ItemForm()})</span>
+    <span class="tok-k">return</span> <span class="tok-n">render</span><span class="tok-p">(</span><span class="tok-n">request</span><span class="tok-p">,</span> <span class="tok-s2">"home.html"</span><span class="tok-p">)</span></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="admonitionblock warning">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-warning" title="Warning"></i>
+</td>
+<td class="content">
+Be very cautious about leaving commented-out code
+    and unused if branches lying around.
+    Do so only if you&#8217;re sure you&#8217;re coming back to them very soon,
+    otherwise your codebase will soon get messy!
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>Now we can do a full unit tests and FT run
+to confirm we&#8217;re back to a working state:</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>$ <strong>git diff</strong> # review changes in base.html, views.py and its tests
-$ <strong>git commit -am "use new form in home_page. NB breaks stuff"</strong></pre>
+<pre>$ <strong>python src/manage.py test lists</strong>
+Found 18 test(s).
+[...]
+OK
+
+$ <strong>python src/manage.py test functional_tests</strong>
+Found 4 test(s).
+[...]
+
+OK</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>Let&#8217;s fix the functional tests.
-A quick <code>grep</code> shows us there are several places where we&#8217;re using <code>id_new_item</code>:</p>
+<p>And let&#8217;s do a commit to be able to separate out the
+rename from anything else:</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>$ <strong>grep id_new_item src/functional_tests/test*</strong>
-src/functional_tests/test_layout_and_styling.py:        inputbox =
-self.browser.find_element(By.ID, "id_new_item")
-src/functional_tests/test_layout_and_styling.py:        inputbox =
-self.browser.find_element(By.ID, "id_new_item")
+<pre>$ <strong>git diff</strong> # changes in base.html + views.py
+$ <strong>git commit -am "Placeholders for using form in view+template, not in use yet"</strong></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>And pop an item on the todo list</p>
+</div>
+<div class="sidebarblock scratchpad">
+<div class="content">
+<div class="ulist">
+<ul>
+<li>
+<p><em>Remove duplication of validation logic in views</em></p>
+</li>
+<li>
+<p><em>Remove if branch and hardcoded input tag from base.html</em></p>
+</li>
+<li>
+<p><em>change input name attribute from item_text to just text</em></p>
+</li>
+<li>
+<p><em>change input id from id_new_item to id_text</em></p>
+</li>
+<li>
+<p><em>uncomment use of form in home_page() view_item to id_text</em></p>
+</li>
+<li>
+<p><em>use form in other views</em></p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_renaming_the_name_attribute">Renaming the Name Attribute</h4>
+<div class="paragraph">
+<p>So, let&#8217;s have a look for <code>item_text</code> in the codebase.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>grep -Ir item_text src</strong>
+src/lists/migrations/0003_list.py:        ("lists", "0002_item_text"),
+src/lists/tests/test_views.py:        self.assertIn("item_text",
+[input.get("name") for input in inputs])
+[...]
+src/lists/templates/base.html:                name="item_text"
+src/lists/views.py:    item = Item(text=request.POST["item_text"], list=nulist)
+src/lists/views.py:            item = Item(text=request.POST["item_text"],
+list=our_list)</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>We can ignore the migration which is just using <code>item_text</code> as metadata.
+So the changes we need to make are in three places:</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p><em>views.py</em></p>
+</li>
+<li>
+<p><em>test_views.py</em></p>
+</li>
+<li>
+<p><em>base.html</em></p>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p>Let&#8217;s go ahead and make those.
+I&#8217;m sure you can manage your own find and replace!
+They should look something like this:</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">src/lists/tests/test_views.py (ch15l017)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="diff"><span></span><span class="tok-gu">@@ -16,12 +16,12 @@ class HomePageTest(TestCase):</span>
+<span class="tok-w"> </span>        [form] = parsed.cssselect("form[method=POST]")
+<span class="tok-w"> </span>        self.assertEqual(form.get("action"), "/lists/new")
+<span class="tok-w"> </span>        inputs = form.cssselect("input")
+<span class="tok-gd">-        self.assertIn("item_text", [input.get("name") for input in inputs])</span>
+<span class="tok-gi">+        self.assertIn("text", [input.get("name") for input in inputs])</span>
+
+
+<span class="tok-w"> </span>class NewListTest(TestCase):
+<span class="tok-w"> </span>    def test_can_save_a_POST_request(self):
+<span class="tok-gd">-        self.client.post("/lists/new", data={"item_text": "A new list item"})</span>
+<span class="tok-gi">+        self.client.post("/lists/new", data={"text": "A new list item"})</span>
+<span class="tok-w"> </span>        self.assertEqual(Item.objects.count(), 1)
+<span class="tok-w"> </span>        new_item = Item.objects.get()
+<span class="tok-w"> </span>        self.assertEqual(new_item.text, "A new list item")
+[...]</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>Or, in <em>views.py</em>:</p>
+</div>
+<div class="exampleblock sourcecode dofirst-ch15l018">
+<div class="title">src/lists/views.py (ch15l019)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="diff"><span></span><span class="tok-gu">@@ -12,7 +12,7 @@ def home_page(request):</span>
+
+<span class="tok-w"> </span>def new_list(request):
+<span class="tok-w"> </span>    nulist = List.objects.create()
+<span class="tok-gd">-    item = Item(text=request.POST["item_text"], list=nulist)</span>
+<span class="tok-gi">+    item = Item(text=request.POST["text"], list=nulist)</span>
+<span class="tok-w"> </span>    try:
+<span class="tok-w"> </span>        item.full_clean()
+<span class="tok-w"> </span>        item.save()
+<span class="tok-gu">@@ -29,7 +29,7 @@ def view_list(request, list_id):</span>
+
+<span class="tok-w"> </span>    if request.method == "POST":
+<span class="tok-w"> </span>        try:
+<span class="tok-gd">-            item = Item(text=request.POST["item_text"], list=our_list)</span>
+<span class="tok-gi">+            item = Item(text=request.POST["text"], list=our_list)</span>
+<span class="tok-w"> </span>            item.full_clean()
+<span class="tok-w"> </span>            item.save()
+<span class="tok-w"> </span>            return redirect(our_list)</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>Finally, in <em>base.html</em>:</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">src/lists/templates/base.html (ch15l020)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="diff"><span></span><span class="tok-gu">@@ -21,7 +21,7 @@</span>
+<span class="tok-w"> </span>            {% else %}
+<span class="tok-w"> </span>              &lt;input
+<span class="tok-w"> </span>                class="form-control form-control-lg {% if error %}is-invalid{% endif %}"
+<span class="tok-gd">-                name="item_text"</span>
+<span class="tok-gi">+                name="text"</span>
+<span class="tok-w"> </span>                id="id_new_item"
+<span class="tok-w"> </span>                placeholder="Enter a to-do item"
+<span class="tok-w"> </span>              /&gt;</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>Once you&#8217;re done, rerun the unit tests to confirm that the application is self-consistent:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>python src/manage.py test lists</strong>
+[...]
+Ran 18 tests in 0.126s
+
+OK</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>And rerun the FTs too:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>python src/manage.py test functional_tests</strong>
+[...]
+Ran 4 tests in 12.154s
+
+OK</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Good! One down:</p>
+</div>
+<div class="sidebarblock scratchpad">
+<div class="content">
+<div class="ulist">
+<ul>
+<li>
+<p><em>Remove duplication of validation logic in views</em></p>
+</li>
+<li>
+<p><em>Remove if branch and hardcoded input tag from base.html</em></p>
+</li>
+<li>
+<p><em><span class="strikethrough line-through">change input name attribute from item_text to just text</span></em></p>
+</li>
+<li>
+<p><em>change input id from id_new_item to id_text</em></p>
+</li>
+<li>
+<p><em>uncomment use of form in home_page() view_item to id_text</em></p>
+</li>
+<li>
+<p><em>use form in other views</em></p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_renaming_the_id_attribute">Renaming the ID Attribute</h4>
+<div class="paragraph">
+<p>Now for the <code>id=</code> attribute.
+A quick <code>grep</code> shows us that <code>id_new_item</code> appears in the template,
+and in all 3 FT files:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>grep -r id_new_item</strong>
+src/lists/templates/base.html:                id="id_new_item"
 src/functional_tests/test_list_item_validation.py:
 self.browser.find_element(By.ID, "id_new_item").send_keys(Keys.ENTER)
+src/functional_tests/test_list_item_validation.py:
+self.browser.find_element(By.ID, "id_new_item").send_keys("Purchase milk")
 [...]</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>That&#8217;s a good call for a refactor.
+<p>That&#8217;s a good call for a refactor within the FTs too.
 Let&#8217;s make a new helper method in <em>base.py</em>:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">src/functional_tests/base.py (ch11l018)</div>
+<div class="title">src/functional_tests/base.py (ch15l021)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
 <pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-k">class</span> <span class="tok-nc">FunctionalTest</span><span class="tok-p">(</span><span class="tok-n">StaticLiveServerTestCase</span><span class="tok-p">):</span>
     <span class="tok-p">[</span><span class="tok-o">...</span><span class="tok-p">]</span>
     <span class="tok-k">def</span> <span class="tok-nf">get_item_input_box</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">):</span>
-        <span class="tok-k">return</span> <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">browser</span><span class="tok-o">.</span><span class="tok-n">find_element</span><span class="tok-p">(</span><span class="tok-n">By</span><span class="tok-o">.</span><span class="tok-n">ID</span><span class="tok-p">,</span> <span class="tok-s2">"id_text"</span><span class="tok-p">)</span></code></pre>
+        <span class="tok-k">return</span> <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">browser</span><span class="tok-o">.</span><span class="tok-n">find_element</span><span class="tok-p">(</span><span class="tok-n">By</span><span class="tok-o">.</span><span class="tok-n">ID</span><span class="tok-p">,</span> <span class="tok-s2">"id_new_item"</span><span class="tok-p">)</span>  <i class="conum" data-value="1"></i><b>(1)</b></code></pre>
 </div>
 </div>
 </div>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>We&#8217;ll keep the old ID for now. Working state to working state!</td>
+</tr>
+</table>
 </div>
 <div class="paragraph">
 <p>And then we use it throughout&#8212;&#8203;I had to make four changes in
 <em>test_simple_list_creation.py</em>, two in <em>test_layout_and_styling.py</em>, and six
 in <em>test_list_item_validation.py</em>, for example:</p>
 </div>
-<div class="exampleblock sourcecode dofirst-ch11l020 currentcontents">
+<div class="exampleblock sourcecode dofirst-ch15l022 currentcontents">
 <div class="title">src/functional_tests/test_simple_list_creation.py</div>
 <div class="content">
 <div class="listingblock">
@@ -712,190 +1193,297 @@ in <em>test_list_item_validation.py</em>, for example:</p>
 </div>
 <div class="paragraph">
 <p>I won&#8217;t show you every single one; I&#8217;m sure you can manage this for yourself!
-You can redo the <code>grep</code> to check that you&#8217;ve caught them all.</p>
-</div>
-<div class="paragraph">
-<p>We&#8217;re past the first step,
-but now we have to bring the rest of the application code in line with the change.
-We need to find any occurrences of the old <code>id</code> (<code>id_new_item</code>)
-and <code>name</code> (<code>item_text</code>) and replace them too,
-with <code>id_text</code> and <code>text</code>, respectively:</p>
-</div>
-<div class="listingblock ignore-errors">
-<div class="content">
-<pre>$ <strong>grep -r id_new_item src/lists/</strong></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Good, there are no references to <code>id_new_item</code> left&#8212;&#8203;except maybe in some
-<code>*.pyc</code> files, which are safe to ignore.
-What about <code>name</code>/ <code>item_text</code>?</p>
+You can redo the <code>grep</code> to check that you&#8217;ve caught them all:</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>$ <strong>grep -Ir item_text src/lists</strong>
-src/lists/views.py:    item = Item(text=request.POST["item_text"], list=nulist)
-src/lists/views.py:            item = Item(text=request.POST["item_text"],
-list=our_list)
-src/lists/migrations/0003_list.py:        ("lists", "0002_item_text"),
-src/lists/tests/test_views.py:        response = self.client.post("/lists/new",
-data={"item_text": ""})
-src/lists/tests/test_views.py:        self.client.post("/lists/new",
-[...]
-src/lists/tests/test_views.py:            data={"item_text": ""},</pre>
+<pre>$ <strong>grep -r id_new_item</strong>
+src/lists/templates/base.html:                id="id_new_item"
+src/functional_tests/base.py:        return self.browser.find_element(By.ID,
+"id_new_item")</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>We can ignore the migration which is just using <code>item_text</code> as metadata.
-So the changes we need to make are all in <em>views.py</em> and <em>test_views.py</em>.</p>
+<p>And we can do an FT run too, to make sure we haven&#8217;t broken anything:</p>
 </div>
-<div class="paragraph">
-<p>We can go ahead and make those.
-Once we&#8217;re done, we rerun the unit tests to check that everything still works:</p>
-</div>
-<div class="listingblock dofirst-ch11l022">
+<div class="listingblock">
 <div class="content">
-<pre>$ <strong>python src/manage.py test lists</strong>
+<pre>$ <strong>python src/manage.py test functional_tests</strong>
 [...]
-Ran 18 tests in 0.126s
+Ran 4 tests in 12.154s
 
 OK</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>And the functional tests too, where we can see three errors:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>ERROR: test_layout_and_styling (functional_tests.test_layout_and_styling.Layout
-AndStylingTest.test_layout_and_styling)
-[...]
-selenium.common.exceptions.NoSuchElementException: Message: Unable to locate
-element: [id="id_text"]; [...]
-[...]
-ERROR: test_can_start_a_todo_list (functional_tests.test_simple_list_creation.N
-ewVisitorTest.test_can_start_a_todo_list)
-[...]
-selenium.common.exceptions.NoSuchElementException: Message: Unable to locate
-element: [id="id_text"]; [...]
-[...]</pre>
-</div>
+<p>Good!  FT refactor complete, now now hopefully we can make
+the application-level refactor of the <code>id</code> attribute in just two places,
+and we&#8217;ve been in a working state the whole way through.</p>
 </div>
 <div class="paragraph">
-<p>and</p>
+<p>In the FT helper method:</p>
 </div>
-<div class="listingblock">
-<div class="content">
-<pre>ERROR: test_cannot_add_empty_list_items (functional_tests.test_list_item_valida
-tion.ItemValidationTest.test_cannot_add_empty_list_items)
-[...]
-selenium.common.exceptions.NoSuchElementException: Message: Unable to locate
-element: .invalid-feedback; [...]
-[...]</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Let&#8217;s start with the latter.
-Checking <em>views.py</em> and the <code>new_list</code> view we can see
-it&#8217;s because if we detect a validation error,
-we&#8217;re not actually passing the form to the <em>home.html</em> template:</p>
-</div>
-<div class="exampleblock sourcecode currentcontents">
-<div class="title">src/lists/views.py</div>
+<div class="exampleblock sourcecode">
+<div class="title">src/functional_tests/base.py (ch15l023)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-k">except</span> <span class="tok-n">ValidationError</span><span class="tok-p">:</span>
-    <span class="tok-n">nulist</span><span class="tok-o">.</span><span class="tok-n">delete</span><span class="tok-p">()</span>
-    <span class="tok-n">error</span> <span class="tok-o">=</span> <span class="tok-s2">"You can't have an empty list item"</span>
-    <span class="tok-k">return</span> <span class="tok-n">render</span><span class="tok-p">(</span><span class="tok-n">request</span><span class="tok-p">,</span> <span class="tok-s2">"home.html"</span><span class="tok-p">,</span> <span class="tok-p">{</span><span class="tok-s2">"error"</span><span class="tok-p">:</span> <span class="tok-n">error</span><span class="tok-p">})</span></code></pre>
+<pre class="pygments highlight"><code data-lang="diff"><span></span><span class="tok-gu">@@ -43,4 +43,4 @@ class FunctionalTest(StaticLiveServerTestCase):</span>
+<span class="tok-w"> </span>                time.sleep(0.5)
+
+<span class="tok-w"> </span>    def get_item_input_box(self):
+<span class="tok-gd">-        return self.browser.find_element(By.ID, "id_new_item")</span>
+<span class="tok-gi">+        return self.browser.find_element(By.ID, "id_text")</span></code></pre>
 </div>
 </div>
 </div>
 </div>
 <div class="paragraph">
-<p>
-We&#8217;ll want to use the form in this view too.
-Before we make any more changes though, let&#8217;s do a commit:</p>
+<p>And in the template:</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">src/lists/templates/base.html (ch15l024)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="diff"><span></span><span class="tok-gu">@@ -22,7 +22,7 @@</span>
+<span class="tok-w"> </span>              &lt;input
+<span class="tok-w"> </span>                class="form-control form-control-lg {% if error %}is-invalid{% endif %}"
+<span class="tok-w"> </span>                name="text"
+<span class="tok-gd">-                id="id_new_item"</span>
+<span class="tok-gi">+                id="id_text"</span>
+<span class="tok-w"> </span>                placeholder="Enter a to-do item"
+<span class="tok-w"> </span>              /&gt;
+<span class="tok-w"> </span>            {% endif %}</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>And an FT run to confirm:</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>$ <strong>git status</strong>
-$ <strong>git commit -am "rename all item input ids and names. still broken"</strong></pre>
+<pre>$ <strong>python src/manage.py test functional_tests</strong>
+[...]
+Ran 4 tests in 12.154s
+
+OK</pre>
 </div>
 </div>
+<div class="paragraph">
+<p>Hooray!</p>
+</div>
+<div class="sidebarblock scratchpad">
+<div class="content">
+<div class="ulist">
+<ul>
+<li>
+<p><em>Remove duplication of validation logic in views</em></p>
+</li>
+<li>
+<p><em>Remove if branch and hardcoded input tag from base.html</em></p>
+</li>
+<li>
+<p><em><span class="strikethrough line-through">change input name attribute from item_text to just text</span></em></p>
+</li>
+<li>
+<p><em><span class="strikethrough line-through">change input id from id_new_item to id_text</span></em></p>
+</li>
+<li>
+<p><em>uncomment use of form in home_page() view_item to id_text</em></p>
+</li>
+<li>
+<p><em>use form in other views</em></p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_a_second_attempt_at_using_the_form_in_our_views">A Second Attempt At Using the Form in Our Views</h3>
+<div class="paragraph">
+<p>Now we&#8217;ve done the groundwork,
+hopefully we can drop in our form in the <code>home_page()</code> once again:</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">src/lists/views.py (ch15l025)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-k">def</span> <span class="tok-nf">home_page</span><span class="tok-p">(</span><span class="tok-n">request</span><span class="tok-p">):</span>
+    <span class="tok-k">return</span> <span class="tok-n">render</span><span class="tok-p">(</span><span class="tok-n">request</span><span class="tok-p">,</span> <span class="tok-s2">"home.html"</span><span class="tok-p">,</span> <span class="tok-p">{</span><span class="tok-s2">"form"</span><span class="tok-p">:</span> <span class="tok-n">ItemForm</span><span class="tok-p">()})</span></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>Looking good!</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>python src/manage.py test lists</strong>
+Found 18 test(s).
+[...]
+OK</pre>
+</div>
+</div>
+<div class="sidebarblock scratchpad">
+<div class="content">
+<div class="ulist">
+<ul>
+<li>
+<p><em>Remove duplication of validation logic in views</em></p>
+</li>
+<li>
+<p><em>Remove if branch and hardcoded input tag from base.html</em></p>
+</li>
+<li>
+<p><em><span class="strikethrough line-through">change input name attribute from item_text to just text</span></em></p>
+</li>
+<li>
+<p><em><span class="strikethrough line-through">change input id from id_new_item to id_text</span></em></p>
+</li>
+<li>
+<p><em><span class="strikethrough line-through">uncomment use of form in home_page() view_item to id_text</span></em></p>
+</li>
+<li>
+<p><em>use form in other views</em></p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>Let&#8217;s see what happens if we remove that <code>if</code> from the template:</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">src/lists/templates/base.html (ch15l026)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="diff"><span></span><span class="tok-gu">@@ -16,16 +16,7 @@</span>
+<span class="tok-w"> </span>          &lt;h1 class="display-1 mb-4"&gt;{% block header_text %}{% endblock %}&lt;/h1&gt;
+
+<span class="tok-w"> </span>          &lt;form method="POST" action="{% block form_action %}{% endblock %}" &gt;
+<span class="tok-gd">-            {% if form %}</span>
+<span class="tok-gd">-              {{ form.text }}</span>
+<span class="tok-gd">-            {% else %}</span>
+<span class="tok-gd">-              &lt;input</span>
+<span class="tok-gd">-                class="form-control form-control-lg {% if error %}is-invalid{% endif %}"</span>
+<span class="tok-gd">-                name="text"</span>
+<span class="tok-gd">-                id="id_text"</span>
+<span class="tok-gd">-                placeholder="Enter a to-do item"</span>
+<span class="tok-gd">-              /&gt;</span>
+<span class="tok-gd">-            {% endif %}</span>
+<span class="tok-gi">+            {{ form.text }}</span>
+<span class="tok-w"> </span>            {% csrf_token %}
+<span class="tok-w"> </span>            {% if error %}
+<span class="tok-w"> </span>              &lt;div class="invalid-feedback"&gt;{{ error }}&lt;/div&gt;</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>Aha, the unit tests are there to tell us
+that we need to the form in <code>view_list()</code> too:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>AssertionError: 'text' not found in ['csrfmiddlewaretoken']</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Here&#8217;s the minimal use of the form&#8212;&#8203;we won&#8217;t use it for validation yet,
+just for getting the form into the template:</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">src/lists/views.py (ch15l027)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-k">def</span> <span class="tok-nf">view_list</span><span class="tok-p">(</span><span class="tok-n">request</span><span class="tok-p">,</span> <span class="tok-n">list_id</span><span class="tok-p">):</span>
+    <span class="tok-n">our_list</span> <span class="tok-o">=</span> <span class="tok-n">List</span><span class="tok-o">.</span><span class="tok-n">objects</span><span class="tok-o">.</span><span class="tok-n">get</span><span class="tok-p">(</span><span class="tok-nb">id</span><span class="tok-o">=</span><span class="tok-n">list_id</span><span class="tok-p">)</span>
+    <span class="tok-n">error</span> <span class="tok-o">=</span> <span class="tok-kc">None</span>
+    <span class="tok-n">form</span> <span class="tok-o">=</span> <span class="tok-n">ItemForm</span><span class="tok-p">()</span>
+
+    <span class="tok-k">if</span> <span class="tok-n">request</span><span class="tok-o">.</span><span class="tok-n">method</span> <span class="tok-o">==</span> <span class="tok-s2">"POST"</span><span class="tok-p">:</span>
+        <span class="tok-k">try</span><span class="tok-p">:</span>
+            <span class="tok-n">item</span> <span class="tok-o">=</span> <span class="tok-n">Item</span><span class="tok-p">(</span><span class="tok-n">text</span><span class="tok-o">=</span><span class="tok-n">request</span><span class="tok-o">.</span><span class="tok-n">POST</span><span class="tok-p">[</span><span class="tok-s2">"text"</span><span class="tok-p">],</span> <span class="tok-nb">list</span><span class="tok-o">=</span><span class="tok-n">our_list</span><span class="tok-p">)</span>
+            <span class="tok-n">item</span><span class="tok-o">.</span><span class="tok-n">full_clean</span><span class="tok-p">()</span>
+            <span class="tok-n">item</span><span class="tok-o">.</span><span class="tok-n">save</span><span class="tok-p">()</span>
+            <span class="tok-k">return</span> <span class="tok-n">redirect</span><span class="tok-p">(</span><span class="tok-n">our_list</span><span class="tok-p">)</span>
+        <span class="tok-k">except</span> <span class="tok-n">ValidationError</span><span class="tok-p">:</span>
+            <span class="tok-n">error</span> <span class="tok-o">=</span> <span class="tok-s2">"You can't have an empty list item"</span>
+
+    <span class="tok-k">return</span> <span class="tok-n">render</span><span class="tok-p">(</span>
+        <span class="tok-n">request</span><span class="tok-p">,</span> <span class="tok-s2">"list.html"</span><span class="tok-p">,</span> <span class="tok-p">{</span><span class="tok-s2">"list"</span><span class="tok-p">:</span> <span class="tok-n">our_list</span><span class="tok-p">,</span> <span class="tok-s2">"form"</span><span class="tok-p">:</span> <span class="tok-n">form</span><span class="tok-p">,</span> <span class="tok-s2">"error"</span><span class="tok-p">:</span> <span class="tok-n">error</span><span class="tok-p">}</span>
+    <span class="tok-p">)</span></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>And the tests are happy with that too:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>python src/manage.py test lists</strong>
+Found 18 test(s).
+[...]
+OK</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>We&#8217;re done with the template, what&#8217;s next?</p>
+</div>
+<div class="sidebarblock scratchpad">
+<div class="content">
+<div class="ulist">
+<ul>
+<li>
+<p><em>Remove duplication of validation logic in views</em></p>
+</li>
+<li>
+<p><em><span class="strikethrough line-through">Remove if branch and hardcoded input tag from base.html</span></em></p>
+</li>
+<li>
+<p><em><span class="strikethrough line-through">change input name attribute from item_text to just text</span></em></p>
+</li>
+<li>
+<p><em><span class="strikethrough line-through">change input id from id_new_item to id_text</span></em></p>
+</li>
+<li>
+<p><em><span class="strikethrough line-through">uncomment use of form in home_page() view_item to id_text</span></em></p>
+</li>
+<li>
+<p><em>use form in other views</em></p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>Right, let&#8217;s move on to the next view that doesn&#8217;t use our form yet, <code>new_list()</code>,
+And actually, that&#8217;ll help us with the first item,
+which was the whole point of this adventure really,
+see if the forms can help us do validation more nicely.</p>
+</div>
+<div class="paragraph">
+<p>Let&#8217;s see how that works now.</p>
 </div>
 </div>
 <div class="sect2">
 <h3 id="_using_the_form_in_a_view_that_takes_post_requests">Using the Form in a View That Takes POST Requests</h3>
 <div class="paragraph">
 <p>
-Now we want to adjust the unit tests for the <code>new_list</code> view,
-especially the one that deals with validation.
-Let&#8217;s take a look at it now:</p>
-</div>
-<div class="exampleblock sourcecode currentcontents">
-<div class="title">src/lists/tests/test_views.py</div>
-<div class="content">
-<div class="listingblock">
-<div class="content">
-<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-k">class</span> <span class="tok-nc">NewListTest</span><span class="tok-p">(</span><span class="tok-n">TestCase</span><span class="tok-p">):</span>
-    <span class="tok-p">[</span><span class="tok-o">...</span><span class="tok-p">]</span>
-
-    <span class="tok-k">def</span> <span class="tok-nf">test_validation_errors_are_sent_back_to_home_page_template</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">):</span>
-        <span class="tok-n">response</span> <span class="tok-o">=</span> <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">client</span><span class="tok-o">.</span><span class="tok-n">post</span><span class="tok-p">(</span><span class="tok-s2">"/lists/new"</span><span class="tok-p">,</span> <span class="tok-n">data</span><span class="tok-o">=</span><span class="tok-p">{</span><span class="tok-s2">"text"</span><span class="tok-p">:</span> <span class="tok-s2">""</span><span class="tok-p">})</span>
-        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertEqual</span><span class="tok-p">(</span><span class="tok-n">response</span><span class="tok-o">.</span><span class="tok-n">status_code</span><span class="tok-p">,</span> <span class="tok-mi">200</span><span class="tok-p">)</span>
-        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertTemplateUsed</span><span class="tok-p">(</span><span class="tok-n">response</span><span class="tok-p">,</span> <span class="tok-s2">"home.html"</span><span class="tok-p">)</span>
-        <span class="tok-n">expected_error</span> <span class="tok-o">=</span> <span class="tok-n">escape</span><span class="tok-p">(</span><span class="tok-s2">"You can't have an empty list item"</span><span class="tok-p">)</span>
-        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertContains</span><span class="tok-p">(</span><span class="tok-n">response</span><span class="tok-p">,</span> <span class="tok-n">expected_error</span><span class="tok-p">)</span></code></pre>
-</div>
-</div>
-</div>
-</div>
-<div class="paragraph">
-<p>Let&#8217;s add a check that we send our form to the template.
-While we&#8217;re at it, we&#8217;ll use our constant
-instead of the hardcoded string for that error message:</p>
+Here&#8217;s how we can use the form in the <code>new_list()</code> view,
+avoiding all the manual manipulation of <code>request.POST</code> and the error message:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">src/lists/tests/test_views.py (ch14l023)</div>
-<div class="content">
-<div class="listingblock">
-<div class="content">
-<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-kn">from</span> <span class="tok-nn">lists.forms</span> <span class="tok-kn">import</span> <span class="tok-n">ItemForm</span><span class="tok-p">,</span> <span class="tok-n">EMPTY_ITEM_ERROR</span>
-<span class="tok-p">[</span><span class="tok-o">...</span><span class="tok-p">]</span>
-
-<span class="tok-k">class</span> <span class="tok-nc">NewListTest</span><span class="tok-p">(</span><span class="tok-n">TestCase</span><span class="tok-p">):</span>
-    <span class="tok-p">[</span><span class="tok-o">...</span><span class="tok-p">]</span>
-
-    <span class="tok-k">def</span> <span class="tok-nf">test_validation_errors_are_sent_back_to_home_page_template</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">):</span>
-        <span class="tok-n">response</span> <span class="tok-o">=</span> <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">client</span><span class="tok-o">.</span><span class="tok-n">post</span><span class="tok-p">(</span><span class="tok-s2">"/lists/new"</span><span class="tok-p">,</span> <span class="tok-n">data</span><span class="tok-o">=</span><span class="tok-p">{</span><span class="tok-s2">"text"</span><span class="tok-p">:</span> <span class="tok-s2">""</span><span class="tok-p">})</span>
-        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertEqual</span><span class="tok-p">(</span><span class="tok-n">response</span><span class="tok-o">.</span><span class="tok-n">status_code</span><span class="tok-p">,</span> <span class="tok-mi">200</span><span class="tok-p">)</span>
-        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertTemplateUsed</span><span class="tok-p">(</span><span class="tok-n">response</span><span class="tok-p">,</span> <span class="tok-s2">"home.html"</span><span class="tok-p">)</span>
-        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertIsInstance</span><span class="tok-p">(</span><span class="tok-n">response</span><span class="tok-o">.</span><span class="tok-n">context</span><span class="tok-p">[</span><span class="tok-s2">"form"</span><span class="tok-p">],</span> <span class="tok-n">ItemForm</span><span class="tok-p">)</span>
-        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertContains</span><span class="tok-p">(</span><span class="tok-n">response</span><span class="tok-p">,</span> <span class="tok-n">escape</span><span class="tok-p">(</span><span class="tok-n">EMPTY_ITEM_ERROR</span><span class="tok-p">))</span></code></pre>
-</div>
-</div>
-</div>
-</div>
-<div class="paragraph">
-<p>We get an expected failure:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>$ <strong>python src/manage.py test lists</strong>
-[...]
-    self.assertIsInstance(response.context["form"], ItemForm)
-                          ~~~~~~~~~~~~~~~~^^^^^^^^
-[...]
-KeyError: 'form'</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>And here&#8217;s how we use the form in the view:</p>
-</div>
-<div class="exampleblock sourcecode">
-<div class="title">src/lists/views.py (ch14l024)</div>
+<div class="title">src/lists/views.py (ch15l028)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
@@ -933,24 +1521,33 @@ instead of our hardcoded error string.</td>
 <p>That view is now looking much nicer!</p>
 </div>
 <div class="paragraph">
-<p>But, we have a regression:</p>
+<p>But, we have a regression in the unit tests:</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>    self.assertContains(response, escape(EMPTY_ITEM_ERROR))
+<pre>======================================================================
+FAIL: test_validation_errors_are_sent_back_to_home_page_template (lists.tests.t
+est_views.NewListTest.test_validation_errors_are_sent_back_to_home_page_templat
+e)
+ ---------------------------------------------------------------------
 [...]
+    self.assertContains(response, expected_error)
+    ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
 AssertionError: False is not true : Couldn't find 'You can&amp;#x27;t have an empty
-list item' in the following response</pre>
+list item' in the following response
+b'&lt;!doctype html&gt;\n&lt;html lang="en"&gt;\n\n  &lt;head&gt;\n    &lt;title&gt;To-Do
+[...]</pre>
 </div>
 </div>
 <div class="sect3">
 <h4 id="_using_the_form_to_display_errors_in_the_template">Using the Form to Display Errors in the Template</h4>
 <div class="paragraph">
-<p>We&#8217;re failing because we&#8217;re not yet using the form
-to display errors in the template:</p>
+<p>We&#8217;re failing because we&#8217;re not yet <em>using</em> the form
+to display errors in the template.
+Here&#8217;s how to do that:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">src/lists/templates/base.html (ch14l026)</div>
+<div class="title">src/lists/templates/base.html (ch15l029)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
@@ -969,7 +1566,8 @@ to display errors in the template:</p>
 <table>
 <tr>
 <td><i class="conum" data-value="1"></i><b>1</b></td>
-<td><code>form.errors</code> contains a list of all the errors for the form.</td>
+<td>We change the <code>if</code> to look at <code>form.errors</code>:
+it contains a list of all the errors for the form.</td>
 </tr>
 <tr>
 <td><i class="conum" data-value="2"></i><b>2</b></td>
@@ -980,7 +1578,7 @@ i.e., the list of errors for the text field in particular.</td>
 </table>
 </div>
 <div class="paragraph">
-<p>What does that do to our tests?</p>
+<p>What does that do to our unit tests?</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -994,68 +1592,71 @@ list item' in the following response</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>An unexpected failure&#8212;&#8203;it&#8217;s actually in the tests for our final view,
-<code>view_list</code>.  Because we&#8217;ve changed the way errors are displayed in <em>all</em>
-templates, we&#8217;re no longer showing the error that we manually pass into the
-template.</p>
+<p>An unexpected failure&#8212;&#8203;it&#8217;s actually in the tests for our final view, <code>view_list()</code>.</p>
 </div>
 <div class="paragraph">
-<p>That means we&#8217;re going to need to rework <code>view_list</code> as well,
-before we can get back to a working state.
-</p>
+<p>Once again, because we&#8217;ve changed the base template which is used
+by _all_views, we&#8217;ve made a change that impacts more places than we intended.</p>
 </div>
-</div>
-</div>
-<div class="sect2">
-<h3 id="_using_the_form_in_the_other_view">Using the Form in the Other View</h3>
 <div class="paragraph">
-<p>
-This list view handles both GET and POST requests.
-Let&#8217;s start with checking that the form is used in GET requests.
-We can have a new test for that:</p>
+<p>Let&#8217;s follow our standard pattern, get back to a working state,
+and see if we can dig into this a bit.</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_get_back_to_a_working_state">Get Back to a Working State</h4>
+<div class="paragraph">
+<p>Let&#8217;s restore the old <code>[% if %}</code> in the template,
+so we display errors in both old+new cases:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">src/lists/tests/test_views.py (ch14l027)</div>
+<div class="title">src/lists/templates/base.html (ch15l029-1)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-k">class</span> <span class="tok-nc">ListViewTest</span><span class="tok-p">(</span><span class="tok-n">TestCase</span><span class="tok-p">):</span>
-    <span class="tok-p">[</span><span class="tok-o">...</span><span class="tok-p">]</span>
-
-    <span class="tok-k">def</span> <span class="tok-nf">test_displays_item_form</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">):</span>
-        <span class="tok-n">mylist</span> <span class="tok-o">=</span> <span class="tok-n">List</span><span class="tok-o">.</span><span class="tok-n">objects</span><span class="tok-o">.</span><span class="tok-n">create</span><span class="tok-p">()</span>
-        <span class="tok-n">response</span> <span class="tok-o">=</span> <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">client</span><span class="tok-o">.</span><span class="tok-n">get</span><span class="tok-p">(</span><span class="tok-sa">f</span><span class="tok-s2">"/lists/</span><span class="tok-si">{</span><span class="tok-n">mylist</span><span class="tok-o">.</span><span class="tok-n">id</span><span class="tok-si">}</span><span class="tok-s2">/"</span><span class="tok-p">)</span>
-        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertIsInstance</span><span class="tok-p">(</span><span class="tok-n">response</span><span class="tok-o">.</span><span class="tok-n">context</span><span class="tok-p">[</span><span class="tok-s2">"form"</span><span class="tok-p">],</span> <span class="tok-n">ItemForm</span><span class="tok-p">)</span>
-        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertContains</span><span class="tok-p">(</span><span class="tok-n">response</span><span class="tok-p">,</span> <span class="tok-s1">'name="text"'</span><span class="tok-p">)</span></code></pre>
+<pre class="pygments highlight"><code data-lang="html"><span></span>          <span class="tok-p">&lt;</span><span class="tok-nt">form</span> <span class="tok-na">method</span><span class="tok-o">=</span><span class="tok-s">"POST"</span> <span class="tok-na">action</span><span class="tok-o">=</span><span class="tok-s">"{% block form_action %}{% endblock %}"</span> <span class="tok-p">&gt;</span>
+            {{ form.text }}
+            {% csrf_token %}
+            {% if error %}
+              <span class="tok-p">&lt;</span><span class="tok-nt">div</span> <span class="tok-na">class</span><span class="tok-o">=</span><span class="tok-s">"invalid-feedback"</span><span class="tok-p">&gt;</span>{{ error }}<span class="tok-p">&lt;/</span><span class="tok-nt">div</span><span class="tok-p">&gt;</span>
+            {% endif %}
+            {% if form.errors %}
+              <span class="tok-p">&lt;</span><span class="tok-nt">div</span> <span class="tok-na">class</span><span class="tok-o">=</span><span class="tok-s">"invalid-feedback"</span><span class="tok-p">&gt;</span>{{ form.errors.text }}<span class="tok-p">&lt;/</span><span class="tok-nt">div</span><span class="tok-p">&gt;</span>
+            {% endif %}
+          <span class="tok-p">&lt;/</span><span class="tok-nt">form</span><span class="tok-p">&gt;</span></code></pre>
 </div>
 </div>
 </div>
 </div>
 <div class="paragraph">
-<p>That gives:</p>
+<p>And add an item to our stack:</p>
 </div>
-<div class="listingblock">
+<div class="sidebarblock scratchpad">
 <div class="content">
-<pre>KeyError: 'form'</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Here&#8217;s a minimal implementation. We initialise our <code>ItemForm()</code> at the end of the view,
-and change the <code>render()</code> call so it passes <code>"form"</code> to the template:</p>
-</div>
-<div class="exampleblock sourcecode">
-<div class="title">src/lists/views.py (ch14l028)</div>
-<div class="content">
-<div class="listingblock">
-<div class="content">
-<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-k">def</span> <span class="tok-nf">view_list</span><span class="tok-p">(</span><span class="tok-n">request</span><span class="tok-p">,</span> <span class="tok-n">list_id</span><span class="tok-p">):</span>
-    <span class="tok-p">[</span><span class="tok-o">...</span><span class="tok-p">]</span>
-    <span class="tok-n">form</span> <span class="tok-o">=</span> <span class="tok-n">ItemForm</span><span class="tok-p">()</span>
-    <span class="tok-k">return</span> <span class="tok-n">render</span><span class="tok-p">(</span>
-        <span class="tok-n">request</span><span class="tok-p">,</span>
-        <span class="tok-s2">"list.html"</span><span class="tok-p">,</span>
-        <span class="tok-p">{</span><span class="tok-s2">"list"</span><span class="tok-p">:</span> <span class="tok-n">our_list</span><span class="tok-p">,</span> <span class="tok-s2">"form"</span><span class="tok-p">:</span> <span class="tok-n">form</span><span class="tok-p">,</span> <span class="tok-s2">"error"</span><span class="tok-p">:</span> <span class="tok-n">error</span><span class="tok-p">},</span>
-    <span class="tok-p">)</span></code></pre>
+<div class="ulist">
+<ul>
+<li>
+<p><em>Remove duplication of validation logic in views</em></p>
+</li>
+<li>
+<p><em><span class="strikethrough line-through">Remove if branch and hardcoded input tag from base.html</span></em></p>
+</li>
+<li>
+<p><em><span class="strikethrough line-through">change input name attribute from item_text to just text</span></em></p>
+</li>
+<li>
+<p><em><span class="strikethrough line-through">change input id from id_new_item to id_text</span></em></p>
+</li>
+<li>
+<p><em><span class="strikethrough line-through">uncomment use of form in home_page() view_item to id_text</span></em></p>
+</li>
+<li>
+<p><em>use form in other views</em></p>
+</li>
+<li>
+<p><em>remove if error branch from template</em></p>
+</li>
+</ul>
 </div>
 </div>
 </div>
@@ -1063,26 +1664,85 @@ and change the <code>render()</code> call so it passes <code>"form"</code> to th
 <div class="sect3">
 <h4 id="_a_helper_method_for_several_short_tests">A Helper Method for Several Short Tests</h4>
 <div class="paragraph">
-<p>
-Next we want to use the form errors in the second view.
-We&#8217;ll split our current single test for the invalid case
-(<code>test_validation_errors_end_up_on_lists_page</code>)
-into several separate ones:</p>
+<p>Let&#8217;s take a look at our tests for both views,
+particularly the ones that check for invalid inputs:</p>
 </div>
-<div class="exampleblock sourcecode">
-<div class="title">src/lists/tests/test_views.py (ch14l030)</div>
+<div class="exampleblock sourcecode currentcontents">
+<div class="title">src/lists/tests/test_views.py</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-k">class</span> <span class="tok-nc">ListViewTest</span><span class="tok-p">(</span><span class="tok-n">TestCase</span><span class="tok-p">):</span>
+<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-k">class</span> <span class="tok-nc">NewListTest</span><span class="tok-p">(</span><span class="tok-n">TestCase</span><span class="tok-p">):</span>
     <span class="tok-p">[</span><span class="tok-o">...</span><span class="tok-p">]</span>
+    <span class="tok-k">def</span> <span class="tok-nf">test_validation_errors_are_sent_back_to_home_page_template</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">):</span>
+        <span class="tok-n">response</span> <span class="tok-o">=</span> <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">client</span><span class="tok-o">.</span><span class="tok-n">post</span><span class="tok-p">(</span><span class="tok-s2">"/lists/new"</span><span class="tok-p">,</span> <span class="tok-n">data</span><span class="tok-o">=</span><span class="tok-p">{</span><span class="tok-s2">"text"</span><span class="tok-p">:</span> <span class="tok-s2">""</span><span class="tok-p">})</span>
+        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertEqual</span><span class="tok-p">(</span><span class="tok-n">response</span><span class="tok-o">.</span><span class="tok-n">status_code</span><span class="tok-p">,</span> <span class="tok-mi">200</span><span class="tok-p">)</span>
+        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertTemplateUsed</span><span class="tok-p">(</span><span class="tok-n">response</span><span class="tok-p">,</span> <span class="tok-s2">"home.html"</span><span class="tok-p">)</span>
+        <span class="tok-n">expected_error</span> <span class="tok-o">=</span> <span class="tok-n">html</span><span class="tok-o">.</span><span class="tok-n">escape</span><span class="tok-p">(</span><span class="tok-s2">"You can't have an empty list item"</span><span class="tok-p">)</span>
+        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertContains</span><span class="tok-p">(</span><span class="tok-n">response</span><span class="tok-p">,</span> <span class="tok-n">expected_error</span><span class="tok-p">)</span>
 
-    <span class="tok-k">def</span> <span class="tok-nf">post_invalid_input</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">):</span>
-        <span class="tok-n">mylist</span> <span class="tok-o">=</span> <span class="tok-n">List</span><span class="tok-o">.</span><span class="tok-n">objects</span><span class="tok-o">.</span><span class="tok-n">create</span><span class="tok-p">()</span>
-        <span class="tok-k">return</span> <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">client</span><span class="tok-o">.</span><span class="tok-n">post</span><span class="tok-p">(</span>
-            <span class="tok-sa">f</span><span class="tok-s2">"/lists/</span><span class="tok-si">{</span><span class="tok-n">mylist</span><span class="tok-o">.</span><span class="tok-n">id</span><span class="tok-si">}</span><span class="tok-s2">/"</span><span class="tok-p">,</span>
+    <span class="tok-k">def</span> <span class="tok-nf">test_invalid_list_items_arent_saved</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">):</span>
+        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">client</span><span class="tok-o">.</span><span class="tok-n">post</span><span class="tok-p">(</span><span class="tok-s2">"/lists/new"</span><span class="tok-p">,</span> <span class="tok-n">data</span><span class="tok-o">=</span><span class="tok-p">{</span><span class="tok-s2">"text"</span><span class="tok-p">:</span> <span class="tok-s2">""</span><span class="tok-p">})</span>
+        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertEqual</span><span class="tok-p">(</span><span class="tok-n">List</span><span class="tok-o">.</span><span class="tok-n">objects</span><span class="tok-o">.</span><span class="tok-n">count</span><span class="tok-p">(),</span> <span class="tok-mi">0</span><span class="tok-p">)</span>
+        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertEqual</span><span class="tok-p">(</span><span class="tok-n">Item</span><span class="tok-o">.</span><span class="tok-n">objects</span><span class="tok-o">.</span><span class="tok-n">count</span><span class="tok-p">(),</span> <span class="tok-mi">0</span><span class="tok-p">)</span>
+
+<span class="tok-k">class</span> <span class="tok-nc">ListViewTest</span><span class="tok-p">(</span><span class="tok-n">TestCase</span><span class="tok-p">):</span>
+    <span class="tok-p">[</span><span class="tok-o">...</span><span class="tok-p">]</span>
+    <span class="tok-k">def</span> <span class="tok-nf">test_validation_errors_end_up_on_lists_page</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">):</span>
+        <span class="tok-n">list_</span> <span class="tok-o">=</span> <span class="tok-n">List</span><span class="tok-o">.</span><span class="tok-n">objects</span><span class="tok-o">.</span><span class="tok-n">create</span><span class="tok-p">()</span>
+        <span class="tok-n">response</span> <span class="tok-o">=</span> <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">client</span><span class="tok-o">.</span><span class="tok-n">post</span><span class="tok-p">(</span>
+            <span class="tok-sa">f</span><span class="tok-s2">"/lists/</span><span class="tok-si">{</span><span class="tok-n">list_</span><span class="tok-o">.</span><span class="tok-n">id</span><span class="tok-si">}</span><span class="tok-s2">/"</span><span class="tok-p">,</span>
             <span class="tok-n">data</span><span class="tok-o">=</span><span class="tok-p">{</span><span class="tok-s2">"text"</span><span class="tok-p">:</span> <span class="tok-s2">""</span><span class="tok-p">},</span>
         <span class="tok-p">)</span>
+        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertEqual</span><span class="tok-p">(</span><span class="tok-n">response</span><span class="tok-o">.</span><span class="tok-n">status_code</span><span class="tok-p">,</span> <span class="tok-mi">200</span><span class="tok-p">)</span>
+        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertTemplateUsed</span><span class="tok-p">(</span><span class="tok-n">response</span><span class="tok-p">,</span> <span class="tok-s2">"list.html"</span><span class="tok-p">)</span>
+        <span class="tok-n">expected_error</span> <span class="tok-o">=</span> <span class="tok-n">html</span><span class="tok-o">.</span><span class="tok-n">escape</span><span class="tok-p">(</span><span class="tok-s2">"You can't have an empty list item"</span><span class="tok-p">)</span>
+        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertContains</span><span class="tok-p">(</span><span class="tok-n">response</span><span class="tok-p">,</span> <span class="tok-n">expected_error</span><span class="tok-p">)</span></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>I see a few problems here:</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>We&#8217;re check explicitly that errors mean nothing is saved to the DB
+in <code>NewListTest</code> but not in <code>ListViewTest</code>.</p>
+</li>
+<li>
+<p>We&#8217;re mixing up the test for the status code, the template,
+and finding the error in the result.</p>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p>
+Let&#8217;s be extra meticulous here, and separate out these concerns.
+Ideally each test should have one assert.
+If we used copy-paste, that would start to involve a lot of duplication,
+so using a couple of helper methods is a good idea here.</p>
+</div>
+<div class="paragraph">
+<p>Here&#8217;s some better tests in <code>NewListTest</code>:</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">src/lists/tests/test_views.py (ch15l029-2)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-kn">from</span> <span class="tok-nn">lists.forms</span> <span class="tok-kn">import</span> <span class="tok-n">EMPTY_ITEM_ERROR</span>
+<span class="tok-p">[</span><span class="tok-o">...</span><span class="tok-p">]</span>
+
+<span class="tok-k">class</span> <span class="tok-nc">NewListTest</span><span class="tok-p">(</span><span class="tok-n">TestCase</span><span class="tok-p">):</span>
+    <span class="tok-k">def</span> <span class="tok-nf">test_can_save_a_POST_request</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">):</span>
+        <span class="tok-p">[</span><span class="tok-o">...</span><span class="tok-p">]</span>
+    <span class="tok-k">def</span> <span class="tok-nf">test_redirects_after_POST</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">):</span>
+        <span class="tok-p">[</span><span class="tok-o">...</span><span class="tok-p">]</span>
+
+    <span class="tok-k">def</span> <span class="tok-nf">post_invalid_input</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">):</span>
+        <span class="tok-k">return</span> <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">client</span><span class="tok-o">.</span><span class="tok-n">post</span><span class="tok-p">(</span><span class="tok-s2">"/lists/new"</span><span class="tok-p">,</span> <span class="tok-n">data</span><span class="tok-o">=</span><span class="tok-p">{</span><span class="tok-s2">"text"</span><span class="tok-p">:</span> <span class="tok-s2">""</span><span class="tok-p">})</span>
 
     <span class="tok-k">def</span> <span class="tok-nf">test_for_invalid_input_nothing_saved_to_db</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">):</span>
         <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">post_invalid_input</span><span class="tok-p">()</span>
@@ -1091,22 +1751,18 @@ into several separate ones:</p>
     <span class="tok-k">def</span> <span class="tok-nf">test_for_invalid_input_renders_list_template</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">):</span>
         <span class="tok-n">response</span> <span class="tok-o">=</span> <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">post_invalid_input</span><span class="tok-p">()</span>
         <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertEqual</span><span class="tok-p">(</span><span class="tok-n">response</span><span class="tok-o">.</span><span class="tok-n">status_code</span><span class="tok-p">,</span> <span class="tok-mi">200</span><span class="tok-p">)</span>
-        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertTemplateUsed</span><span class="tok-p">(</span><span class="tok-n">response</span><span class="tok-p">,</span> <span class="tok-s2">"list.html"</span><span class="tok-p">)</span>
-
-    <span class="tok-k">def</span> <span class="tok-nf">test_for_invalid_input_passes_form_to_template</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">):</span>
-        <span class="tok-n">response</span> <span class="tok-o">=</span> <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">post_invalid_input</span><span class="tok-p">()</span>
-        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertIsInstance</span><span class="tok-p">(</span><span class="tok-n">response</span><span class="tok-o">.</span><span class="tok-n">context</span><span class="tok-p">[</span><span class="tok-s2">"form"</span><span class="tok-p">],</span> <span class="tok-n">ItemForm</span><span class="tok-p">)</span>
+        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertTemplateUsed</span><span class="tok-p">(</span><span class="tok-n">response</span><span class="tok-p">,</span> <span class="tok-s2">"home.html"</span><span class="tok-p">)</span>
 
     <span class="tok-k">def</span> <span class="tok-nf">test_for_invalid_input_shows_error_on_page</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">):</span>
         <span class="tok-n">response</span> <span class="tok-o">=</span> <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">post_invalid_input</span><span class="tok-p">()</span>
-        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertContains</span><span class="tok-p">(</span><span class="tok-n">response</span><span class="tok-p">,</span> <span class="tok-n">escape</span><span class="tok-p">(</span><span class="tok-n">EMPTY_ITEM_ERROR</span><span class="tok-p">))</span></code></pre>
+        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertContains</span><span class="tok-p">(</span><span class="tok-n">response</span><span class="tok-p">,</span> <span class="tok-n">html</span><span class="tok-o">.</span><span class="tok-n">escape</span><span class="tok-p">(</span><span class="tok-n">EMPTY_ITEM_ERROR</span><span class="tok-p">))</span></code></pre>
 </div>
 </div>
 </div>
 </div>
 <div class="paragraph">
 <p>By making a little helper function, <code>post_invalid_input()</code>,
-we can make four separate tests without duplicating lots of lines of code.</p>
+we can make three separate tests without duplicating lots of lines of code.</p>
 </div>
 <div class="paragraph">
 <p>We&#8217;ve seen this several times now.
@@ -1121,68 +1777,391 @@ Helper methods are one of the tools that lower the psychological barrier,
 by reducing boilerplate and keeping the tests readable.</p>
 </div>
 <div class="paragraph">
-<p>For example, now we can see there&#8217;s just one failure, and it&#8217;s a clear one:</p>
+<p>Let&#8217;s do something similar in <code>ListViewTest</code>:</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">src/lists/tests/test_views.py (ch15l029-3)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-k">class</span> <span class="tok-nc">ListViewTest</span><span class="tok-p">(</span><span class="tok-n">TestCase</span><span class="tok-p">):</span>
+    <span class="tok-k">def</span> <span class="tok-nf">test_uses_list_template</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">):</span>
+        <span class="tok-p">[</span><span class="tok-o">...</span><span class="tok-p">]</span>
+    <span class="tok-k">def</span> <span class="tok-nf">test_renders_input_form</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">):</span>
+        <span class="tok-p">[</span><span class="tok-o">...</span><span class="tok-p">]</span>
+    <span class="tok-k">def</span> <span class="tok-nf">test_displays_only_items_for_that_list</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">):</span>
+        <span class="tok-p">[</span><span class="tok-o">...</span><span class="tok-p">]</span>
+    <span class="tok-k">def</span> <span class="tok-nf">test_can_save_a_POST_request_to_an_existing_list</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">):</span>
+        <span class="tok-p">[</span><span class="tok-o">...</span><span class="tok-p">]</span>
+    <span class="tok-k">def</span> <span class="tok-nf">test_POST_redirects_to_list_view</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">):</span>
+        <span class="tok-p">[</span><span class="tok-o">...</span><span class="tok-p">]</span>
+
+    <span class="tok-k">def</span> <span class="tok-nf">post_invalid_input</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">):</span>
+        <span class="tok-n">mylist</span> <span class="tok-o">=</span> <span class="tok-n">List</span><span class="tok-o">.</span><span class="tok-n">objects</span><span class="tok-o">.</span><span class="tok-n">create</span><span class="tok-p">()</span>
+        <span class="tok-k">return</span> <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">client</span><span class="tok-o">.</span><span class="tok-n">post</span><span class="tok-p">(</span><span class="tok-sa">f</span><span class="tok-s2">"/lists/</span><span class="tok-si">{</span><span class="tok-n">mylist</span><span class="tok-o">.</span><span class="tok-n">id</span><span class="tok-si">}</span><span class="tok-s2">/"</span><span class="tok-p">,</span> <span class="tok-n">data</span><span class="tok-o">=</span><span class="tok-p">{</span><span class="tok-s2">"text"</span><span class="tok-p">:</span> <span class="tok-s2">""</span><span class="tok-p">})</span>
+
+    <span class="tok-k">def</span> <span class="tok-nf">test_for_invalid_input_nothing_saved_to_db</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">):</span>
+        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">post_invalid_input</span><span class="tok-p">()</span>
+        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertEqual</span><span class="tok-p">(</span><span class="tok-n">Item</span><span class="tok-o">.</span><span class="tok-n">objects</span><span class="tok-o">.</span><span class="tok-n">count</span><span class="tok-p">(),</span> <span class="tok-mi">0</span><span class="tok-p">)</span>
+
+    <span class="tok-k">def</span> <span class="tok-nf">test_for_invalid_input_renders_list_template</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">):</span>
+        <span class="tok-n">response</span> <span class="tok-o">=</span> <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">post_invalid_input</span><span class="tok-p">()</span>
+        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertEqual</span><span class="tok-p">(</span><span class="tok-n">response</span><span class="tok-o">.</span><span class="tok-n">status_code</span><span class="tok-p">,</span> <span class="tok-mi">200</span><span class="tok-p">)</span>
+        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertTemplateUsed</span><span class="tok-p">(</span><span class="tok-n">response</span><span class="tok-p">,</span> <span class="tok-s2">"list.html"</span><span class="tok-p">)</span>
+
+    <span class="tok-k">def</span> <span class="tok-nf">test_for_invalid_input_shows_error_on_page</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">):</span>
+        <span class="tok-n">response</span> <span class="tok-o">=</span> <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">post_invalid_input</span><span class="tok-p">()</span>
+        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertContains</span><span class="tok-p">(</span><span class="tok-n">response</span><span class="tok-p">,</span> <span class="tok-n">html</span><span class="tok-o">.</span><span class="tok-n">escape</span><span class="tok-p">(</span><span class="tok-n">EMPTY_ITEM_ERROR</span><span class="tok-p">))</span></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>And let&#8217;s re-run all our tests:</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>======================================================================
-FAIL: test_for_invalid_input_shows_error_on_page (lists.tests.test_views.ListVi
+<pre>$ <strong>python src/manage.py test lists</strong>
+Found 21 test(s).
+[...]
+OK</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Great!  We now feel confident that we have a lot of very specific unit tests,
+that can point us to exactly what goes wrong if we ever make a mistake.</p>
+</div>
+<div class="paragraph">
+<p>So let&#8217;s have another go at using our form for <em>all</em> views,
+by fully committing to the <code>{{ form.errors }}</code> in the template:</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">src/lists/templates/base.html (ch15l029-4)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="diff"><span></span><span class="tok-gu">@@ -18,9 +18,6 @@</span>
+<span class="tok-w"> </span>          &lt;form method="POST" action="{% block form_action %}{% endblock %}" &gt;
+<span class="tok-w"> </span>            {{ form.text }}
+<span class="tok-w"> </span>            {% csrf_token %}
+<span class="tok-gd">-            {% if error %}</span>
+<span class="tok-gd">-              &lt;div class="invalid-feedback"&gt;{{ error }}&lt;/div&gt;</span>
+<span class="tok-gd">-            {% endif %}</span>
+<span class="tok-w"> </span>            {% if form.errors %}
+<span class="tok-w"> </span>              &lt;div class="invalid-feedback"&gt;{{ form.errors.text }}&lt;/div&gt;
+<span class="tok-w"> </span>            {% endif %}</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>And we&#8217;ll see that exactly one test is failing:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>FAIL: test_for_invalid_input_shows_error_on_page (lists.tests.test_views.ListVi
 ewTest.test_for_invalid_input_shows_error_on_page)
- ---------------------------------------------------------------------
 [...]
 AssertionError: False is not true : Couldn't find 'You can&amp;#x27;t have an empty
 list item' in the following response</pre>
 </div>
 </div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_using_the_form_in_the_existing_lists_view">Using the Form in the Existing Lists View</h3>
 <div class="paragraph">
-<p>Now let&#8217;s see if we can properly rewrite the view to use our form.  Here&#8217;s a
-first cut:</p>
+<p>
+Let&#8217;s try and work step by step towards fully using our form in this final view.</p>
+</div>
+<div class="sect3">
+<h4 id="_using_the_form_to_pass_errors_to_the_template">Using the Form to Pass Errors to the Template</h4>
+<div class="paragraph">
+<p>At the moment one test is failing because,
+in the existing lists <code>view_list()</code> view,
+we aren&#8217;t passing populating <code>form.errors</code> in the invalid case.</p>
+</div>
+<div class="paragraph">
+<p>So let&#8217;s address just that:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">src/lists/views.py (ch14l031)</div>
+<div class="title">src/lists/views.py (ch15l030-1)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
 <pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-k">def</span> <span class="tok-nf">view_list</span><span class="tok-p">(</span><span class="tok-n">request</span><span class="tok-p">,</span> <span class="tok-n">list_id</span><span class="tok-p">):</span>
     <span class="tok-n">our_list</span> <span class="tok-o">=</span> <span class="tok-n">List</span><span class="tok-o">.</span><span class="tok-n">objects</span><span class="tok-o">.</span><span class="tok-n">get</span><span class="tok-p">(</span><span class="tok-nb">id</span><span class="tok-o">=</span><span class="tok-n">list_id</span><span class="tok-p">)</span>
+    <span class="tok-n">error</span> <span class="tok-o">=</span> <span class="tok-kc">None</span>
+    <span class="tok-n">form</span> <span class="tok-o">=</span> <span class="tok-n">ItemForm</span><span class="tok-p">()</span>  <i class="conum" data-value="2"></i><b>(2)</b>
+
+    <span class="tok-k">if</span> <span class="tok-n">request</span><span class="tok-o">.</span><span class="tok-n">method</span> <span class="tok-o">==</span> <span class="tok-s2">"POST"</span><span class="tok-p">:</span>
+        <span class="tok-n">form</span> <span class="tok-o">=</span> <span class="tok-n">ItemForm</span><span class="tok-p">(</span><span class="tok-n">data</span><span class="tok-o">=</span><span class="tok-n">request</span><span class="tok-o">.</span><span class="tok-n">POST</span><span class="tok-p">)</span>  <i class="conum" data-value="1"></i><b>(1)</b>
+        <span class="tok-k">try</span><span class="tok-p">:</span>
+            <span class="tok-n">item</span> <span class="tok-o">=</span> <span class="tok-n">Item</span><span class="tok-p">(</span><span class="tok-n">text</span><span class="tok-o">=</span><span class="tok-n">request</span><span class="tok-o">.</span><span class="tok-n">POST</span><span class="tok-p">[</span><span class="tok-s2">"text"</span><span class="tok-p">],</span> <span class="tok-nb">list</span><span class="tok-o">=</span><span class="tok-n">our_list</span><span class="tok-p">)</span>
+            <span class="tok-n">item</span><span class="tok-o">.</span><span class="tok-n">full_clean</span><span class="tok-p">()</span>
+            <span class="tok-n">item</span><span class="tok-o">.</span><span class="tok-n">save</span><span class="tok-p">()</span>
+            <span class="tok-k">return</span> <span class="tok-n">redirect</span><span class="tok-p">(</span><span class="tok-n">our_list</span><span class="tok-p">)</span>
+        <span class="tok-k">except</span> <span class="tok-n">ValidationError</span><span class="tok-p">:</span>
+            <span class="tok-n">error</span> <span class="tok-o">=</span> <span class="tok-s2">"You can't have an empty list item"</span>
+
+    <span class="tok-k">return</span> <span class="tok-n">render</span><span class="tok-p">(</span>
+        <span class="tok-n">request</span><span class="tok-p">,</span> <span class="tok-s2">"list.html"</span><span class="tok-p">,</span> <span class="tok-p">{</span><span class="tok-s2">"list"</span><span class="tok-p">:</span> <span class="tok-n">our_list</span><span class="tok-p">,</span> <span class="tok-s2">"form"</span><span class="tok-p">:</span> <span class="tok-n">form</span><span class="tok-p">,</span> <span class="tok-s2">"error"</span><span class="tok-p">:</span> <span class="tok-n">error</span><span class="tok-p">}</span>  <i class="conum" data-value="3"></i><b>(3)</b>
+    <span class="tok-p">)</span></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>Let&#8217;s add this line, in the <code>method=POST</code> branch,
+and instantiate a form using the POST data.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>We already had this empty form for the GET case,
+but our new one will override it.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="3"></i><b>3</b></td>
+<td>And it should now drop through to the template here.</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>That gets us back to a working state!</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>Found 21 test(s).
+[...]
+OK</pre>
+</div>
+</div>
+<div class="sidebarblock scratchpad">
+<div class="content">
+<div class="ulist">
+<ul>
+<li>
+<p><em>Remove duplication of validation logic in views</em></p>
+</li>
+<li>
+<p><em><span class="strikethrough line-through">Remove if branch and hardcoded input tag from base.html</span></em></p>
+</li>
+<li>
+<p><em><span class="strikethrough line-through">change input name attribute from item_text to just text</span></em></p>
+</li>
+<li>
+<p><em><span class="strikethrough line-through">change input id from id_new_item to id_text</span></em></p>
+</li>
+<li>
+<p><em><span class="strikethrough line-through">uncomment use of form in home_page() view_item to id_text</span></em></p>
+</li>
+<li>
+<p><em>use form in other views</em></p>
+</li>
+<li>
+<p><em><span class="strikethrough line-through">remove if error branch from template</span></em></p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_refactoring_the_view_to_use_the_form_fully">Refactoring the View to Use the Form Fully</h4>
+<div class="paragraph">
+<p>Now let&#8217;s start using the form more fully,
+and remove some of the manual error handling.</p>
+</div>
+<div class="paragraph">
+<p>We remove the <code>try/except</code> and replace it with an
+<code>if form.is_valid()</code> check, like the one in <code>new_list()</code>:</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">src/lists/views.py (ch15l030-2)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="diff"><span></span><span class="tok-gu">@@ -26,13 +26,11 @@ def view_list(request, list_id):</span>
+
+<span class="tok-w"> </span>    if request.method == "POST":
+<span class="tok-w"> </span>        form = ItemForm(data=request.POST)
+<span class="tok-gd">-        try:</span>
+<span class="tok-gi">+        if form.is_valid():</span>
+<span class="tok-w"> </span>            item = Item(text=request.POST["text"], list=our_list)
+<span class="tok-w"> </span>            item.full_clean()
+<span class="tok-w"> </span>            item.save()
+<span class="tok-w"> </span>            return redirect(our_list)
+<span class="tok-gd">-        except ValidationError:</span>
+<span class="tok-gd">-            error = "You can't have an empty list item"</span>
+<span class="tok-w"> </span>    return render(
+<span class="tok-w"> </span>        request, "list.html", {"list": our_list, "form": form, "error": error}</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>And the tests still pass:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>OK</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Next, we no longer need the <code>.full_clean()</code>,
+so we can go back to using <code>.objects.create()</code>:</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">src/lists/views.py (ch15l030-3)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="diff"><span></span><span class="tok-gu">@@ -27,9 +27,7 @@ def view_list(request, list_id):</span>
+<span class="tok-w"> </span>    if request.method == "POST":
+<span class="tok-w"> </span>        form = ItemForm(data=request.POST)
+<span class="tok-w"> </span>        if form.is_valid():
+<span class="tok-gd">-            item = Item(text=request.POST["text"], list=our_list)</span>
+<span class="tok-gd">-            item.full_clean()</span>
+<span class="tok-gd">-            item.save()</span>
+<span class="tok-gi">+            Item.objects.create(text=request.POST["text"], list=our_list)</span>
+<span class="tok-w"> </span>            return redirect(our_list)</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>Tests still pass:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>OK</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Finally, the <code>error</code> variable is always <code>None</code>,
+and is no longer needed in the template anyhow:</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">src/lists/views.py (ch15l030-4)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="diff"><span></span><span class="tok-gu">@@ -21,7 +21,6 @@ def new_list(request):</span>
+
+<span class="tok-w"> </span>def view_list(request, list_id):
+<span class="tok-w"> </span>    our_list = List.objects.get(id=list_id)
+<span class="tok-gd">-    error = None</span>
+<span class="tok-w"> </span>    form = ItemForm()
+
+<span class="tok-w"> </span>    if request.method == "POST":
+<span class="tok-gu">@@ -30,6 +29,4 @@ def view_list(request, list_id):</span>
+<span class="tok-w"> </span>            Item.objects.create(text=request.POST["text"], list=our_list)
+<span class="tok-w"> </span>            return redirect(our_list)
+
+<span class="tok-gd">-    return render(</span>
+<span class="tok-gd">-        request, "list.html", {"list": our_list, "form": form, "error": error}</span>
+<span class="tok-gd">-    )</span>
+<span class="tok-gi">+    return render(request, "list.html", {"list": our_list, "form": form})</span></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>And the tests are happy with that!</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>OK</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>I think our view is in a pretty good shape now.
+Here it is in non-diff mode, as a recap:</p>
+</div>
+<div class="exampleblock sourcecode currentcontents">
+<div class="title">src/lists/views.py</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-k">def</span> <span class="tok-nf">view_list</span><span class="tok-p">(</span><span class="tok-n">request</span><span class="tok-p">,</span> <span class="tok-n">list_id</span><span class="tok-p">):</span>
+    <span class="tok-n">our_list</span> <span class="tok-o">=</span> <span class="tok-n">List</span><span class="tok-o">.</span><span class="tok-n">objects</span><span class="tok-o">.</span><span class="tok-n">get</span><span class="tok-p">(</span><span class="tok-nb">id</span><span class="tok-o">=</span><span class="tok-n">list_id</span><span class="tok-p">)</span>
+    <span class="tok-n">form</span> <span class="tok-o">=</span> <span class="tok-n">ItemForm</span><span class="tok-p">()</span>
+
     <span class="tok-k">if</span> <span class="tok-n">request</span><span class="tok-o">.</span><span class="tok-n">method</span> <span class="tok-o">==</span> <span class="tok-s2">"POST"</span><span class="tok-p">:</span>
         <span class="tok-n">form</span> <span class="tok-o">=</span> <span class="tok-n">ItemForm</span><span class="tok-p">(</span><span class="tok-n">data</span><span class="tok-o">=</span><span class="tok-n">request</span><span class="tok-o">.</span><span class="tok-n">POST</span><span class="tok-p">)</span>
         <span class="tok-k">if</span> <span class="tok-n">form</span><span class="tok-o">.</span><span class="tok-n">is_valid</span><span class="tok-p">():</span>
             <span class="tok-n">Item</span><span class="tok-o">.</span><span class="tok-n">objects</span><span class="tok-o">.</span><span class="tok-n">create</span><span class="tok-p">(</span><span class="tok-n">text</span><span class="tok-o">=</span><span class="tok-n">request</span><span class="tok-o">.</span><span class="tok-n">POST</span><span class="tok-p">[</span><span class="tok-s2">"text"</span><span class="tok-p">],</span> <span class="tok-nb">list</span><span class="tok-o">=</span><span class="tok-n">our_list</span><span class="tok-p">)</span>
             <span class="tok-k">return</span> <span class="tok-n">redirect</span><span class="tok-p">(</span><span class="tok-n">our_list</span><span class="tok-p">)</span>
-    <span class="tok-k">else</span><span class="tok-p">:</span>
-        <span class="tok-n">form</span> <span class="tok-o">=</span> <span class="tok-n">ItemForm</span><span class="tok-p">()</span>
+
     <span class="tok-k">return</span> <span class="tok-n">render</span><span class="tok-p">(</span><span class="tok-n">request</span><span class="tok-p">,</span> <span class="tok-s2">"list.html"</span><span class="tok-p">,</span> <span class="tok-p">{</span><span class="tok-s2">"list"</span><span class="tok-p">:</span> <span class="tok-n">our_list</span><span class="tok-p">,</span> <span class="tok-s2">"form"</span><span class="tok-p">:</span> <span class="tok-n">form</span><span class="tok-p">})</span></code></pre>
 </div>
 </div>
 </div>
 </div>
 <div class="paragraph">
-<p>That gets the unit tests passing:</p>
+<p>I think we can give ourselves the satisfaction of doing some
+crossing-things-out:</p>
 </div>
-<div class="listingblock">
+<div class="sidebarblock scratchpad">
 <div class="content">
-<pre>Ran 22 tests in 0.086s
-
-OK</pre>
+<div class="ulist">
+<ul>
+<li>
+<p><em>[strikethrough line-through]Remove duplication of validation logic in views#</em></p>
+</li>
+<li>
+<p><em><span class="strikethrough line-through">Remove if branch and hardcoded input tag from base.html</span></em></p>
+</li>
+<li>
+<p><em><span class="strikethrough line-through">change input name attribute from item_text to just text</span></em></p>
+</li>
+<li>
+<p><em><span class="strikethrough line-through">change input id from id_new_item to id_text</span></em></p>
+</li>
+<li>
+<p><em><span class="strikethrough line-through">uncomment use of form in home_page() view_item to id_text</span></em></p>
+</li>
+<li>
+<p><em>[strikethrough line-through]use form in other views#</em></p>
+</li>
+<li>
+<p><em><span class="strikethrough line-through">remove if error branch from template</span></em></p>
+</li>
+</ul>
+</div>
 </div>
 </div>
 <div class="paragraph">
-<p>How about the FTs?</p>
+<p>Phew!</p>
+</div>
+<div class="paragraph">
+<p>Hey, it&#8217;s been a while, what do our FTs think?</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>======================================================================
+<pre>[...]
+======================================================================
 ERROR: test_cannot_add_empty_list_items (functional_tests.test_list_item_valida
 tion.ItemValidationTest.test_cannot_add_empty_list_items)
  ---------------------------------------------------------------------
 [...]
 selenium.common.exceptions.NoSuchElementException: Message: Unable to locate
-element: .invalid-feedback; [...]</pre>
+element: .invalid-feedback; [...]
+[...]
+
+Ran 4 tests in 14.897s
+
+FAILED (errors=1)</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>Nope.</p>
+<p>Oh.  All the regression tests are OK,
+but our validation test seems to be failing, and failing early too!
+It&#8217;s on the first attempt to submit an empty item.
+What happened?</p>
 </div>
 </div>
 </div>
@@ -1190,14 +2169,15 @@ element: .invalid-feedback; [...]</pre>
 <h3 id="_an_unexpected_benefit_free_client_side_validation_from_html5">An Unexpected Benefit: Free Client-Side Validation from HTML5</h3>
 <div class="paragraph">
 <p>
-What&#8217;s going on here?  Let&#8217;s add our usual <code>time.sleep</code> before the error,
-and take a look at what&#8217;s happening
-or spin up the site manually with <code>manage.py runserver</code> if you prefer
-(see <a href="#html5_popup_screenshot">HTML5 validation says no</a>).</p>
+How shall we find out what&#8217;s going on here?
+One option is to add the usual <code>time.sleep</code> just before the error in the FTs,
+and take a look at what&#8217;s happening while they run.
+Alternatively, spin up the site manually with <code>manage.py runserver</code> if you prefer.
+Either way, you should see something like <a href="#html5_popup_screenshot">HTML5 validation says no</a>.</p>
 </div>
 <div id="html5_popup_screenshot" class="imageblock">
 <div class="content">
-<img src="images/twp2_1401.png" alt="The input with a popup saying 'please fill out this field'">
+<img src="images/html5-validation-popup.png" alt="The input with a popup saying 'please fill out this field'">
 </div>
 <div class="title">Figure 1. HTML5 validation says no</div>
 </div>
@@ -1207,19 +2187,23 @@ from even submitting the input when it&#8217;s empty.</p>
 </div>
 <div class="paragraph">
 <p>It&#8217;s because Django has added the <code>required</code> attribute to the HTML input
-(take another look at our <code>as_p()</code> printouts from earlier
-if you don&#8217;t believe me).
-This is a
-<a href="https://developer.mozilla.org/en-US/docs/Web/HTML/Element/Input#attr-required">feature of HTML5</a>,
-and browsers nowadays will do some validation at the client side
-if they see it,
-preventing users from even submitting invalid input.</p>
+(take another look at our <code>as_p()</code> printouts from earlier if you don&#8217;t believe me,
+or have a look at the source in Dev tools).</p>
 </div>
 <div class="paragraph">
-<p>Let&#8217;s change our FT to reflect that:</p>
+<p>This is a
+<a href="https://developer.mozilla.org/en-US/docs/Web/HTML/Element/Input#attr-required">feature of HTML5</a>;
+browsers nowadays will do some validation at the client side if they can,
+preventing users from even submitting invalid input.
+That&#8217;s actually good news!</p>
+</div>
+<div class="paragraph">
+<p>But, we were working based on incorrect assumptions
+about what the user experience was going to be.
+Let&#8217;s change our FT to reflect this new expectation.</p>
 </div>
 <div class="exampleblock sourcecode small-code">
-<div class="title">src/functional_tests/test_list_item_validation.py (ch14l032)</div>
+<div class="title">src/functional_tests/test_list_item_validation.py (ch15l031)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
@@ -1283,8 +2267,7 @@ which the browser applies to any HTML5 input that has invalid input.</td>
 </table>
 </div>
 <div class="paragraph">
-<p>See how useful and flexible our <code>self.wait_for()</code> function is turning out to be?
-</p>
+<p>See how useful and flexible our <code>self.wait_for()</code> function is turning out to be?</p>
 </div>
 <div class="paragraph">
 <p>Our FT does look quite different from how it started though, doesn&#8217;t it?
@@ -1322,22 +2305,6 @@ keep everything neat and tidy and clean and smooth
 and precise and concise and functional and good.</p>
 </div>
 <div class="paragraph">
-<p>Finally, we can mark the last item on our to-do list from the last chapter as
-done:</p>
-</div>
-<div class="sidebarblock scratchpad">
-<div class="content">
-<div class="ulist">
-<ul>
-<li>
-<p><em><span class="strikethrough line-through">Remove duplication of validation logic in
-views</span></em></p>
-</li>
-</ul>
-</div>
-</div>
-</div>
-<div class="paragraph">
 <p>And it&#8217;s definitely time for a commit:</p>
 </div>
 <div class="listingblock">
@@ -1367,16 +2334,14 @@ using a form is a nice way of encapsulating that logic.</p>
 </div>
 <div class="paragraph">
 <p>
-Also, not all browsers (<em>cough&#8212;&#8203;Safari&#8212;&#8203;cough</em>)
-fully implement HTML5,
-so some users are still going to see our custom error message.
+Also, not all browsers fully implement HTML5,<sup class="footnote">[<a id="_footnoteref_2" class="footnote" href="#_footnotedef_2" title="View footnote.">2</a>]</sup>
+so some users might still see our custom error message.
 And if or when we come to letting users access our data via an API
 (see <a href="/book/appendix_rest_api.html">[appendix_rest_api]</a>),
 then our validation messages will come back into use.</p>
 </div>
 <div class="paragraph">
 <p>On top of that, we&#8217;ll be able to reuse all our validation and forms code
-and the front-end <code>.has-error</code> classes in the next chapter,
 when we do some more advanced validation that can&#8217;t be done by HTML5 magic.</p>
 </div>
 <div class="paragraph">
@@ -1387,8 +2352,9 @@ and we should concentrate on finding the right solution
 rather than the time "wasted" on the wrong solution.</p>
 </div>
 </div>
-<div class="sect3">
-<h4 id="_using_the_forms_own_save_method">Using the Form&#8217;s Own Save Method</h4>
+</div>
+<div class="sect2">
+<h3 id="_using_the_modelforms_own_save_method">Using the ModelForm&#8217;s Own Save Method</h3>
 <div class="paragraph">
 <p>
 There are a couple more things we can do to make our views even simpler.
@@ -1404,7 +2370,7 @@ Just to illustrate what the problem is,
 let&#8217;s see what happens if we just try to call <code>form.save()</code>:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">src/lists/tests/test_forms.py (ch11l033)</div>
+<div class="title">src/lists/tests/test_forms.py (ch15l033)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
@@ -1427,7 +2393,7 @@ let&#8217;s see what happens if we just try to call <code>form.save()</code>:</p
 <p>Our solution is to tell the form&#8217;s save method what list it should save to.</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">src/lists/tests/test_forms.py (ch14l034)</div>
+<div class="title">src/lists/tests/test_forms.py (ch15l034)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
@@ -1471,11 +2437,15 @@ TypeError: BaseModelForm.save() got an unexpected keyword argument 'for_list'</p
 <p>Here&#8217;s how we can implement a custom save method:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">src/lists/forms.py (ch14l035)</div>
+<div class="title">src/lists/forms.py (ch15l035)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="pygments highlight"><code data-lang="python"><span></span>    <span class="tok-k">def</span> <span class="tok-nf">save</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">,</span> <span class="tok-n">for_list</span><span class="tok-p">):</span>
+<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-k">class</span> <span class="tok-nc">ItemForm</span><span class="tok-p">(</span><span class="tok-n">forms</span><span class="tok-o">.</span><span class="tok-n">models</span><span class="tok-o">.</span><span class="tok-n">ModelForm</span><span class="tok-p">):</span>
+    <span class="tok-k">class</span> <span class="tok-nc">Meta</span><span class="tok-p">:</span>
+        <span class="tok-p">[</span><span class="tok-o">...</span><span class="tok-p">]</span>
+
+    <span class="tok-k">def</span> <span class="tok-nf">save</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">,</span> <span class="tok-n">for_list</span><span class="tok-p">):</span>
         <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">instance</span><span class="tok-o">.</span><span class="tok-n">list</span> <span class="tok-o">=</span> <span class="tok-n">for_list</span>
         <span class="tok-k">return</span> <span class="tok-nb">super</span><span class="tok-p">()</span><span class="tok-o">.</span><span class="tok-n">save</span><span class="tok-p">()</span></code></pre>
 </div>
@@ -1495,15 +2465,16 @@ in the next chapter.</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>Ran 23 tests in 0.086s
+<pre>Ran 22 tests in 0.086s
+
 OK</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>Finally, we can refactor our views. <code>new_list</code> first:</p>
+<p>Finally, we can refactor our views. <code>new_list()</code> first:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">src/lists/views.py (ch14l036)</div>
+<div class="title">src/lists/views.py (ch15l036)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
@@ -1524,27 +2495,28 @@ OK</pre>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>Ran 23 tests in 0.086s
+<pre>Ran 22 tests in 0.086s
 OK</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>Then, refactor <code>view_list</code>:</p>
+<p>Then, refactor <code>view_list()</code>:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">src/lists/views.py (ch14l037)</div>
+<div class="title">src/lists/views.py (ch15l037)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
 <pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-k">def</span> <span class="tok-nf">view_list</span><span class="tok-p">(</span><span class="tok-n">request</span><span class="tok-p">,</span> <span class="tok-n">list_id</span><span class="tok-p">):</span>
     <span class="tok-n">our_list</span> <span class="tok-o">=</span> <span class="tok-n">List</span><span class="tok-o">.</span><span class="tok-n">objects</span><span class="tok-o">.</span><span class="tok-n">get</span><span class="tok-p">(</span><span class="tok-nb">id</span><span class="tok-o">=</span><span class="tok-n">list_id</span><span class="tok-p">)</span>
+    <span class="tok-n">form</span> <span class="tok-o">=</span> <span class="tok-n">ItemForm</span><span class="tok-p">()</span>
+
     <span class="tok-k">if</span> <span class="tok-n">request</span><span class="tok-o">.</span><span class="tok-n">method</span> <span class="tok-o">==</span> <span class="tok-s2">"POST"</span><span class="tok-p">:</span>
         <span class="tok-n">form</span> <span class="tok-o">=</span> <span class="tok-n">ItemForm</span><span class="tok-p">(</span><span class="tok-n">data</span><span class="tok-o">=</span><span class="tok-n">request</span><span class="tok-o">.</span><span class="tok-n">POST</span><span class="tok-p">)</span>
         <span class="tok-k">if</span> <span class="tok-n">form</span><span class="tok-o">.</span><span class="tok-n">is_valid</span><span class="tok-p">():</span>
             <span class="tok-n">form</span><span class="tok-o">.</span><span class="tok-n">save</span><span class="tok-p">(</span><span class="tok-n">for_list</span><span class="tok-o">=</span><span class="tok-n">our_list</span><span class="tok-p">)</span>
             <span class="tok-k">return</span> <span class="tok-n">redirect</span><span class="tok-p">(</span><span class="tok-n">our_list</span><span class="tok-p">)</span>
-    <span class="tok-k">else</span><span class="tok-p">:</span>
-        <span class="tok-n">form</span> <span class="tok-o">=</span> <span class="tok-n">ItemForm</span><span class="tok-p">()</span>
+
     <span class="tok-k">return</span> <span class="tok-n">render</span><span class="tok-p">(</span><span class="tok-n">request</span><span class="tok-p">,</span> <span class="tok-s2">"list.html"</span><span class="tok-p">,</span> <span class="tok-p">{</span><span class="tok-s2">"list"</span><span class="tok-p">:</span> <span class="tok-n">our_list</span><span class="tok-p">,</span> <span class="tok-s2">"form"</span><span class="tok-p">:</span> <span class="tok-n">form</span><span class="tok-p">})</span></code></pre>
 </div>
 </div>
@@ -1553,9 +2525,9 @@ OK</pre>
 <div class="paragraph">
 <p>We still have full passes:</p>
 </div>
-<div class="listingblock dofirst-ch14l038">
+<div class="listingblock dofirst-ch15l038">
 <div class="content">
-<pre>Ran 23 tests in 0.111s
+<pre>Ran 22 tests in 0.111s
 OK</pre>
 </div>
 </div>
@@ -1600,7 +2572,7 @@ learn how to prevent duplicate items.
 <p>If you find yourself looking at complex views, and having to write a lot of
 tests for them, it&#8217;s time to start thinking about whether that logic could
 be moved elsewhere: possibly to a form, like we&#8217;ve done here.
-+
+<br>
 Another possible place would be a custom method on the model class.
 And&#8212;&#8203;once the complexity of the app demands it&#8212;&#8203;out of Django-specific
 files and into your own classes and functions, that capture your core
@@ -1611,14 +2583,27 @@ business logic.
 </dd>
 <dt class="hdlist1">Each test should test one thing</dt>
 <dd>
-<p>The heuristic is to be suspicious if there&#8217;s more than one assertion in a
-test. Sometimes two assertions are closely related, so they belong
-together. But often your first draft of a test ends up testing multiple
-behaviours, and it&#8217;s worth rewriting it as several tests. Helper functions
-can keep them from getting too bloated.
+<p>The heuristic is to be suspicious if there&#8217;s more than one assertion
+in a unit test.
+Sometimes two assertions are closely related, so they belong together.
+But often your first draft of a test ends up testing multiple behaviours,
+and it&#8217;s worth rewriting it as several tests,
+so that each one can pinpoint specific problems more precisely,
+and one failure doesn&#8217;t mask another.
+Helper functions can keep them your tests getting too bloated.
 
 
 </p>
+</dd>
+<dt class="hdlist1">Be aware of tradeoffs when using frameworks</dt>
+<dd>
+<p>When we switched to using a ModelForm,
+we saw that it forced us to change the <code>name=</code> attribute
+in our frontend HTML.
+Django gave us a lot, it auto-generated the form based on the model,
+and we have a nice API for doing both validation and saving objects.
+But we lost something too.
+We&#8217;ll revisit this tradeoff in the next chapter.</p>
 </dd>
 </dl>
 </div>
@@ -1628,10 +2613,18 @@ can keep them from getting too bloated.
 </div>
 </div>
 </div>
+<div id="footnotes">
+<hr>
+<div class="footnote" id="_footnotedef_1">
+<a href="#_footnoteref_1">1</a>. It&#8217;s actually possible to customise this attribute via the <code>widgets</code> attribute we used earlier, even on a ModelForm, but since you cannot change the <code>name</code> one, we may as well just accept this too
+</div>
+<div class="footnote" id="_footnotedef_2">
+<a href="#_footnoteref_2">2</a>. Safari was a notable laggard in the last decade, it&#8217;s up to date now
+</div>
 </div>
 <div id="footer">
 <div id="footer-text">
-License: Creative Commons <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode">CC-BY-NC-ND</a>. Last updated: 2025-02-18 15:09:56 UTC
+License: Creative Commons <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode">CC-BY-NC-ND</a>. Last updated: 2025-05-25 22:55:00 +0100
 </div>
 </div>
 <div class="comments" style="padding: 20px">

@@ -412,7 +412,7 @@ $ <strong>git commit -am "Functional test now checks we can input a to-do item"<
 </div>
 </div>
 <div class="sect2">
-<h3 id="_the_dont_test_constants_rule_and_templates_to_the_rescue">The &#8220;Don&#8217;t Test Constants&#8221; Rule, and Templates to the Rescue</h3>
+<h3 id="_the_dont_test_constants_rule_and_templates_to_the_rescue">The "Don&#8217;t Test Constants" Rule, and Templates to the Rescue</h3>
 <div class="paragraph">
 <p>
 
@@ -449,13 +449,16 @@ and we do want something to check that we&#8217;ve written code that works,
 but that&#8217;s our FT&#8217;s job, not the unit tests'.</p>
 </div>
 <div class="paragraph">
-<p>In any case, mangling raw strings in Python
+<p>So maybe "don&#8217;t test constants" isn&#8217;t the online guideline at play here,
+but in any case, mangling raw strings in Python
 really isn&#8217;t a great way of dealing with HTML.
 There&#8217;s a much better solution, which is to use templates.
 Quite apart from anything else,
 if we can keep HTML to one side in a file whose name ends in <em>.html</em>,
-we&#8217;ll get better syntax highlighting!
-There are lots of Python templating frameworks out there,
+we&#8217;ll get better syntax highlighting!</p>
+</div>
+<div class="paragraph">
+<p>There are lots of Python templating frameworks out there,
 and Django has its own which works very well.
 Let&#8217;s use that.</p>
 </div>
@@ -659,6 +662,9 @@ OK</pre>
 </div>
 </div>
 <div class="paragraph">
+<p>And we can double-check with the FTs:</p>
+</div>
+<div class="paragraph">
 <p>Our refactor of the code is now complete,
 and the tests mean we&#8217;re happy that behaviour is preserved.
 Now we can change the tests so that they&#8217;re no longer testing constants;
@@ -667,10 +673,37 @@ instead, they should just check that we&#8217;re rendering the right template.
 </p>
 </div>
 </div>
-<div class="sect3">
-<h4 id="_checking_template_rendering">Checking template rendering</h4>
+</div>
+<div class="sect2">
+<h3 id="_revisiting_our_unit_tests">Revisiting our Unit Tests</h3>
 <div class="paragraph">
-<p>The Django test client has a method, <code>assertTemplateUsed</code>, which can do just what we want:</p>
+<p>Our unit tests are currently essentially checking HTML by hand,
+certainly that&#8217;s very close to "testing constants".</p>
+</div>
+<div class="exampleblock sourcecode currentcontents">
+<div class="title">lists/tests.py</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-k">def</span> <span class="tok-nf">test_home_page_returns_correct_html</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">):</span>
+    <span class="tok-n">response</span> <span class="tok-o">=</span> <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">client</span><span class="tok-o">.</span><span class="tok-n">get</span><span class="tok-p">(</span><span class="tok-s2">"/"</span><span class="tok-p">)</span>
+    <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertContains</span><span class="tok-p">(</span><span class="tok-n">response</span><span class="tok-p">,</span> <span class="tok-s2">"&lt;title&gt;To-Do lists&lt;/title&gt;"</span><span class="tok-p">)</span>  <i class="conum" data-value="1"></i><b>(1)</b>
+    <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertContains</span><span class="tok-p">(</span><span class="tok-n">response</span><span class="tok-p">,</span> <span class="tok-s2">"&lt;html&gt;"</span><span class="tok-p">)</span>
+    <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertContains</span><span class="tok-p">(</span><span class="tok-n">response</span><span class="tok-p">,</span> <span class="tok-s2">"&lt;/html&gt;"</span><span class="tok-p">)</span></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>We don&#8217;t want to be duplicating the full content of our HTML
+template in our tests, or even last sections of it.
+What could we do instead?</p>
+</div>
+<div class="paragraph">
+<p>Rather than testing the full template,
+we could just check that we&#8217;re using the <em>right</em> template.
+The Django test client has a method, <code>assertTemplateUsed</code>,
+which will let us do just that.</p>
 </div>
 <div class="exampleblock sourcecode">
 <div class="title">lists/tests.py (ch04l005)</div>
@@ -735,10 +768,10 @@ used to render the response. Actual template(s) used: home.html</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>That&#8217;s very helpful!
-Let&#8217;s change the assert back to the right thing.
-While we&#8217;re at it, we can delete our old assertions,
-and give the test method a more specific name:</p>
+<p>That&#8217;s very helpful!</p>
+</div>
+<div class="paragraph">
+<p>Let&#8217;s change the assert back to the right thing.</p>
 </div>
 <div class="exampleblock sourcecode">
 <div class="title">lists/tests.py (ch04l007)</div>
@@ -757,9 +790,127 @@ and give the test method a more specific name:</p>
 </div>
 </div>
 <div class="paragraph">
-<p>The main point, though, is that instead of testing constants
-we&#8217;re testing our implementation.
+<p>Now, instead of testing constants we&#8217;re testing at a higher level of abstraction.
 Great!</p>
+</div>
+<div class="sect3">
+<h4 id="_test_behaviour_not_implementation">Test Behaviour, Not Implementation</h4>
+<div class="paragraph">
+<p>As so often in the world of programming though,
+things are not black and white.</p>
+</div>
+<div class="paragraph">
+<p>Yes, on the plus side, our tests no longer care about the specific content of our HTML
+so they are no longer brittle with respect to minor changes of the copy in our template.</p>
+</div>
+<div class="paragraph">
+<p>But on the other hand, they depend on some Django implementation details,
+so they are brittle with respect to changing the template rendering library,
+or even just renaming templates.</p>
+</div>
+<div class="paragraph">
+<p>In a way, testing for the template name
+(and implicitly, even checking that we used a template at all)
+is a lot like testing implementation.
+So what is the <em>behaviour</em> that we want?</p>
+</div>
+<div class="paragraph">
+<p>Yes, in a sense, the "behaviour" we want from the view is "render the template".
+But from the point of view of the user,
+it&#8217;s "show me the homepage".</p>
+</div>
+<div class="paragraph">
+<p>We&#8217;re also vulnerable to accidentally breaking the template.
+Let&#8217;s try it now,
+by just deleting all the contents of the template file:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>mv lists/templates/home.html lists/templates/home.html.bak</strong>
+$ <strong>touch lists/templates/home.html</strong>
+$ <strong>python manage.py test</strong>
+[...]
+OK</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Yes, our FTs will pick up on this, so ultimately we&#8217;re OK.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>python functional_tests.py</strong>
+[...]
+    self.assertIn("To-Do", self.browser.title)
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'To-Do' not found in ''</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>But it would be nice to have our unit tests pick up on this too.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ <strong>mv lists/templates/home.html.bak lists/templates/home.html</strong></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Deciding exactly what to test with FTs and what to test with unit tests
+is a fine line, and the objective is not to double-test everything.
+But in general, the more we can test with unit tests the better.
+They run faster, and they give more specific feedback.</p>
+</div>
+<div class="paragraph">
+<p>So, let&#8217;s bring back a minimal "smoke test"<sup class="footnote">[<a id="_footnoteref_4" class="footnote" href="#_footnotedef_4" title="View footnote.">4</a>]</sup>
+that what we&#8217;re rendering is actually the home page.</p>
+</div>
+<div class="exampleblock sourcecode">
+<div class="title">lists/tests.py (ch04l008)</div>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="python"><span></span><span class="tok-k">class</span> <span class="tok-nc">HomePageTest</span><span class="tok-p">(</span><span class="tok-n">TestCase</span><span class="tok-p">):</span>
+    <span class="tok-k">def</span> <span class="tok-nf">test_uses_home_template</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">):</span>
+        <span class="tok-n">response</span> <span class="tok-o">=</span> <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">client</span><span class="tok-o">.</span><span class="tok-n">get</span><span class="tok-p">(</span><span class="tok-s2">"/"</span><span class="tok-p">)</span>
+        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertTemplateUsed</span><span class="tok-p">(</span><span class="tok-n">response</span><span class="tok-p">,</span> <span class="tok-s2">"home.html"</span><span class="tok-p">)</span>  <i class="conum" data-value="1"></i><b>(1)</b>
+
+    <span class="tok-k">def</span> <span class="tok-nf">test_renders_homepage_content</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">):</span>
+        <span class="tok-n">response</span> <span class="tok-o">=</span> <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">client</span><span class="tok-o">.</span><span class="tok-n">get</span><span class="tok-p">(</span><span class="tok-s2">"/"</span><span class="tok-p">)</span>
+        <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">assertContains</span><span class="tok-p">(</span><span class="tok-n">response</span><span class="tok-p">,</span> <span class="tok-s2">"To-Do"</span><span class="tok-p">)</span>  <i class="conum" data-value="2"></i><b>(2)</b></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>We&#8217;ll keep this first test, which asserts on whether we&#8217;re rendering the
+right "constant".</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>And this gives us a minimal smoke test that we have got the right
+content in the template.</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>As our home page template gains more functionality over the next couple of chapters,
+and we&#8217;ll come back to talking about what to test here in the unit tests,
+and what to leave to the FTs.</p>
+</div>
+<div class="admonitionblock tip">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-tip" title="Tip"></i>
+</td>
+<td class="content">
+Unit tests give you faster and more specific feedback than FTs.
+  Bear this in mind when deciding what to test where.
+</td>
+</tr>
+</table>
 </div>
 </div>
 </div>
@@ -776,9 +927,7 @@ I&#8217;m recommending that you be <em>able</em> to work this way".</p>
 <div class="paragraph">
 <p>In fact, as I was writing this my first instinct was to dive in
 and change the test first&#8212;&#8203;make it
-use the <code>assertTemplateUsed</code> function straight away;
-delete the three superfluous assertions,
-leaving just a check of the contents
+use the <code>assertTemplateUsed()</code> function straight away;
 against the expected render;
 and then go ahead and make the code change.
 But notice how that actually would have left space
@@ -800,12 +949,12 @@ When refactoring, work on either the code or the tests,
 </table>
 </div>
 <div class="paragraph">
-<p>There&#8217;s always a tendency to skip ahead a couple of steps, to make a couple of
-tweaks to the behaviour while you&#8217;re refactoring, but pretty soon you&#8217;ve got
-changes to half a dozen different files, you&#8217;ve totally lost track of where you
-are, and nothing works any more.  If you don&#8217;t want to end up like
-<a href="http://bit.ly/1iXyRt4">Refactoring Cat</a> (<a href="#RefactoringCat">Refactoring Cat&#8212;&#8203;be sure to look up the full animated GIF (source: 4GIFs.com)</a>), stick to small
-steps; keep refactoring and functionality changes entirely separate.</p>
+<p>There&#8217;s always a tendency to skip ahead a couple of steps,
+to make a couple of tweaks to the behaviour while you&#8217;re refactoring,
+but pretty soon you&#8217;ve got changes to half a dozen different files,
+you&#8217;ve totally lost track of where you are, and nothing works any more.
+If you don&#8217;t want to end up like <a href="http://bit.ly/1iXyRt4">Refactoring Cat</a> (<a href="#RefactoringCat">Refactoring Cat&#8212;&#8203;be sure to look up the full animated GIF (source: 4GIFs.com)</a>),
+stick to small steps; keep refactoring and functionality changes entirely separate.</p>
 </div>
 <div id="RefactoringCat" class="imageblock">
 <div class="content">
@@ -820,9 +969,9 @@ steps; keep refactoring and functionality changes entirely separate.</p>
 <i class="fa icon-note" title="Note"></i>
 </td>
 <td class="content">
-We&#8217;ll come across &#8220;Refactoring Cat&#8221; again during this book,
+We&#8217;ll come across "Refactoring Cat" again during this book,
     as an example of what happens when we get carried away
-    and want to change too many things at once.
+    and change too many things at once.
     Think of it as the little cartoon demon counterpart to the Testing Goat,
     popping up over your other shoulder and giving you bad advice.
 </td>
@@ -869,7 +1018,7 @@ This is another distinction between FTs and unit tests;
 <p>So, we wanted an <code>&lt;h1&gt;</code>:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">lists/templates/home.html (ch04l008)</div>
+<div class="title">lists/templates/home.html (ch04l009)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
@@ -898,7 +1047,7 @@ element: [id="id_new_item"]; For documentation on this error, [...]</pre>
 <p>OK, let&#8217;s add an input with that ID:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">lists/templates/home.html (ch04l009)</div>
+<div class="title">lists/templates/home.html (ch04l010)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
@@ -924,7 +1073,7 @@ element: [id="id_new_item"]; For documentation on this error, [...]</pre>
 <p>We add our placeholder text&#8230;&#8203;</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">lists/templates/home.html (ch04l010)</div>
+<div class="title">lists/templates/home.html (ch04l011)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
@@ -946,7 +1095,7 @@ element: [id="id_list_table"]; [...]</pre>
 <p>So we can go ahead and put the table onto the page. At this stage it&#8217;ll just be empty:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">lists/templates/home.html (ch04l011)</div>
+<div class="title">lists/templates/home.html (ch04l012)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
@@ -979,7 +1128,7 @@ more precisely, the <code>assertTrue</code>, which doesn&#8217;t have a very exp
 We can pass a custom error message as an argument to most <code>assertX</code> methods in <code>unittest</code>:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">functional_tests.py (ch04l012)</div>
+<div class="title">functional_tests.py (ch04l013)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
@@ -1069,6 +1218,11 @@ On the plus side, said flowcharts will feature recursion!)</p>
 <li>
 <p>Then, we look for opportunities to refactor our code,
 using our tests to make sure we don&#8217;t break anything.</p>
+</li>
+<li>
+<p>Then, we look for opportunities to refactor our tests too,
+while attempting to stick to rules like
+"test behaviour, not implementation" and "don&#8217;t test constants".</p>
 </li>
 <li>
 <p>And start again from the top!</p>
@@ -1194,12 +1348,15 @@ You&#8217;re only cheating yourself you know!</p>
 <a href="#_footnoteref_2">2</a>. Python <em>is</em> most definitely a joy, but if you think I&#8217;m being a bit smug here, I don&#8217;t blame you! Actually I wish I&#8217;d picked up on this feeling of self-satisfaction and seen it as a warning sign that I was being a little <em>too</em> clever. In the next chapter, you&#8217;ll see I get my comeuppance.
 </div>
 <div class="footnote" id="_footnotedef_3">
-<a href="#_footnoteref_3">3</a>. Some people like to use another subfolder named after the app (i.e., <em>lists/templates/lists</em>) and then refer to the template as <em>lists/home.html</em>. This is called "template namespacing". I figured it was overcomplicated for this small project, but it may be worth it on larger projects. There&#8217;s more in the <a href="https://docs.djangoproject.com/en/5.1/intro/tutorial03/#write-views-that-actually-do-something">Django tutorial</a>.
+<a href="#_footnoteref_3">3</a>. Some people like to use another subfolder named after the app (i.e., <em>lists/templates/lists</em>) and then refer to the template as <em>lists/home.html</em>. This is called "template namespacing". I figured it was overcomplicated for this small project, but it may be worth it on larger projects. There&#8217;s more in the <a href="https://docs.djangoproject.com/en/5.2/intro/tutorial03/#write-views-that-actually-do-something">Django tutorial</a>.
+</div>
+<div class="footnote" id="_footnotedef_4">
+<a href="#_footnoteref_4">4</a>. A smoke test, sometimes called a "sanity test", is a minimal test that can quickly tell you if something is wrong, without exhaustively testing every aspect that you might care about. Wikipedia has some fun speculation on the <a href="https://en.wikipedia.org/wiki/Smoke_testing_(software)#Etymology">etymology</a>.
 </div>
 </div>
 <div id="footer">
 <div id="footer-text">
-License: Creative Commons <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode">CC-BY-NC-ND</a>. Last updated: 2025-02-05 18:20:04 UTC
+License: Creative Commons <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode">CC-BY-NC-ND</a>. Last updated: 2025-05-25 22:55:00 +0100
 </div>
 </div>
 <div class="comments" style="padding: 20px">
