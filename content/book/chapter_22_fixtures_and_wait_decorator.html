@@ -97,12 +97,19 @@ we&#8217;ll spend less time waiting for duplicated test paths.</p>
 <i class="fa icon-tip" title="Tip"></i>
 </td>
 <td class="content">
-Don&#8217;t overdo de-duplication in FTs.  One of the benefits of an FT is that
-     it can catch strange and unpredictable interactions between different
-     parts of your application.
+Don&#8217;t overdo de-duplication in FTs.
+      One of the benefits of an FT is that
+      it can catch strange and unpredictable interactions
+      between different parts of your application.
 </td>
 </tr>
 </table>
+</div>
+<div class="paragraph">
+<p>In this short chapter, we&#8217;ll start writing our new FT,
+and use that as an opportunity to talk about deduplication using test fixtures for FTs.
+We&#8217;ll also refactor out a nice helper for explicit waits,
+using Python&#8217;s lovely decorator syntax.</p>
 </div>
 <div class="sect2">
 <h3 id="_skipping_the_login_process_by_pre_creating_a_session">Skipping the Login Process by Pre-creating a Session</h3>
@@ -116,7 +123,7 @@ so this isn&#8217;t an unrealistic cheat at all.
 Here&#8217;s how you can set it up:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">src/functional_tests/test_my_lists.py (ch20l001)</div>
+<div class="title">src/functional_tests/test_my_lists.py (ch22l001)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
@@ -169,8 +176,7 @@ us as a logged-in user.</td>
 <p>Note that, as it is, this will only work because we&#8217;re using <code>LiveServerTestCase</code>,
 so the <code>User</code> and <code>Session</code> objects we create will end up in the same database
 as the test server.
-Later we&#8217;ll need to modify it so that it works
-against the database on the staging server too.</p>
+At some point we&#8217;ll need to think about how this will work against Docker or staging.</p>
 </div>
 <div class="sidebarblock pagebreak-before less_space">
 <div class="content">
@@ -180,16 +186,19 @@ against the database on the staging server too.</p>
 </div>
 <div class="paragraph">
 <p>
-Because HTTP is stateless,
-servers need a way of recognising different clients with <em>every single request</em>.
-We may think of just using IP addresses to associate with clients, but IP
-addresses can be shared among multiple clients, so we cannot use that.
-The usual solution is to give each client a unique session ID,
-which it will store in a cookie and submit with every request.</p>
+HTTP is a "stateless" protocol,
+meaning that the protocol itself doesn&#8217;t keep track of any state from one
+request to the next, and each request is independent from the next.
+There&#8217;s no built-in way to tell that a series of request come from the same client.</p>
 </div>
 <div class="paragraph">
-<p>The server will store that ID somewhere
-(by default, in the database),
+<p>For this reason, servers need a way of recognising different clients with <em>every single request</em>.
+The usual solution is to give each client a unique session ID,
+which the browser will store in a text file called a "cookie",
+and send with every request.</p>
+</div>
+<div class="paragraph">
+<p>The server will store that ID somewhere (by default, in the database),
 and then it can recognise each request that comes in
 as being from a particular client.</p>
 </div>
@@ -197,13 +206,13 @@ as being from a particular client.</p>
 <p>If you log in to the site using the dev server,
 you can actually take a look at your session ID by hand if you like.
 It&#8217;s stored under the key <code>sessionid</code> by default.
-See <a href="#session-cookie-screenshot">Examining the session cookie in the Debug toolbar</a>.</p>
+See <a href="#session-cookie-screenshot">Examining the session cookie in the Devtools UI</a>.</p>
 </div>
 <div id="session-cookie-screenshot" class="imageblock">
 <div class="content">
-<img src="images/twp2_2001.png" alt="twp2 2001">
+<img src="images/cookies-in-debug-toolbar.png" alt="A browser with the devtools open, showing a session cookie called sessionid for localhost:800">
 </div>
-<div class="title">Figure 1. Examining the session cookie in the Debug toolbar</div>
+<div class="title">Figure 1. Examining the session cookie in the Devtools UI</div>
 </div>
 <div class="paragraph">
 <p>These session cookies are set for all visitors to a Django site,
@@ -217,7 +226,7 @@ the server can actually just mark that client&#8217;s session as being an authen
 and associate it with a user ID in its database.</p>
 </div>
 <div class="paragraph">
-<p>A session is a dictionary-like data structure,
+<p>A Django session is a dictionary-like data structure,
 and the user ID is stored under the key given by <code>django.contrib.auth.SESSION_KEY</code>.
 You can check this out in a <span class="keep-together"><code>./manage.py</code></span> <code>shell</code> if you like:</p>
 </div>
@@ -260,7 +269,7 @@ We&#8217;ll also tweak them slightly so that they can take an arbitrary email ad
 as a parameter:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">src/functional_tests/base.py (ch20l002)</div>
+<div class="title">src/functional_tests/base.py (ch22l002)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
@@ -305,7 +314,7 @@ and get these helpers working.</p>
 <p>First we use them in <em>test_login.py</em>:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">src/functional_tests/test_login.py (ch20l003)</div>
+<div class="title">src/functional_tests/test_login.py (ch22l003)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
@@ -338,7 +347,7 @@ OK</pre>
 to see if our pre-authenticated session creator really does work:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">src/functional_tests/test_my_lists.py (ch20l004)</div>
+<div class="title">src/functional_tests/test_my_lists.py (ch22l004)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
@@ -387,8 +396,9 @@ as we&#8217;ve done here with the <code>User</code> object and its associated <c
 what we&#8217;re doing is setting up what&#8217;s called a "test fixture".</p>
 </div>
 <div class="paragraph">
-<p>Django comes with built-in support for saving database objects as JSON
-(using the <code>manage.py dumpdata</code>),
+<p>If you look up "Django fixtures",
+you&#8217;ll find that Django has a built in way of saving objects
+from your database using JSON (using <code>manage.py dumpdata</code>),
 and automatically loading them in your test runs
 using the <code>fixtures</code> class attribute on <code>TestCase</code>.</p>
 </div>
@@ -451,7 +461,7 @@ in the <code>wait_to_be_logged_in/out</code>.
 Something like this would look lovely:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">src/functional_tests/base.py (ch20l005)</div>
+<div class="title">src/functional_tests/base.py (ch22l005)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
@@ -495,7 +505,7 @@ until a timeout occurs.
 Here&#8217;s a first cut:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">src/functional_tests/base.py (ch20l006)</div>
+<div class="title">src/functional_tests/base.py (ch22l006)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
@@ -581,11 +591,11 @@ as whatever <code>fn</code> the decorator gets given has?</p>
 <div class="paragraph">
 <p>The answer is a bit of Python magic,
 <code>*args</code> and <code>**kwargs</code>, more formally known as
-<a href="https://docs.python.org/3/tutorial/controlflow.html#keyword-arguments">"variadic arguments"</a>,
+<a href="https://docs.python.org/3/tutorial/controlflow.html#arbitrary-argument-lists">"variadic arguments"</a>,
 apparently (I only just learned that):</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">src/functional_tests/base.py (ch20l007)</div>
+<div class="title">src/functional_tests/base.py (ch22l007)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
@@ -637,7 +647,7 @@ We can use our <code>wait</code> decorator for our <code>self.wait_for</code> he
 Like this:</p>
 </div>
 <div class="exampleblock sourcecode">
-<div class="title">src/functional_tests/base.py (ch20l008)</div>
+<div class="title">src/functional_tests/base.py (ch22l008)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
@@ -665,7 +675,7 @@ OK</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>And we&#8217;re good to cross of that scratchpad item:</p>
+<p>Do a commit, and we&#8217;re good to cross of that scratchpad item:</p>
 </div>
 <div class="sidebarblock scratchpad">
 <div class="content">
@@ -740,7 +750,7 @@ Use the ORM, with some nicely named helper functions instead.
 </div>
 <div id="footer">
 <div id="footer-text">
-License: Creative Commons <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode">CC-BY-NC-ND</a>. Last updated: 2025-05-25 22:55:00 +0100
+License: Creative Commons <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode">CC-BY-NC-ND</a>. Last updated: 2025-06-27 19:05:48 +0100
 </div>
 </div>
 <div class="comments" style="padding: 20px">

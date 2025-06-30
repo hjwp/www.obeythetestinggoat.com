@@ -90,7 +90,7 @@ Continuous Integration is another practice that was popularised by
 </table>
 </div>
 <div class="paragraph">
-<p>As we&#8217;ll see, one of the great frustrations of CI
+<p>As we&#8217;ll see, one of the great frustrations of configuring CI
 is that the feedback loop is so much slower than working locally.
 As we go along, we&#8217;ll look for ways to optimise for that, where we can.</p>
 </div>
@@ -101,11 +101,38 @@ in the same way we try and make our production and dev environments as similar
 as possible.</p>
 </div>
 <div class="sect2">
-<h3 id="_choosing_a_ci_service">Choosing a CI service</h3>
+<h3 id="_ci_in_modern_development_workflows">CI in Modern Development Workflows</h3>
+<div class="paragraph">
+<p>We use CI for a number of reasons:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>As mentioned, It can patiently run the full suite of tests,
+even if they&#8217;ve grown too large to run locally.</p>
+</li>
+<li>
+<p>It can act as a "gate" in your deployment/release process,
+to ensure that you never deploy code that isn&#8217;t passing all the tests.</p>
+</li>
+<li>
+<p>In open source projects that use a "pull request" workflow,
+it&#8217;s a way to ensure that code submitted by potentially-unknown
+contributors passes all your tests, before you consider merging it.</p>
+</li>
+<li>
+<p>It&#8217;s (sadly) increasingly common in corporate environments
+  to see this pull request process and its associated CI checks
+  to be used as the default way for teams to merge all code changes.<sup class="footnote">[<a id="_footnoteref_1" class="footnote" href="#_footnotedef_1" title="View footnote.">1</a>]</sup></p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_choosing_a_ci_service">Choosing a CI Service</h3>
 <div class="paragraph">
 <p>
-CI as a concept has been around since the 90s at least,
-and traditionally would be done by configuring a server,
+In the early days, CI would be implemented by configuring a server,
 perhaps under a desk in the corner of the office,
 with software on it that could pull down all the code from the main branch
 at the end of each day, and scripts to compile all the code and run all the tests,
@@ -115,21 +142,21 @@ and deal with any "broken builds".</p>
 </div>
 <div class="paragraph">
 <p>As the practice has spread, and feedback cycles have grown faster,
-CI software has developed (Jenkins was a popular choice in the 2010s),
-and CI has become a common "cloud" service,
+CI software has matured and CI has become a common "cloud" service,
 designed to integrate with code hosting providers like GitHub,
 or even provided directly by the same providers:
-GitHub has "GitHub Actions", and because of its salience,
+GitHub has "GitHub Actions", and because it&#8217;s like, <em>right there</em>,
 it&#8217;s probably the most popular choice for Open Source projects these days.
 In a corporate environment, you might come across other solutions
 like CircleCI, Travis, and GitLab.</p>
 </div>
 <div class="paragraph">
 <p>It is still absolutely possible to download and self-host your own CI server;
-in the first and second editions of this book I demonstrated the use of Jenkins.
+in the first and second editions of this book
+I demonstrated the use of Jenkins, a popular tool at the time.
 But, the installation and subsequent admin/maintenance burden is not effort-free,
 so for this edition I wanted to pick a service
-that was as much like the kind of thing you&#8217;re likely to encounter in your day job,
+that was more like the kind of thing you&#8217;re likely to encounter in your day job,
 while trying not to endorse the largest commercial provider.
 There&#8217;s nothing wrong with GitHub Actions!
 They just don&#8217;t need any <em>more</em> help dominating the market.</p>
@@ -137,7 +164,7 @@ They just don&#8217;t need any <em>more</em> help dominating the market.</p>
 <div class="paragraph">
 <p>So I&#8217;ve decided to use GitLab in this book.
 They are absolutely a commercial service,
-but they retain an open-source version, and you can self-host it in theory.</p>
+but they retain an open-source version, and you can self-host it if you want to.</p>
 </div>
 <div class="paragraph">
 <p>The syntax (it&#8217;s always YAML&#8230;&#8203;) and core concepts are common across all providers,
@@ -156,9 +183,23 @@ which will work fine for our purposes.</p>
 so the first thing to do is get our code up there.</p>
 </div>
 <div class="sect3">
+<h4 id="_signing_up">Signing Up</h4>
+<div class="paragraph">
+<p>Head over to <a href="https://gitlab.com">GitLab.com</a>, and sign up for a free account.</p>
+</div>
+<div class="paragraph">
+<p>Then, head over to your profile page, and find the <strong>SSH Keys</strong> section,
+and upload a copy of your public key.</p>
+</div>
+</div>
+<div class="sect3">
 <h4 id="_starting_a_project">Starting a Project</h4>
 <div class="paragraph">
-<p>Use the <strong>New Project</strong> &#8594; <strong>Create Blank Project</strong> option, as in <a href="#gitlab-new-blank-project">Creating a New Repo on GitLab</a>.</p>
+<p>Then, use the <strong>New Project</strong> &#8594; <strong>Create Blank Project</strong> option,
+as in <a href="#gitlab-new-blank-project">Creating a New Repo on GitLab</a>
+(feel free to name the project whatever you want,
+you can see I&#8217;ve fancifully named mine with a z.
+I&#8217;m a free spirit what can I say.)</p>
 </div>
 <div id="gitlab-new-blank-project" class="imageblock">
 <div class="content">
@@ -175,27 +216,21 @@ so the first thing to do is get our code up there.</p>
 <div class="listingblock skipme">
 <div class="content">
 <pre># substitute your username and project name as necessary
-$ <strong>git remote add origin git@gitlab.com:yourusername/superlists.git</strong>
-# or, if you already have "origin" defined:
 $ <strong>git remote add gitlab git@gitlab.com:yourusername/superlists.git</strong>
 $ <strong>git remote -v</strong>
 gitlab    git@gitlab.com:hjwp/superlistz.git (fetch)
 gitlab    git@gitlab.com:hjwp/superlistz.git (push)
 origin    git@github.com:hjwp/book-example.git (fetch)
-origin    git@github.com:hjwp/book-example.git (push)</pre>
+origin    git@github.com:hjwp/book-example.git (push)
+# (as you can see i already had a remote for github called <em>origin</em>)</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>Now we can push up our code with <code>git push</code>.
-The <code>-u</code> flag sets up a "remote-tracking" branch,
-so you can push+pull without explicitly specifying the remote + branch</p>
+<p>Now we can push up our code with <code>git push</code>:</p>
 </div>
 <div class="listingblock skipme">
 <div class="content">
-<pre># if using <em>origin</em>, it will be the default:
-$ <strong>git push -u</strong>
-# or, if you have multiple remotes:
-$ <strong>git push -u gitlab</strong>
+<pre>$ <strong>git push gitlab</strong>
 Enumerating objects: 706, done.
 Counting objects: 100% (706/706), done.
 Delta compression using up to 11 threads
@@ -209,7 +244,8 @@ branch <em>main</em> set up to track <em>gitlab/main</em>.</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>If you refresh the GitLab UI, you should now see your code, as in <a href="#gitlab_files_ui">CI Project Files on GitLab</a>:</p>
+<p>If you refresh the GitLab UI, you should now see your code,
+as in <a href="#gitlab_files_ui">CI Project Files on GitLab</a>:</p>
 </div>
 <div id="gitlab_files_ui" class="imageblock">
 <div class="content">
@@ -223,7 +259,7 @@ branch <em>main</em> set up to track <em>gitlab/main</em>.</pre>
 <h3 id="_setting_up_a_first_cut_of_a_ci_pipeline">Setting up a First Cut of a CI Pipeline</h3>
 <div class="paragraph">
 <p>The "Pipeline" terminology was popularised by Dave Farley and Jez Humble
-in their book <a href="https://amzn.to/4k894A3">Continuous Delivery</a>.
+in their book "Continuous Delivery".
 The name alludes to the fact that a CI build typically has a series,
 where the process flows from one to another.</p>
 </div>
@@ -234,7 +270,9 @@ it&#8217;s nice to be able to start with something that works,
 rather than a blank slate.</p>
 </div>
 <div class="paragraph">
-<p>I chose the <strong>Python</strong> example template and made a few customisations.</p>
+<p>I chose the <strong>Python</strong> example template and made a few customisations,
+but you could just as easily start from a blank slate and paste
+what I have below.</p>
 </div>
 <div class="paragraph">
 <p>YAML once again folks!</p>
@@ -318,9 +356,10 @@ and then when you save it you can go check for results straight away.</p>
 </div>
 <div class="paragraph">
 <p>But it is also just a file in your repo!
-So you can edit it locally.
+So as we go on through the chapter, you can also just edit it locally.
 You&#8217;ll need to commit it and then <code>git push</code> up to GitLab,
-and then go check the <strong>Jobs</strong> section in the <strong>Build</strong> UI.</p>
+and then go check the <strong>Jobs</strong> section
+in the <strong>Build</strong> UI to see the results of your changes.</p>
 </div>
 <div class="listingblock skipme">
 <div class="content">
@@ -339,6 +378,20 @@ to see the output of the build Job, as in <a href="#gitlab_first_build">First Bu
 <img src="images/gitlab_first_build.png" alt="GitLab UI showing the output of the first build">
 </div>
 <div class="title">Figure 3. First Build on GitLab</div>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+If GitLab won&#8217;t run your build at this point,
+  you may need to go through some sort of identity verification process.
+  Check your profile page.
+</td>
+</tr>
+</table>
 </div>
 <div class="paragraph">
 <p>Here&#8217;s a selection of what I saw in the output console:</p>
@@ -437,7 +490,9 @@ which is a more stable version of Firefox to test against.</td>
 </table>
 </div>
 <div class="paragraph">
-<p>If you run it again, and wait a bit, you&#8217;ll see we get a slightly different failure:</p>
+<p>When you save that change (and commit + push if necessary),
+the pipeline will run again.
+If you wait a bit, you&#8217;ll see we get a slightly different failure:</p>
 </div>
 <div class="listingblock skipme small-code">
 <div class="content">
@@ -700,7 +755,7 @@ closed with status 1</pre>
 but I did eventually get a clue from the line that says <code>no DISPLAY environment variable specified</code>.</p>
 </div>
 <div class="paragraph">
-<p>Out of curiosity, I thought I&#8217;d try running <code>firefox</code> directly:</p>
+<p>Out of curiosity, I thought I&#8217;d try running <code>firefox</code> directly.<sup class="footnote">[<a id="_footnoteref_2" class="footnote" href="#_footnotedef_2" title="View footnote.">2</a>]</sup></p>
 </div>
 <div class="listingblock ignore-errors">
 <div class="content">
@@ -745,7 +800,8 @@ status: 0
 </div>
 <div class="paragraph">
 <p>It takes quite a long time to run,
-and there&#8217;s lots of debug out, but&#8230;&#8203; it looks OK!</p>
+and there&#8217;s lots of debug out, but&#8230;&#8203; it looks OK!
+That&#8217;s no longer an error.</p>
 </div>
 <div class="paragraph">
 <p>Let&#8217;s set that environment variable in our CI script:</p>
@@ -780,14 +836,17 @@ Using a local Docker image to repro the CI environment
 </tr>
 </table>
 </div>
+<div class="paragraph">
+<p>And we&#8217;ll see what happens when we do <code>git push gitlab</code> again.</p>
+</div>
 </div>
 </div>
 <div class="sect2">
 <h3 id="_a_common_bugbear_flaky_tests">A Common Bugbear: Flaky tests</h3>
 <div class="paragraph">
-<p>That worked!  or at least it almost did.
+<p>Did it work for you?  For me it <em>almost</em> did.
 All but one of the FTs passed for me,
-but there was one unexpected error:</p>
+but I did see one unexpected error:</p>
 </div>
 <div class="listingblock skipme small-code">
 <div class="content">
@@ -839,7 +898,7 @@ and maybe also a dump of the HTML of the page.</p>
 <p>We can do that using some custom logic in our FT class <code>tearDown</code>.
 We&#8217;ll need to do a bit of introspection of <code>unittest</code> internals,
 a private attribute called <code>._outcome</code>,
-but this will work:</p>
+but this will work:<sup class="footnote">[<a id="_footnoteref_3" class="footnote" href="#_footnotedef_3" title="View footnote.">3</a>]</sup></p>
 </div>
 <div class="exampleblock sourcecode">
 <div class="title">src/functional_tests/base.py (ch25l007)</div>
@@ -855,6 +914,9 @@ but this will work:</p>
 
 <span class="tok-n">SCREEN_DUMP_LOCATION</span> <span class="tok-o">=</span> <span class="tok-n">Path</span><span class="tok-p">(</span><span class="tok-vm">__file__</span><span class="tok-p">)</span><span class="tok-o">.</span><span class="tok-n">absolute</span><span class="tok-p">()</span><span class="tok-o">.</span><span class="tok-n">parent</span> <span class="tok-o">/</span> <span class="tok-s2">"screendumps"</span>
 <span class="tok-p">[</span><span class="tok-o">...</span><span class="tok-p">]</span>
+<span class="tok-k">class</span> <span class="tok-nc">FunctionalTest</span><span class="tok-p">(</span><span class="tok-n">StaticLiveServerTestCase</span><span class="tok-p">):</span>
+    <span class="tok-k">def</span> <span class="tok-nf">setUp</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">):</span>
+        <span class="tok-p">[</span><span class="tok-o">...</span><span class="tok-p">]</span>
 
     <span class="tok-k">def</span> <span class="tok-nf">tearDown</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">):</span>
         <span class="tok-k">if</span> <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">_test_has_failed</span><span class="tok-p">():</span>
@@ -873,11 +935,9 @@ but this will work:</p>
 </div>
 </div>
 <div class="paragraph">
-<p>We first create a directory for our screenshots if necessary.
-Then we iterate through all the open browser tabs and pages,
-and use Selenium methods, <code>get_screenshot_as_file()</code>
-and the attribute <code>browser.page_source</code>,
-for our image and HTML dumps, respectively:</p>
+<p>We first create a directory for our screenshots if necessary,
+then we take our screenshot and dump the HTML.
+Let&#8217;s see how those will work:</p>
 </div>
 <div class="exampleblock sourcecode">
 <div class="title">src/functional_tests/base.py (ch25l008)</div>
@@ -917,7 +977,8 @@ which includes the name of the test and its class, as well as a timestamp:</p>
 </div>
 <div class="paragraph">
 <p>You can test this first locally by deliberately breaking one of the tests,
-with a <code>self.fail()</code> for example, and you&#8217;ll see something like this:</p>
+with a <code>self.fail()</code> half-way thru for example,
+and you&#8217;ll see something like this:</p>
 </div>
 <div class="listingblock dofirst-ch25l010">
 <div class="content">
@@ -932,6 +993,9 @@ st_logged_in_users_lists_are_saved_as_my_lists-2025-02-18T11.29.00.png
 dumping page HTML to ...goat-book/src/functional_tests/screendumps/MyListsTest.
 test_logged_in_users_lists_are_saved_as_my_lists-2025-02-18T11.29.00.html</pre>
 </div>
+</div>
+<div class="paragraph">
+<p>Why not try and open one of those files up?  It&#8217;s kind of satisfying.</p>
 </div>
 </div>
 <div class="sect2">
@@ -995,11 +1059,15 @@ $ <strong>git push</strong></pre>
 <div class="listingblock skipme small-code">
 <div class="content">
 <pre>screendumps/LoginTest.test_can_get_email_link_to_log_in-window0-2014-01-22T17.45.12.html
-Fscreenshotting to /builds/hjwp/book-example/src/functional_tests/screendumps/NewVisitorTest.test_can_start_a_todo_list-2025-02-17T17.51.01.png
-dumping page HTML to /builds/hjwp/book-example/src/functional_tests/screendumps/NewVisitorTest.test_can_start_a_todo_list-2025-02-17T17.51.01.html
+Fscreenshotting to /builds/hjwp/book-example/src/functional_tests/screendumps/
+NewVisitorTest.test_can_start_a_todo_list-2025-02-17T17.51.01.png
+dumping page HTML to /builds/hjwp/book-example/src/functional_tests/screendumps/
+NewVisitorTest.test_can_start_a_todo_list-2025-02-17T17.51.01.html
 Not Found: /favicon.ico
-.screenshotting to /builds/hjwp/book-example/src/functional_tests/screendumps/NewVisitorTest.test_multiple_users_can_start_lists_at_different_urls-2025-02-17T17.51.06.png
-dumping page HTML to /builds/hjwp/book-example/src/functional_tests/screendumps/NewVisitorTest.test_multiple_users_can_start_lists_at_different_urls-2025-02-17T17.51.06.html
+.screenshotting to /builds/hjwp/book-example/src/functional_tests/screendumps/
+NewVisitorTest.test_multiple_users_can_start_lists_at_different_urls-2025-02-17T17.51.06.png
+dumping page HTML to /builds/hjwp/book-example/src/functional_tests/screendumps/
+NewVisitorTest.test_multiple_users_can_start_lists_at_different_urls-2025-02-17T17.51.06.html
 ======================================================================
 FAIL: test_can_start_a_todo_list (functional_tests.test_simple_list_creation.NewVisitorTest.test_can_start_a_todo_list)
 [...]</pre>
@@ -1033,8 +1101,9 @@ as in <a href="#gitlab_ui_for_browse_artifacts">Artifacts Appear on the Right of
 
 
 
-Hm.  No obvious clues there.
-Well, when in doubt, bump the timeout, as the old adage goes:</p>
+Your build might be clear, but mine was still failing,
+and those screenshots didn&#8217;t offer any obvious clues.
+Hm. Well, when in doubt, bump the timeout, as the old adage goes:</p>
 </div>
 <div class="exampleblock sourcecode skipme">
 <div class="title">src/functional_tests/base.py</div>
@@ -1106,11 +1175,11 @@ and then to getting the latest version of node.</p>
 </div>
 <div class="listingblock skipme">
 <div class="content">
-<pre>$ <strong>nvm install 22</strong>  # or whichever the latest version is
-Installing Node v22.14.0 (arm64)
+<pre>$ <strong>nvm install --lts</strong>
+Installing Node v22.17.0 (arm64)
 [...]
 $ <strong>node -v</strong>
-v22.14.0</pre>
+v22.17.0</pre>
 </div>
 </div>
 </div>
@@ -1254,7 +1323,7 @@ Randomized with seed 17843 (jasmine-browser-runner runSpecs --seed=17843)</pre>
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="pygments highlight"><code data-lang="python"><span></span>  <span class="tok-n">it</span><span class="tok-p">(</span><span class="tok-s2">"error message should be hidden on input"</span><span class="tok-p">,</span> <span class="tok-p">()</span> <span class="tok-o">=&gt;</span> <span class="tok-p">{</span>
+<pre class="pygments highlight"><code data-lang="python"><span></span>  <span class="tok-n">it</span><span class="tok-p">(</span><span class="tok-s2">"should hide error message on input"</span><span class="tok-p">,</span> <span class="tok-p">()</span> <span class="tok-o">=&gt;</span> <span class="tok-p">{</span>
     <span class="tok-n">initialize</span><span class="tok-p">(</span><span class="tok-n">inputSelector</span><span class="tok-p">);</span>
     <span class="tok-n">textInput</span><span class="tok-o">.</span><span class="tok-n">dispatchEvent</span><span class="tok-p">(</span><span class="tok-n">new</span> <span class="tok-n">InputEvent</span><span class="tok-p">(</span><span class="tok-s2">"input"</span><span class="tok-p">));</span>
 
@@ -1344,12 +1413,14 @@ Randomized with seed 06504 (jasmine-browser-runner runSpecs --seed=06504)</pre>
 </div>
 <div class="listingblock skipme">
 <div class="content">
-<pre># add the package.json, which saves our node depenencies
+<pre>$ <strong>cd -</strong>  # go back to the project root
+# add the package.json, which saves our node depenencies
 $ <strong>git add src/lists/static/package.json src/lists/static/package-lock.json</strong>
 # ignore the node_modules/ directory
 $ <strong>echo "node_modules/" &gt;&gt; .gitignore</strong>
 # and our config file
 $ <strong>git add src/lists/static/tests/jasmine-browser-runner.config.mjs</strong>
+$ <strong>git add .gitignore</strong>
 $ <strong>git commit -m "config for node + jasmine-browser-runner for JS tests"</strong></pre>
 </div>
 </div>
@@ -1475,9 +1546,6 @@ See <a href="#gitlab_pipeline_js_success">Wow, There are Those JS Tests, Passing
 about running the full test suite on my own machine, the CI server will catch me.
 Another one of the Testing Goat&#8217;s agents in cyberspace, watching over us&#8230;&#8203;</p>
 </div>
-<div class="paragraph">
-<p>I&#8217;ve moved it to an appendix though, because it&#8217;s so GitLab-heavy.</p>
-</div>
 <div class="sidebarblock">
 <div class="content">
 <div class="title">Alternatives: Woodpecker and Forgejo</div>
@@ -1502,7 +1570,7 @@ Their documentation is good.</p>
 be a bit cautious about security options.</p>
 </div>
 <div class="paragraph">
-<p>For example, you might decide you don&#8217;t want any ol' person from the Internet
+<p>For example, you might decide you don&#8217;t want any old person from the Internet
 to be able to sign up for an account on your server:</p>
 </div>
 <div class="listingblock skipme">
@@ -1518,6 +1586,10 @@ to be able to sign up for an account on your server:</p>
 </div>
 <div class="sect2">
 <h3 id="_some_things_we_didnt_cover">Some Things We Didn&#8217;t Cover</h3>
+<div class="paragraph">
+<p>CI is a big topic and inevitably I couldn&#8217;t cover everything.
+Here&#8217;s a few pointers to things you might want to learn about:</p>
+</div>
 <div class="sect3">
 <h4 id="_defining_a_docker_image_for_ci">Defining a Docker image for CI</h4>
 <div class="paragraph">
@@ -1562,7 +1634,9 @@ and other test-only dependencies in it, that we don&#8217;t need for prod.</p>
 <div class="paragraph">
 <p>We touched on the use of caches in CI for the pip download cache,
 but as CI pipelines grow in maturity,
-you&#8217;ll find you can make more and more use of caching.</p>
+you&#8217;ll find you can make more and more use of caching
+(for example, it might be a good idea to cache your <em>node_modules/</em>
+directory).</p>
 </div>
 <div class="paragraph">
 <p>It&#8217;s a topic for another time, but this is yet another way
@@ -1577,8 +1651,11 @@ and set up a pipeline that will deploy our code all the way to production,
 each time we push code&#8230;&#8203; as long as the tests pass!</p>
 </div>
 <div class="paragraph">
-<p>I work through an example of how to do that in <a href="#appendix_CD">[appendix_CD]</a>.
-I definitely encourage you to take a look.</p>
+<p>I work through an example of how to do that in
+<a href="https://www.obeythetestinggoat.com/book/appendix_CD.html">Online Appendix: Continuous Deployment (CD)</a>.</p>
+</div>
+<div class="paragraph">
+<p>If you&#8217;re feeling inspired, I&#8217;d encourage you to take a look.</p>
 </div>
 <div class="paragraph">
 <p>Now, onto our last chapter of coding, everyone!</p>
@@ -1622,11 +1699,13 @@ Be prepared to be even more generous with your timeouts,
 in order to minimise the chance of random failures.
 </p>
 </dd>
-<dt class="hdlist1">Take the next step, CD (Continuous Delivery)</dt>
+<dt class="hdlist1">Take the next step, CD (Continuous Deployment)</dt>
 <dd>
 <p>Once we&#8217;re running tests automatically,
 we can take the next step which is to automate our deployments
-(when the tests pass). See <a href="#appendix_CD">[appendix_CD]</a> for a worked example.
+(when the tests pass).
+See
+<a href="https://www.obeythetestinggoat.com/book/appendix_CD.html">Online Appendix: Continuous Deployment (CD)</a>.
 </p>
 </dd>
 </dl>
@@ -1638,9 +1717,21 @@ we can take the next step which is to automate our deployments
 </div>
 </div>
 </div>
+<div id="footnotes">
+<hr>
+<div class="footnote" id="_footnotedef_1">
+<a href="#_footnoteref_1">1</a>. I say sadly because you <em>should</em> be able to trust your colleagues, not put them through a process designed for open source projects to de-risk code contributions from random strangers on the Internet. Look up "trunk-based development" if you want to see more old people shouting at clouds on this topic.
+</div>
+<div class="footnote" id="_footnotedef_2">
+<a href="#_footnoteref_2">2</a>. If you remember from <a href="/book/chapter_09_docker.html">[chapter_09_docker]</a>, <code>docker run</code> by default runs the command specified in <code>CMD</code>, but you can override that by specifying a different command to run at the end of the parameter list.
+</div>
+<div class="footnote" id="_footnotedef_3">
+<a href="#_footnoteref_3">3</a>. Or at least until the next Python version. Using private APIs is risky, but I couldn&#8217;t find a better way
+</div>
+</div>
 <div id="footer">
 <div id="footer-text">
-License: Creative Commons <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode">CC-BY-NC-ND</a>. Last updated: 2025-05-25 22:55:00 +0100
+License: Creative Commons <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode">CC-BY-NC-ND</a>. Last updated: 2025-06-28 16:18:31 +0100
 </div>
 </div>
 <div class="comments" style="padding: 20px">

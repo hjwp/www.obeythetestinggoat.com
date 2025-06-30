@@ -214,9 +214,6 @@ OK</pre>
 <pre>$ <strong>ansible-playbook --user=elspeth -i staging.ottg.co.uk, infra/deploy-playbook.yaml -vv</strong>
 [...]
 
-PLAYBOOK: deploy-playbook.yaml ***********************************************
-1 plays in infra/deploy-playbook.yaml
-
 PLAY [all] *********************************************************************
 
 TASK [Gathering Facts] *********************************************************
@@ -224,39 +221,49 @@ TASK [Gathering Facts] *********************************************************
 ok: [staging.ottg.co.uk]
 
 TASK [Install docker] **********************************************************
-[...]
 ok: [staging.ottg.co.uk] =&gt; {"cache_update_time": [...]
 
+TASK [Add our user to the docker group, so we don't need sudo/become] **********
+ok: [staging.ottg.co.uk] =&gt; {"append": true, "changed": false, [...]
+
+TASK [Reset ssh connection to allow the user/group change to take effect] ******
+
 TASK [Build container image locally] *******************************************
+changed: [staging.ottg.co.uk -&gt; 127.0.0.1] =&gt; {"actions": ["Built image
 [...]
-ok: [staging.ottg.co.uk -&gt; 127.0.0.1] =&gt; {"actions": ["Built image superlists:latest [...]
 
 TASK [Export container image locally] ******************************************
-ok: [staging.ottg.co.uk -&gt; 127.0.0.1] =&gt; {"actions": [], "changed": false, "image": [...]
+changed: [staging.ottg.co.uk -&gt; 127.0.0.1] =&gt; {"actions": ["Archived image [...]
 
 TASK [Upload image to server] **************************************************
-ok: [staging.ottg.co.uk] =&gt; {"changed": false, "checksum": [...]
+changed: [staging.ottg.co.uk] =&gt; {"changed": true, "checksum": [...]
 
 TASK [Import container image on server] ****************************************
-ok: [staging.ottg.co.uk] =&gt; {"actions": ["Loaded image superlists:latest [...]
+changed: [staging.ottg.co.uk] =&gt; {"actions": ["Loaded image superlists:latest
+[...]
 
-TASK [Ensure .env file exists] *************************************************
-ok: [staging.ottg.co.uk] =&gt; {"changed": false, "dest": "/home/elspeth/superlists.env", [...]
+TASK [Ensure .secret-key file exists] ******************************************
+ok: [staging.ottg.co.uk] =&gt; {"changed": false, "dest":
+[...]
+
+TASK [Read secret key back from file] ******************************************
+ok: [staging.ottg.co.uk] =&gt; {"changed": false, "content":
+[...]
 
 TASK [Ensure db.sqlite3 file exists outside container] *************************
-changed: [staging.ottg.co.uk] =&gt; {"changed": true, "dest": "/home/elspeth/db.sqlite3", [...]
+changed: [staging.ottg.co.uk] =&gt; {"changed": true, "dest": [...]
 
 TASK [Run container] ***********************************************************
-changed: [staging.ottg.co.uk] =&gt; {"changed": true, "container": [...]
+changed: [staging.ottg.co.uk] =&gt; {"changed": true, "container":
+[...]
 
 TASK [Run migration inside container] ******************************************
-changed: [staging.ottg.co.uk] =&gt; {"changed": true, "rc": 0, "stderr": "", [...]
+changed: [staging.ottg.co.uk] =&gt; {"changed": true, "rc": 0, "stderr": "",
+[...]
 
 PLAY RECAP *********************************************************************
-staging.ottg.co.uk         : ok=10   changed=3    unreachable=0    failed=0
-skipped=0    rescued=0    ignored=0
-[...]
-Disconnecting from staging.ottg.co.uk... done.</pre>
+staging.ottg.co.uk         : ok=12   changed=7    unreachable=0    failed=0
+skipped=0    rescued=0    ignored=0</pre>
 </div>
 </div>
 <div class="admonitionblock note">
@@ -267,7 +274,7 @@ Disconnecting from staging.ottg.co.uk... done.</pre>
 </td>
 <td class="content">
 If your server is offline because you ran out of free credits with your provider,
-    you&#8217;ll need to create a new one.  Skip back to <a href="/book/chapter_11_server_prep.html">[chapter_11_server_prep]</a> if you need.
+    you&#8217;ll have to create a new one.  Skip back to <a href="/book/chapter_11_server_prep.html">[chapter_11_server_prep]</a> if you need.
 </td>
 </tr>
 </table>
@@ -285,7 +292,7 @@ OK</pre>
 <p>Hooray!</p>
 </div>
 </div>
-<div class="sect2 pagebreak-before less_space">
+<div class="sect2">
 <h3 id="_production_deploy">Production Deploy</h3>
 <div class="paragraph">
 <p>Since all is looking well we can deploy to prod!</p>
@@ -300,7 +307,9 @@ OK</pre>
 <h3 id="_what_to_do_if_you_see_a_database_error">What to Do If You See a Database Error</h3>
 <div class="paragraph">
 <p>Because our migrations introduce a new integrity constraint, you may find
-that it fails to apply because some existing data violates that constraint.</p>
+that it fails to apply because some existing data violates that constraint.
+For example, here&#8217;s what you might see if any of the lists on the server
+already contain duplicate items:</p>
 </div>
 <div class="listingblock skipme">
 <div class="content">
@@ -317,7 +326,9 @@ that it fails to apply because some existing data violates that constraint.</p>
 After all, it&#8217;s only a toy project!</p>
 </li>
 <li>
-<p>Learn about data migrations.  See <a href="#data-migrations-appendix">[data-migrations-appendix]</a>.</p>
+<p>Create about data migrations.
+Learn about them in the
+<a href="https://docs.djangoproject.com/en/5.2/topics/migrations/#data-migrations">Django migrations docs</a>.</p>
 </li>
 </ol>
 </div>
@@ -411,7 +422,9 @@ and it&#8217;s an area that can grow hard to maintain,
 full of manual checks and procedures,
 if you&#8217;re not careful to keep things automated.
 There&#8217;s lots more to learn about this, but it&#8217;s out of scope for this book.
-Look up "continuous delivery" for some background reading.
+Dave Farley&#8217;s
+<a href="https://www.youtube.com/watch?v=tQMrrNo16jo">video on Continuous Delivery</a>
+is a good place to start.
 </p>
 </div>
 </div>
@@ -422,7 +435,7 @@ Look up "continuous delivery" for some background reading.
 </div>
 <div id="footer">
 <div id="footer-text">
-License: Creative Commons <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode">CC-BY-NC-ND</a>. Last updated: 2025-05-25 22:55:00 +0100
+License: Creative Commons <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode">CC-BY-NC-ND</a>. Last updated: 2025-06-27 19:05:48 +0100
 </div>
 </div>
 <div class="comments" style="padding: 20px">

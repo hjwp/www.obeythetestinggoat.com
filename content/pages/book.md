@@ -21,8 +21,7 @@ onto more advanced (and trendy) topics like NoSQL, websockets and Async
 programming.
 
 
-Reading it
-----------
+# Reading it
 
 There are lots of ways you can read this book:
 
@@ -69,11 +68,14 @@ Table of contents follows:
 
 
 ### Introduction:
+
 * [Praise for Test-Driven Development with Python](/book/praise.forbook.html)
 * [Preface](/book/preface.html)
+* [Preface to the Third Edition: TDD in the age of AI](/book/ai_preface.html)
 * [Prerequisites and Assumptions](/book/pre-requisite-installations.html)
 * [Companion Video](/book/video_plug.html)
 * [Acknowledgments](/book/acknowledgments.html)
+
 
 ### [Part 1: The Basics of TDD and Django](/book/part1.forbook.html)
 
@@ -84,59 +86,56 @@ Table of contents follows:
 * [Chapter 5: Saving User Input: Testing the Database](/book/chapter_05_post_and_database.html)
 * [Chapter 6: Improving Functional Tests: Ensuring Isolation and Removing Voodoo Sleeps](/book/chapter_06_explicit_waits_1.html)
 * [Chapter 7: Working Incrementally](/book/chapter_07_working_incrementally.html)
-
-
-
-### [Part 2: Web Development Sine Qua Nons](/book/part2.forbook.html)
-
 * [Chapter 8: Prettification: Layout and Styling, and What to Test About It](/book/chapter_08_prettification.html)
+
+
+
+
+### [Part 2: Going To Production](/book/part2.forbook.html)
+
 * [Chapter 9: Containerization aka Docker](/book/chapter_09_docker.html)
 * [Chapter 10: Making Our App Production-Ready](/book/chapter_10_production_readiness.html)
 * [Chapter 11: Getting A Server Ready For Deployment](/book/chapter_11_server_prep.html)
 * [Chapter 12: Infrastructure As Code: Automated Deployments With Ansible](/book/chapter_12_ansible.html)
+
+### [Part 3: Forms and Validation](/book/part3.forbook.html)
+
 * [Chapter 13: Splitting Our Tests into Multiple Files, and a Generic Wait Helper](/book/chapter_13_organising_test_files.html)
 * [Chapter 14: Validation at the Database Layer](/book/chapter_14_database_layer_validation.html)
 * [Chapter 15: A Simple Form](/book/chapter_15_simple_form.html)
 * [Chapter 16: More Advanced Forms](/book/chapter_16_advanced_forms.html)
+
+### [Part 4: More Advanced Topics in Testing](/book/part4.forbook.html)
+
 * [Chapter 17: A Gentle Excursion Into JavaScript](/book/chapter_17_javascript.html)
 * [Chapter 18: Deploying Our New Code](/book/chapter_18_second_deploy.html)
-
-
-
-### [Part 3: More Advanced Topics in Testing](/book/part3.forbook.html)
-
 * [Chapter 19: User Authentication, Spiking, and De-Spiking](/book/chapter_19_spiking_custom_auth.html)
-* [Chapter 20: Mocks and Mocking 1: Using Mocks to Test External Dependencies](/book/chapter_20_mocking_1.html)
-* [Chapter 21: Mocks and Mocking 2: Using Mocks for Test Isolation](/book/chapter_21_mocking_2.html)
+* [Chapter 20: Using Mocks to Test External Dependencies](/book/chapter_20_mocking_1.html)
+* [Chapter 21: Using Mocks for Test Isolation](/book/chapter_21_mocking_2.html)
 * [Chapter 22: Test Fixtures and a Decorator for Explicit Waits](/book/chapter_22_fixtures_and_wait_decorator.html)
-* [Chapter 23: Server-Side Debugging](/book/chapter_23_debugging_prod.html)
+* [Chapter 23: Debugging And Testing Server Issues](/book/chapter_23_debugging_prod.html)
 * [Chapter 24: Finishing "My Lists": Outside-In TDD](/book/chapter_24_outside_in.html)
 * [Chapter 25: CI: Continuous Integration](/book/chapter_25_CI.html)
 * [Chapter 26: The Token Social Bit, the Page Pattern, and an Exercise for the Reader](/book/chapter_26_page_pattern.html)
 * [Chapter 27: Fast Tests, Slow Tests, and Hot Lava](/book/chapter_27_hot_lava.html)
 
-* [Epilogue: Obey the Testing Goat!](/book/epilogue.html)
+### [Epilogue: Obey the Testing Goat!](/book/epilogue.html)
 
 ### Appendices
 
-* [Appendix A: PythonAnywhere](/book/appendix_I_PythonAnywhere.html)
-* [Appendix B: Django Class-Based Views](/book/appendix_Django_Class-Based_Views.html)
-* [Appendix C: Testing Database Migrations](/book/appendix_IV_testing_migrations.html)
-* [Appendix D: The Subtleties of Functionally Testing External Dependencies](/book/appendix_fts_for_external_dependencies.html)
-* [Appendix E: Test Isolation, and "Listening to Your Tests"](/book/appendix_purist_unit_tests.html)
-* [Appendix F: CD: Continuous Deployment](/book/appendix_CD.html)
-* [Appendix G: Behaviour-Driven Development (BDD)](/book/appendix_bdd.html)
-* [Appendix H: Building a REST API: JSON, Ajax, and Mocking with JavaScript](/book/appendix_rest_api.html)
-* [Appendix I: Django-Rest-Framework](/book/appendix_DjangoRestFramework.html)
-* [Appendix J: Cheat Sheet](/book/appendix_IX_cheat_sheet.html)
-* [Appendix K: What to Do Next](/book/appendix_X_what_to_do_next.html)
-* [Appendix L: Source Code Examples](/book/appendix_github_links.html)
+* [Appendix A: The Subtleties of Functionally Testing External Dependencies](/book/appendix_fts_for_external_dependencies.html)
+* [Appendix B: Continuous Deployment (CD)](/book/appendix_CD.html)
+* [Appendix C: Behaviour-Driven Development (BDD) Tools](/book/appendix_bdd.html)
+* [Appendix D: Test Isolation, and "Listening to Your Tests"](/book/appendix_purist_unit_tests.html)
+* [Appendix E: Building a REST API: JSON, Ajax, and Mocking with JavaScript](/book/appendix_rest_api.html)
+* [Appendix F: Cheat Sheet](/book/appendix_IX_cheat_sheet.html)
+* [Appendix G: What to Do Next](/book/appendix_X_what_to_do_next.html)
+* [Appendix H: Source Code Examples](/book/appendix_github_links.html)
 * [Bibliography](/book/bibliography.html)
 
 
 
-How to comment
---------------
+# How to comment
 
 I feel incredibly lucky to be writing this book, and have the standard amounts of
 impostor syndrome. I've only actually been doing TDD for a couple of years, and I've
