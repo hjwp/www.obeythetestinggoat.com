@@ -261,8 +261,18 @@ and often the rest of the deployment process is something they rarely have to th
 <p>
 Let&#8217;s adapt our functional tests
 so that they can run against a standalone server,
-instead of the one that <code>LiveServerTestCase</code> creates for us.
-We&#8217;ll do it by checking for an environment variable
+instead of the one that <code>LiveServerTestCase</code> creates for us.</p>
+</div>
+<div class="paragraph">
+<p>Do you remember I said that <code>LiveServerTestCase</code> had certain limitations?
+Well, one is that it always assumes you want to use its own test server,
+which it makes available at <code>self.live_server_url</code>.
+I still want to be able to do that <em>sometimes</em>,
+but I also want to be able to selectively tell it not to bother,
+and to use a real server instead.</p>
+</div>
+<div class="paragraph">
+<p>We&#8217;ll do it by checking for an environment variable
 called <code>TEST_SERVER</code>:</p>
 </div>
 <div class="exampleblock sourcecode">
@@ -276,30 +286,30 @@ called <code>TEST_SERVER</code>:</p>
 <span class="tok-k">class</span> <span class="tok-nc">NewVisitorTest</span><span class="tok-p">(</span><span class="tok-n">StaticLiveServerTestCase</span><span class="tok-p">):</span>
     <span class="tok-k">def</span> <span class="tok-nf">setUp</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">):</span>
         <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">browser</span> <span class="tok-o">=</span> <span class="tok-n">webdriver</span><span class="tok-o">.</span><span class="tok-n">Firefox</span><span class="tok-p">()</span>
-        <span class="tok-n">test_server</span> <span class="tok-o">=</span> <span class="tok-n">os</span><span class="tok-o">.</span><span class="tok-n">environ</span><span class="tok-o">.</span><span class="tok-n">get</span><span class="tok-p">(</span><span class="tok-s2">"TEST_SERVER"</span><span class="tok-p">)</span>  <i class="conum" data-value="1"></i><b>(1)</b>
-        <span class="tok-k">if</span> <span class="tok-n">test_server</span><span class="tok-p">:</span>
-            <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">live_server_url</span> <span class="tok-o">=</span> <span class="tok-s2">"http://"</span> <span class="tok-o">+</span> <span class="tok-n">test_server</span>  <i class="conum" data-value="2"></i><b>(2)</b></code></pre>
+        <span class="tok-k">if</span> <span class="tok-n">test_server</span> <span class="tok-o">:=</span> <span class="tok-n">os</span><span class="tok-o">.</span><span class="tok-n">environ</span><span class="tok-o">.</span><span class="tok-n">get</span><span class="tok-p">(</span><span class="tok-s2">"TEST_SERVER"</span><span class="tok-p">):</span>  <i class="conum" data-value="1"></i><b>(1)</b> <i class="conum" data-value="2"></i><b>(2)</b>
+            <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">live_server_url</span> <span class="tok-o">=</span> <span class="tok-s2">"http://"</span> <span class="tok-o">+</span> <span class="tok-n">test_server</span>  <i class="conum" data-value="3"></i><b>(3)</b></code></pre>
 </div>
 </div>
 </div>
-</div>
-<div class="paragraph">
-<p>Do you remember I said that <code>LiveServerTestCase</code> had certain limitations?
-Well, one is that it always assumes you want to use its own test server,
-which it makes available at <code>self.live_server_url</code>.
-I still want to be able to do that sometimes,
-but I also want to be able to selectively tell it not to bother,
-and to use a real server instead.</p>
 </div>
 <div class="colist arabic">
 <table>
 <tr>
 <td><i class="conum" data-value="1"></i><b>1</b></td>
-<td>The way I decided to do it is using an environment variable called
-<code>TEST_SERVER</code>.</td>
+<td>Here&#8217;s where we check for the env var.</td>
 </tr>
 <tr>
 <td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>If you haven&#8217;t seen this before, the <code>:=</code> is known as the "walrus operator"
+(more formally, it&#8217;s the operator for an "assignment expression"),
+which was a controversial new feature from Python 3.8<sup class="footnote">[<a id="_footnoteref_3" class="footnote" href="#_footnotedef_3" title="View footnote.">3</a>]</sup>
+and it&#8217;s not often useful, but it is quite neat for cases like this,
+where you have a variable and want to do a conditional on it straight away.
+See <a href="https://www.pythonmorsels.com/using-walrus-operator/">this article</a>
+for more explanation.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="3"></i><b>3</b></td>
 <td>Here&#8217;s the hack: we replace <code>self.live_server_url</code> with the address of
 our "real" server.</td>
 </tr>
@@ -456,7 +466,7 @@ A folder called <em>src</em> is a common convention.</p>
 </div>
 <div class="paragraph">
 <p>Currently, all our code is source code really, so we move everything into <em>src</em>
-(we&#8217;ll be seeing some new files appearing outside <em>src</em> shortly).<sup class="footnote">[<a id="_footnoteref_3" class="footnote" href="#_footnotedef_3" title="View footnote.">3</a>]</sup></p>
+(we&#8217;ll be seeing some new files appearing outside <em>src</em> shortly).<sup class="footnote">[<a id="_footnoteref_4" class="footnote" href="#_footnotedef_4" title="View footnote.">4</a>]</sup></p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -495,7 +505,7 @@ Choose WSL as your backend on Windows,
 </div>
 <div id="docker-alternatives" class="sidebarblock">
 <div class="content">
-<div class="title">Docker Alternatives: Podman and Nerdctl</div>
+<div class="title">Docker Alternatives: Podman, Nerdctl, etc</div>
 <div class="paragraph">
 <p>Impartiality commands me to also mention
 <a href="https://podman.io/">Podman</a> and
@@ -504,7 +514,7 @@ both like-for-like replacement for Docker.</p>
 </div>
 <div class="paragraph">
 <p>They are both pretty much exactly the same as Docker,
-arguably with a few advantages even.<sup class="footnote">[<a id="_footnoteref_4" class="footnote" href="#_footnotedef_4" title="View footnote.">4</a>]</sup></p>
+arguably with a few advantages even.<sup class="footnote">[<a id="_footnoteref_5" class="footnote" href="#_footnotedef_5" title="View footnote.">5</a>]</sup></p>
 </div>
 <div class="paragraph">
 <p>I actually tried Podman out on early drafts of this chapter (on Linux)
@@ -585,6 +595,11 @@ On MacOS, you can use Colima as a backend for Nerdctl.
 </td>
 </tr>
 </table>
+</div>
+<div class="paragraph">
+<p>At the time of writing, Apple had just announced its own container runner,
+<a href="https://github.com/apple/container">container</a>,
+but it was in beta and I didn&#8217;t have time to try it out.</p>
 </div>
 </div>
 </div>
@@ -875,7 +890,7 @@ environment?</pre>
 <p>Just like on our own machine,
 a virtualenv is useful in a deployed environment to make
 sure we have full control over the packages installed
-for a particular project.<sup class="footnote">[<a id="_footnoteref_5" class="footnote" href="#_footnotedef_5" title="View footnote.">5</a>]</sup></p>
+for a particular project.<sup class="footnote">[<a id="_footnoteref_6" class="footnote" href="#_footnotedef_6" title="View footnote.">6</a>]</sup></p>
 </div>
 <div class="paragraph">
 <p>We can create a virtualenv in our Dockerfile
@@ -1008,7 +1023,7 @@ CONTAINER ID   IMAGE        COMMAND                  CREATED         STATUS     
 and a randomly-generated name (you can override that if you want to).</p>
 </div>
 <div class="paragraph">
-<p>We can use the ID or the name to kill the container with <code>docker stop</code>:<sup class="footnote">[<a id="_footnoteref_6" class="footnote" href="#_footnotedef_6" title="View footnote.">6</a>]</sup></p>
+<p>We can use the ID or the name to kill the container with <code>docker stop</code>:<sup class="footnote">[<a id="_footnoteref_7" class="footnote" href="#_footnotedef_7" title="View footnote.">7</a>]</sup></p>
 </div>
 <div class="listingblock skipme">
 <div class="content">
@@ -1098,7 +1113,7 @@ Starting development server at http://127.0.0.1:8888/</pre>
 <div class="paragraph">
 <p>A quick run of the FT or check in our browser will show us that nope, that doesn&#8217;t work either.
 Let&#8217;s try an even lower-level smoke test, the traditional Unix utility <code>curl</code>.
-It&#8217;s a command-line tool for making HTTP requests.<sup class="footnote">[<a id="_footnoteref_7" class="footnote" href="#_footnotedef_7" title="View footnote.">7</a>]</sup>
+It&#8217;s a command-line tool for making HTTP requests.<sup class="footnote">[<a id="_footnoteref_8" class="footnote" href="#_footnotedef_8" title="View footnote.">8</a>]</sup>
 Try it on your own computer first:</p>
 </div>
 <div class="listingblock ignore-errors">
@@ -1245,7 +1260,7 @@ But we&#8217;re just mapping 8888 to 8888, and that will look like this:</p>
 </div>
 </div>
 <div class="paragraph">
-<p>Now that will <em>change</em> the error we see, but only quite subtly (see <a href="#firefox-connection-reset">Cannot connect on that port</a>).<sup class="footnote">[<a id="_footnoteref_8" class="footnote" href="#_footnotedef_8" title="View footnote.">8</a>]</sup>
+<p>Now that will <em>change</em> the error we see, but only quite subtly (see <a href="#firefox-connection-reset">Cannot connect on that port</a>).<sup class="footnote">[<a id="_footnoteref_9" class="footnote" href="#_footnotedef_9" title="View footnote.">9</a>]</sup>
 Things clearly aren&#8217;t working yet.</p>
 </div>
 <div id="firefox-connection-reset" class="imageblock">
@@ -1316,7 +1331,7 @@ but I found the answer in my very first result
 (see <a href="#google-results-screenshot">Google can still deliver results</a>),
 when I searched for "cannot access django runserver inside docker",
 and the result was was a <a href="https://stackoverflow.com/questions/49476217/docker-cant-access-django-server">stackoverflow post</a>,
-saying something about needing to specify <code>0.0.0.0</code> as the IP address.<sup class="footnote">[<a id="_footnoteref_9" class="footnote" href="#_footnotedef_9" title="View footnote.">9</a>]</sup></p>
+saying something about needing to specify <code>0.0.0.0</code> as the IP address.<sup class="footnote">[<a id="_footnoteref_10" class="footnote" href="#_footnotedef_10" title="View footnote.">10</a>]</sup></p>
 </div>
 <div id="google-results-screenshot" class="imageblock">
 <div class="content">
@@ -1671,7 +1686,7 @@ $ <strong>echo src/db.sqlite3 &gt;&gt; .dockerignore</strong></pre>
 <div class="paragraph">
 <p>Now we rebuild, and try mounting our database file.
 The extra flag to add to the Docker run command is <code>--mount</code>,
-where we specify <code>type=bind</code>, the <code>source</code> path on our machine,<sup class="footnote">[<a id="_footnoteref_10" class="footnote" href="#_footnotedef_10" title="View footnote.">10</a>]</sup>
+where we specify <code>type=bind</code>, the <code>source</code> path on our machine,<sup class="footnote">[<a id="_footnoteref_11" class="footnote" href="#_footnotedef_11" title="View footnote.">11</a>]</sup>
 and the <code>target</code> path <em>inside</em> the container:</p>
 </div>
 <div class="listingblock">
@@ -1758,7 +1773,7 @@ The Dockerfile specifies our image, <code>docker build</code> builds it,
 and <code>docker run</code> runs it.
 <code>build &amp;&amp; run</code> together give us a "start again from scratch" cycle,
 which we use every time we make a code change in <em>src</em>,
-or a change in the Dockerfile.<sup class="footnote">[<a id="_footnoteref_11" class="footnote" href="#_footnotedef_11" title="View footnote.">11</a>]</sup></p>
+or a change in the Dockerfile.<sup class="footnote">[<a id="_footnoteref_12" class="footnote" href="#_footnotedef_12" title="View footnote.">12</a>]</sup></p>
 </dd>
 <dt class="hdlist1">Debugging network issues</dt>
 <dd>
@@ -1791,36 +1806,39 @@ system image, and the stateful world outside of Docker.</p>
 <a href="#_footnoteref_2">2</a>. Because containers all share the same kernel, while virtualization can let you run Windows and Linux on the same machine, containers on Linux hosts all run Linux, and ones on Windows hosts all run Windows. If you&#8217;re running Linux containers on a Mac or a PC, it&#8217;s because you&#8217;re actually running them on a Linux VM under the hood.
 </div>
 <div class="footnote" id="_footnotedef_3">
-<a href="#_footnoteref_3">3</a>. A common thing to find outside of the <em>src</em> folder is a folder called <em>tests</em>. We won&#8217;t be doing that while we&#8217;re relying on the standard Django test framework, but it can be a good thing to do if you&#8217;re using pytest, for example.
+<a href="#_footnoteref_3">3</a>. The feature was a favourite of Guido van Rossum&#8217;s, but the discussion around it was so toxic that Guido stepped down from his role as Python&#8217;s BDFL, or "Benevolent Dictator for Life"
 </div>
 <div class="footnote" id="_footnotedef_4">
-<a href="#_footnoteref_4">4</a>. Docker using a central "daemon" to manage containers, which Podman and Nerdctl don&#8217;t.
+<a href="#_footnoteref_4">4</a>. A common thing to find outside of the <em>src</em> folder is a folder called <em>tests</em>. We won&#8217;t be doing that while we&#8217;re relying on the standard Django test framework, but it can be a good thing to do if you&#8217;re using pytest, for example.
 </div>
 <div class="footnote" id="_footnotedef_5">
-<a href="#_footnoteref_5">5</a>. Even a completely fresh Linux install might have odd things installed in its system site packages. A virtualenv is a guaranteed clean slate.
+<a href="#_footnoteref_5">5</a>. Docker using a central "daemon" to manage containers, which Podman and Nerdctl don&#8217;t.
 </div>
 <div class="footnote" id="_footnotedef_6">
-<a href="#_footnoteref_6">6</a>. There is also a <code>docker kill</code> if you&#8217;re in a hurry. But <code>docker stop</code> will send a <code>SIGKILL</code> if its initial <code>SIGTERM</code> doesn&#8217;t work within a certain timeout.  More info in <a href="https://docs.docker.com/reference/cli/docker/container/stop/">the docker docs</a>.
+<a href="#_footnoteref_6">6</a>. Even a completely fresh Linux install might have odd things installed in its system site packages. A virtualenv is a guaranteed clean slate.
 </div>
 <div class="footnote" id="_footnotedef_7">
-<a href="#_footnoteref_7">7</a>. <code>curl</code> can do FTP and many other types of network requests too! Check out the <a href="https://man7.org/linux/man-pages/man1/curl.1.html">curl manual</a>.
+<a href="#_footnoteref_7">7</a>. There is also a <code>docker kill</code> if you&#8217;re in a hurry. But <code>docker stop</code> will send a <code>SIGKILL</code> if its initial <code>SIGTERM</code> doesn&#8217;t work within a certain timeout.  More info in <a href="https://docs.docker.com/reference/cli/docker/container/stop/">the docker docs</a>.
 </div>
 <div class="footnote" id="_footnotedef_8">
-<a href="#_footnoteref_8">8</a>. TIP: If you use Chrome as your web browser, its error is something like "localhost didn&#8217;t send any data. ERR_EMPTY_RESPONSE"
+<a href="#_footnoteref_8">8</a>. <code>curl</code> can do FTP and many other types of network requests too! Check out the <a href="https://man7.org/linux/man-pages/man1/curl.1.html">curl manual</a>.
 </div>
 <div class="footnote" id="_footnotedef_9">
-<a href="#_footnoteref_9">9</a>. Kids these days will probably ask an AI right? I have to say I tried it out, with the prompt being "i&#8217;m trying to run django inside a docker container, and i&#8217;ve mapped port 8888, but i still can&#8217;t connect. can you suggest what the problem might be?", and it come up with a pretty good answer.
+<a href="#_footnoteref_9">9</a>. TIP: If you use Chrome as your web browser, its error is something like "localhost didn&#8217;t send any data. ERR_EMPTY_RESPONSE"
 </div>
 <div class="footnote" id="_footnotedef_10">
-<a href="#_footnoteref_10">10</a>. If you&#8217;re wondering about the <code>$PWD</code> in the listing, it&#8217;s a special environment variable that represents the current directory. The initials echo the <code>pwd</code> command, which stands for "print working directory". Docker requires mount paths to be absolute paths.
+<a href="#_footnoteref_10">10</a>. Kids these days will probably ask an AI right? I have to say I tried it out, with the prompt being "i&#8217;m trying to run django inside a docker container, and i&#8217;ve mapped port 8888, but i still can&#8217;t connect. can you suggest what the problem might be?", and it come up with a pretty good answer.
 </div>
 <div class="footnote" id="_footnotedef_11">
-<a href="#_footnoteref_11">11</a>. There&#8217;s a common pattern of mounting the whole <em>src</em> folder into your docker containers in local dev. It means you don&#8217;t need to re-build for every source code change. I didn&#8217;t wan&#8217;t to introduce that here because it also leads to subtle behaviours that can be hard to wrap your head around, like the <em>db.sqlite3</em> file being shared with the container. For this book, the <code>build &amp;&amp; run</code> cycle is fast enough, but by all means try out mounting <em>src</em> in your own projects.
+<a href="#_footnoteref_11">11</a>. If you&#8217;re wondering about the <code>$PWD</code> in the listing, it&#8217;s a special environment variable that represents the current directory. The initials echo the <code>pwd</code> command, which stands for "print working directory". Docker requires mount paths to be absolute paths.
+</div>
+<div class="footnote" id="_footnotedef_12">
+<a href="#_footnoteref_12">12</a>. There&#8217;s a common pattern of mounting the whole <em>src</em> folder into your docker containers in local dev. It means you don&#8217;t need to re-build for every source code change. I didn&#8217;t wan&#8217;t to introduce that here because it also leads to subtle behaviours that can be hard to wrap your head around, like the <em>db.sqlite3</em> file being shared with the container. For this book, the <code>build &amp;&amp; run</code> cycle is fast enough, but by all means try out mounting <em>src</em> in your own projects.
 </div>
 </div>
 <div id="footer">
 <div id="footer-text">
-License: Creative Commons <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode">CC-BY-NC-ND</a>. Last updated: 2025-05-25 22:55:00 +0100
+License: Creative Commons <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode">CC-BY-NC-ND</a>. Last updated: 2025-06-27 19:05:48 +0100
 </div>
 </div>
 <div class="comments" style="padding: 20px">
