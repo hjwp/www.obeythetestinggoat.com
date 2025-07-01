@@ -135,16 +135,19 @@ Table of contents follows:
 
 
 
-# How to comment
+# How to comment or get in touch
 
-I feel incredibly lucky to be writing this book, and have the standard amounts of
-impostor syndrome. I've only actually been doing TDD for a couple of years, and I've
-only been a professional programmer for about 3 years.  But I feel I've learned a lot,
-and I enjoy sharing the knowledge.
+I am far from the ultimate authority on TDD,
+and I'm always interested in talking about TDD, so do get in touch.
 
-The O'Reilly site allows you to submit "errata", and the Chimera site has a comments
-function. Do use those for typos, errors etc.  If you'd like to have a more
-philosophical discussion, you can get in touch with me directly via
+There's a comment system here for each individual chapter, so feel free to use that.
+
+
+If you'd like to fix a typo, you can open a Pull Request at https://github.com/hjwp/Book-TDD-Web-Dev-Python/pulls
+
+If you'd like to have a more philosophical discussion,
+or talk about anything Python or TDD-related,
+you can get in touch with me directly via
 
 <div class="small-3 small-centered columns">
     <p class="center-text">
@@ -152,6 +155,4 @@ philosophical discussion, you can get in touch with me directly via
     </p>
 </div>
 
-You can even leave comments right here.  The important thing is, get in touch!
 I look forward to hearing from you.
-
