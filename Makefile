@@ -1,4 +1,4 @@
-PELICAN=pelican
+PELICAN=.venv/bin/pelican
 PELICANOPTS=--debug
 
 BASEDIR=$(CURDIR)
