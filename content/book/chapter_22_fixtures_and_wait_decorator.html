@@ -41,40 +41,12 @@ httpRequest.send();
 </div>
 <div id="content">
 <div class="sect1">
-<h2 id="chapter_22_fixtures_and_wait_decorator">Test Fixtures and a Decorator for <span class="keep-together">Explicit Waits</span></h2>
+<h2 id="chapter_22_fixtures_and_wait_decorator">Test Fixtures and a Decorator <span class="keep-together">for Explicit Waits</span></h2>
 <div class="sectionbody">
-<div class="sidebarblock">
-<div class="content">
-<div class="title">A Note for Early Release Readers</div>
-<div class="paragraph">
-<p>With Early Release ebooks, you get books in their earliest form&#8212;the author&#8217;s raw and unedited content as they write&#8212;so you can take advantage of these technologies long before the official release of these titles.</p>
-</div>
-<div class="paragraph">
-<p>This will be the 22nd chapter of the final book. The GitHub repo is available at <a href="https://github.com/hjwp/book-example" class="bare">https://github.com/hjwp/book-example</a>.</p>
-</div>
-<div class="paragraph">
-<p>If you have comments about how we might improve the content and/or examples in this book, or if you notice missing material within this chapter, please reach out to the author at <a href="mailto:obeythetestinggoat@gmail.com">obeythetestinggoat@gmail.com</a>.</p>
-</div>
-</div>
-</div>
-<div class="sidebarblock">
-<div class="content">
-<div class="title">Warning, Chapter Recently Updated</div>
-<div class="paragraph">
-<p>Warning, this Chapter is freshly updated for Django 5 + Python 3.13.</p>
-</div>
-<div class="paragraph">
-<p>The code listings should have valid syntax,
-and I&#8217;ve been through and sense-checked the chapter text,
-but a few things might still be off!
-So let me know what you think of the chapter, via <a href="mailto:obeythetestinggoat@gmail.com">obeythetestinggoat@gmail.com</a></p>
-</div>
-</div>
-</div>
 <div class="paragraph">
 <p>
 Now that we have a functional authentication system, we want to use it to identify users,
-and be able to show them all the lists they have created.</p>
+and to show them all the lists they have created.</p>
 </div>
 <div class="paragraph">
 <p>To do that, we&#8217;re going to have to write FTs that have a logged-in user.
@@ -88,7 +60,7 @@ in that they don&#8217;t usually have a single assertion.
 But, conceptually, they should be testing a single thing.
 There&#8217;s no need for every single FT to test the login/logout mechanisms.
 If we can figure out a way to "cheat" and skip that part,
-we&#8217;ll spend less time waiting for duplicated test paths.</p>
+we&#8217;ll spend less time waiting for tests to repeat these duplicated setup steps.</p>
 </div>
 <div class="admonitionblock tip">
 <table>
@@ -107,7 +79,7 @@ Don&#8217;t overdo de-duplication in FTs.
 </div>
 <div class="paragraph">
 <p>In this short chapter, we&#8217;ll start writing our new FT,
-and use that as an opportunity to talk about deduplication using test fixtures for FTs.
+and use that as an opportunity to talk about de-duplication using test fixtures for FTs.
 We&#8217;ll also refactor out a nice helper for explicit waits,
 using Python&#8217;s lovely decorator syntax.</p>
 </div>
@@ -176,25 +148,25 @@ us as a logged-in user.</td>
 <p>Note that, as it is, this will only work because we&#8217;re using <code>LiveServerTestCase</code>,
 so the <code>User</code> and <code>Session</code> objects we create will end up in the same database
 as the test server.
-At some point we&#8217;ll need to think about how this will work against Docker or staging.</p>
+At some point, we&#8217;ll need to think about how this will work against Docker or staging.</p>
 </div>
 <div class="sidebarblock pagebreak-before less_space">
 <div class="content">
-<div class="title">Django Sessions: How a User&#8217;s Cookies Tell the Server She Is Authenticated</div>
+<div class="title">Django Sessions: How a User&#8217;s Cookies Tell the Server They Are Authenticated</div>
 <div class="paragraph">
-<p><em>Being an attempt to explain sessions, cookies, and authentication in Django.</em></p>
+<p>This is an attempt to explain sessions, cookies, and authentication in Django.</p>
 </div>
 <div class="paragraph">
 <p>
 HTTP is a "stateless" protocol,
 meaning that the protocol itself doesn&#8217;t keep track of any state from one
-request to the next, and each request is independent from the next.
-There&#8217;s no built-in way to tell that a series of request come from the same client.</p>
+request to the next, and each request is independent of the next.
+There&#8217;s no built-in way to tell that a series of requests come from the same client.</p>
 </div>
 <div class="paragraph">
 <p>For this reason, servers need a way of recognising different clients with <em>every single request</em>.
 The usual solution is to give each client a unique session ID,
-which the browser will store in a text file called a "cookie",
+which the browser will store in a text file called a "cookie"
 and send with every request.</p>
 </div>
 <div class="paragraph">
@@ -206,13 +178,13 @@ as being from a particular client.</p>
 <p>If you log in to the site using the dev server,
 you can actually take a look at your session ID by hand if you like.
 It&#8217;s stored under the key <code>sessionid</code> by default.
-See <a href="#session-cookie-screenshot">Examining the session cookie in the Devtools UI</a>.</p>
+See <a href="#session-cookie-screenshot">Examining the session cookie in the DevTools UI</a>.</p>
 </div>
 <div id="session-cookie-screenshot" class="imageblock">
 <div class="content">
 <img src="images/tdd3_2201.png" alt="A browser with the devtools open, showing a session cookie called sessionid for localhost:800">
 </div>
-<div class="title">Figure 1. Examining the session cookie in the Devtools UI</div>
+<div class="title">Figure 1. Examining the session cookie in the DevTools UI</div>
 </div>
 <div class="paragraph">
 <p>These session cookies are set for all visitors to a Django site,
@@ -222,7 +194,7 @@ whether they&#8217;re logged in or not.</p>
 <p>When we want to recognise a client as being a logged-in and authenticated user,
 again, rather than asking the client to send their username and password
 with every single request,
-the server can actually just mark that client&#8217;s session as being an authenticated session,
+the server can actually just mark that client&#8217;s session as authenticated,
 and associate it with a user ID in its database.</p>
 </div>
 <div class="paragraph">
@@ -230,9 +202,7 @@ and associate it with a user ID in its database.</p>
 and the user ID is stored under the key given by <code>django.contrib.auth.SESSION_KEY</code>.
 You can check this out in a <span class="keep-together"><code>./manage.py</code></span> <code>shell</code> if you like:</p>
 </div>
-<div class="listingblock skipme small-code">
-<div class="content">
-<pre>$ <strong>python src/manage.py shell</strong>
+<pre translate="no" data-type="programlisting" class="skipme small-code">$ <strong>python src/manage.py shell</strong>
 [...]
 In [1]: from django.contrib.sessions.models import Session
 
@@ -242,33 +212,30 @@ In [2]: session = Session.objects.get(
 )
 
 In [3]: print(session.get_decoded())
-{'_auth_user_id': '<a href="mailto:obeythetestinggoat@gmail.com">obeythetestinggoat@gmail.com</a>', '_auth_user_backend':
+{'_auth_user_id': 'obeythetestinggoat@gmail.com', '_auth_user_backend':
 'accounts.authentication.PasswordlessAuthenticationBackend'}</pre>
-</div>
-</div>
 <div class="paragraph">
 <p>You can also store any other information you like on a user&#8217;s session,
 as a way of temporarily keeping track of some state.
 This works for non&#8211;logged-in users too.
-Just use <code>request.session</code> inside any view, and it works as a dict.
+Just use <code>request.session</code> inside any view, and it works as a dictionary.
 There&#8217;s more information in the
-<a href="https://docs.djangoproject.com/en/5.2/topics/http/sessions/">Django docs on sessions</a>.</p>
+<a href="https://docs.djangoproject.com/en/5.2/topics/http/sessions">Django docs on sessions</a>.</p>
 </div>
 </div>
 </div>
 <div class="sect3">
 <h4 id="_checking_that_it_works">Checking That It Works</h4>
 <div class="paragraph">
-<p>To check that <code>create_pre_authenticated_session()</code>  system works,
-it would be good to use some of the code from our previous test.
-Let&#8217;s make a couple of functions
-called <code>wait_to_be_logged_in</code> and <code>wait_to_be_logged_out</code>.
+<p>To check that the <code>create_pre_authenticated_session()</code>  system works,
+it would be good to reuse some of the code from our previous test.
+Let&#8217;s make a couple of functions: <code>wait_to_be_logged_in</code> and <code>wait_to_be_logged_out</code>.
 To access them from a different test,
 we&#8217;ll need to pull them up into <code>FunctionalTest</code>.
 We&#8217;ll also tweak them slightly so that they can take an arbitrary email address
 as a parameter:</p>
 </div>
-<div class="exampleblock sourcecode">
+<div class="exampleblock sourcecode small-code">
 <div class="title">src/functional_tests/base.py (ch22l002)</div>
 <div class="content">
 <div class="listingblock">
@@ -294,24 +261,23 @@ as a parameter:</p>
 </div>
 </div>
 <div class="paragraph">
-<p>Hm, that&#8217;s not bad, but I&#8217;m not quite happy
+<p>Hmm, that&#8217;s not bad. But I&#8217;m not quite happy
 with the amount of duplication of <code>wait_for</code> stuff in here.
-Let&#8217;s make a note to come back to it,
-and get these helpers working.</p>
+Let&#8217;s make a note to come back to it and let&#8217;s first get these helpers working:</p>
 </div>
 <div class="sidebarblock scratchpad">
 <div class="content">
 <div class="ulist">
 <ul>
 <li>
-<p><em>Clean up wait_for stuff in base.py</em></p>
+<p><em>Clean up wait_for stuff in base.py.</em></p>
 </li>
 </ul>
 </div>
 </div>
 </div>
 <div class="paragraph">
-<p>First we use them in <em>test_login.py</em>:</p>
+<p>First, we use them in <em>test_login.py</em>:</p>
 </div>
 <div class="exampleblock sourcecode">
 <div class="title">src/functional_tests/test_login.py (ch22l003)</div>
@@ -343,7 +309,7 @@ OK</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>And now we can write a placeholder for the "My Lists" test,
+<p>And now we can write a placeholder for the "My lists" test,
 to see if our pre-authenticated session creator really does work:</p>
 </div>
 <div class="exampleblock sourcecode">
@@ -375,8 +341,7 @@ OK</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>
-That&#8217;s a good place for a commit:</p>
+<p>That&#8217;s a good place for a commit:</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -391,28 +356,27 @@ $ <strong>git commit -m "test_my_lists: precreate sessions, move login checks in
 <p>
 
 
-When we pre-populate the database with test data,
-as we&#8217;ve done here with the <code>User</code> object and its associated <code>Session</code> object,
-what we&#8217;re doing is setting up what&#8217;s called a "test fixture".</p>
+When we pre-populate the database with test data&#8212;as we&#8217;ve done here with the <code>User</code> object and its associated <code>Session</code> object&#8212;what we&#8217;re doing is setting up what&#8217;s called a "test fixture".</p>
 </div>
 <div class="paragraph">
 <p>If you look up "Django fixtures",
-you&#8217;ll find that Django has a built in way of saving objects
+you&#8217;ll find that Django has a built-in way of saving objects
 from your database using JSON (using <code>manage.py dumpdata</code>),
 and automatically loading them in your test runs
 using the <code>fixtures</code> class attribute on <code>TestCase</code>.</p>
 </div>
 <div class="paragraph">
-<p>You&#8217;ll find people out there saying <a href="http://bit.ly/1kSTyrb">don&#8217;t use JSON fixtures</a>,
+<p>You&#8217;ll find people out there saying <a href="https://oreil.ly/Nklcr">not to use JSON fixtures</a>,
 and I tend to agree.
 They&#8217;re a nightmare to maintain when your model changes.
-Plus it&#8217;s difficult for the reader
+Plus, it&#8217;s difficult for the reader
 to tell which of the many attribute values specified in the JSON
-are critical for the behaviour under test, and which are just filler.
-Finally, even if tests start out sharing fixtures,
+are critical for the behaviour under test, and which of them are just filler.</p>
+</div>
+<div class="paragraph">
+<p>Finally, even if tests start out sharing fixtures,
 sooner or later one test will want slightly different versions of the data,
-and you end up copying the whole thing around to keep them isolated,
-and again it&#8217;s hard to tell what&#8217;s relevant to the test and what is just happenstance.</p>
+and you end up copying the whole thing around to keep them isolated. Again, it&#8217;s hard to tell what&#8217;s relevant to the test and what is just happenstance.</p>
 </div>
 <div class="paragraph">
 <p>It&#8217;s usually much more straightforward to just load the data directly
@@ -430,7 +394,7 @@ Once you have more than a handful of fields on a model,
     you&#8217;ll want to factor out some nice helper methods with descriptive names
     to build out your data.
     A lot of people also like
-    <a href="https://factoryboy.readthedocs.org/"><code>factory_boy</code></a>,
+    <a href="https://factoryboy.readthedocs.org"><code>factory_boy</code></a>,
     but I think the most important thing is the descriptive names.
 </td>
 </tr>
@@ -451,10 +415,7 @@ Once you have more than a handful of fields on a model,
 
 
 We&#8217;ve used decorators a few times in our code so far,
-but it&#8217;s time to learn how they actually work by making one of our own.</p>
-</div>
-<div class="paragraph">
-<p>First, let&#8217;s imagine how we might want our decorator to work.
+but it&#8217;s time to learn how they actually work by making one of our own. First, let&#8217;s imagine how we might want our decorator to work.
 It would be nice to be able to replace all the custom wait/retry/timeout logic
 in <code>wait_for_row_in_list_table()</code> and the inline <code>self.wait_fors()</code>
 in the <code>wait_to_be_logged_in/out</code>.
@@ -487,22 +448,17 @@ Something like this would look lovely:</p>
 </div>
 <div class="paragraph">
 <p>Are you ready to dive in?
-Although decorators are quite difficult to wrap your head around
-(I know it took me a long time before I was comfortable with them,
-and I still have to think about them quite carefully whenever I make one),
+Although decorators are quite difficult to wrap your head around,<sup class="footnote">[<a id="_footnoteref_1" class="footnote" href="#_footnotedef_1" title="View footnote.">1</a>]</sup>
 the nice thing is that we&#8217;ve already dipped our toes into functional programming
 in our <code>self.wait_for()</code> helper function.
-That&#8217;s a function that takes another function as an argument,
-and a decorator is the same.
-The difference is that the decorator doesn&#8217;t actually execute any code itself&#8212;&#8203;it
+That&#8217;s a function that takes another function as an argument&#8212;and a decorator is the same.
+The difference is that the decorator doesn&#8217;t actually execute any code itself; it
 returns a modified version of the function that it was given.</p>
 </div>
 <div class="paragraph">
-<p>Our decorator wants to return a new function
-which will keep retrying the function being decorated,
-catching our usual exceptions,
-until a timeout occurs.
-Here&#8217;s a first cut:</p>
+<p>Our decorator wants to return a new function,
+which will keep retrying the function being decorated&#8212;catching our usual exceptions
+until a timeout occurs. Here&#8217;s a first cut:</p>
 </div>
 <div class="exampleblock sourcecode">
 <div class="title">src/functional_tests/base.py (ch22l006)</div>
@@ -542,12 +498,12 @@ it takes a function as an <span class="keep-together">argument&#8230;&#8203;</sp
 </tr>
 <tr>
 <td><i class="conum" data-value="4"></i><b>4</b></td>
-<td>And here&#8217;s our familiar loop, which will keep going, catching the usual
-exceptions, until our timeout expires.</td>
+<td>And here&#8217;s our familiar loop, which will keep catching those
+exceptions until the timeout.</td>
 </tr>
 <tr>
 <td><i class="conum" data-value="5"></i><b>5</b></td>
-<td>And as always, we call our function and return immediately if there are
+<td>And as always, we call our original function and return immediately if there are
 no <span class="keep-together">exceptions</span>.</td>
 </tr>
 </table>
@@ -564,7 +520,7 @@ TypeError: wait.&lt;locals&gt;.modified_fn() takes 0 positional arguments but 2 
 given</pre>
 </div>
 </div>
-<div class="paragraph">
+<div class="paragraph pagebreak-before">
 <p>Unlike in <code>self.wait_for</code>, the decorator is being applied to functions
 that have <span class="keep-together">arguments</span>:</p>
 </div>
@@ -586,13 +542,13 @@ that have <span class="keep-together">arguments</span>:</p>
 But when it&#8217;s decorated, it&#8217;s replaced with <code>modified_fn</code>,
 which currently takes no arguments.
 How do we magically make it so our <code>modified_fn</code> can handle the same arguments
-as whatever <code>fn</code> the decorator gets given has?</p>
+as whatever function the decorator is given?</p>
 </div>
 <div class="paragraph">
 <p>The answer is a bit of Python magic,
 <code>*args</code> and <code>**kwargs</code>, more formally known as
-<a href="https://docs.python.org/3/tutorial/controlflow.html#arbitrary-argument-lists">"variadic arguments"</a>,
-apparently (I only just learned that):</p>
+<a href="https://docs.python.org/3/tutorial/controlflow.html#arbitrary-argument-lists">"variadic arguments"</a>
+(apparently&#8212;I only just learned that):</p>
 </div>
 <div class="exampleblock sourcecode">
 <div class="title">src/functional_tests/base.py (ch22l007)</div>
@@ -660,8 +616,7 @@ Like this:</p>
 </div>
 <div class="paragraph">
 <p>Lovely!  Now all our wait/retry logic is encapsulated in a single place,
-and we have a nice easy way of applying those waits,
-either inline in our FTs using <code>self.wait_for()</code>,
+and we have a nice easy way of applying those waits&#8212;either inline in our FTs using <code>self.wait_for()</code>,
 or on any helper function using the <code>@wait</code> decorator.</p>
 </div>
 <div class="paragraph">
@@ -675,33 +630,33 @@ OK</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>Do a commit, and we&#8217;re good to cross of that scratchpad item:</p>
+<p>Do a commit, and we&#8217;re good to cross off that scratchpad item:</p>
 </div>
 <div class="sidebarblock scratchpad">
 <div class="content">
 <div class="ulist">
 <ul>
 <li>
-<p><em><span class="strikethrough line-through">Clean up wait_for stuff in base.py</span></em></p>
+<p><em><span class="strikethrough line-through">Clean up wait_for stuff in base.py.</span></em></p>
 </li>
 </ul>
 </div>
 </div>
 </div>
 <div class="paragraph">
-<p>In the next chapter we&#8217;ll try to deploy our code to staging,
+<p>In the next chapter, we&#8217;ll try to deploy our code to staging,
 and use the pre-authenticated session fixtures on the server.
-As we&#8217;ll see it&#8217;ll help us catch a little bug or two!
+As we&#8217;ll see, it&#8217;ll help us catch a little bug or two!
 
 
 </p>
 </div>
-<div class="sidebarblock">
+<div class="sidebarblock pagebreak-before less_space">
 <div class="content">
 <div class="title">Lessons Learned</div>
 <div class="dlist">
 <dl>
-<dt class="hdlist1">Decorators are nice</dt>
+<dt class="hdlist1">Decorators</dt>
 <dd>
 <p>Decorators can be a great way of abstracting out
 different levels of concerns.
@@ -709,7 +664,7 @@ They let us write our test assertions
 without having to think about waits at the same time.
 </p>
 </dd>
-<dt class="hdlist1">De-duplicate your FTs, with caution</dt>
+<dt class="hdlist1">De-duplicating your FTs, with caution</dt>
 <dd>
 <p>Every single FT doesn&#8217;t need to test every single part of your application.
 In our case, we wanted to avoid going through the full login process for
@@ -728,7 +683,7 @@ information, but as we&#8217;ve seen (with browser cookies), it can involve othe
 types of preconditions.
 </p>
 </dd>
-<dt class="hdlist1">Avoid JSON fixtures</dt>
+<dt class="hdlist1">Avoiding JSON fixtures</dt>
 <dd>
 <p>Django makes it easy to save and restore data from the database
 in JSON format (and others) using the <code>dumpdata</code> and <code>loaddata</code> management commands.
@@ -748,9 +703,15 @@ Use the ORM, with some nicely named helper functions instead.
 </div>
 </div>
 </div>
+<div id="footnotes">
+<hr>
+<div class="footnote" id="_footnotedef_1">
+<a href="#_footnoteref_1">1</a>. I know it took me a long time before I was comfortable with them, and I still have to think about them quite carefully whenever I make one.
+</div>
+</div>
 <div id="footer">
 <div id="footer-text">
-License: Creative Commons <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode">CC-BY-NC-ND</a>. Last updated: 2025-07-28 10:14:18 +0100
+License: Creative Commons <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode">CC-BY-NC-ND</a>. Last updated: 2025-10-08 16:07:54 +0100
 </div>
 </div>
 <div class="comments" style="padding: 20px">

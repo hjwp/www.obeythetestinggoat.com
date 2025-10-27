@@ -43,42 +43,21 @@ httpRequest.send();
 <div class="sect1">
 <h2 id="chapter_20_mocking_1">Using Mocks to Test External Dependencies</h2>
 <div class="sectionbody">
-<div class="sidebarblock">
-<div class="content">
-<div class="title">A Note for Early Release Readers</div>
 <div class="paragraph">
-<p>With Early Release ebooks, you get books in their earliest form&#8212;the author&#8217;s raw and unedited content as they write&#8212;so you can take advantage of these technologies long before the official release of these titles.</p>
-</div>
-<div class="paragraph">
-<p>This will be the 20th chapter of the final book. The GitHub repo is available at <a href="https://github.com/hjwp/book-example" class="bare">https://github.com/hjwp/book-example</a>.</p>
-</div>
-<div class="paragraph">
-<p>If you have comments about how we might improve the content and/or examples in this book, or if you notice missing material within this chapter, please reach out to the author at <a href="mailto:obeythetestinggoat@gmail.com">obeythetestinggoat@gmail.com</a>.</p>
-</div>
-</div>
-</div>
-<div class="sidebarblock">
-<div class="content">
-<div class="title">Warning, Recently Updated</div>
-<div class="paragraph">
-<p>Warning, chapter in progress!
-I&#8217;ve recently updated this chapter, and there are some new discussions
-of the pros and cons of mocking, which I&#8217;d love your feedback on!</p>
-</div>
-<div class="paragraph">
-<p><a href="mailto:obeythetestinggoat@gmail.com">obeythetestinggoat@gmail.com</a></p>
-</div>
-</div>
+<p>
+
+
+In this chapter, we&#8217;ll start testing the parts of our code that send emails&#8212;i.e., the second item on our scratchpad:</p>
 </div>
 <div class="sidebarblock scratchpad">
 <div class="content">
 <div class="ulist">
 <ul>
 <li>
-<p><em><span class="strikethrough line-through">Token model with email + uid</span></em></p>
+<p><em><span class="strikethrough line-through">Token model with email and UID</span></em></p>
 </li>
 <li>
-<p><em>view to create token + send login email incl. url w/ token uid</em></p>
+<p><em>View to create token and send login email incl. url w/ token UID</em></p>
 </li>
 <li>
 <p><em><span class="strikethrough line-through">Custom user model with USERNAME_FIELD=email</span></em></p>
@@ -87,36 +66,28 @@ of the pros and cons of mocking, which I&#8217;d love your feedback on!</p>
 <p><em>Authentication backend with authenticate() and get_user() functions</em></p>
 </li>
 <li>
-<p><em>Register auth backend in settings.py</em></p>
+<p><em>Registering auth backend in settings.py</em></p>
 </li>
 <li>
-<p><em>login view calls authenticate() and login() from django.contrib.auth</em></p>
+<p><em>Login view calls authenticate() and login() from django.contrib.auth</em></p>
 </li>
 <li>
-<p><em>logout view calls django.contrib.auth.logout</em></p>
+<p><em>Logout view calls django.contrib.auth.logout</em></p>
 </li>
 </ul>
 </div>
 </div>
 </div>
 <div class="paragraph">
-<p>
-
-
-In this chapter we&#8217;ll start testing the parts of our code that send emails,
-ie the second item on our scratchpad.</p>
-</div>
-<div class="paragraph">
-<p>In the FT, you saw that Django gives us a way of retrieving
+<p>In the functional test (FT), you saw that Django gives us a way of retrieving
 any emails it sends by using the <code>mail.outbox</code> attribute.
-But in this chapter, I want to demonstrate a widespread testing technique called <em>mocking</em>,
-so for the purpose of these unit tests, we&#8217;ll pretend that this nice Django shortcut doesn&#8217;t exist.
+But in this chapter, I want to demonstrate a widespread testing technique called <em>mocking</em>. So, for the purpose of these unit tests, we&#8217;ll pretend that this nice Django shortcut doesn&#8217;t exist.
 </p>
 </div>
 <div class="paragraph">
 <p>Am I telling you <em>not</em> to use Django&#8217;s <code>mail.outbox</code>?
-No; use it, it&#8217;s a neat helper.
-But I want to teach mocks because they&#8217;re a useful general-purpose tool
+No&#8212;use it; it&#8217;s a neat helper.
+But I want to teach you about mocks because they&#8217;re a useful general-purpose tool
 for unit testing external dependencies.
 You may not always be using Django!
 And even if you are, you may not be sending email&#8212;&#8203;any
@@ -124,24 +95,24 @@ interaction with a third-party API
 is a place you might find yourself wanting to test with mocks.
 </p>
 </div>
-<div class="sidebarblock pagebreak-before">
+<div class="sidebarblock">
 <div class="content">
 <div class="title">To Mock or Not to Mock?</div>
 <div class="paragraph">
 <p>I once gave a talk called
-<a href="https://www.youtube.com/watch?v=rk-f3B-eMkI">"Stop Using Mocks!"</a>;
+<a href="https://oreil.ly/XJPbT">"Stop Using Mocks"</a>;
 it&#8217;s entirely possible to find ways to write tests for external dependencies
 without using mocks at all.</p>
 </div>
 <div class="paragraph">
 <p>I&#8217;m covering mocking in this book because it&#8217;s such a common technique,
 but it does come with some downsides, as we&#8217;ll see.
-Other techniques, including dependency injection,
-and the use of custom fake objects, are well worth exploring,
-but they&#8217;re a more advanced topic.</p>
+Other techniques&#8212;including dependency injection
+and the use of custom fake objects&#8212;are well worth exploring,
+but they&#8217;re more advanced.</p>
 </div>
 <div class="paragraph">
-<p>My second book, <a href="https://www.cosmicpython.com">Architecture Patterns with Python</a>,
+<p>My second book <a href="https://www.cosmicpython.com"><em>Architecture Patterns with Python</em></a>
 goes into some detail on these alternatives.</p>
 </div>
 </div>
@@ -151,7 +122,7 @@ goes into some detail on these alternatives.</p>
 <div class="paragraph">
 <p>
 Let&#8217;s just get a basic view and URL set up first.
-We can do so with a simple test
+We can do so with a simple test to ensure
 that our new URL for sending the login email should eventually redirect
 back to the home page:</p>
 </div>
@@ -173,7 +144,7 @@ back to the home page:</p>
 </div>
 </div>
 </div>
-<div class="paragraph">
+<div class="paragraph pagebreak-before">
 <p>Wire up the <code>include</code> in <em>superlists/urls.py</em>,
 plus the <code>url</code> in <em>accounts/urls.py</em>,
 and get the test passing with something a bit like this:</p>
@@ -214,15 +185,15 @@ OK</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>OK, now we have a starting point, so let&#8217;s get mocking!</p>
+<p>OK, now we have a starting point&#8212;so let&#8217;s get mocking!</p>
 </div>
 </div>
 <div class="sect2">
-<h3 id="_mocking_manually_aka_monkeypatching">Mocking Manually, aka Monkeypatching</h3>
+<h3 id="_mocking_manuallyaka_monkeypatching">Mocking Manually&#8212;aka Monkeypatching</h3>
 <div class="paragraph">
 <p>
 
-When we call <code>send_mail</code> in real life
+When we call <code>send_mail</code> in real life,
 we expect Django to be making a connection to our email provider,
 and sending an actual email across the public internet.
 That&#8217;s not something we want to happen in our tests.
@@ -238,11 +209,10 @@ give us one way to do that.</p>
 </div>
 <div class="paragraph">
 <p>Actually, one of the great things about Python is that its dynamic nature
-makes it very easy to do things like mocking,
-or what&#8217;s sometimes called <a href="https://en.wikipedia.org/wiki/Monkey_patch">monkeypatching</a>.
+makes it very easy to do things like mocking&#8212;or what&#8217;s sometimes called <a href="https://oreil.ly/vXHWY">monkeypatching</a>.
 Let&#8217;s suppose that, as a first step,
 we want to get to some code that invokes <code>send_mail</code>
-with the right subject line, from address, and to address.
+with the right subject line, "from" address, and "to" address.
 That would look something like this:</p>
 </div>
 <div class="exampleblock sourcecode skipme">
@@ -265,7 +235,7 @@ That would look something like this:</p>
 </div>
 </div>
 <div class="paragraph">
-<p>How can we test this, without calling the <em>real</em> <code>send_mail</code> function?
+<p>How can we test this without calling the <em>real</em> <code>send_mail</code> function?
 The answer is that our test can ask Python to swap out the <code>send_mail</code> function
 for a fake version, at runtime, just before we invoke the <code>send_login_email</code> view.</p>
 </div>
@@ -334,18 +304,13 @@ we&#8217;re just taking advantage of Python&#8217;s dynamic nature and scoping r
 <div class="paragraph">
 <p>Up until we actually invoke a function, we can modify the variables it has access to,
 as long as we get into the right namespace.
-That&#8217;s why we import the top-level accounts module:
+That&#8217;s why we import the top-level <code>accounts</code> module:
 to be able to get down to the <code>accounts.views</code> module,
-which is the scope that the <code>accounts.views.send_login_email</code> function will run in.</p>
+which is the scope in which the <code>accounts.views.send_login_email</code> function will run.</p>
 </div>
 <div class="paragraph">
-<p>This isn&#8217;t even something that only works inside unit tests.
-You can do this kind of "monkeypatching" in any kind of Python code!</p>
-</div>
-<div class="paragraph">
-<p>That may take a little time to sink in.
-See if you can convince yourself that it&#8217;s not all totally crazy,
-before reading a couple of bits of further detail.</p>
+<p>This isn&#8217;t even something that only works inside unit tests&#8212;you can do this kind of monkeypatching in any Python code! That may take a little time to sink in.
+See if you can convince yourself that it&#8217;s not all totally crazy&#8212;and then consider a couple of extra details that are worth knowing:</p>
 </div>
 <div class="ulist">
 <ul>
@@ -357,7 +322,7 @@ We could use any mutable object, like a list or a dictionary,
 as long as we are making in-place changes to an existing variable
 that exists outside our fake function.
 (Feel free to have a play around with different ways of doing this, if
-you&#8217;re curious, and see what works and doesn&#8217;t work.)</p>
+you&#8217;re curious, and see what works and doesn&#8217;t.)</p>
 </li>
 <li>
 <p>The "before" is critical! I can&#8217;t tell you how many times I&#8217;ve sat there,
@@ -377,7 +342,7 @@ only to realise that I didn&#8217;t mock <em>before</em> I called the code under
 AssertionError: False is not true</pre>
 </div>
 </div>
-<div class="paragraph">
+<div class="paragraph pagebreak-before">
 <p>So let&#8217;s call <code>send_mail</code>, naively:</p>
 </div>
 <div class="exampleblock sourcecode">
@@ -402,6 +367,10 @@ AssertionError: False is not true</pre>
 <td>This import should still be in the file from earlier,
 but in case an overenthusiastic IDE has removed it,
 I&#8217;m re-listing it for you here.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>Here&#8217;s our new call to <code>send_mail()</code>.</td>
 </tr>
 </table>
 </div>
@@ -465,7 +434,7 @@ Now we can work step-by-step, all the way through to something like this:</p>
 </div>
 </div>
 <div class="paragraph">
-<p>and passing tests!</p>
+<p>And we have passing tests!</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -477,11 +446,10 @@ OK</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>Brilliant!  We&#8217;ve managed to write tests for some code, that
-ordinarily<sup class="footnote">[<a id="_footnoteref_2" class="footnote" href="#_footnotedef_2" title="View footnote.">2</a>]</sup>
-would go out and try to send real emails across the internet,
+<p>Brilliant!  We&#8217;ve managed to write tests for some code, which would
+ordinarily go out and try to send real emails across the internet,
 and by "mocking out" the <code>send_email</code> function,
-we&#8217;re able to write the tests and code all the same.</p>
+we&#8217;re able to write the tests and code all the same.<sup class="footnote">[<a id="_footnoteref_2" class="footnote" href="#_footnotedef_2" title="View footnote.">2</a>]</sup></p>
 </div>
 <div class="paragraph">
 <p>But our hand-rolled mock has a couple of problems:</p>
@@ -490,7 +458,7 @@ we&#8217;re able to write the tests and code all the same.</p>
 <ul>
 <li>
 <p>It involved a fair bit of boilerplate code,
-population all those <code>self.xyz</code> variables to let us assert on them.</p>
+populating all those <code>self.xyz</code> variables to let us assert on them.</p>
 </li>
 <li>
 <p>More importantly, although we didn&#8217;t see this,
@@ -533,19 +501,19 @@ It provides a magical object called a <code>Mock</code>; try this out in a Pytho
 <span class="tok-n">call</span><span class="tok-p">(</span><span class="tok-mi">42</span><span class="tok-p">,</span> <span class="tok-n">var</span><span class="tok-o">=</span><span class="tok-s1">'thing'</span><span class="tok-p">)</span></code></pre>
 </div>
 </div>
-<div class="paragraph">
-<p>A magical object that:</p>
+<div class="paragraph pagebreak-before">
+<p>A mock is a magical object for a few reasons:</p>
 </div>
 <div class="ulist">
 <ul>
 <li>
-<p>responds to any request for an attribute or method call with other mocks,</p>
+<p>It responds to any request for an attribute or method call with other mocks.</p>
 </li>
 <li>
-<p>which you can configure in turn to return specific values when called,</p>
+<p>You can configure it in turn to return specific values when called.</p>
 </li>
 <li>
-<p>and that allows you to inspect what it was called with?</p>
+<p>It enables you to inspect what it was called with.</p>
 </li>
 </ul>
 </div>
@@ -607,9 +575,9 @@ was doing before.</td>
 </tr>
 </table>
 </div>
-<div class="paragraph">
+<div class="paragraph pagebreak-before">
 <p>If you rerun the tests, you&#8217;ll see they still pass.
-And since we&#8217;re always suspicious of any test that still passes after a big change,
+And because we&#8217;re always suspicious of any test that still passes after a big change,
 let&#8217;s deliberately break it just to see:</p>
 </div>
 <div class="exampleblock sourcecode">
@@ -661,7 +629,7 @@ FAILED (failures=1)</pre>
 </div>
 <div class="paragraph">
 <p>Sure enough, the tests fail.
-And we can see just before the failure message
+And we can see, just before the failure message,
 that when we print the <code>type</code> of the <code>send_mail</code> function,
 in the first unit test it&#8217;s a normal function,
 but in the second unit test we&#8217;re seeing a mock object.</p>
@@ -725,12 +693,12 @@ during the test.  We can see it was called&#8230;&#8203;</td>
 <td>&#8230;&#8203;and we can also unpack its various positional and keyword call arguments,
 to examine what it was called with.
 (See <a href="/book/chapter_21_mocking_2.html#mock-call-args-sidebar">[mock-call-args-sidebar]</a> in the next chapter for a longer
-explanation of <code>.call_args</code>).</td>
+explanation of <code>.call_args</code>.)</td>
 </tr>
 </table>
 </div>
 <div class="paragraph">
-<p>All crystal-clear? No? Don&#8217;t worry, we&#8217;ll do a couple more tests with mocks,
+<p>All crystal clear? No? Don&#8217;t worry; we&#8217;ll do a couple more tests with mocks
 to see if they start to make more sense as we use them more.</p>
 </div>
 </div>
@@ -748,11 +716,7 @@ to log in\nStart a new To-Do list'</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>Submitting the email address currently has no effect,</p>
-</div>
-<div class="paragraph">
-<p>Hmmm.  Currently our form is hardcoded to send to <em>/accounts/send_login_email</em>,
-let&#8217;s switch to using the <code>{% url %}</code> syntax just to make sure it&#8217;s the right URL:</p>
+<p>Submitting the email address currently has no effect. Hmmm. Currently our form is hardcoded to send to <em>/accounts/send_login_email</em>. Let&#8217;s switch to using the <code>{% url %}</code> syntax just to make sure it&#8217;s the right URL:</p>
 </div>
 <div class="exampleblock sourcecode small-code">
 <div class="title">src/lists/templates/base.html (ch20l012)</div>
@@ -765,7 +729,7 @@ let&#8217;s switch to using the <code>{% url %}</code> syntax just to make sure 
 </div>
 </div>
 <div class="paragraph">
-<p>Does that help?  Nope, same error.  Why? Ah, nothing to do with the URL actually,
+<p>Does that help?  Nope, same error.  Why? Ah, nothing to do with the URL actually;
 it&#8217;s because we&#8217;re not displaying a success message after we send the user an email.
 Let&#8217;s add a test for that.</p>
 </div>
@@ -776,7 +740,7 @@ Let&#8217;s add a test for that.</p>
 <p>
 We&#8217;ll use Django&#8217;s "messages framework",
 which is often used to display ephemeral "success" or "warning" messages
-to show the results of an action, something like:</p>
+to show the results of an action, something like what&#8217;s shown in <a href="#success-message">A green success message</a>.</p>
 </div>
 <div id="success-message" class="imageblock">
 <div class="content">
@@ -785,12 +749,8 @@ to show the results of an action, something like:</p>
 <div class="title">Figure 1. A green success message</div>
 </div>
 <div class="paragraph">
-<p>Have a look at the
-<a href="https://docs.djangoproject.com/en/5.2/ref/contrib/messages/">django messages docs</a>
-if you haven&#8217;t come across it already.</p>
-</div>
-<div class="paragraph">
-<p>Testing Django messages is a bit contorted:</p>
+<p>Have a look at the <a href="https://docs.djangoproject.com/en/5.2/ref/contrib/messages">Django messages docs</a>
+if you haven&#8217;t come across it already. Testing Django messages is a bit contorted:</p>
 </div>
 <div class="exampleblock sourcecode">
 <div class="title">src/accounts/tests/test_views.py (ch20l013)</div>
@@ -814,18 +774,18 @@ if you haven&#8217;t come across it already.</p>
 </div>
 </div>
 </div>
-<div class="colist arabic">
+<div class="colist arabic pagebreak-before">
 <table>
 <tr>
 <td><i class="conum" data-value="1"></i><b>1</b></td>
-<td>we have to pass <code>follow=True</code>
+<td>We have to pass <code>follow=True</code>
 to the test client to tell it to get the page <em>after</em> the 302-redirect.</td>
 </tr>
 <tr>
 <td><i class="conum" data-value="2"></i><b>2</b></td>
-<td>Then we examine the response context for a in iterable with messages in,
+<td>Then we examine the response context for a <code>messages</code> iterable,
 which we have to listify before it&#8217;ll play nicely.
-(We&#8217;ll use th these later use in a template with <code>{% for message in messages %}</code>).</td>
+(We&#8217;ll use these later in a template with <code>{% for message in messages %}</code>.)</td>
 </tr>
 </table>
 </div>
@@ -862,7 +822,7 @@ IndexError: list index out of range</pre>
 </div>
 </div>
 </div>
-<div id="mocks-tightly-coupled-sidebar" class="sidebarblock">
+<div id="mocks-tightly-coupled-sidebar" class="sidebarblock pagebreak-before less_space">
 <div class="content">
 <div class="title">Mocks Can Leave You Tightly Coupled to the Implementation</div>
 <div class="admonitionblock tip">
@@ -908,7 +868,7 @@ Let&#8217;s see what that would look like in this case:</p>
 </div>
 <div class="paragraph">
 <p>We mock out the <code>messages</code> module, and check that <code>messages.success</code> was
-called with the right args: the original request, and the message we want.</p>
+called with the right arguments: the original request and the message we want.</p>
 </div>
 <div class="paragraph">
 <p>And you could get it passing by using the exact same code as earlier.  Here&#8217;s
@@ -930,11 +890,11 @@ to achieve the same result.  I could write the code like this:</p>
 </div>
 </div>
 <div class="paragraph">
-<p>And the original, nonmocky test would still pass.
+<p>And the original, non-mocky test would still pass.
 But our mocky test will fail,
-because we&#8217;re no longer calling <code>messages.success</code>,
+because we&#8217;re no longer calling <code>messages.success</code>;
 we&#8217;re calling <code>messages.add_message</code>.
-Even though the end result is the same and our code is "correct,"
+Even though the end result is the same and our code is "correct",
 the test is broken.</p>
 </div>
 <div class="paragraph">
@@ -1012,10 +972,7 @@ AssertionError: 'Use this link to log in' not found in 'body text tbc'</pre>
 </div>
 <div class="paragraph">
 <p>We need to fill out the body text of the email,
-with a link that the user can use to log in.</p>
-</div>
-<div class="paragraph">
-<p>Let&#8217;s just cheat for now though, by changing the value in the view:</p>
+with a link that the user can use to log in. Let&#8217;s just cheat for now though, by changing the value in the view:</p>
 </div>
 <div class="exampleblock sourcecode">
 <div class="title">src/accounts/views.py (ch20l016)</div>
@@ -1044,17 +1001,17 @@ Use this link to log in</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>OK I think we can call the send_login_email view done for now.</p>
+<p>OK, I think we can call the <code>send_login_email</code> view done for now:</p>
 </div>
 <div class="sidebarblock scratchpad">
 <div class="content">
 <div class="ulist">
 <ul>
 <li>
-<p><em><span class="strikethrough line-through">Token model with email + uid</span></em></p>
+<p><em><span class="strikethrough line-through">Token model with email and UID</span></em></p>
 </li>
 <li>
-<p><em><span class="strikethrough line-through">view to create token + send login email incl. url w/ token uid</span></em></p>
+<p><em><span class="strikethrough line-through">View to create token and send login email incl. url w/ token UID</span></em></p>
 </li>
 <li>
 <p><em><span class="strikethrough line-through">Custom user model with USERNAME_FIELD=email</span></em></p>
@@ -1063,13 +1020,13 @@ Use this link to log in</pre>
 <p><em>Authentication backend with authenticate() and get_user() functions</em></p>
 </li>
 <li>
-<p><em>Register auth backend in settings.py</em></p>
+<p><em>Registering auth backend in settings.py</em></p>
 </li>
 <li>
-<p><em>login view calls authenticate() and login() from django.contrib.auth</em></p>
+<p><em>Login view calls authenticate() and login() from django.contrib.auth</em></p>
 </li>
 <li>
-<p><em>logout view calls django.contrib.auth.logout</em></p>
+<p><em>Logout view calls django.contrib.auth.logout</em></p>
 </li>
 </ul>
 </div>
@@ -1103,7 +1060,7 @@ It doesn&#8217;t need to do anything for now.</p>
 <p>I&#8217;m sure you can find your way through to getting the boilerplate in
 for a basic URL and view, via errors like these:</p>
 </div>
-<div class="ulist pagebreak-before">
+<div class="ulist simplelist">
 <ul>
 <li>
 <p>No URL:</p>
@@ -1155,7 +1112,7 @@ because we still don&#8217;t have a token to give to the user.</p>
 <h4 id="_checking_that_we_send_the_user_a_link_with_a_token">Checking That We Send the User a Link with a Token</h4>
 <div class="paragraph">
 <p>Back in our <code>send_login_email</code> view,
-we&#8217;ve tested the email subject, from, and to fields.
+we&#8217;ve tested the email subject, and the "from", and "to" fields.
 The body is the part that will have to include a token or URL they can use to log in.
 Let&#8217;s spec out two tests for that:</p>
 </div>
@@ -1203,7 +1160,7 @@ Let&#8217;s spec out two tests for that:</p>
 <td><i class="conum" data-value="1"></i><b>1</b></td>
 <td>The first test is fairly straightforward;
 it checks that the token we create in the database
-is associated with the email address from the post request.</td>
+is associated with the email address from the POST request.</td>
 </tr>
 <tr>
 <td><i class="conum" data-value="2"></i><b>2</b></td>
@@ -1260,7 +1217,7 @@ FAILED (failures=1)</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>So we can insert the token into our email like this:</p>
+<p>So, we can insert the token into our email like this:</p>
 </div>
 <div class="exampleblock sourcecode">
 <div class="title">src/accounts/views.py (ch20l023)</div>
@@ -1294,17 +1251,17 @@ FAILED (failures=1)</pre>
 <td><i class="conum" data-value="1"></i><b>1</b></td>
 <td><code>request.build_absolute_uri</code> deserves a mention&#8212;&#8203;it&#8217;s
 one way to build a "full" URL,
-including the domain name and the http(s) part, in Django.
+including the domain name and the HTTP(S) part, in Django.
 There are other ways,
 but they usually involve getting into the "sites" framework,
-and that gets complicated pretty quickly.
+which gets complicated pretty quickly.
 You can find lots more discussion on this if you&#8217;re curious
 by doing a bit of googling.</td>
 </tr>
 </table>
 </div>
 <div class="paragraph">
-<p>And the tests pass.</p>
+<p>And the tests pass:</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -1312,17 +1269,17 @@ by doing a bit of googling.</td>
 </div>
 </div>
 <div class="paragraph">
-<p>I think <em>that&#8217;s</em> our send-login-email view done.</p>
+<p>I think <em>that&#8217;s</em> our <code>send_login_email</code> view done:</p>
 </div>
 <div class="sidebarblock scratchpad">
 <div class="content">
 <div class="ulist">
 <ul>
 <li>
-<p><em><span class="strikethrough line-through">Token model with email + uid</span></em></p>
+<p><em><span class="strikethrough line-through">Token model with email and UID</span></em></p>
 </li>
 <li>
-<p><em><span class="strikethrough line-through">_view to create token + send login email incl. url w/ token uid</span></em></p>
+<p><em><span class="strikethrough line-through">_View to create token and send login email incl. url w/ token UID</span></em></p>
 </li>
 <li>
 <p><em><span class="strikethrough line-through">Custom user model with USERNAME_FIELD=email</span></em></p>
@@ -1331,13 +1288,13 @@ by doing a bit of googling.</td>
 <p><em>Authentication backend with authenticate() and get_user() functions</em></p>
 </li>
 <li>
-<p><em>Register auth backend in settings.py</em></p>
+<p><em>Registering auth backend in settings.py</em></p>
 </li>
 <li>
-<p><em>login view calls authenticate() and login() from django.contrib.auth</em></p>
+<p><em>Login view calls authenticate() and login() from django.contrib.auth</em></p>
 </li>
 <li>
-<p><em>logout view calls django.contrib.auth.logout</em></p>
+<p><em>Logout view calls django.contrib.auth.logout</em></p>
 </li>
 </ul>
 </div>
@@ -1346,8 +1303,7 @@ by doing a bit of googling.</td>
 <div class="paragraph">
 <p>The next piece in the puzzle is the authentication backend,
 whose job it will be to examine tokens for validity
-and then return the corresponding users;
-then we need to get our login view to actually log users in,
+and then return the corresponding users. Then, we need to get our login view to actually log users in,
 if they can authenticate.
 </p>
 </div>
@@ -1382,7 +1338,7 @@ Here&#8217;s how our authentication backend looked in the spike:</p>
         <span class="tok-k">return</span> <span class="tok-n">ListUser</span><span class="tok-o">.</span><span class="tok-n">objects</span><span class="tok-o">.</span><span class="tok-n">get</span><span class="tok-p">(</span><span class="tok-n">email</span><span class="tok-o">=</span><span class="tok-n">email</span><span class="tok-p">)</span></code></pre>
 </div>
 </div>
-<div class="paragraph">
+<div class="paragraph pagebreak-before">
 <p>Decoding this:</p>
 </div>
 <div class="ulist">
@@ -1395,16 +1351,15 @@ Here&#8217;s how our authentication backend looked in the spike:</p>
 </li>
 <li>
 <p>If it does exist, we extract an email address,
-and either find an existing user with that address, or create a new one.</p>
+and either find an existing user with that address or create a new one.</p>
 </li>
 </ul>
 </div>
 <div class="sect3">
-<h4 id="_1_if_1_more_test">1 if = 1 More Test</h4>
+<h4 id="_one_if_one_more_test">One if = One More Test</h4>
 <div class="paragraph">
 <p>A rule of thumb for these sorts of tests:
-any <code>if</code> means an extra test, and any <code>try/except</code> means an extra test,
-so this should be about three tests.
+any <code>if</code> means an extra test, and any <code>try/except</code> means an extra test. So, this should be about three tests.
 How about something like this?</p>
 </div>
 <div class="exampleblock sourcecode">
@@ -1447,8 +1402,8 @@ How about something like this?</p>
 </div>
 </div>
 </div>
-<div class="paragraph">
-<p>In <em>authenticate.py</em> we&#8217;ll just have a little placeholder:</p>
+<div class="paragraph pagebreak-before">
+<p>In <em>authenticate.py</em>, we&#8217;ll just have a little placeholder:</p>
 </div>
 <div class="exampleblock sourcecode">
 <div class="title">src/accounts/authentication.py (ch20l025)</div>
@@ -1501,7 +1456,7 @@ Ran 13 tests in 0.038s
 FAILED (failures=1, errors=1)</pre>
 </div>
 </div>
-<div class="paragraph">
+<div class="paragraph pagebreak-before">
 <p>Here&#8217;s a first cut:</p>
 </div>
 <div class="exampleblock sourcecode">
@@ -1521,8 +1476,8 @@ FAILED (failures=1, errors=1)</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>Now, instead of one FAIL and one ERROR,
-we get two ERRORs:</p>
+<p>Now, instead of one <code>FAIL</code> and one <code>ERROR</code>,
+we get two <code>ERROR</code>s:</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -1542,7 +1497,7 @@ accounts.models.User.DoesNotExist: User matching query does not exist.</pre>
 </div>
 <div class="paragraph">
 <p>Notice that our third test,
-<code>test_returns_existing_user_with_correct_email_if_token_exists</code>,
+<code>test_returns_existing_user_with_c&#8288;o&#8288;r&#8288;r&#8288;e&#8288;c&#8288;t&#8288;_&#8288;e&#8288;m&#8288;a&#8288;i&#8288;l&#8288;_&#8203;i&#8288;f&#8288;_&#8288;t&#8288;o&#8288;k&#8288;e&#8288;n&#8288;_exists</code>,
 is actually passing.  Our code <em>does</em> currently handle the "happy path",
 where both the token and the user already exist in the database.</p>
 </div>
@@ -1610,17 +1565,17 @@ We can do that!</p>
 <h4 id="_the_get_user_method">The get_user Method</h4>
 <div class="paragraph">
 <p>
-We&#8217;ve handled the <code>authenticate</code> function which Django will use to log new users in.
+We&#8217;ve handled the <code>authenticate</code> function, which Django will use to log new users in.
 The second part of the protocol we have to implement is the <code>get_user</code> method,
 whose job is to retrieve a user based on their unique identifier (the email address),
-or to return <code>None</code> if it can&#8217;t find one
-(have another look at <a href="#spike-reminder">the spiked code</a> if you need a
-reminder).</p>
+or to return <code>None</code> if it can&#8217;t find one.
+(Have another look at <a href="#spike-reminder">the spiked code</a> if you need a
+reminder.)</p>
 </div>
 <div class="paragraph">
 <p>Here are a couple of tests for those two requirements:</p>
 </div>
-<div class="exampleblock sourcecode">
+<div class="exampleblock sourcecode small-code">
 <div class="title">src/accounts/tests/test_authentication.py (ch20l030)</div>
 <div class="content">
 <div class="listingblock">
@@ -1649,7 +1604,7 @@ reminder).</p>
 'get_user'</pre>
 </div>
 </div>
-<div class="paragraph">
+<div class="paragraph pagebreak-before">
 <p>Let&#8217;s create a placeholder one then:</p>
 </div>
 <div class="exampleblock sourcecode">
@@ -1701,7 +1656,7 @@ AssertionError: &lt;User: User object (another@example.com)&gt; != &lt;User: Use
 </div>
 </div>
 <div class="paragraph">
-<p>And so we call <code>get</code> with the email as an argument:</p>
+<p>And so, we call <code>get</code> with the email as an argument:</p>
 </div>
 <div class="exampleblock sourcecode">
 <div class="title">src/accounts/authentication.py (ch20l034)</div>
@@ -1726,7 +1681,7 @@ accounts.models.User.DoesNotExist: User matching query does not exist.</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>Which prompts us to finish the method like this:</p>
+<p>That prompts us to finish the method like this:</p>
 </div>
 <div class="exampleblock sourcecode">
 <div class="title">src/accounts/authentication.py (ch20l035)</div>
@@ -1768,10 +1723,10 @@ the "explicit is better than implicit" rule applies here.</td>
 <div class="ulist">
 <ul>
 <li>
-<p><em><span class="strikethrough line-through">Token model with email + uid</span></em></p>
+<p><em><span class="strikethrough line-through">Token model with email and UID</span></em></p>
 </li>
 <li>
-<p><em><span class="strikethrough line-through">_view to create token + send login email incl. url w/ token uid</span></em></p>
+<p><em><span class="strikethrough line-through">_View to create token and send login email incl. url w/ token UID</span></em></p>
 </li>
 <li>
 <p><em><span class="strikethrough line-through">Custom user model with USERNAME_FIELD=email</span></em></p>
@@ -1780,24 +1735,24 @@ the "explicit is better than implicit" rule applies here.</td>
 <p><em><span class="strikethrough line-through">Authentication backend with authenticate() and get_user() functions</span></em></p>
 </li>
 <li>
-<p><em>Register auth backend in settings.py</em></p>
+<p><em>Registering auth backend in settings.py</em></p>
 </li>
 <li>
-<p><em>login view calls authenticate() and login() from django.contrib.auth</em></p>
+<p><em>Login view calls authenticate() and login() from django.contrib.auth</em></p>
 </li>
 <li>
-<p><em>logout view calls django.contrib.auth.logout</em></p>
+<p><em>Logout view calls django.contrib.auth.logout</em></p>
 </li>
 </ul>
 </div>
 </div>
 </div>
 <div class="paragraph">
-<p>Let&#8217;s call that a win, and in the next chapter
-we&#8217;ll work on integrating it into our login view,
+<p>Let&#8217;s call that a win and, in the next chapter,
+we&#8217;ll work on integrating it into our login view
 and getting our FT passing.</p>
 </div>
-<div id="mocking-py-sidebar-1" class="sidebarblock">
+<div id="mocking-py-sidebar-1" class="sidebarblock pagebreak-before less_space">
 <div class="content">
 <div class="title">On Mocking in Python</div>
 <div class="dlist">
@@ -1809,10 +1764,10 @@ that we don&#8217;t want to actually use in our tests.
 A mock can be used to simulate the third-party API.
 Whilst it is possible to "roll your own" mocks in Python,
 a mocking framework like the <code>unittest.mock</code> module provides a lot of helpful shortcuts
-which will make it easier to write (and more importantly, read) your tests.
+that will make it easier to write (and more importantly, read) your tests.
 </p>
 </dd>
-<dt class="hdlist1">The Mock library</dt>
+<dt class="hdlist1">The mock library</dt>
 <dd>
 <p>The <code>unittest.mock</code> module from Python&#8217;s standard library
 contains most everything you might need for monkeypatching
@@ -1822,9 +1777,9 @@ and mocking in Python.<sup class="footnote">[<a id="_footnoteref_3" class="footn
 </dd>
 <dt class="hdlist1">Monkeypatching</dt>
 <dd>
-<p>Replacing an object in a namespace at runtime.
+<p>This is the process of replacing an object in a namespace at runtime.
 We use it in our unit tests to replace a real function
-which has undesirable side effects
+that has undesirable side effects
 with a mock object, using the <code>mock.patch</code> decorator.
 </p>
 </dd>
@@ -1839,7 +1794,7 @@ to avoid contamination between tests.</p>
 </dd>
 <dt class="hdlist1">Mocks can leave you tightly coupled to the implementation</dt>
 <dd>
-<p>As discussed in a <a href="#mocks-tightly-coupled-sidebar">sidebar earlier</a>,
+<p>As discussed in the earlier sidebar,
 mocks can leave you tightly coupled to your implementation.
 For that reason, you shouldn&#8217;t use them unless you have a good reason.</p>
 </dd>
@@ -1855,18 +1810,18 @@ For that reason, you shouldn&#8217;t use them unless you have a good reason.</p>
 <div id="footnotes">
 <hr>
 <div class="footnote" id="_footnotedef_1">
-<a href="#_footnoteref_1">1</a>. I&#8217;m using the generic term "mock", but testing enthusiasts like to distinguish other types of a general class of test tools called "Test Doubles", including spies, fakes, and stubs.  The differences don&#8217;t really matter for this book, but if you want to get into the nitty-gritty, check out this <a href="https://github.com/testdouble/contributing-tests/wiki/Test-Double">amazing wiki by Justin Searls</a>. Warning: absolutely chock full of great testing content.
+<a href="#_footnoteref_1">1</a>. I&#8217;m using the generic term "mock", but testing enthusiasts like to distinguish other types of a general class of test tools called "test doubles", including spies, fakes, and stubs.  The differences don&#8217;t really matter for this book, but if you want to get into the nitty-gritty, check out the <a href="https://github.com/testdouble/contributing-tests/wiki/Test-Double">amazing wiki by Justin Searls</a>. Warning: absolutely chock full of great testing content.
 </div>
 <div class="footnote" id="_footnotedef_2">
 <a href="#_footnoteref_2">2</a>. Again, we&#8217;re acting as if Django&#8217;s <code>mail.outbox</code> didn&#8217;t exist, for the sake of learning. After all, what if you were using Flask? Or what if this was an API call, not an email?
 </div>
 <div class="footnote" id="_footnotedef_3">
-<a href="#_footnoteref_3">3</a>. This library was originally written as a standalone package by Michael Foord, while he was working at the company that later spawned PythonAnywhere, a few years before I joined. It became part of the standard library in Python 3.3. Michael was a friend, and sadly passed away in 2025.
+<a href="#_footnoteref_3">3</a>. This library was originally written as a standalone package by Michael Foord while he was working at the company that later spawned PythonAnywhere, a few years before I joined. It became part of the standard library in Python 3.3. Michael was a friend, and sadly passed away in 2025.
 </div>
 </div>
 <div id="footer">
 <div id="footer-text">
-License: Creative Commons <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode">CC-BY-NC-ND</a>. Last updated: 2025-07-28 10:14:18 +0100
+License: Creative Commons <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode">CC-BY-NC-ND</a>. Last updated: 2025-10-27 16:48:45 UTC
 </div>
 </div>
 <div class="comments" style="padding: 20px">

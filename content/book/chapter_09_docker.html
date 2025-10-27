@@ -43,27 +43,6 @@ httpRequest.send();
 <div class="sect1">
 <h2 id="chapter_09_docker">Containerization aka Docker</h2>
 <div class="sectionbody">
-<div class="sidebarblock">
-<div class="content">
-<div class="title">A Note for Early Release Readers</div>
-<div class="paragraph">
-<p>With Early Release ebooks, you get books in their earliest form&#8212;&#8203;the
-author&#8217;s raw and unedited content as they write&#8212;&#8203;so
-you can take advantage of these technologies
-long before the official release of these titles.</p>
-</div>
-<div class="paragraph">
-<p>This will be the 9th chapter of the final book.
-The GitHub repo is available at <a href="https://github.com/hjwp/book-example/tree/chapter_09_docker" class="bare">https://github.com/hjwp/book-example/tree/chapter_09_docker</a>.</p>
-</div>
-<div class="paragraph">
-<p>If you have comments about how we might improve the content
-and/or examples in this book,
-or if you notice missing material within this chapter,
-please reach out to the author at <a href="mailto:obeythetestinggoat@gmail.com">obeythetestinggoat@gmail.com</a>.</p>
-</div>
-</div>
-</div>
 <div class="quoteblock">
 <blockquote>
 <div class="paragraph">
@@ -75,9 +54,9 @@ please reach out to the author at <a href="mailto:obeythetestinggoat@gmail.com">
 </div>
 </div>
 <div class="paragraph">
-<p>In this chapter, we&#8217;ll start by adapting our FTs so that they can run against a container,
+<p>In this chapter, we&#8217;ll start by adapting our FTs so that they can run against a container.
 And then we&#8217;ll set about containerising our app,
-and get those tests passing our code running inside Docker.</p>
+and getting those tests passing our code running inside Docker:</p>
 </div>
 <div class="ulist">
 <ul>
@@ -88,30 +67,15 @@ and get those tests passing our code running inside Docker.</p>
 <p>We&#8217;ll learn how to build and run a container on our machine.</p>
 </li>
 <li>
-<p>We&#8217;ll make a few changes to our source code layout. like using an <em>src</em> folder.</p>
+<p>We&#8217;ll make a few changes to our source code layout, like using a <em>src</em> folder.</p>
 </li>
 <li>
 <p>We&#8217;ll start flushing out a few issues around networking and the database.</p>
 </li>
 </ul>
 </div>
-<div class="sidebarblock">
-<div class="content">
-<div class="title">Warning, Fresh Content</div>
-<div class="paragraph">
-<p>Just to reinforce on the ER note above,
-the content for this chapter is all brand new for the third edition,
-so I&#8217;m particularly keen on feedback and suggestions for it.</p>
-</div>
-<div class="paragraph">
-<p>So please hit me up at <a href="mailto:obeythetestinggoat@gmail.com">obeythetestinggoat@gmail.com</a>, or via
-<a href="https://github.com/hjwp/Book-TDD-Web-Dev-Python/issues">GitHub Issues</a>
-and Pull Requests.</p>
-</div>
-</div>
-</div>
 <div class="sect2">
-<h3 id="_docker_containers_and_virtualization">Docker, Containers and Virtualization</h3>
+<h3 id="_docker_containers_and_virtualization">Docker, Containers, and Virtualization</h3>
 <div class="paragraph">
 <p>Docker is a commercial product that wraps several free
 and open source technologies from the world of Linux,
@@ -131,20 +95,20 @@ Feel free to skip this section if you already know all about Docker.
 </div>
 <div class="paragraph">
 <p>You may have already heard of the idea of "virtualization",
-which allows a single physical computer to pretend to be several machines.
+which enables a single physical computer to pretend to be several machines.
 Pioneered by IBM (amongst others) on mainframes in the 1960s,
-it rose to mainstream adoption in the 90s,
+it rose to mainstream adoption in the '90s,
 where it was sold as a way to optimise resource usage in datacentres.
-AWS, for example, was an offshoot of Amazon,
-who were using virtualization already,
-and realised they could sell some spare capacity on their servers
+AWS, for example, an offshoot of Amazon,
+was using virtualization already,
+and realised it could sell some spare capacity on its servers
 to customers outside the business.</p>
 </div>
 <div class="paragraph">
-<p>So when you come to deploy your code to a real server in a datacentre,
+<p>So, when you come to deploy your code to a real server in a datacentre,
 it will be using virtualization.
 And, actually, you can use virtualization on your own machine,
-with software like Virtualbox or KVM.
+with software like VirtualBox or KVM.
 You can run Windows "inside" a Mac or Linux laptop, for example.</p>
 </div>
 <div class="paragraph">
@@ -157,25 +121,25 @@ because containerization is a kind of even-more-virtual virtualization.</p>
 it gives you multiple virtual machines (VMs)
 that pretend to be different physical computers, on a single real machine.
 So you can run multiple operating systems using separate VMs
-on the same physical box, as in <a href="#virtualization-diagram">Physical vs Virtual Machines</a>.</p>
+on the same physical box, as in <a href="#virtualization-diagram">Physical versus virtual machines</a>.</p>
 </div>
 <div id="virtualization-diagram" class="imageblock">
 <div class="content">
 <img src="images/tdd3_0901.png" alt="A diagram showing a physical machine, with an operating system and a Python virtualenv running inside it, vs multiple virtual machines running different operating systems on a single real machine">
 </div>
-<div class="title">Figure 1. Physical vs Virtual Machines</div>
+<div class="title">Figure 1. Physical versus virtual machines</div>
 </div>
 <div class="paragraph">
-<p>Containerization works at the operating system level:
+<p>Containerization works at the operating system (OS) level:
 it gives you multiple virtual operating systems that
 all run on a single real OS.<sup class="footnote">[<a id="_footnoteref_1" class="footnote" href="#_footnotedef_1" title="View footnote.">1</a>]</sup></p>
 </div>
 <div class="paragraph">
 <p>Containers let us pack the source code and the system dependencies
-(like Python, or system libraries) together,
+(like Python or system libraries) together,
 and our programs run inside separate virtual systems,
-using a single real host operating system and kernel<sup class="footnote">[<a id="_footnoteref_2" class="footnote" href="#_footnotedef_2" title="View footnote.">2</a>]</sup>.
-See <a href="#containers-diagram">Containers Share a Kernel in the Host Operating System</a> for an illustration.</p>
+using a single real host OS and kernel.<sup class="footnote">[<a id="_footnoteref_2" class="footnote" href="#_footnotedef_2" title="View footnote.">2</a>]</sup>
+See <a href="#containers-diagram">Containers share a kernel in the host operating system</a> for an illustration.</p>
 </div>
 <div class="paragraph">
 <p>The upshot of this is that containers are much "cheaper".
@@ -192,7 +156,7 @@ and you can run hundreds on the same machine.</p>
 If you&#8217;re new to all this, I know it&#8217;s a lot to wrap your head around!
   It takes a while to build a good mental model of what&#8217;s happening.
   Have a look at
-  <a href="https://www.docker.com/resources/what-container/">Docker&#8217;s resources on containers</a>
+  <a href="https://www.docker.com/resources/what-container">Docker&#8217;s resources on containers</a>
   for more explanation.
   Hopefully, following along with these chapters and seeing them working in practice
   will help you to better understand the theory.
@@ -204,13 +168,12 @@ If you&#8217;re new to all this, I know it&#8217;s a lot to wrap your head aroun
 <div class="content">
 <img src="images/tdd3_0902.png" alt="Diagram showing one or more containers running on a single host operating system, showing that each container uses the kernel from the host OS, but is able to have its own filesystem, based on an image, but also possibly mounting directories from the host filesystem">
 </div>
-<div class="title">Figure 2. Containers Share a Kernel in the Host Operating System</div>
+<div class="title">Figure 2. Containers share a kernel in the host operating system</div>
 </div>
 <div class="sect3">
-<h4 id="_why_not_just_use_a_virtualenv">Why not just use a virtualenv?</h4>
+<h4 id="_why_not_just_use_a_virtualenv">Why Not Just Use a Virtualenv?</h4>
 <div class="paragraph">
-<p>You might be thinking, this sounds a lot like a virtualenv,
-and you&#8217;d be right!
+<p>You might be thinking that this sounds a lot like a virtualenv&#8212;and you&#8217;d be right!
 Virtualenvs already let us run different versions of Python,
 with different Python packages, on the same machine.</p>
 </div>
@@ -221,20 +184,20 @@ things you can&#8217;t <code>pip install</code>, in other words.
 In the Python world, this could be C libraries,
 like <code>libpq</code> for PostgreSQL, or <code>libxml2</code> for parsing XML.
 But you could also run totally different programming languages
-in different containers, or even different linux distributions.
-So, server administrators or platform people like them,
+in different containers, or even different Linux distributions.
+So, server administrators or platform people like them
 because it&#8217;s one system for running any kind of software,
 and they don&#8217;t need to understand the intricacies of any particular
 language&#8217;s packaging systems.</p>
 </div>
 </div>
 <div class="sect3">
-<h4 id="_docker_and_your_cv">Docker and your CV</h4>
+<h4 id="_docker_and_your_cv">Docker and Your CV</h4>
 <div class="paragraph">
 <p>That&#8217;s all well and good for the <em>theoretical</em> justification,
 but let&#8217;s get to the <em>real</em> reason for using this technology,
 which, as always, is:
-"it&#8217;s fashionable so it&#8217;s going to look good on my CV."</p>
+"it&#8217;s fashionable so it&#8217;s going to look good on my CV".</p>
 </div>
 <div class="paragraph">
 <p>For the purposes of this book,
@@ -246,7 +209,7 @@ deployment on our own machine, before we try the real one&#8212;&#8203;but
 also, containers are so popular nowadays,
 that it&#8217;s very likely that you&#8217;re going to encounter them at work
 (if you haven&#8217;t already).
-For many working developers, a container image is the final artifact of their work,
+For many working developers, a container image is the final artifact of their work;
 it&#8217;s what they "deliver",
 and often the rest of the deployment process is something they rarely have to think about.</p>
 </div>
@@ -259,7 +222,7 @@ and often the rest of the deployment process is something they rarely have to th
 <h3 id="_as_always_start_with_a_test">As Always, Start with a Test</h3>
 <div class="paragraph">
 <p>
-Let&#8217;s adapt our functional tests
+Let&#8217;s adapt our functional tests (FTs)
 so that they can run against a standalone server,
 instead of the one that <code>LiveServerTestCase</code> creates for us.</p>
 </div>
@@ -271,7 +234,7 @@ I still want to be able to do that <em>sometimes</em>,
 but I also want to be able to selectively tell it not to bother,
 and to use a real server instead.</p>
 </div>
-<div class="paragraph">
+<div class="paragraph pagebreak-before">
 <p>We&#8217;ll do it by checking for an environment variable
 called <code>TEST_SERVER</code>:</p>
 </div>
@@ -305,7 +268,7 @@ called <code>TEST_SERVER</code>:</p>
 which was a controversial new feature from Python 3.8<sup class="footnote">[<a id="_footnoteref_3" class="footnote" href="#_footnotedef_3" title="View footnote.">3</a>]</sup>
 and it&#8217;s not often useful, but it is quite neat for cases like this,
 where you have a variable and want to do a conditional on it straight away.
-See <a href="https://www.pythonmorsels.com/using-walrus-operator/">this article</a>
+See <a href="https://oreil.ly/oDyYs">this article</a>
 for more explanation.</td>
 </tr>
 <tr>
@@ -332,8 +295,7 @@ A clarification: when we say we run tests <em>against</em> our Docker container,
 </table>
 </div>
 <div class="paragraph">
-<p>We test that said hack hasn&#8217;t broken anything by running the functional
-tests <span class="keep-together">"normally"</span>:</p>
+<p>We test that said hack hasn&#8217;t broken anything by running the FTs <span class="keep-together">"normally"</span>:</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -345,9 +307,8 @@ OK</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>And now we can try them against our docker server URL,
-which once we&#8217;ve done the right docker magic,
-will be at <em><a href="http://localhost:8888" class="bare">http://localhost:8888</a></em></p>
+<p>And now we can try them against our Docker server URL&#8212;which, once we&#8217;ve done the right Docker magic,
+will be at <em>http://localhost:8888</em>.</p>
 </div>
 <div class="admonitionblock tip">
 <table>
@@ -357,8 +318,8 @@ will be at <em><a href="http://localhost:8888" class="bare">http://localhost:888
 </td>
 <td class="content">
 I&#8217;m deliberately choosing a different port to run Dockerised Django on (8888)
-    from the default port that a local <code>manage.py runserver</code> would choose (8080),
-    to avoid getting in the situation where I (or the tests) <em>think</em>
+    from the default port that a local <code>manage.py runserver</code> would choose (8080).
+    This is to avoid getting in the situation where I (or the tests) <em>think</em>
     we&#8217;re looking at Docker, when we&#8217;re actually looking at a local <code>runserver</code>
     that I&#8217;ve left running in some terminal somewhere.
 </td>
@@ -369,19 +330,19 @@ I&#8217;m deliberately choosing a different port to run Dockerised Django on (88
 <div class="content">
 <div class="title">Ports</div>
 <div class="paragraph">
-<p>Ports are what let you have multiple connections open at the same time on a single machine,
+<p>Ports are what let you have multiple connections open at the same time on a single machine;
 the reason you can load two different websites at the same time, for example.</p>
 </div>
 <div class="paragraph">
 <p>Each network adapter has a range of ports, numbered from 0 to 65535.
 In a client/server connection, the client knows the port of the server,
-and the client operating system chooses a random local port for its side of the connection.</p>
+and the client OS chooses a random local port for its side of the connection.</p>
 </div>
 <div class="paragraph">
 <p>When a server is "listening" on a port,
 no other service can bind to that port at the same time.
 That&#8217;s why you can&#8217;t run <code>manage.py runserver</code> in two different terminals
-at the same time, because both want to use port 8080 by default.</p>
+at the same time, because both want to use port <code>8080</code> by default.</p>
 </div>
 </div>
 </div>
@@ -421,14 +382,14 @@ FAILED (errors=1)</pre>
 <td class="content">
 If, on Windows, you see an error saying something like
     "TEST_SERVER is not recognized as a command",
-  it&#8217;s probably because you&#8217;re not using Git-Bash.
-  Take another look at the <a href="/book/pre-requisite-installations.html">[pre-requisites]</a> section.
+  it&#8217;s probably because you&#8217;re not using Git Bash.
+  Take another look at the &#8220;<a href="/book/pre-requisite-installations.html">[pre-requisites]</a>&#8221; section.
 </td>
 </tr>
 </table>
 </div>
 <div class="paragraph">
-<p>You can see that our tests are failing, as expected, since we&#8217;re not running Docker yet.
+<p>You can see that our tests are failing, as expected, because we&#8217;re not running Docker yet.
 Selenium reports that Firefox is seeing an error and "cannot establish connection to the server",
 and you can see <em>localhost:8888</em> in there too.</p>
 </div>
@@ -448,7 +409,7 @@ $ <strong>git commit -am "Hack FT runner to be able to test docker"</strong></pr
 <i class="fa icon-tip" title="Tip"></i>
 </td>
 <td class="content">
-Don&#8217;t use <code>export</code> to set the <em>TEST_SERVER</em> environment variable;
+Don&#8217;t use <code>export</code> to set the <code>TEST_SERVER`</code> environment variable;
     otherwise, all your subsequent test runs in that terminal will be against staging,
     and that can be very confusing if you&#8217;re not expecting it.
     Setting it explicitly inline each time you run the FTs is best.
@@ -457,16 +418,16 @@ Don&#8217;t use <code>export</code> to set the <em>TEST_SERVER</em> environment 
 </table>
 </div>
 <div class="sect3">
-<h4 id="_making_a_src_folder">Making a <em>src</em> Folder</h4>
+<h4 id="_making_a_src_folder">Making a src Folder</h4>
 <div class="paragraph">
 <p>When preparing a codebase for deployment,
-it&#8217;s often convenient to separate out the actual source code of our production app,
+it&#8217;s often convenient to separate out the actual source code of our production app
 from the rest of the files that you need in the project.
 A folder called <em>src</em> is a common convention.</p>
 </div>
 <div class="paragraph">
 <p>Currently, all our code is source code really, so we move everything into <em>src</em>
-(we&#8217;ll be seeing some new files appearing outside <em>src</em> shortly).<sup class="footnote">[<a id="_footnoteref_4" class="footnote" href="#_footnotedef_4" title="View footnote.">4</a>]</sup></p>
+(we&#8217;ll be seeing some new files appearing outside <em>src</em> shortly):<sup class="footnote">[<a id="_footnoteref_4" class="footnote" href="#_footnotedef_4" title="View footnote.">4</a>]</sup></p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -480,7 +441,7 @@ $ <strong>git commit -m "Move all our code into a src folder"</strong></pre>
 <div class="sect2">
 <h3 id="_installing_docker">Installing Docker</h3>
 <div class="paragraph">
-<p>The <a href="https://docs.docker.com/get-docker/">Docker documentation</a> is pretty good,
+<p>The <a href="https://docs.docker.com/get-docker">Docker documentation</a> is pretty good,
 and you&#8217;ll find detailed installation instructions for Windows, Mac, and Linux.</p>
 </div>
 <div class="admonitionblock tip">
@@ -490,27 +451,27 @@ and you&#8217;ll find detailed installation instructions for Windows, Mac, and L
 <i class="fa icon-tip" title="Tip"></i>
 </td>
 <td class="content">
-Choose WSL as your backend on Windows,
+Choose WSL (Windows Subsystem for Linux) as your backend on Windows,
     as we&#8217;ll need it in the next chapter.
     You can find installation instructions
     <a href="https://learn.microsoft.com/en-us/windows/wsl/install">on the Microsoft website</a>.
     This doesn&#8217;t mean you have to switch your development environment
-    to being "inside" WSL, Docker just uses WSL as a virtualisation engine
+    to being "inside" WSL; Docker just uses WSL as a virtualization engine
     in the background.
-    You should be able to run all the <code>docker</code> CLI commands from a the
-    same Git-Bash console you&#8217;ve been using so far.
+    You should be able to run all the <code>docker</code> CLI commands from the
+    same Git Bash console you&#8217;ve been using so far.
 </td>
 </tr>
 </table>
 </div>
 <div id="docker-alternatives" class="sidebarblock">
 <div class="content">
-<div class="title">Docker Alternatives: Podman, Nerdctl, etc</div>
+<div class="title">Docker Alternatives: Podman, nerdctl, etc</div>
 <div class="paragraph">
 <p>Impartiality commands me to also mention
-<a href="https://podman.io/">Podman</a> and
-<a href="https://github.com/containerd/nerdctl">Nerdctl</a>,
-both like-for-like replacement for Docker.</p>
+<a href="https://podman.io">Podman</a> and
+<a href="https://github.com/containerd/nerdctl">nerdctl</a>,
+both like-for-like replacements for Docker.</p>
 </div>
 <div class="paragraph">
 <p>They are both pretty much exactly the same as Docker,
@@ -520,16 +481,16 @@ arguably with a few advantages even.<sup class="footnote">[<a id="_footnoteref_5
 <p>I actually tried Podman out on early drafts of this chapter (on Linux)
 and it worked perfectly well.
 But they are both a little less well established and documented;
-the Windows installation instructions are a little more DIY for example.
+the Windows installation instructions are a little more DIY, for example.
 So in the end, although I&#8217;m always a fan of a plucky noncommercial upstart,
 I decided to stick with Docker for now.  After all,
 the core of it is still open source, to its credit!
-But you could definitely check out one of the alternatives you feel like it.</p>
+But you could definitely check out one of the alternatives if you feel like it.</p>
 </div>
 <div class="paragraph">
 <p>You can follow along all the instructions in the book
 by just substituting the <code>docker</code> binary for <code>podman</code> or <code>nerdctl</code>
-in all the CLI instructions, e.g.</p>
+in all the CLI instructions:</p>
 </div>
 <div class="listingblock skipme">
 <div class="content">
@@ -545,20 +506,20 @@ $ <strong>nerdctl run busybox echo hello</strong>
 </div>
 <div class="sidebarblock">
 <div class="content">
-<div class="title">Colima, an alternative Docker Runtime for MacOS</div>
+<div class="title">Colima: An Alternative Docker Runtime for macOS</div>
 <div class="paragraph">
-<p>If you&#8217;re on MacOS,
+<p>If you&#8217;re on macOS,
 you might find the Docker Dekstop licensing terms don&#8217;t work for you.
-In that case, you can try <a href="https://github.com/abiosoft/colima/">Colima</a>,
-which is a "container runtime", essentially the back-end for Docker.
+In that case, you can try <a href="https://github.com/abiosoft/colima">Colima</a>,
+which is a "container runtime", essentially the backend for Docker.
 You still use the Docker CLI tools,
-but Colima provides the server to run the containers.</p>
+but Colima provides the server to run the containers:</p>
 </div>
 <div class="listingblock skipme">
 <div class="content">
 <pre>$ <strong>docker run busybox echo hello</strong>
-docker: Cannot connect to the Docker daemon at unix:///var/run/docker.sock. Is
-the docker daemon running?.
+docker: Cannot connect to the Docker daemon at unix:///var/run/docker.sock.
+Is the docker daemon running?.
 See <em>docker run --help</em>.
 $ <strong>colima start</strong>
 INFO[0001] starting colima
@@ -575,7 +536,7 @@ hello</pre>
 <p>I used Colima for most of the writing of this book,
 and it worked fine for me.
 The only thing I needed to do was set the <code>DOCKER_HOST</code> environment variable,
-and that only came up in <a href="/book/chapter_12_ansible.html">[chapter_12_ansible]</a>.</p>
+and that only came up in <a href="/book/chapter_12_ansible.html">[chapter_12_ansible]</a>:</p>
 </div>
 <div class="listingblock skipme">
 <div class="content">
@@ -589,7 +550,7 @@ and that only came up in <a href="/book/chapter_12_ansible.html">[chapter_12_ans
 <i class="fa icon-note" title="Note"></i>
 </td>
 <td class="content">
-On MacOS, you can use Colima as a backend for Nerdctl.
+On macOS, you can use Colima as a backend for nerdctl.
   Podman ships with its own runtime, for both Mac and Windows
   (there is no need for a runtime on Linux).
 </td>
@@ -598,7 +559,7 @@ On MacOS, you can use Colima as a backend for Nerdctl.
 </div>
 <div class="paragraph">
 <p>At the time of writing, Apple had just announced its own container runner,
-<a href="https://github.com/apple/container">container</a>,
+<a href="https://github.com/apple/container"><em>container</em></a>,
 but it was in beta and I didn&#8217;t have time to try it out.</p>
 </div>
 </div>
@@ -627,7 +588,7 @@ hello world</pre>
 <p>Searched for a local copy of the "busybox" image and not found it</p>
 </li>
 <li>
-<p>Downloaded the image from DockerHub</p>
+<p>Downloaded the image from Docker Hub</p>
 </li>
 <li>
 <p>Created a container based on that image</p>
@@ -650,10 +611,10 @@ hello world</pre>
 <i class="fa icon-note" title="Note"></i>
 </td>
 <td class="content">
-On MacOS, if you get errors saying <code>command not found: docker"</code>,
-  obviously the first thing you should do is Google for "Macos command not found docker",
+On macOS, if you get errors saying <code>command not found: docker</code>,
+  obviously the first thing you should do is Google for "macOS command not found Docker",
   but at least one reader has reported that the solution was
-  Docker desktop &gt; Settings &gt; Advanced &gt; Change from User to System
+  Docker Desktop &gt; Settings &gt; Advanced &gt; Change from User to System.
 </td>
 </tr>
 </table>
@@ -664,51 +625,51 @@ On MacOS, if you get errors saying <code>command not found: docker"</code>,
 <div class="paragraph">
 <p>Docker has the concepts of <em>images</em> as well as containers.
 An image is essentially a pre-prepared root filesystem,
-including the operating system, dependencies, and any code you want to run.</p>
+including the OS, dependencies, and any code you want to run.</p>
 </div>
 <div class="paragraph">
-<p>Once you have an image, you can run one or many containers that use the same image.
-It&#8217;s a bit like saying, once you&#8217;ve installed your operating system and software,
+<p>Once you have an image, you can run one or more containers that use the same image.
+It&#8217;s a bit like saying, once you&#8217;ve installed your OS and software,
 you can start up your computer and run that software any number of times,
 without needing to change anything else.</p>
 </div>
 <div class="paragraph">
-<p>Another way of thinking about it is, images are like classes,
+<p>Another way of thinking about it is: images are like classes,
 and containers are like instances.</p>
 </div>
 <div class="sect3">
 <h4 id="_a_first_cut_of_a_dockerfile">A First Cut of a Dockerfile</h4>
 <div class="paragraph">
-<p>Think of a Dockerfile as instructions for setting up a brand new computer,
+<p>Think of a Dockerfile as instructions for setting up a brand new computer
 that we&#8217;re going to use to run our Django server on.
 What do we need to do?  Something like this, right?</p>
 </div>
 <div class="olist arabic">
 <ol class="arabic">
 <li>
-<p>Install an operating system</p>
+<p>Install an operating system.</p>
 </li>
 <li>
-<p>Make sure it has Python on it</p>
+<p>Make sure it has Python on it.</p>
 </li>
 <li>
-<p>Get our source code onto it</p>
+<p>Get our source code onto it.</p>
 </li>
 <li>
-<p>Run <code>python manage.py runserver</code></p>
+<p>Run <code>python manage.py runserver</code>.</p>
 </li>
 </ol>
 </div>
 <div class="paragraph">
 <p>We create a new file called <em>Dockerfile</em> in the base folder of our repo,
-next to the <code>src/</code> directory we made earlier:</p>
+next to the <em>src/</em> directory we made earlier:</p>
 </div>
 <div class="exampleblock sourcecode">
 <div class="title">Dockerfile (ch09l003)</div>
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="pygments highlight"><code data-lang="dockerfile"><span></span><span class="tok-k">FROM</span><span class="tok-w"> </span><span class="tok-s">python:3.13-slim</span><span class="tok-w">  </span><i class="conum" data-value="1"></i><b>(1)</b>
+<pre class="pygments highlight"><code data-lang="dockerfile"><span></span><span class="tok-k">FROM</span><span class="tok-w"> </span><span class="tok-s">python:3.14-slim</span><span class="tok-w">  </span><i class="conum" data-value="1"></i><b>(1)</b>
 
 <span class="tok-k">COPY</span><span class="tok-w"> </span>src<span class="tok-w"> </span>/src<span class="tok-w">  </span><i class="conum" data-value="2"></i><b>(2)</b>
 
@@ -719,7 +680,7 @@ next to the <code>src/</code> directory we made earlier:</p>
 </div>
 </div>
 </div>
-<div class="colist arabic">
+<div class="colist arabic pagebreak-before">
 <table>
 <tr>
 <td><i class="conum" data-value="1"></i><b>1</b></td>
@@ -727,10 +688,10 @@ next to the <code>src/</code> directory we made earlier:</p>
 and it says which <em>base image</em> we are starting from.
 Docker images are built from other Docker images!
 It&#8217;s not quite turtles all the way down, but almost.
-So this is the equivalent of choosing a base operating system,
+So this is the equivalent of choosing a base OS,
 but images can actually have lots of software preinstalled too.
-You can browse various base images on DockerHub,
-we&#8217;re using <a href="https://hub.docker.com/_/python">one that&#8217;s published by the Python Software Foundation</a>,
+You can browse various base images on Docker Hub.
+We&#8217;re using <a href="https://hub.docker.com/_/python">one that&#8217;s published by the Python Software Foundation</a>,
 called "slim" because it&#8217;s as small as possible.
 It&#8217;s based on a popular version of Linux called Debian,
 and of course it comes with Python already installed on it.</td>
@@ -739,8 +700,8 @@ and of course it comes with Python already installed on it.</td>
 <td><i class="conum" data-value="2"></i><b>2</b></td>
 <td>The <code>COPY</code> instruction (the uppercase words are called "instructions")
 lets you copy files from your own computer into the container image.
-We use it to copy all our source code from the newly-created <em>src</em> folder,
-into a similarly-named folder at the root of the container image.</td>
+We use it to copy all our source code from the newly created <em>src</em> folder,
+into a similarly named folder at the root of the container image.</td>
 </tr>
 <tr>
 <td><i class="conum" data-value="3"></i><b>3</b></td>
@@ -749,17 +710,17 @@ It&#8217;s a bit like doing <code>cd /src</code>.</td>
 </tr>
 <tr>
 <td><i class="conum" data-value="4"></i><b>4</b></td>
-<td>Finally the <code>CMD</code> instruction tells docker which command you want it to run
+<td>Finally, the <code>CMD</code> instruction tells Docker which command you want it to run
 by default, when you start a container based on that image.
-The syntax is a bit like a python list
+The syntax is a bit like a Python list
 (although it&#8217;s actually parsed as a JSON array, so you <em>have</em> to use double quotes).</td>
 </tr>
 </table>
 </div>
 <div class="paragraph">
 <p>It&#8217;s probably worth just showing a directory tree,
-to make sure everything is in the right place?
-All our source code is in a folder called <code>src</code>,
+to make sure everything is in the right place, right?
+All our source code is in a folder called <em>src</em>,
 next to our <code>Dockerfile</code>:</p>
 </div>
 <div id="tree-with-src-and-dockerfile" class="listingblock">
@@ -780,7 +741,7 @@ next to our <code>Dockerfile</code>:</p>
 </div>
 </div>
 </div>
-<div class="sect3">
+<div class="sect3 pagebreak-before less_space">
 <h4 id="_docker_build">Docker Build</h4>
 <div class="paragraph">
 <p>You build an image with <code>docker build &lt;path-containing-dockerfile&gt;</code>
@@ -802,8 +763,8 @@ so the last argument is usually <code>.</code>:</p>
  =&gt; [internal] load metadata for docker.io/library/python:slim        3.4s
  =&gt; [internal] load build context                                     0.2s
  =&gt; =&gt; transferring context: 68.54kB                                  0.1s
- =&gt; [1/3] FROM docker.io/library/python:3.13-slim@sha256:858[...]     4.4s
- =&gt; =&gt; resolve docker.io/library/python:3.13-slim@sha256:858[...]     0.0s
+ =&gt; [1/3] FROM docker.io/library/python:3.14-slim@sha256:858[...]     4.4s
+ =&gt; =&gt; resolve docker.io/library/python:3.14-slim@sha256:858[...]     0.0s
  =&gt; =&gt; sha256:72ba3400286b233f3cce28e35841ed58c9e775d69cf11f[...]     0.0s
  =&gt; =&gt; sha256:3a72e7f66e827fbb943c494df71d2ae024d0b1db543bf6[...]     0.0s
  =&gt; =&gt; sha256:a7d9a0ac6293889b2e134861072f9099a06d78ca983d71[...]     0.5s
@@ -823,8 +784,8 @@ so the last argument is usually <code>.</code>:</p>
  =&gt; =&gt; naming to docker.io/library/superlists                         0.0s</pre>
 </div>
 </div>
-<div class="paragraph">
-<p>Now we can see our image in the list of docker images on the system:</p>
+<div class="paragraph pagebreak-before">
+<p>Now we can see our image in the list of Docker images on the system:</p>
 </div>
 <div class="listingblock skipme">
 <div class="content">
@@ -841,9 +802,9 @@ superlists   latest    522824a399de   2 minutes ago    164MB
 <i class="fa icon-note" title="Note"></i>
 </td>
 <td class="content">
-If you see an error about <code>failed to solve / compute cache key</code> and <code>src: not found</code>
-  it may be because you saved the Dockerfile into the wrong place.
-  Have another look at the directory tree from earlier <a href="#tree-with-src-and-dockerfile">[tree-with-src-and-dockerfile]</a>.
+If you see an error about <code>failed to solve / compute cache key</code> and <code>src: not found</code>,
+  it may be because you saved the Dockerfile in the wrong place.
+  Have another look at the directory tree from earlier.
 </td>
 </tr>
 </table>
@@ -884,8 +845,8 @@ environment?</pre>
 </div>
 </div>
 </div>
-<div class="sect2">
-<h3 id="_installing_django_in_a_virtualenv_in_our_container_image">Installing Django in a Virtualenv in our Container Image</h3>
+<div class="sect2 pagebreak-before less_space">
+<h3 id="_installing_django_in_a_virtualenv_in_our_container_image">Installing Django in a Virtualenv in Our Container Image</h3>
 <div class="paragraph">
 <p>Just like on our own machine,
 a virtualenv is useful in a deployed environment to make
@@ -902,7 +863,7 @@ and then we can use <code>pip install</code> to get Django:</p>
 <div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="pygments highlight"><code data-lang="dockerfile"><span></span><span class="tok-k">FROM</span><span class="tok-w"> </span><span class="tok-s">python:3.13-slim</span>
+<pre class="pygments highlight"><code data-lang="dockerfile"><span></span><span class="tok-k">FROM</span><span class="tok-w"> </span><span class="tok-s">python:3.14-slim</span>
 
 <span class="tok-k">RUN</span><span class="tok-w"> </span>python<span class="tok-w"> </span>-m<span class="tok-w"> </span>venv<span class="tok-w"> </span>/venv<span class="tok-w">  </span><i class="conum" data-value="1"></i><b>(1)</b>
 <span class="tok-k">ENV</span><span class="tok-w"> </span><span class="tok-nv">PATH</span><span class="tok-o">=</span><span class="tok-s2">"/venv/bin:</span><span class="tok-nv">$PATH</span><span class="tok-s2">"</span><span class="tok-w">  </span><i class="conum" data-value="2"></i><b>(2)</b>
@@ -923,14 +884,14 @@ and then we can use <code>pip install</code> to get Django:</p>
 <tr>
 <td><i class="conum" data-value="1"></i><b>1</b></td>
 <td>Here&#8217;s where we create our virtualenv.
-We use the RUN Dockerfile directive,
+We use the <code>RUN</code> Dockerfile directive,
 which is how you run arbitrary shell commands as part of
-building your docker image.</td>
+building your Docker image.</td>
 </tr>
 <tr>
 <td><i class="conum" data-value="2"></i><b>2</b></td>
 <td>You can&#8217;t really "activate" a virtualenv inside a Dockerfile,
-so instead we change the system PATH so that the venv versions
+so instead we change the system path so that the venv versions
 of <code>pip</code> and <code>python</code> become the default ones
 (this is actually one of the things that <code>activate</code> does, under the hood).</td>
 </tr>
@@ -940,14 +901,14 @@ of <code>pip</code> and <code>python</code> become the default ones
 </tr>
 </table>
 </div>
-<div class="sect3">
+<div class="sect3 pagebreak-before less_space">
 <h4 id="_successful_run">Successful Run</h4>
 <div class="paragraph">
 <p>Let&#8217;s do the <code>build</code> and <code>run</code> in a single line.
 This is a pattern I used quite often when developing a Dockerfile,
 to be able to quickly rebuild and see the effect of a change:</p>
 </div>
-<div class="listingblock">
+<div class="listingblock small-code">
 <div class="content">
 <pre>$ <strong>docker build -t superlists . &amp;&amp; docker run -it superlists</strong>
 [+] Building 0.2s (11/11) FINISHED                                  docker:default
@@ -994,36 +955,38 @@ Make sure you use the <code>-it</code> flags to the Docker <code>run</code>
     command when running <code>runserver</code>, or any other tool that expects
     to be run in an interactive terminal session,
     otherwise you&#8217;ll get strange behaviour, including not being able
-    to interrupt the docker process with <em>Ctrl-C</em>.
-    See <a href="#how-to-stop-a-docker-container">How to Stop a Docker Container</a> for an escape hatch.
+    to interrupt the Docker process with Ctrl+C.
+    See the following sidebar for an escape hatch.
 </td>
 </tr>
 </table>
 </div>
-<div id="how-to-stop-a-docker-container" class="sidebarblock">
+<div id="how-to-stop-a-docker-container" class="sidebarblock pagebreak-before less_space">
 <div class="content">
 <div class="title">How to Stop a Docker Container</div>
 <div class="paragraph">
 <p>If you&#8217;ve got a container that&#8217;s "hanging" in a terminal window,
-you can kill it from another terminal.</p>
+you can stop it from another terminal.</p>
 </div>
 <div class="paragraph">
-<p>The docker daemon lets you list all the currently running containers
+<p>The Docker daemon lets you list all the currently running containers
 with <code>docker ps</code>:</p>
 </div>
 <div class="listingblock skipme small-code">
 <div class="content">
 <pre>$ <strong>docker ps</strong>
-CONTAINER ID   IMAGE        COMMAND                  CREATED         STATUS         PORTS     NAMES
-0818e1b8e9bf   superlists   "/bin/sh -c 'python &#8230;"   4 seconds ago   Up 4 seconds             hardcore_moore</pre>
+CONTAINER ID   IMAGE        COMMAND                  CREATED         STATUS
+PORTS     NAMES
+0818e1b8e9bf   superlists   "/bin/sh -c 'python &#8230;"   4 seconds ago   Up 4
+seconds             hardcore_moore</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>This tells us a bit about each container, including a unique ID,
+<p>This tells us a bit about each container, including a unique ID
 and a randomly-generated name (you can override that if you want to).</p>
 </div>
 <div class="paragraph">
-<p>We can use the ID or the name to kill the container with <code>docker stop</code>:<sup class="footnote">[<a id="_footnoteref_7" class="footnote" href="#_footnotedef_7" title="View footnote.">7</a>]</sup></p>
+<p>We can use the ID or the name to terminate the container with <code>docker stop</code>:<sup class="footnote">[<a id="_footnoteref_7" class="footnote" href="#_footnotedef_7" title="View footnote.">7</a>]</sup></p>
 </div>
 <div class="listingblock skipme">
 <div class="content">
@@ -1033,7 +996,7 @@ and a randomly-generated name (you can override that if you want to).</p>
 </div>
 <div class="paragraph">
 <p>And if you go back to your other terminal window,
-you should find the docker process has been terminated.</p>
+you should find that the Docker process has been terminated.</p>
 </div>
 </div>
 </div>
@@ -1056,10 +1019,14 @@ ut:neterror?e=connectionFailure&amp;u=http%3A//localhost%3A8888/[...]</pre>
 <p>What&#8217;s going on here?  Time for a little debugging.</p>
 </div>
 </div>
-<div class="sect2">
+<div class="sect2 pagebreak-before less_space">
 <h3 id="_debugging_container_networking_problems">Debugging Container Networking Problems</h3>
 <div class="paragraph">
-<p>First, let&#8217;s try and take a look ourselves, in our browser, by going to <a href="http://localhost:8888/" class="bare">http://localhost:8888/</a>:</p>
+<p>
+
+First, let&#8217;s try and take a look ourselves, in our browser,
+by
+going to <a href="http://localhost:8888/" class="bare">http://localhost:8888/</a>, as in <a href="#firefox-unable-to-connect-screenshot">Cannot connect on that port</a>.</p>
 </div>
 <div id="firefox-unable-to-connect-screenshot" class="imageblock">
 <div class="content">
@@ -1068,7 +1035,7 @@ ut:neterror?e=connectionFailure&amp;u=http%3A//localhost%3A8888/[...]</pre>
 <div class="title">Figure 3. Cannot connect on that port</div>
 </div>
 <div class="paragraph">
-<p>Now let&#8217;s take another look at the output from our <code>docker run</code>.
+<p>Now, let&#8217;s take another look at the output from our <code>docker run</code>.
 Here&#8217;s what appeared right at the end:</p>
 </div>
 <div class="listingblock skipme">
@@ -1079,7 +1046,7 @@ Quit the server with CONTROL-C.</pre>
 </div>
 <div class="paragraph">
 <p>Aha!  We notice that we&#8217;re using the wrong port, the default <code>8000</code> instead of the <code>8888</code>
-that we specified in the <code>TEST_SERVER</code> env var.</p>
+that we specified in the <code>TEST_SERVER</code> environment variable (or, "env var").</p>
 </div>
 <div class="paragraph">
 <p>Let&#8217;s fix that by amending the <code>CMD</code> instruction in the Dockerfile:</p>
@@ -1098,7 +1065,7 @@ that we specified in the <code>TEST_SERVER</code> env var.</p>
 </div>
 </div>
 <div class="paragraph">
-<p>Ctrl+C the current dockerized container process if it&#8217;s still running in your terminal,
+<p>Ctrl+C the current Dockerized container process if it&#8217;s still running in your terminal,
 then give it another <code>build &amp;&amp; run</code>:</p>
 </div>
 <div class="listingblock">
@@ -1108,8 +1075,8 @@ then give it another <code>build &amp;&amp; run</code>:</p>
 Starting development server at http://127.0.0.1:8888/</pre>
 </div>
 </div>
-<div class="sect3">
-<h4 id="_debugging_web_server_connectivity_with_curl">Debugging Web Server Connectivity With "curl"</h4>
+<div class="sect3 pagebreak-before less_space">
+<h4 id="_debugging_web_server_connectivity_with_curl">Debugging Web Server Connectivity with curl</h4>
 <div class="paragraph">
 <p>A quick run of the FT or check in our browser will show us that nope, that doesn&#8217;t work either.
 Let&#8217;s try an even lower-level smoke test, the traditional Unix utility <code>curl</code>.
@@ -1136,7 +1103,7 @@ curl: (7) Failed to connect to localhost port 8888 after 0 ms: [...]</pre>
 <i class="fa icon-tip" title="Tip"></i>
 </td>
 <td class="content">
-The <code>-iv</code> flag to curl is useful for debugging.
+The <code>-iv</code> flag to <code>curl</code> is useful for debugging.
     It prints verbose output, as well as full HTTP headers.
 </td>
 </tr>
@@ -1145,32 +1112,34 @@ The <code>-iv</code> flag to curl is useful for debugging.
 </div>
 </div>
 <div class="sect2">
-<h3 id="_running_code_inside_the_container_with_docker_exec">Running code "inside" the container with docker exec</h3>
+<h3 id="_running_code_inside_the_container_with_docker_exec">Running Code "Inside" the Container with docker exec</h3>
 <div class="paragraph">
-<p>So, we can&#8217;t see Django running on port 8888 when we&#8217;re <em>outside</em> the container.
+<p>So, we can&#8217;t see Django running on port <code>8888</code> when we&#8217;re <em>outside</em> the container.
 What do we see if we run things from <em>inside</em> the container?</p>
 </div>
 <div class="paragraph">
 <p>We can use <code>docker exec</code> to run commands inside a running container.
-First we need to get the name or ID of the container:</p>
+First, we need to get the name or ID of the container:</p>
 </div>
 <div class="listingblock skipme small-code">
 <div class="content">
 <pre>$ <strong>docker ps</strong>
-CONTAINER ID   IMAGE        COMMAND                  CREATED          STATUS          PORTS     NAMES
-5ed84681fdf8   superlists   "/bin/sh -c 'python &#8230;"   12 minutes ago   Up 12 minutes             trusting_wu</pre>
+CONTAINER ID   IMAGE        COMMAND                  CREATED          STATUS
+PORTS     NAMES
+5ed84681fdf8   superlists   "/bin/sh -c 'python &#8230;"   12 minutes ago   Up 12
+minutes             trusting_wu</pre>
 </div>
 </div>
 <div class="paragraph">
 <p>Your values for <code>CONTAINER_ID</code> and <code>NAMES</code> will be different from mine,
 because they&#8217;re randomly generated.
-But, make a note of one or the other, and then run <code>docker exec -it &lt;container-id&gt; bash</code>.
-On most platforms, you can use tab-completion for the container id or name.</p>
+But make a note of one or the other, and then run <code>docker exec -it &lt;container-id&gt; bash</code>.
+On most platforms, you can use tab completion for the container ID or name.</p>
 </div>
 <div class="paragraph">
 <p>Let&#8217;s try it now.  Notice that the shell prompt will change from your default Bash prompt
 to <code>root@container-id</code>.  Watch out for those in future listings,
-so that you can be sure of what&#8217;s being run inside vs outside containers.</p>
+so that you can be sure of what&#8217;s being run inside versus outside containers.</p>
 </div>
 <div class="listingblock skipme">
 <div class="content">
@@ -1220,39 +1189,37 @@ HTTP/1.1 200 OK
 <i class="fa icon-tip" title="Tip"></i>
 </td>
 <td class="content">
-Use <code>Ctrl+D</code> to exit from the <code>docker exec</code> bash shell inside the container.
+Use Ctrl+D to exit from the <code>docker exec</code> bash shell inside the container.
 </td>
 </tr>
 </table>
 </div>
 <div class="paragraph">
-<p>That&#8217;s definitely some HTML! And the <code>&lt;title&gt;To-Do lists&lt;/title&gt;</code> looks like it&#8217;s our html, too.</p>
+<p>That&#8217;s definitely some HTML! And the <code>&lt;title&gt;To-Do lists&lt;/title&gt;</code> looks like it&#8217;s our HTML, too.</p>
 </div>
 <div class="paragraph">
-<p>So, we can see Django is serving our site <em>inside</em> the container,
-why can&#8217;t we see it <em>outside</em>??</p>
+<p>So, we can see Django is serving our site <em>inside</em> the container. Why can&#8217;t we see it <em>outside</em>?</p>
 </div>
 <div class="sect3">
 <h4 id="_docker_port_mapping">Docker Port Mapping</h4>
 <div class="paragraph">
 <p>The (highly, highly recommend) PythonSpeed guide to Docker&#8217;s very first section is called
-<a href="https://pythonspeed.com/articles/docker-connection-refused/">Connection Refused</a>,
+<a href="https://oreil.ly/e3gYQ">Connection refused?</a>,
 so I&#8217;ll refer you there once again for an <em>excellent</em>, detailed explanation.</p>
 </div>
 <div class="paragraph">
-<p>But in short, Docker runs in its own little world,
-specifically it has its own little network,
+<p>But in short: Docker runs in its own little world;
+specifically, it has its own little network,
 so the ports <em>inside</em> the container are different
 from the ports <em>outside</em> the container, the ones we can see on our host machine.</p>
 </div>
 <div class="paragraph">
-<p>So we need to tell Docker to connect the internal ports to the outside ones,
-to "publish" or "map" them, in Docker terminology.</p>
+<p>So, we need to tell Docker to connect the internal ports to the outside ones&#8212;to "publish" or "map" them, in Docker terminology.</p>
 </div>
 <div class="paragraph">
 <p><code>docker run</code> takes a <code>-p</code> argument, with the syntax <code>OUTSIDE:INSIDE</code>.
-So you can actually map a different port number on the inside and outside.
-But we&#8217;re just mapping 8888 to 8888, and that will look like this:</p>
+So, you can actually map a different port number on the inside and outside.
+But we&#8217;re just mapping <code>8888</code> to <code>8888</code>, and that will look like this:</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -1269,7 +1236,7 @@ Things clearly aren&#8217;t working yet.</p>
 </div>
 <div class="title">Figure 4. Cannot connect on that port</div>
 </div>
-<div class="paragraph">
+<div class="paragraph pagebreak-before">
 <p>Similarly, if you try our <code>curl -iv</code> (outside the container) once again,
 you&#8217;ll see the error has changed from "Failed to connect",
 to "Empty reply":</p>
@@ -1297,7 +1264,7 @@ curl: (52) Empty reply from server</pre>
 </td>
 <td class="content">
 Depending on your system, instead of <code>(52) Empty reply from server</code>,
-  You might see <code>(56) Recv failure: Connection reset by peer</code>.
+  you might see <code>(56) Recv failure: Connection reset by peer</code>.
   They mean the same thing: we can connect but we don&#8217;t get a response.
 </td>
 </tr>
@@ -1309,28 +1276,26 @@ Depending on your system, instead of <code>(52) Empty reply from server</code>,
 <div class="paragraph">
 <p>The need to map ports and the <code>-p</code> argument to <code>docker run</code> are something you just pick up,
 fairly early on in learning Docker.
-But the next debugging step is quite a bit more obscure
-(although admittedly Itamar does address it in his
-<a href="https://pythonspeed.com/articles/docker-connection-refused/">docker networking article</a>,
-did I already mention how excellent it is?).</p>
+But the next debugging step is quite a bit more obscure&#8212;although admittedly Itamar does address it in his
+<a href="https://oreil.ly/VAQhF">Docker networking article</a> (did I already mention how excellent it is?).</p>
 </div>
 <div class="paragraph">
 <p>But if we haven&#8217;t read that, we can always resort to the tried and tested
-"Googling the error message" technique instead (<a href="#googling-the-error">An indispensable publication (source: https://news.ycombinator.com/item?id=11459601)</a>).</p>
+"Googling the error message" technique instead (<a href="#googling-the-error">An indispensable publication (source: Hacker News)</a>).</p>
 </div>
 <div id="googling-the-error" class="imageblock">
 <div class="content">
 <img src="images/tdd3_0905.png" alt="Cover of a fake O&#8217;Reilly book called Essential Googling the Error Message" width="400">
 </div>
-<div class="title">Figure 5. An indispensable publication (source: <a href="https://news.ycombinator.com/item?id=11459601" class="bare">https://news.ycombinator.com/item?id=11459601</a>)</div>
+<div class="title">Figure 5. An indispensable publication (source: <a href="https://oreil.ly/2WptY">Hacker News</a>)</div>
 </div>
-<div class="paragraph">
+<div class="paragraph pagebreak-before">
 <p>Everyone&#8217;s search results are a little different,
 and mine are perhaps shaped by years of working with Docker and Django,
 but I found the answer in my very first result
 (see <a href="#google-results-screenshot">Google can still deliver results</a>),
-when I searched for "cannot access django runserver inside docker",
-and the result was was a <a href="https://stackoverflow.com/questions/49476217/docker-cant-access-django-server">stackoverflow post</a>,
+when I searched for "cannot access Django runserver inside Docker".
+The result was was a <a href="https://oreil.ly/E_4ed">Stack Overflow post</a>,
 saying something about needing to specify <code>0.0.0.0</code> as the IP address.<sup class="footnote">[<a id="_footnoteref_10" class="footnote" href="#_footnotedef_10" title="View footnote.">10</a>]</sup></p>
 </div>
 <div id="google-results-screenshot" class="imageblock">
@@ -1341,15 +1306,15 @@ saying something about needing to specify <code>0.0.0.0</code> as the IP address
 </div>
 <div class="paragraph">
 <p>We&#8217;re nearing the edges of my understanding of Docker now,
-but as I understand it, <code>runserver</code> binds to <code>127.0.0.1</code> by default,
-but that IP address doesn&#8217;t correspond to a network adapter <em>inside</em>
-the container that&#8217;s actually connected to the outside world,
+but as I understand it, <code>runserver</code> binds to <code>127.0.0.1</code> by default.
+However, that IP address doesn&#8217;t correspond to a network adapter <em>inside</em>
+the container, which is actually connected to the outside world
 via the port mapping we defined earlier.</p>
 </div>
-<div class="paragraph">
+<div class="paragraph pagebreak-before">
 <p>The long and short of it is that
 we need use the long-form <code>ipaddr:port</code> version of the <code>runserver</code> command,
-using the magic "wilcard" IP address <code>0.0.0.0</code>:</p>
+using the magic "wildcard" IP address, <code>0.0.0.0</code>:</p>
 </div>
 <div class="exampleblock sourcecode">
 <div class="title">Dockerfile (ch09l007)</div>
@@ -1365,7 +1330,7 @@ using the magic "wilcard" IP address <code>0.0.0.0</code>:</p>
 </div>
 </div>
 <div class="paragraph">
-<p>Rebuild and re-run your server, and if you have eagle eyes,
+<p>Rebuild and rerun your server, and if you have eagle eyes,
 you&#8217;ll spot it&#8217;s binding to <code>0.0.0.0</code> instead of <code>127.0.0.1</code>:</p>
 </div>
 <div class="listingblock">
@@ -1397,12 +1362,12 @@ Starting development server at http://0.0.0.0:8888/</pre>
 <div class="content">
 <div class="title">On Debugging</div>
 <div class="paragraph">
-<p>Let me let you in on a little secret.  I&#8217;m actually not that good at debugging.
+<p>Let me let you in on a little secret: I&#8217;m actually not that good at debugging.
 We all have our psychological strengths and weaknesses,
 and one of my weaknesses is that
-when I run into a problem I can&#8217;t see an obvious solution to,
+when I run into a problem that I can&#8217;t see an obvious solution to,
 I want to throw up my hands way too soon
-and say "well, this is hopeless, it can&#8217;t be fixed",
+and say "well, this is hopeless; it can&#8217;t be fixed",
 and give up.</p>
 </div>
 <div class="paragraph">
@@ -1412,19 +1377,19 @@ Debugging needs the patience and tenacity of a bloodhound.
 If at first you don&#8217;t succeed,
 you need to systematically rule out options,
 check your assumptions,
-eliminate various aspects of the problem and simplify things down,
+eliminate various aspects of the problem, simplify things down, and
 find the parts that do and don&#8217;t work,
 until you eventually find the cause.</p>
 </div>
 <div class="paragraph">
-<p>It might seems hopeless at first!  But eventually you usually get there :)</p>
+<p>It might seems hopeless at first! But you usually get there eventually.</p>
 </div>
 </div>
 </div>
 </div>
 </div>
-<div class="sect2">
-<h3 id="_database_migrations">Database migrations</h3>
+<div class="sect2 pagebreak-before less_space">
+<h3 id="_database_migrations">Database Migrations</h3>
 <div class="paragraph">
 <p>
 A quick visual inspection confirms&#8212;&#8203;the site is up (<a href="#site-in-docker-is-up">The site in Docker is up!</a>)!</p>
@@ -1464,17 +1429,17 @@ element: [id="id_list_table"]; For documentation [...]</pre>
 <p>Although the FTs can connect happily and interact with our site,
 they are failing as soon as they try to submit a new item.</p>
 </div>
-<div id="django-debug-screen" class="imageblock">
-<div class="content">
-<img src="images/tdd3_0908.png" alt="Django DEBUG page showing database error">
-</div>
-<div class="title">Figure 8. But the database isn&#8217;t</div>
-</div>
 <div class="paragraph">
 <p>You might have spotted the yellow Django debug page (<a href="#django-debug-screen">But the database isn&#8217;t</a>)
 telling us why.
 It&#8217;s because we haven&#8217;t set up the database
 (which, as you may remember, we highlighted as one of the "danger areas" of deployment).</p>
+</div>
+<div id="django-debug-screen" class="imageblock">
+<div class="content">
+<img src="images/tdd3_0908.png" alt="Django DEBUG page showing database error">
+</div>
+<div class="title">Figure 8. But the database isn&#8217;t</div>
 </div>
 <div class="admonitionblock note">
 <table>
@@ -1485,10 +1450,10 @@ It&#8217;s because we haven&#8217;t set up the database
 <td class="content">
 The tests saved us from potential embarrassment there.
     The site <em>looked</em> fine when we loaded its front page.
-    If we&#8217;d been a little hasty and only testing manually,
+    If we&#8217;d been a little hasty and only tested manually,
     we might have thought we were done,
-    and it would have been the first users that discovered that nasty Django DEBUG page.
-    Okay, slight exaggeration for effect, maybe we <em>would</em> have checked,
+    and it would have been the first users that discovered that nasty Django debug page.
+    Okay, slight exaggeration for effect&#8212;maybe we <em>would</em> have checked,
     but what happens as the site gets bigger and more complex?
     You can&#8217;t check everything. The tests can.
 </td>
@@ -1515,16 +1480,16 @@ Run 'python manage.py migrate' to apply them.</pre>
 </td>
 <td class="content">
 If you don&#8217;t see this error,
-    it&#8217;s because your src folder had the database file in it, unlike mine.
+    it&#8217;s because your <em>src</em> folder had the database file in it, unlike mine.
     For the sake of argument,
-    run <code>rm src/db.sqlite3</code> and re-run the build &amp; run commands,
+    run <code>rm src/db.sqlite3</code> and rerun the build and run commands,
     and you should be able to reproduce the error.  I promise it&#8217;s instructive!
 </td>
 </tr>
 </table>
 </div>
 <div class="sect3">
-<h4 id="_should_we_run_migrate_inside_the_dockerfile_no">Should we run "migrate" inside the Dockerfile? No.</h4>
+<h4 id="_should_we_run_migrate_inside_the_dockerfile_no">Should We Run migrate Inside the Dockerfile? No.</h4>
 <div class="paragraph">
 <p>So, should we include <code>manage.py migrate</code> in our Dockerfile?</p>
 </div>
@@ -1581,12 +1546,11 @@ OK</pre>
 <div class="paragraph">
 <p>The problem is that this saves our database file into our system image,
 which is not what we want,
-because the system image is mean to be something fixed and stateless,
-whereas the database is living, stateful data that should change over time.</p>
+because the system image is meant to be something fixed and stateless (whereas the database is living, stateful data that should change over time).</p>
 </div>
-<div class="sidebarblock">
+<div class="sidebarblock pagebreak-before less_space">
 <div class="content">
-<div class="title">What would happen if we kept the database file in the image</div>
+<div class="title">What Would Happen if We Kept the Database File in the Image</div>
 <div class="paragraph">
 <p>You can try this as a little experiment.
 Assuming you&#8217;ve got the <code>manage.py migrate</code> line in your Dockerfile:</p>
@@ -1594,11 +1558,11 @@ Assuming you&#8217;ve got the <code>manage.py migrate</code> line in your Docker
 <div class="olist arabic">
 <ol class="arabic">
 <li>
-<p>Create a new todo list and keep a note of its URL, eg at <a href="http://localhost:8888/lists/1/" class="bare">http://localhost:8888/lists/1/</a></p>
+<p>Create a new to-do list and keep a note of its URL (e.g., at <em>http://localhost:8888/lists/1</em>).</p>
 </li>
 <li>
 <p>Now, <code>docker stop</code> your container, and rebuild a new one with the same
-<code>build &amp;&amp; run</code> command we used earlier</p>
+<code>build &amp;&amp; run</code> command we used earlier.</p>
 </li>
 <li>
 <p>Go back and try to retrieve your old list.  It&#8217;s gone!</p>
@@ -1610,8 +1574,7 @@ Assuming you&#8217;ve got the <code>manage.py migrate</code> line in your Docker
 will give us a brand new database each time.</p>
 </div>
 <div class="paragraph">
-<p>What we actually want,
-is for our database storage to be "outside" the container somehow,
+<p>What we actually want is for our database storage to be "outside" the container somehow,
 so it can persist between different versions of our Docker image.</p>
 </div>
 </div>
@@ -1619,26 +1582,19 @@ so it can persist between different versions of our Docker image.</p>
 </div>
 </div>
 <div class="sect2">
-<h3 id="_mounting_files_inside_the_container">Mounting files inside the container.</h3>
+<h3 id="_mounting_files_inside_the_container">Mounting Files Inside the Container</h3>
 <div class="paragraph">
 <p>We want the database on the server to be totally separate data from the data in
-the system image.</p>
-</div>
-<div class="paragraph">
-<p>In most deployments, you&#8217;d probably be talking to a separate database server,
-like Postgres.</p>
-</div>
-<div class="paragraph">
-<p>For the purposes of this book,
-the easiest analogy to a database that&#8217;s "outside" our container,
-is to access the database from the filesystem outside the container.</p>
+the system image. In most deployments, you&#8217;d probably be talking to a separate database server,
+like PostgreSQL. For the purposes of this book,
+the easiest analogy for a database that&#8217;s "outside" our container is to access the database from the filesystem outside the container.</p>
 </div>
 <div class="paragraph">
 <p>That also gives us a convenient excuse to talk about mounting files in Docker,
 which is a very Useful Thing to be Able to Do &#8482;.</p>
 </div>
 <div class="paragraph">
-<p>First let&#8217;s revert our change:</p>
+<p>First, let&#8217;s revert our change:</p>
 </div>
 <div class="exampleblock sourcecode">
 <div class="title">Dockerfile (ch09l009)</div>
@@ -1656,9 +1612,8 @@ which is a very Useful Thing to be Able to Do &#8482;.</p>
 </div>
 </div>
 <div class="paragraph">
-<p>Then let&#8217;s make sure we <em>do</em> have the database on our local filesystem,
-by running <code>migrate</code>, on our local machine.
-(when we moved everything into <code>./src</code>, we left the database file behind).</p>
+<p>Then, let&#8217;s make sure we <em>do</em> have the database on our local filesystem,
+by running <code>migrate</code> (when we moved everything into <em>./src</em>, we left the database file behind):</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -1672,7 +1627,7 @@ Running migrations:
 </div>
 </div>
 <div class="paragraph">
-<p>Let&#8217;s make sure to <em>.gitignore</em> the new location of the DB file,
+<p>Let&#8217;s make sure to <em>.gitignore</em> the new location of the database file,
 and we&#8217;ll also use a file called <a href="https://docs.docker.com/reference/dockerfile/#dockerignore-file"><em>.dockerignore</em></a>
 to make sure we can&#8217;t copy our local dev database into our Docker image
 during Docker builds:</p>
@@ -1706,9 +1661,7 @@ and the <code>target</code> path <em>inside</em> the container:</p>
 <td class="content">
 You&#8217;re likely to come across the old syntax for mounts, which was <code>-v</code>.
     One of the advantages of the new <code>--mount</code> version is that
-    it will fail hard if the path you&#8217;re trying to mount does not exist
-    (it says something like <code>bind source path does not exist</code>)
-    This avoids a lot of pain, ask me how I know this.
+    it will fail hard if the path you&#8217;re trying to mount does not exist&#8212;it says something like <code>bind source path does not exist</code>. This avoids a lot of pain (ask me how I know this).
 </td>
 </tr>
 </table>
@@ -1725,10 +1678,10 @@ OK</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>AMAZING IT ACTUALLY WORKSSSSSSSS.</p>
+<p>AMAZING, IT ACTUALLY WORKSSSSSSSS.</p>
 </div>
 <div class="paragraph">
-<p>Ahem, that&#8217;s definitely good enough for now!  Let&#8217;s commit.</p>
+<p>Ahem, that&#8217;s definitely good enough for now!  Let&#8217;s commit:</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -1744,12 +1697,12 @@ and spot problems early on (like the missing database).</p>
 </div>
 <div class="paragraph">
 <p>But we really can&#8217;t be using the Django dev server in production,
-or running on port 8888 forever.
+or running on port <code>8888</code> forever.
 In the next chapter, we&#8217;ll make our hacky image more production-ready.</p>
 </div>
 <div class="paragraph">
 <p>But first, time for a well-earned tea break I think, and perhaps a
-<a href="https://en.wikipedia.org/wiki/Digestive_biscuit#Chocolate_digestives">chocolate biscuit</a>.</p>
+<a href="https://oreil.ly/GtL7w">chocolate biscuit</a>.</p>
 </div>
 <div class="sidebarblock">
 <div class="content">
@@ -1759,12 +1712,10 @@ In the next chapter, we&#8217;ll make our hacky image more production-ready.</p>
 <dt class="hdlist1">Docker lets us reproduce a server environment on our own machine</dt>
 <dd>
 <p>For developers, ops and infra work is always "fun",
-by which I mean a process full of fear, uncertainty and surprises.
-And painfully slow too.
-Docker helps to minimise this pain,
-by giving a mini-server on our own machine,
-that we can trying things out with and get feedback quickly,
-as well as enabling working in small steps.</p>
+by which I mean a process full of fear, uncertainty, and surprises&#8212;and painfully slow too.
+Docker helps to minimise this pain by giving us a mini server on our own machine,
+which we can try things out with and get feedback quickly,
+as well as enable us to work in small steps.</p>
 </dd>
 <dt class="hdlist1"><code>docker build &amp;&amp; docker run</code></dt>
 <dd>
@@ -1800,45 +1751,45 @@ system image, and the stateful world outside of Docker.</p>
 <div id="footnotes">
 <hr>
 <div class="footnote" id="_footnotedef_1">
-<a href="#_footnoteref_1">1</a>. It&#8217;s more accurate to say that containers share the same kernel as the host OS. An operating system is made up of a kernel, and a bunch of utility programs that run on top of it. The kernel is the core of the operating system, it&#8217;s the program that runs all the other programs. Whenever your program needs to interact with the outside world, read a file or talk to the Internet or start another program, it actually asks the kernel to do it. Starting about 15 years ago, the Linux kernel grew the ability to show different filesystems to different programs, as well as isolate them into different network and process namespaces; these are the capabilities that underpin Docker and containerization.
+<a href="#_footnoteref_1">1</a>. It&#8217;s more accurate to say that containers share the same kernel as the host OS. An operating system is made up of a kernel, and a bunch of utility programs that run on top of it. The kernel is the core of the OS; it&#8217;s the program that runs all the other programs. Whenever your program needs to interact with the outside world, read a file, or talk to the internet, or start another program, it actually asks the kernel to do it. Starting about 15 years ago, the Linux kernel grew the ability to show different filesystems to different programs, as well as isolate them into different network and process namespaces; these are the capabilities that underpin Docker and containerization.
 </div>
 <div class="footnote" id="_footnotedef_2">
 <a href="#_footnoteref_2">2</a>. Because containers all share the same kernel, while virtualization can let you run Windows and Linux on the same machine, containers on Linux hosts all run Linux, and ones on Windows hosts all run Windows. If you&#8217;re running Linux containers on a Mac or a PC, it&#8217;s because you&#8217;re actually running them on a Linux VM under the hood.
 </div>
 <div class="footnote" id="_footnotedef_3">
-<a href="#_footnoteref_3">3</a>. The feature was a favourite of Guido van Rossum&#8217;s, but the discussion around it was so toxic that Guido stepped down from his role as Python&#8217;s BDFL, or "Benevolent Dictator for Life"
+<a href="#_footnoteref_3">3</a>. The feature was a favourite of Guido van Rossum&#8217;s, but the discussion around it was so toxic that Guido stepped down from his role as Python&#8217;s BDFL, or "Benevolent Dictator for Life".
 </div>
 <div class="footnote" id="_footnotedef_4">
 <a href="#_footnoteref_4">4</a>. A common thing to find outside of the <em>src</em> folder is a folder called <em>tests</em>. We won&#8217;t be doing that while we&#8217;re relying on the standard Django test framework, but it can be a good thing to do if you&#8217;re using pytest, for example.
 </div>
 <div class="footnote" id="_footnotedef_5">
-<a href="#_footnoteref_5">5</a>. Docker using a central "daemon" to manage containers, which Podman and Nerdctl don&#8217;t.
+<a href="#_footnoteref_5">5</a>. Docker uses a central "daemon" to manage containers, which Podman and nerdctl don&#8217;t.
 </div>
 <div class="footnote" id="_footnotedef_6">
 <a href="#_footnoteref_6">6</a>. Even a completely fresh Linux install might have odd things installed in its system site packages. A virtualenv is a guaranteed clean slate.
 </div>
 <div class="footnote" id="_footnotedef_7">
-<a href="#_footnoteref_7">7</a>. There is also a <code>docker kill</code> if you&#8217;re in a hurry. But <code>docker stop</code> will send a <code>SIGKILL</code> if its initial <code>SIGTERM</code> doesn&#8217;t work within a certain timeout.  More info in <a href="https://docs.docker.com/reference/cli/docker/container/stop/">the docker docs</a>.
+<a href="#_footnoteref_7">7</a>. There is also a <code>docker kill</code> if you&#8217;re in a hurry. But <code>docker stop</code> will send a <code>SIGKILL</code> if its initial <code>SIGTERM</code> doesn&#8217;t work within a certain timeout (more info in <a href="https://docs.docker.com/reference/cli/docker/container/stop">the Docker docs</a>).
 </div>
 <div class="footnote" id="_footnotedef_8">
-<a href="#_footnoteref_8">8</a>. <code>curl</code> can do FTP and many other types of network requests too! Check out the <a href="https://man7.org/linux/man-pages/man1/curl.1.html">curl manual</a>.
+<a href="#_footnoteref_8">8</a>. <code>curl</code> can do FTP (File Transfer Protocol) and many other types of network requests too! Check out the <a href="https://man7.org/linux/man-pages/man1/curl.1.html"><code>curl</code> manual</a>.
 </div>
 <div class="footnote" id="_footnotedef_9">
-<a href="#_footnoteref_9">9</a>. TIP: If you use Chrome as your web browser, its error is something like "localhost didn&#8217;t send any data. ERR_EMPTY_RESPONSE"
+<a href="#_footnoteref_9">9</a>. Tip: If you use Chrome as your web browser, its error is something like "localhost didn&#8217;t send any data. ERR_EMPTY_RESPONSE".
 </div>
 <div class="footnote" id="_footnotedef_10">
-<a href="#_footnoteref_10">10</a>. Kids these days will probably ask an AI right? I have to say I tried it out, with the prompt being "i&#8217;m trying to run django inside a docker container, and i&#8217;ve mapped port 8888, but i still can&#8217;t connect. can you suggest what the problem might be?", and it come up with a pretty good answer.
+<a href="#_footnoteref_10">10</a>. Kids these days will probably ask an AI right? I have to say, I tried it out, with the prompt being "I&#8217;m trying to run Django inside a Docker container, and I&#8217;ve mapped port 8888, but I still can&#8217;t connect. Can you suggest what the problem might be?", and it come up with a pretty good answer.
 </div>
 <div class="footnote" id="_footnotedef_11">
 <a href="#_footnoteref_11">11</a>. If you&#8217;re wondering about the <code>$PWD</code> in the listing, it&#8217;s a special environment variable that represents the current directory. The initials echo the <code>pwd</code> command, which stands for "print working directory". Docker requires mount paths to be absolute paths.
 </div>
 <div class="footnote" id="_footnotedef_12">
-<a href="#_footnoteref_12">12</a>. There&#8217;s a common pattern of mounting the whole <em>src</em> folder into your docker containers in local dev. It means you don&#8217;t need to re-build for every source code change. I didn&#8217;t wan&#8217;t to introduce that here because it also leads to subtle behaviours that can be hard to wrap your head around, like the <em>db.sqlite3</em> file being shared with the container. For this book, the <code>build &amp;&amp; run</code> cycle is fast enough, but by all means try out mounting <em>src</em> in your own projects.
+<a href="#_footnoteref_12">12</a>. There&#8217;s a common pattern of mounting the whole <em>src</em> folder into your Docker containers in local dev. It means you don&#8217;t need to rebuild for every source code change. I didn&#8217;t wan&#8217;t to introduce that here because it also leads to subtle behaviours that can be hard to wrap your head around, like the <em>db.sqlite3</em> file being shared with the container. For this book, the <code>build &amp;&amp; run</code> cycle is fast enough, but by all means try out mounting <em>src</em> in your own projects.
 </div>
 </div>
 <div id="footer">
 <div id="footer-text">
-License: Creative Commons <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode">CC-BY-NC-ND</a>. Last updated: 2025-07-28 10:14:18 +0100
+License: Creative Commons <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode">CC-BY-NC-ND</a>. Last updated: 2025-10-27 16:48:45 UTC
 </div>
 </div>
 <div class="comments" style="padding: 20px">

@@ -43,35 +43,8 @@ httpRequest.send();
 <div class="sect1">
 <h2 id="chapter_21_mocking_2">Using Mocks for Test Isolation</h2>
 <div class="sectionbody">
-<div class="sidebarblock">
-<div class="content">
-<div class="title">A Note for Early Release Readers</div>
 <div class="paragraph">
-<p>With Early Release ebooks, you get books in their earliest form&#8212;the author&#8217;s raw and unedited content as they write&#8212;so you can take advantage of these technologies long before the official release of these titles.</p>
-</div>
-<div class="paragraph">
-<p>This will be the 21st chapter of the final book. The GitHub repo is available at <a href="https://github.com/hjwp/book-example" class="bare">https://github.com/hjwp/book-example</a>.</p>
-</div>
-<div class="paragraph">
-<p>If you have comments about how we might improve the content and/or examples in this book, or if you notice missing material within this chapter, please reach out to the author at <a href="mailto:obeythetestinggoat@gmail.com">obeythetestinggoat@gmail.com</a>.</p>
-</div>
-</div>
-</div>
-<div class="sidebarblock">
-<div class="content">
-<div class="title">Warning, Recently Updated</div>
-<div class="paragraph">
-<p>Warning, chapter in progress!
-I&#8217;ve recently updated this chapter, and there are some new discussions
-of the pros and cons of mocking, which I&#8217;d love your feedback on!</p>
-</div>
-<div class="paragraph">
-<p><a href="mailto:obeythetestinggoat@gmail.com">obeythetestinggoat@gmail.com</a></p>
-</div>
-</div>
-</div>
-<div class="paragraph">
-<p>In this chapter we&#8217;ll finish up our login system.
+<p>In this chapter, we&#8217;ll finish up our login system.
 While doing so, we&#8217;ll explore an alternative use of mocks:
 to isolate parts of the system from each other. This
 enables more targeted testing, fights combinatorial explosion,
@@ -88,8 +61,8 @@ In this chapter, we start to drift towards what&#8217;s called "London-school TD
     which is a variant on the "Classical" or "Detroit" style of TDD
     that I mostly show in the book.
     We won&#8217;t get into the details here,
-    but London school TDD places more emphasis on mocking and isolating parts of the system.
-    As always there are pros and cons!
+    but London-school TDD places more emphasis on mocking and isolating parts of the system.
+    As always, there are pros and cons!
     Read more at
     <a href="https://www.obeythetestinggoat.com/book/appendix_purist_unit_tests.html">Online Appendix: Test Isolation and "Listening to Your Tests"</a>.
 </td>
@@ -107,10 +80,10 @@ and we&#8217;ll also have a discussion about how many tests are "enough".</p>
 <div class="ulist">
 <ul>
 <li>
-<p><em><span class="strikethrough line-through">Token model with email + uid</span></em></p>
+<p><em><span class="strikethrough line-through">Token model with email and UID</span></em></p>
 </li>
 <li>
-<p><em><span class="strikethrough line-through">_view to create token + send login email incl. url w/ token uid</span></em></p>
+<p><em><span class="strikethrough line-through">View to create token and send login email incl. url w/ token UID</span></em></p>
 </li>
 <li>
 <p><em><span class="strikethrough line-through">Custom user model with USERNAME_FIELD=email</span></em></p>
@@ -119,20 +92,20 @@ and we&#8217;ll also have a discussion about how many tests are "enough".</p>
 <p><em><span class="strikethrough line-through">Authentication backend with authenticate() and get_user() functions</span></em></p>
 </li>
 <li>
-<p><em>Register auth backend in settings.py</em></p>
+<p><em>Registering auth backend in settings.py</em></p>
 </li>
 <li>
-<p><em>login view calls authenticate() and login() from django.contrib.auth</em></p>
+<p><em>Login view calls authenticate() and login() from django.contrib.auth</em></p>
 </li>
 <li>
-<p><em>logout view calls django.contrib.auth.logout</em></p>
+<p><em>Logout view calls django.contrib.auth.logout</em></p>
 </li>
 </ul>
 </div>
 </div>
 </div>
 <div class="paragraph">
-<p>We got our auth backend ready in the last chapter,
+<p>We got our auth backend ready in the last chapter;
 now we need use the backend in our login view.
 But first, as our scratchpad says, we need to add it to <em>settings.py</em>:</p>
 </div>
@@ -159,10 +132,10 @@ But first, as our scratchpad says, we need to add it to <em>settings.py</em>:</p
 <div class="ulist">
 <ul>
 <li>
-<p><em><span class="strikethrough line-through">Token model with email + uid</span></em></p>
+<p><em><span class="strikethrough line-through">Token model with email and UID</span></em></p>
 </li>
 <li>
-<p><em><span class="strikethrough line-through">_view to create token + send login email incl. url w/ token uid</span></em></p>
+<p><em><span class="strikethrough line-through">View to create token and send login email incl. url w/ token UID</span></em></p>
 </li>
 <li>
 <p><em><span class="strikethrough line-through">Custom user model with USERNAME_FIELD=email</span></em></p>
@@ -171,34 +144,21 @@ But first, as our scratchpad says, we need to add it to <em>settings.py</em>:</p
 <p><em><span class="strikethrough line-through">Authentication backend with authenticate() and get_user() functions</span></em></p>
 </li>
 <li>
-<p><em><span class="strikethrough line-through">Register auth backend in settings.py</span></em></p>
+<p><em><span class="strikethrough line-through">Registering auth backend in settings.py</span></em></p>
 </li>
 <li>
-<p><em>login view calls authenticate() and login() from django.contrib.auth</em></p>
+<p><em>Login view calls authenticate() and login() from django.contrib.auth</em></p>
 </li>
 <li>
-<p><em>logout view calls django.contrib.auth.logout</em></p>
+<p><em>Logout view calls django.contrib.auth.logout</em></p>
 </li>
 </ul>
 </div>
 </div>
 </div>
 <div class="paragraph">
-<p>Next let&#8217;s write some tests for what should happen in our view.
+<p>Next, let&#8217;s write some tests for what should happen in our view.
 Looking back at the spike again:</p>
-</div>
-<div class="admonitionblock tip">
-<table>
-<tr>
-<td class="icon">
-<i class="fa icon-tip" title="Tip"></i>
-</td>
-<td class="content">
-you can view the contents of files from the spike
-    using, eg, <code>git show passwordless-spike:src/accounts/views.py</code>
-</td>
-</tr>
-</table>
 </div>
 <div class="exampleblock sourcecode skipme">
 <div class="title">src/accounts/views.py</div>
@@ -216,8 +176,21 @@ you can view the contents of files from the spike
 </div>
 </div>
 </div>
+<div class="admonitionblock tip">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-tip" title="Tip"></i>
+</td>
+<td class="content">
+You can view the contents of files from the spike
+    using, for example, <code>git show passwordless-spike:src/accounts/views.py</code>.
+</td>
+</tr>
+</table>
+</div>
 <div class="paragraph">
-<p>We call <code>django.contrib.auth.authenticate</code>, and then,
+<p>We call <code>django.contrib.auth.authenticate</code> and then,
 if it returns a user, we call <code>django.contrib.auth.login</code>.</p>
 </div>
 <div class="admonitionblock tip">
@@ -236,23 +209,23 @@ This is a good time to check out the
 </table>
 </div>
 <div class="sect3">
-<h4 id="_straightforward_non_mocky_test_for_our_view">Straightforward Non-Mocky Test for our View</h4>
+<h4 id="_straightforward_non_mocky_test_for_our_view">Straightforward Non-Mocky Test for Our View</h4>
 <div class="paragraph">
-<p>Here&#8217;s the most obvious test we might want to write:
+<p>Here&#8217;s the most obvious test we might want to write,
 thinking in terms of the <em>behaviour</em> we want:</p>
 </div>
-<div class="olist arabic">
-<ol class="arabic">
+<div class="ulist">
+<ul>
 <li>
-<p>If someone has a valid Token, they should get logged in</p>
+<p>If someone has a valid token, they should get logged in.</p>
 </li>
 <li>
-<p>If someone tries to use an invalid Token (or none), it should not log them in.</p>
+<p>If someone tries to use an invalid token (or does not have one), it should not log them in.</p>
 </li>
-</ol>
+</ul>
 </div>
 <div class="paragraph">
-<p>Here&#8217;s how we might add the happy-path test for (1):</p>
+<p>Here&#8217;s how we might add the happy-path test for the user with the valid token:</p>
 </div>
 <div class="exampleblock sourcecode">
 <div class="title">src/accounts/tests/test_views.py (ch21l002)</div>
@@ -284,17 +257,16 @@ thinking in terms of the <em>behaviour</em> we want:</p>
 <table>
 <tr>
 <td><i class="conum" data-value="1"></i><b>1</b></td>
-<td>We use Django&#8217;s <code>auth.get_user()</code> to extract the current user from the Test Client.</td>
+<td>We use Django&#8217;s <code>auth.get_user()</code> to extract the current user from the test client.</td>
 </tr>
 <tr>
 <td><i class="conum" data-value="2"></i><b>2</b></td>
-<td>We verify we&#8217;re not logged in before we start
-(this isn&#8217;t strictly necessary, but it&#8217;s always nice to know you&#8217;re on firm ground).</td>
+<td>We verify we&#8217;re not logged in before we start. (This isn&#8217;t strictly necessary, but it&#8217;s always nice to know you&#8217;re on firm ground.)</td>
 </tr>
 <tr>
 <td><i class="conum" data-value="3"></i><b>3</b></td>
 <td>And here&#8217;s where we check that we&#8217;ve been logged in,
-with a user with the right email address:</td>
+with a user with the right email address.</td>
 </tr>
 </table>
 </div>
@@ -307,10 +279,10 @@ with a user with the right email address:</td>
 AssertionError: False != True</pre>
 </div>
 </div>
-<div class="paragraph">
+<div class="paragraph pagebreak-before">
 <p>We can get it to pass by "cheating", like this:</p>
 </div>
-<div class="exampleblock sourcecode">
+<div class="exampleblock sourcecode small-code">
 <div class="title">src/accounts/views.py (ch21l003)</div>
 <div class="content">
 <div class="listingblock">
@@ -341,7 +313,7 @@ AssertionError: False != True</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>Which forces us to write another test:</p>
+<p>That forces us to write another test:</p>
 </div>
 <div class="exampleblock sourcecode">
 <div class="title">src/accounts/tests/test_views.py (ch21l004)</div>
@@ -363,9 +335,9 @@ AssertionError: False != True</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>And now we get that passing using the most straightforward implementation&#8230;&#8203;</p>
+<p>And now we get that passing by using the most straightforward implementation&#8230;&#8203;</p>
 </div>
-<div class="exampleblock sourcecode">
+<div class="exampleblock sourcecode small-code">
 <div class="title">src/accounts/views.py (ch21l005)</div>
 <div class="content">
 <div class="listingblock">
@@ -385,22 +357,22 @@ AssertionError: False != True</pre>
 <table>
 <tr>
 <td><i class="conum" data-value="1"></i><b>1</b></td>
-<td>Oh wait, we forgot about our authentication backend
-and just did the query directly from the Token model?
+<td>Oh wait; we forgot about our authentication backend
+and just did the query directly from the token model!
 Well that&#8217;s arguably more straightforward,
-but how do we force ourselves to write the code the way we want it to,
-ie using the Django&#8217;s auth API?</td>
+but how do we force ourselves to write the code the way we want to&#8212;i.e.,
+using Django&#8217;s authentication API?</td>
 </tr>
 <tr>
 <td><i class="conum" data-value="2"></i><b>2</b></td>
-<td>Oh dear and the email address is still hardcoded.
+<td>Oh dear, and the email address is still hardcoded.
 We might have to think about writing an extra test to force ourselves to fix that.</td>
 </tr>
 <tr>
 <td><i class="conum" data-value="3"></i><b>3</b></td>
 <td>Oh&#8212;&#8203;also, we&#8217;re hardcoding the creation of a user every time,
 but actually, we want to have the get-or-create logic
-that we implemented in our backend</td>
+that we implemented in our backend.</td>
 </tr>
 <tr>
 <td><i class="conum" data-value="4"></i><b>4</b></td>
@@ -418,11 +390,10 @@ and we&#8217;re considering writing equivalent tests at the views layer.</p>
 <div class="sect2">
 <h3 id="_combinatorial_explosion">Combinatorial Explosion</h3>
 <div class="paragraph">
-<p>Let&#8217;s recap the tests we might want to write at each layer in our application in <a href="#table-21-1">What We Want to Test in Each Layer</a>:
-</p>
+<p><a href="#table-21-1">What we want to test in each layer</a> recaps the tests we might want to write at each layer in our application.</p>
 </div>
 <table id="table-21-1" class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 1. What We Want to Test in Each Layer</caption>
+<caption class="title">Table 1. What we want to test in each layer</caption>
 <colgroup>
 <col style="width: 33.3333%;">
 <col style="width: 33.3333%;">
@@ -430,9 +401,9 @@ and we&#8217;re considering writing equivalent tests at the views layer.</p>
 </colgroup>
 <thead>
 <tr>
-<th class="tableblock halign-left valign-top">Views Layer</th>
-<th class="tableblock halign-left valign-top">Authentication Backend</th>
-<th class="tableblock halign-left valign-top">Models Layer</th>
+<th class="tableblock halign-left valign-top">Views layer</th>
+<th class="tableblock halign-left valign-top">Authentication backend</th>
+<th class="tableblock halign-left valign-top">Models layer</th>
 </tr>
 </thead>
 <tbody>
@@ -440,10 +411,10 @@ and we&#8217;re considering writing equivalent tests at the views layer.</p>
 <td class="tableblock halign-left valign-top"><div class="content"><div class="ulist">
 <ul>
 <li>
-<p>Valid Token means user is logged in</p>
+<p>Valid token means user is logged in</p>
 </li>
 <li>
-<p>Invalid Token means user is not logged in</p>
+<p>Invalid token means user is not logged in</p>
 </li>
 </ul>
 </div></div></td>
@@ -456,14 +427,14 @@ and we&#8217;re considering writing equivalent tests at the views layer.</p>
 <p>Creates a new user for a new email address</p>
 </li>
 <li>
-<p>Returns None for an invalid token</p>
+<p>Returns <code>none</code> for an invalid token</p>
 </li>
 </ul>
 </div></div></td>
 <td class="tableblock halign-left valign-top"><div class="content"><div class="ulist">
 <ul>
 <li>
-<p>Token associates email and uid</p>
+<p>Token associates email and UID</p>
 </li>
 <li>
 <p>User can be retrieved from token UID</p>
@@ -474,36 +445,32 @@ and we&#8217;re considering writing equivalent tests at the views layer.</p>
 </tbody>
 </table>
 <div class="paragraph">
-<p>We already have 3 tests in the models layer, and 5 in the authentication layer.
+<p>We already have three tests in the models layer, and five in the authentication layer.
 We started off writing the tests in the views layer,
-where, <em>conceptually</em>, we only really want two test cases,
+where&#8212;<em>conceptually</em>&#8212;we only really want two test cases,
 and we&#8217;re finding ourselves wondering if we need to write
-a whole bunch of tests that essentially duplicate the authentication layer tests.</p>
-</div>
-<div class="paragraph">
-<p>This is an example of the <em>combinatorial explosion</em> problem.</p>
+a whole bunch of tests that essentially duplicate the authentication layer tests. This is an example of the <em>combinatorial explosion</em> problem.</p>
 </div>
 <div class="sect3">
 <h4 id="_the_car_factory_example">The Car Factory Example</h4>
 <div class="paragraph">
-<p>Imagine we&#8217;re testing a car factory, where:</p>
+<p>Imagine we&#8217;re testing a car factory:</p>
 </div>
 <div class="ulist">
 <ul>
 <li>
-<p>First we choose the car type: normal, station-wagon, or convertible</p>
+<p>First, we choose the car type: normal, station-wagon, or convertible.</p>
 </li>
 <li>
-<p>Then we choose the engine type: petrol, diesel, or electric</p>
+<p>Then, we choose the engine type: petrol, diesel, or electric.</p>
 </li>
 <li>
-<p>And then we choose the colour: red, white, or hot pink.</p>
+<p>Finally, we choose the colour: red, white, or hot pink.</p>
 </li>
 </ul>
 </div>
-<div class="paragraph">
-<p>How many tests do we need?  Well, the upper bound to test every possible combination
-is 3 x 3 x 3 = 27 tests.  That&#8217;s a lot!</p>
+<div class="paragraph pagebreak-before">
+<p>Here&#8217;s how it might look in code:</p>
 </div>
 <div class="listingblock skipme">
 <div class="content">
@@ -515,27 +482,24 @@ is 3 x 3 x 3 = 27 tests.  That&#8217;s a lot!</p>
 </div>
 </div>
 <div class="paragraph">
+<p>How many tests do we need?  Well, the upper bound to test every possible combination
+is 3 &#215; 3 &#215; 3 = 27 tests.  That&#8217;s a lot!</p>
+</div>
+<div class="paragraph">
 <p>How many tests do we <em>actually</em> need to write?
 Well, it depends on how we&#8217;re testing, how the different parts of the factory are integrated,
-and what we know about the system.</p>
+and what we know about the system. Do we need to test every single colour? Maybe!
+Or, maybe, if we&#8217;re happy that we can do two different colours, then we&#8217;re happy that we can do any number&#8212;whether it&#8217;s two, three, or hundreds.  Perhaps we need two tests, maybe three.</p>
 </div>
 <div class="paragraph">
-<p>Do we need to test every single colour? Maybe!
-Or, maybe, if we&#8217;re happy that we can do 2 different colours, then we&#8217;re happy we can do any number,
-whether it&#8217;s 2, 3, or hundreds.  Perhaps we need 2 tests, perhaps 3.</p>
-</div>
-<div class="paragraph">
-<p>OK, but do we need to test that painting woks for all the different engine types?
+<p>OK, but do we need to test that painting works for all the different engine types?
 Well, the painting process is probably independent of engine type:
 if we can paint a diesel in red, we can paint it in pink or white too.</p>
 </div>
 <div class="paragraph">
 <p>But, perhaps it <em>is</em> affected by the car type:
 painting a convertible with a fabric roof
-might be a very different technological process to painting a hard-bodied car.</p>
-</div>
-<div class="paragraph">
-<p>So we&#8217;d probably want to test that painting <em>in general</em> works for each car type (3 tests)
+might be a very different technological process to painting a hard-bodied car. So, we&#8217;d probably want to test that painting <em>in general</em> works for each car type (three tests),
 but we don&#8217;t need to test that painting works for every engine type.</p>
 </div>
 <div class="paragraph">
@@ -557,9 +521,9 @@ The more tightly coupled two parts of the system are,
 </table>
 </div>
 <div class="paragraph">
-<p>Another way of thinking about it is, what level are we writing tests at?
+<p>Another way of thinking about it is: what level are we writing tests at?
 You can choose to write low-level tests that cover only one part of the assembly process,
-or higher-level ones that test several steps together, or perhaps all of them end-to-end.
+or higher-level ones that test several steps together&#8212;or perhaps all of them end-to-end.
 See <a href="#car-factory-illustration">Analysing how many tests are needed at different levels</a>.</p>
 </div>
 <div id="car-factory-illustration" class="imageblock">
@@ -574,32 +538,29 @@ we think about the inputs and outputs that apply to each type of test,
 as well as which attributes of the inputs matter, and which don&#8217;t.</p>
 </div>
 <div class="paragraph">
-<p>Testing the first stage of the process, building the engine,
-is straightforward.  The "engine type" input has three possible values
-as inputs, so we need three tests of the output, which is the engine.
+<p>Testing the first stage of the process&#8212;building the engine&#8212;is straightforward.  The "engine type" input has three possible values, so we need three tests of the output, which is the engine.
 If we&#8217;re testing at the end-to-end level, no matter how many tests we have in total,
-we know we&#8217;ll need at least 3 of to be the tests
-that check we can produce a car with a working engine of each type.</p>
+we know we&#8217;ll need at least three to be the tests
+that check if we can produce a car with a working engine of each type.</p>
 </div>
 <div class="paragraph">
 <p>Testing the painting needs a bit more thought.
-If we test at the low level, the inputs are a naked car, and a paint colour.
-There are theoretically 9 types of naked car, do we need to test all of them?
-No, the engine type doesn&#8217;t matter; we only need to test 1 of each body type.
-Does that mean 3 x 3 = 9 tests?  No.  The colour and body type are independent.
-We can just test that all 3 colours work, and that all three body types work,
-so that&#8217;s 6 tests.</p>
+If we test at the low level, the inputs are a naked car and a paint colour.
+There are theoretically nine types of naked car; do we need to test all of them?
+No. The engine type doesn&#8217;t matter; we only need to test one of each body type.
+Does that mean 3 &#215; 3 = 9 tests?  No.  The colour and body type are independent.
+We can just test that all three colours work, and that all three body types work&#8212;so that&#8217;s six tests.</p>
 </div>
 <div class="paragraph">
 <p>What about at the end-to-end level?
-It depends if we&#8217;re being rigorous about "black box" testing,
+It depends if we&#8217;re being rigorous about "closed-box" testing,
 where we&#8217;re not supposed to know anything about how the production process works.
-In that case maybe we do need 27 tests.
+In that case, maybe we <em>do</em> need 27 tests.
 But if we allow that we know about the internals,
 then we can apply similar reasoning to what we used at the lower level.
 However many tests we end up with,
-we need 3 of them to be checking on each colour,
-and 3 that check that each body type can be painted.</p>
+we need three of them to be checking each colour,
+and three that check that each body type can be painted.</p>
 </div>
 <div class="paragraph">
 <p>Let&#8217;s see if we can apply this sort of analysis to our authentication system.</p>
@@ -635,7 +596,7 @@ and we&#8217;re now wondering how many tests we need at the views layer.</p>
 <div class="paragraph">
 <p>We know we want to transform it to something like this:</p>
 </div>
-<div class="exampleblock sourcecode skipme">
+<div class="exampleblock sourcecode skipme small-code">
 <div class="title">src/accounts/views.py</div>
 <div class="content">
 <div class="listingblock">
@@ -656,32 +617,28 @@ and we&#8217;re now wondering how many tests we need at the views layer.</p>
 <tr>
 <td><i class="conum" data-value="1"></i><b>1</b></td>
 <td>We want to refactor our logic to use the <code>authenticate()</code> function
-from our backend.  Really place for a walrus (<code>:=</code>) too!.</td>
+from our backend.  Really good place for a walrus (<code>:=</code>) too!</td>
 </tr>
 <tr>
 <td><i class="conum" data-value="2"></i><b>2</b></td>
-<td>We have the "happy path" branch where the user gets logged in.</td>
+<td>We have the happy path where the user gets logged in.</td>
 </tr>
 <tr>
 <td><i class="conum" data-value="3"></i><b>3</b></td>
-<td>We have the "unhappy" path where the user gets an error message instead.</td>
+<td>We have the unhappy path where the user gets an error message instead.</td>
 </tr>
 </table>
 </div>
 <div class="paragraph">
-<p>But currently our tests are letting us "get away" with
-the wrong implementation.</p>
-</div>
-<div class="paragraph">
-<p>Here are three possible options for getting ourselves to the right state:</p>
+<p>But currently, our tests are letting us "get away" with
+the wrong implementation. Here are three possible options for getting ourselves to the right state:</p>
 </div>
 <div class="olist arabic">
 <ol class="arabic">
 <li>
-<p>Add more tests for all possible combinations at the views level
-(token exists but no user, token exists for existing user, invalid token,
-etc) until we end up duplicating all the logic in the auth backend in our view,
-and then feel justified in refactoring across to just calling the auth backend.</p>
+<p>Add more tests for all possible combinations at the view level
+(token exists but no user, token exists for an existing user, invalid token,
+etc.), until we end up duplicating all the logic in the auth backend in our view&#8212;and then feel justified in refactoring across to just calling the auth backend.</p>
 </li>
 <li>
 <p>Stick with our current two tests, and decide it&#8217;s OK to refactor already.</p>
@@ -699,25 +656,23 @@ I&#8217;d probably think about deleting all the tests at the auth layer afterwar
 <div class="paragraph">
 <p>If you were to ask me what my personal preference or instinctive choice would be,
 I&#8217;d say at this point it might be to go with (2),
-and say with one happy path and one unhappy path test,
+and say with one happy-path and one unhappy-path test,
 we&#8217;re OK to refactor and switch across already.</p>
 </div>
 <div class="paragraph">
-<p>But since this chapter is about mocks, let&#8217;s investigate option (3) instead.
+<p>But because this chapter is about mocks, let&#8217;s investigate option (3) instead.
 Besides, it&#8217;ll be an excuse to do fun things with them,
 like playing with <code>.return_value</code>.</p>
 </div>
 <div class="paragraph">
 <p>
 
-So far we&#8217;ve used mocks to test external dependencies,
+So far, we&#8217;ve used mocks to test external dependencies,
 like Django&#8217;s mail-sending function.
-The main reason to use a mock we&#8217;ve discussed thus far is to isolate ourselves from external side effects,
-in this case, to avoid sending out actual emails during our tests.</p>
+The main reason to use a mock we&#8217;ve discussed so far is to isolate ourselves from external side effects&#8212;in this case, to avoid sending out actual emails during our tests.</p>
 </div>
 <div class="paragraph">
-<p>In this section we&#8217;ll look at a different possible use case for mocks,
-which is testing parts of our <em>own</em> code in isolation from each other,
+<p>In this section, we&#8217;ll look at a different possible use case for mocks: testing parts of our <em>own</em> code in isolation from each other,
 as a way of reducing duplication and avoiding combinatorial explosion in our tests.</p>
 </div>
 <div class="sect3">
@@ -725,7 +680,7 @@ as a way of reducing duplication and avoiding combinatorial explosion in our tes
 <div class="paragraph">
 <p>On top of that, the fact that we&#8217;re using the Django <code>auth.authenticate</code> function
 rather than calling our own code directly is relevant.
-Django has already introduced an abstraction,
+Django has already introduced an abstraction:
 to decouple the specifics of authentication backends
 from the views that use them.
 This makes it easier for us to add further backends in future.</p>
@@ -734,14 +689,12 @@ This makes it easier for us to add further backends in future.</p>
 <p>So in this case
 (in contrast to the example in  <a href="/book/chapter_20_mocking_1.html#mocks-tightly-coupled-sidebar">[mocks-tightly-coupled-sidebar]</a>)
 the implementation <em>does</em> matter,
-because we&#8217;ve decided to use a particular, specific interface to implement our authentication system,
-which is something we might want to document and verify in our tests,
-and mocks are one way to enable that.</p>
+because we&#8217;ve decided to use a particular, specific interface to implement our authentication system. This is something we might want to document and verify in our tests&#8212;and mocks are one way to enable that.</p>
 </div>
 </div>
 </div>
-<div class="sect2">
-<h3 id="_starting_again_test_driving_our_implementation_with_mocks">Starting Again, Test-Driving our Implementation With Mocks</h3>
+<div class="sect2 pagebreak-before less_space">
+<h3 id="_starting_again_test_driving_our_implementation_with_mocks">Starting Again: Test-Driving Our Implementation with Mocks</h3>
 <div class="paragraph">
 <p>Let&#8217;s see how things would look if we had decided to test-drive our implementation with mocks in the first place.
 We&#8217;ll start by reverting all the authentication stuff,
@@ -770,19 +723,19 @@ both from our test and from our view.</p>
 <table>
 <tr>
 <td><i class="conum" data-value="1"></i><b>1</b></td>
-<td>We can leave the test for the redirect, since that doesn&#8217;t involve the auth framework.</td>
+<td>We can leave the test for the redirect, as that doesn&#8217;t involve the auth framework.</td>
 </tr>
 <tr>
 <td><i class="conum" data-value="2"></i><b>2</b></td>
-<td>We change the test name so they no longer start with <code>test_</code>,
+<td>We change the test name so it no longer starts with <code>test_</code>,
 using a highly noticeable set of capital letters
 so we don&#8217;t forget to come back and re-enable them later.
-I call this "dontifying" tests :)</td>
+I call this "DONTifying" tests. :)</td>
 </tr>
 </table>
 </div>
 <div class="paragraph">
-<p>Now let&#8217;s revert the view, and replace our hacky code with some TODOs:</p>
+<p>Now let&#8217;s revert the view, and replace our hacky code with some to-dos:</p>
 </div>
 <div class="exampleblock sourcecode">
 <div class="title">src/accounts/views.py (ch21l007)</div>
@@ -813,12 +766,12 @@ I&#8217;m also reverting our import of the <code>contrib.auth</code> module.</td
 <tr>
 <td><i class="conum" data-value="2"></i><b>2</b></td>
 <td>And here&#8217;s where we delete our first implementation
-and replace it with some TODOs.</td>
+and replace it with some to-dos.</td>
 </tr>
 </table>
 </div>
-<div class="paragraph">
-<p>Let&#8217;s check all our tests pass:</p>
+<div class="paragraph pagebreak-before">
+<p>Let&#8217;s check that all our tests pass:</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -831,7 +784,7 @@ OK</pre>
 </div>
 <div class="paragraph">
 <p>Now let&#8217;s start again with mock-based tests.
-First we can write a test that checks we call <code>authenticate()</code> correctly:</p>
+First, we can write a test that makes sure we call <code>authenticate()</code> correctly:</p>
 </div>
 <div class="exampleblock sourcecode small-code">
 <div class="title">src/accounts/tests/test_views.py (ch21l008)</div>
@@ -858,7 +811,7 @@ First we can write a test that checks we call <code>authenticate()</code> correc
 <td><i class="conum" data-value="1"></i><b>1</b></td>
 <td>We expect to be using the <code>django.contrib.auth</code> module in <em>views.py</em>,
 and we mock it out here.  Note that this time, we&#8217;re not mocking out
-a function, we&#8217;re mocking out a whole module, and thus implicitly
+a function; we&#8217;re mocking out a whole module, and thus implicitly
 mocking out all the functions (and any other objects) that module contains.</td>
 </tr>
 <tr>
@@ -868,7 +821,7 @@ mocking out all the functions (and any other objects) that module contains.</td>
 <tr>
 <td><i class="conum" data-value="3"></i><b>3</b></td>
 <td>This time, we&#8217;ve mocked out a module rather than a function.
-So we examine the <code>call_args</code> not of the <code>mock_auth</code> module,
+So we examine the <code>call_args</code>&#8212;not of the <code>mock_auth</code> module,
 but of the <code>mock_auth.authenticate</code> function.
 Because all the attributes of a mock are more mocks, that&#8217;s a mock too.
 You can start to see why <code>Mock</code> objects are so convenient,
@@ -879,13 +832,13 @@ compared to trying to build your own.</td>
 <td>Now, instead of "unpacking" the call args, we use the <code>call</code> function
 for a neater way of saying what it should have been called with&#8212;&#8203;that is,
 the token from the GET request.
-(See <a href="#mock-call-args-sidebar">On Mock <code>call_args</code></a>.)</td>
+(See <a href="#mock-call-args-sidebar">On Mock call_args</a>.)</td>
 </tr>
 </table>
 </div>
 <div id="mock-call-args-sidebar" class="sidebarblock less_space pagebreak-before">
 <div class="content">
-<div class="title">On Mock <code>call_args</code></div>
+<div class="title">On Mock call_args</div>
 <div class="paragraph">
 <p>
 The <code>.call_args</code> property on a mock represents the positional and keyword arguments
@@ -894,7 +847,7 @@ It&#8217;s a special "call" object type,
 which is essentially a tuple of <code>(positional_args, keyword_args)</code>.
 <code>positional_args</code> is itself a tuple,
 consisting of the set of positional arguments.
-<code>keyword_args</code> is a dictionary.</p>
+<code>keyword_args</code> is a dictionary. Here they all are in action:</p>
 </div>
 <div class="listingblock small-code skipme">
 <div class="content">
@@ -936,8 +889,8 @@ consisting of the set of positional arguments.
 <p>But you can see how using the <code>call</code> helper is nicer.</p>
 </div>
 <div class="paragraph">
-<p>See also <a href="#avoid-assert-called-with-sidebar">Avoid Mock&#8217;s Magic assert_called&#8230;&#8203; Methods?</a>,
-for some discussion of <code>call_args</code> vs the magic <code>assert_called_with</code> methods</p>
+<p>See also <a href="#avoid-assert-called-with-sidebar">Avoid Mock&#8217;s Magic assert_called&#8230;&#8203;Methods?</a>,
+for some discussion of <code>call_args</code> versus the magic <code>assert_called_with</code> methods.</p>
 </div>
 </div>
 </div>
@@ -969,7 +922,7 @@ AttributeError: &lt;module 'accounts.views' from
 </table>
 </div>
 <div class="paragraph">
-<p>Once we re-import <code>django.contrib.auth</code>, the error changes:</p>
+<p>Once we reimport <code>django.contrib.auth</code>, the error changes:</p>
 </div>
 <div class="exampleblock sourcecode">
 <div class="title">src/accounts/views.py (ch21l009)</div>
@@ -1012,7 +965,7 @@ Let&#8217;s fix that, but get it deliberately wrong, just to see:</p>
 </div>
 </div>
 <div class="paragraph">
-<p>Bang indeed!</p>
+<p>Bang, indeed!</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -1041,7 +994,7 @@ FAILED (failures=1)</pre>
 </div>
 </div>
 </div>
-<div class="paragraph">
+<div class="paragraph pagebreak-before">
 <p>That gets us to passing tests:</p>
 </div>
 <div class="listingblock">
@@ -1056,7 +1009,7 @@ OK</pre>
 <h4 id="_using_mock_return_value">Using mock.return_value</h4>
 <div class="paragraph">
 <p>
-Next we want to check that if the authenticate function returns a user,
+Next, we want to check that if the authenticate function returns a user,
 we pass that into <code>auth.login</code>.  Let&#8217;s see how that test looks:</p>
 </div>
 <div class="exampleblock sourcecode">
@@ -1098,7 +1051,7 @@ we pass that into <code>auth.login</code>.  Let&#8217;s see how that test looks:
 "whatever the <code>authenticate()</code> function returned".
 Because <code>authenticate()</code> is also mocked out,
 we can use its special <code>.return_value</code> attribute.
-we know that, in real life, that will be a User object.
+We know that, in real life, that will be a user object.
 But in this test, it&#8217;s all mocks.
 Can you see what I mean about mocky tests being hard to understand sometimes?</td>
 </tr>
@@ -1108,7 +1061,7 @@ Can you see what I mean about mocky tests being hard to understand sometimes?</t
 <p>When you call a mock, you get another mock.
 But you can also get a copy of that returned mock from the original mock that you called.
 Boy, it sure is hard to explain this stuff without saying "mock" a lot!
-Another little console illustration might help here:</p>
+Another little console illustration might help:</p>
 </div>
 <div class="listingblock skipme">
 <div class="content">
@@ -1124,7 +1077,7 @@ Another little console illustration might help here:</p>
 </div>
 <div id="avoid-assert-called-with-sidebar" class="sidebarblock">
 <div class="content">
-<div class="title">Avoid Mock&#8217;s Magic assert_called&#8230;&#8203; Methods?</div>
+<div class="title">Avoid Mock&#8217;s Magic assert_called&#8230;&#8203;Methods?</div>
 <div class="paragraph">
 <p>If you&#8217;ve used <code>unittest.mock</code> before, you may have come across its special
 <code>assert_called...</code>
@@ -1162,11 +1115,8 @@ it&#8217;s too easy to make a silly typo and end up with a test that always pass
 </div>
 <div class="paragraph">
 <p>Unless you get the magic method name exactly right,<sup class="footnote">[<a id="_footnoteref_1" class="footnote" href="#_footnotedef_1" title="View footnote.">1</a>]</sup>
-which just silently return another mock,
-and you may not realise that you&#8217;ve written a test that tests nothing at all.</p>
-</div>
-<div class="paragraph">
-<p>That&#8217;s why I prefer to always have an explicit <code>unittest</code> method in there.<sup class="footnote">[<a id="_footnoteref_2" class="footnote" href="#_footnotedef_2" title="View footnote.">2</a>]</sup></p>
+it will just silently return another mock,
+and you may not realise that you&#8217;ve written a test that tests nothing at all. That&#8217;s why I prefer to always have an explicit <code>unittest</code> method in there.<sup class="footnote">[<a id="_footnoteref_2" class="footnote" href="#_footnotedef_2" title="View footnote.">2</a>]</sup></p>
 </div>
 </div>
 </div>
@@ -1182,7 +1132,7 @@ AssertionError: None != call(&lt;WSGIRequest: GET '/accounts/login?t[...]</pre>
 </div>
 <div class="paragraph">
 <p>Sure enough, it&#8217;s telling us that we&#8217;re not calling <code>auth.login()</code> at all yet.
-Let&#8217;s try doing that.  Deliberately wrong as usual first!</p>
+Let&#8217;s first try doing that deliberately wrong as usual!</p>
 </div>
 <div class="exampleblock sourcecode">
 <div class="title">src/accounts/views.py (ch21l013)</div>
@@ -1201,7 +1151,7 @@ Let&#8217;s try doing that.  Deliberately wrong as usual first!</p>
 </div>
 </div>
 <div class="paragraph">
-<p>Ack indeed!</p>
+<p>Ack, indeed!</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -1225,7 +1175,7 @@ FAILED (failures=1, errors=1)</pre>
 </div>
 <div class="paragraph">
 <p>That&#8217;s one expected failure from our mocky test,
-and one (more) unexpected one from the nonmocky one.</p>
+and one (more) unexpected failure from the non-mocky test.</p>
 </div>
 <div class="paragraph">
 <p>Let&#8217;s see if we can fix them:</p>
@@ -1266,7 +1216,7 @@ AttributeError: 'AnonymousUser' object has no attribute '_meta'</pre>
 and that&#8217;s causing problems back in our original test for the redirect,
 which <em>isn&#8217;t</em> currently mocking out <code>auth.login</code>.</p>
 </div>
-<div class="paragraph">
+<div class="paragraph pagebreak-before">
 <p>We can get back to passing like this:</p>
 </div>
 <div class="exampleblock sourcecode">
@@ -1296,7 +1246,7 @@ OK</pre>
 </div>
 </div>
 <div class="sect3">
-<h4 id="_using_return_value_during_test_setup">Using .return_value during test setup</h4>
+<h4 id="_using_return_value_during_test_setup">Using .return_value During Test Setup</h4>
 <div class="paragraph">
 <p>I&#8217;m a little nervous that we&#8217;ve introduced an <code>if</code> without an <em>explicit</em> test for it.
 Testing the unhappy path will reassure me.
@@ -1305,7 +1255,7 @@ We can use our existing test for the error case to crib from.</p>
 <div class="paragraph">
 <p>We want to be able to set up our mocks to say:
 <code>auth.authenticate()</code> should return <code>None</code>.
-We can do that by <em>setting</em> the <code>.return_value</code> on the mock:</p>
+We can do that by setting the <code>.return_value</code> on the mock:</p>
 </div>
 <div class="exampleblock sourcecode">
 <div class="title">src/accounts/tests/test_views.py (ch21l016)</div>
@@ -1332,20 +1282,20 @@ We can do that by <em>setting</em> the <code>.return_value</code> on the mock:</
 <table>
 <tr>
 <td><i class="conum" data-value="1"></i><b>1</b></td>
-<td>We use <code>.return_value</code> on our mock once again,
-but this time, we <em>assign</em> to it, before it&#8217;s used,
-(in the setup part of the test, aka the "arrange" or "given" phase).
-rather than reading from it (in the assert/when part)
+<td>We use <code>.return_value</code> on our mock once again.
+But this time, we assign to it <em>before</em> it&#8217;s used
+(in the setup part of the test&#8212;aka the "arrange" or "given" phase),
+rather than reading from it (in the assert/&#8220;when&#8221; part),
 as we did earlier.</td>
 </tr>
 <tr>
 <td><i class="conum" data-value="2"></i><b>2</b></td>
-<td>Our asserts are copied across from
-<code>DONT_test_shows_login_error_if_token_invalid()</code></td>
+<td>Our asserts are copied across from the existing test for the error case,
+<code>DONT_test_shows_login_error_if_token_invalid()</code>.</td>
 </tr>
 </table>
 </div>
-<div class="paragraph">
+<div class="paragraph pagebreak-before">
 <p>That gives us this somewhat cryptic, but expected failure:</p>
 </div>
 <div class="listingblock">
@@ -1358,10 +1308,7 @@ IndexError: list index out of range</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>Essentially that&#8217;s saying there <em>are</em> no messages in our response.</p>
-</div>
-<div class="paragraph">
-<p>We can get it passing like this, starting with a deliberate mistake as always:</p>
+<p>Essentially, that&#8217;s saying there are no messages in our response. We can get it passing like this, starting with a deliberate mistake as always:</p>
 </div>
 <div class="exampleblock sourcecode">
 <div class="title">src/accounts/views.py (ch21l017)</div>
@@ -1382,7 +1329,7 @@ IndexError: list index out of range</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>Which gives us</p>
+<p>Which gives us:</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -1423,7 +1370,7 @@ Ran 18 tests in 0.025s
 OK</pre>
 </div>
 </div>
-<div class="paragraph">
+<div class="paragraph pagebreak-before">
 <p>And we can do a final refactor to remove those comments:</p>
 </div>
 <div class="exampleblock sourcecode">
@@ -1449,11 +1396,11 @@ OK</pre>
 <table>
 <tr>
 <td><i class="conum" data-value="1"></i><b>1</b></td>
-<td>We no longer need to explicitly import the User model</td>
+<td>We no longer need to explicitly import the user model</td>
 </tr>
 <tr>
 <td><i class="conum" data-value="2"></i><b>2</b></td>
-<td>And our view is down to just 5 lines.</td>
+<td>and our view is down to just five lines.</td>
 </tr>
 </table>
 </div>
@@ -1465,11 +1412,11 @@ OK</pre>
 <div class="sect3">
 <h4 id="_undontifying">UnDONTifying</h4>
 <div class="paragraph">
-<p>Remember we still have the DONTified, nonmocky tests?
+<p>Remember we still have the DONTified, non-mocky tests?
 Let&#8217;s re-enable now to sense-check that our mocky tests have driven
 us to the right place:</p>
 </div>
-<div class="exampleblock sourcecode">
+<div class="exampleblock sourcecode small-code">
 <div class="title">src/accounts/tests/test_views.py (ch21l020)</div>
 <div class="content">
 <div class="listingblock">
@@ -1495,7 +1442,7 @@ us to the right place:</p>
 </div>
 </div>
 <div class="paragraph">
-<p>Sure enough they both pass:</p>
+<p>Sure enough, they both pass:</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -1509,7 +1456,7 @@ OK</pre>
 </div>
 </div>
 <div class="sect2">
-<h3 id="_deciding_which_tests_to_keep">Deciding Which Tests To Keep</h3>
+<h3 id="_deciding_which_tests_to_keep">Deciding Which Tests to Keep</h3>
 <div class="paragraph">
 <p>We now definitely have duplicate tests:</p>
 </div>
@@ -1548,29 +1495,29 @@ OK</pre>
 We then have two non-mocky tests for the happy and unhappy paths,
 and three mocky tests:</p>
 </div>
-<div class="ulist">
-<ul>
+<div class="olist arabic">
+<ol class="arabic">
 <li>
-<p>One checks that we are integrated with our auth backend correctly</p>
+<p>One checks that we are integrated with our auth backend correctly.</p>
 </li>
 <li>
 <p>One checks that we call the built-in <code>auth.login</code> function correctly,
 which tests the happy path.</p>
 </li>
 <li>
-<p>And one that checks we set an error message in the unhappy path.</p>
+<p>And one checks we set an error message in the unhappy path.</p>
 </li>
-</ul>
+</ol>
 </div>
-<div class="paragraph">
+<div class="paragraph pagebreak-before">
 <p>I think there are lots of ways to justify different choices here,
 but my instinct tends to be to avoid using mocks if you can.
 So, I propose we delete the two mocky tests for the happy and unhappy paths,
-since they are reasonably covered by the non-mocky ones,
-but I think we can justify keeping the first mocky test,
+as they are reasonably covered by the non-mocky ones.
+But I think we can justify keeping the first mocky test,
 because it adds value by checking that we&#8217;re doing our authentication
-the "right" way, ie by calling into Django&#8217;s <code>auth.authenticate()</code> function
-(instead of, eg, instantiating and calling our auth backend ourselves,
+the "right" way&#8212;i.e., by calling into Django&#8217;s <code>auth.authenticate()</code> function
+(instead of, for example, instantiating and calling our auth backend ourselves,
 or even just implementing authentication inline in the view).</p>
 </div>
 <div class="admonitionblock tip">
@@ -1589,7 +1536,7 @@ or even just implementing authentication inline in the view).</p>
 </div>
 <div class="paragraph">
 <p>So let&#8217;s delete our last two mocky tests.
-I&#8217;m also going to rename the remaining one to make our intention clear,
+I&#8217;m also going to rename the remaining one to make our intention clear;
 we want to check we are using the Django auth library:</p>
 </div>
 <div class="exampleblock sourcecode">
@@ -1617,16 +1564,16 @@ OK</pre>
 </div>
 </div>
 </div>
-<div class="sect2">
+<div class="sect2 pagebreak-before less_space">
 <h3 id="_the_moment_of_truth_will_the_ft_pass">The Moment of Truth:  Will the FT Pass?</h3>
 <div class="paragraph">
 <p>
 
-We&#8217;re just about ready to try our functional test!</p>
-</div>
-<div class="paragraph">
-<p>Let&#8217;s just make sure our base template shows a different nav bar for logged-in
-and non&#8211;logged-in users (which our FT relies on):</p>
+We&#8217;re just about ready to try our functional test!
+Let&#8217;s just make sure our base template shows a different navbar
+for logged-in and non&#8211;logged-in users.
+Our FT relies on being able to see the user&#8217;s email in the navbar
+in the logged-in state, and it needs a "Log out" button too:</p>
 </div>
 <div class="exampleblock sourcecode small-code">
 <div class="title">src/lists/templates/base.html (ch21l022)</div>
@@ -1640,7 +1587,9 @@ and non&#8211;logged-in users (which our FT relies on):</p>
       <span class="tok-p">&lt;</span><span class="tok-nt">span</span> <span class="tok-na">class</span><span class="tok-o">=</span><span class="tok-s">"navbar-text"</span><span class="tok-p">&gt;</span>Logged in as {{ user.email }}<span class="tok-p">&lt;/</span><span class="tok-nt">span</span><span class="tok-p">&gt;</span>
       <span class="tok-p">&lt;</span><span class="tok-nt">form</span> <span class="tok-na">method</span><span class="tok-o">=</span><span class="tok-s">"POST"</span> <span class="tok-na">action</span><span class="tok-o">=</span><span class="tok-s">"TODO"</span><span class="tok-p">&gt;</span>
         {% csrf_token %}
-        <span class="tok-p">&lt;</span><span class="tok-nt">button</span> <span class="tok-na">id</span><span class="tok-o">=</span><span class="tok-s">"id_logout"</span> <span class="tok-na">class</span><span class="tok-o">=</span><span class="tok-s">"btn btn-outline-secondary"</span> <span class="tok-na">type</span><span class="tok-o">=</span><span class="tok-s">"submit"</span><span class="tok-p">&gt;</span>Log out<span class="tok-p">&lt;/</span><span class="tok-nt">button</span><span class="tok-p">&gt;</span>
+        <span class="tok-p">&lt;</span><span class="tok-nt">button</span> <span class="tok-na">id</span><span class="tok-o">=</span><span class="tok-s">"id_logout"</span> <span class="tok-na">class</span><span class="tok-o">=</span><span class="tok-s">"btn btn-outline-secondary"</span> <span class="tok-na">type</span><span class="tok-o">=</span><span class="tok-s">"submit"</span><span class="tok-p">&gt;</span>
+          Log out
+        <span class="tok-p">&lt;/</span><span class="tok-nt">button</span><span class="tok-p">&gt;</span>
       <span class="tok-p">&lt;/</span><span class="tok-nt">form</span><span class="tok-p">&gt;</span>
     {% else %}
       <span class="tok-p">&lt;</span><span class="tok-nt">form</span> <span class="tok-na">method</span><span class="tok-o">=</span><span class="tok-s">"POST"</span> <span class="tok-na">action</span><span class="tok-o">=</span><span class="tok-s">"{% url 'send_login_email' %}"</span><span class="tok-p">&gt;</span>
@@ -1668,13 +1617,12 @@ and non&#8211;logged-in users (which our FT relies on):</p>
 <table>
 <tr>
 <td><i class="conum" data-value="1"></i><b>1</b></td>
-<td>Here&#8217;s a new <code>{% if %}</code>,and navbar content for logged-in users.</td>
+<td>Here&#8217;s a new <code>{% if %}</code>, and navbar content for logged-in users.</td>
 </tr>
 </table>
 </div>
-<div class="paragraph">
-<p>OK there&#8217;s a TODO in there about the log out button,
-we&#8217;ll get to that, but how does our FT look now?</p>
+<div class="paragraph pagebreak-before">
+<p>OK, there&#8217;s a to-do in there about the log-out button. We&#8217;ll get to that, but how does our FT look now?</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -1710,14 +1658,10 @@ ConnectionRefusedError: [Errno 111] Connection refused</pre>
 <h4 id="_using_our_new_environment_variable_and_saving_it_to_env">Using Our New Environment Variable, and Saving It to .env</h4>
 <div class="paragraph">
 <p>You&#8217;ll probably get an error, like I did, when you try to run things manually.
-It&#8217;s because of two things:</p>
+It&#8217;s because of two things.</p>
 </div>
-<div class="ulist">
-<ul>
-<li>
-<p>Firstly, we need to re-add the email configuration to <em>settings.py</em>.</p>
-</li>
-</ul>
+<div class="paragraph">
+<p>Firstly, we need to re-add the email configuration to <em>settings.py</em>:</p>
 </div>
 <div class="exampleblock sourcecode">
 <div class="title">src/superlists/settings.py (ch21l023)</div>
@@ -1733,23 +1677,19 @@ It&#8217;s because of two things:</p>
 </div>
 </div>
 </div>
-<div class="ulist">
-<ul>
-<li>
-<p>Secondly, we (probably) need to re-set the <code>EMAIL_PASSWORD</code> in our shell.</p>
-</li>
-</ul>
+<div class="paragraph">
+<p>Secondly, we (probably) need to reset the <code>EMAIL_PASSWORD</code> in our shell:</p>
 </div>
 <div class="listingblock">
 <div class="content">
 <pre>$ <strong>export EMAIL_PASSWORD="yoursekritpasswordhere"</strong></pre>
 </div>
 </div>
-<div class="sidebarblock">
+<div class="sidebarblock pagebreak-before less_space">
 <div class="content">
 <div class="title">Using a Local .env File for Development</div>
 <div class="paragraph">
-<p>Until now we&#8217;ve not needed to "save" any of our local environment variables,
+<p>Until now, we&#8217;ve not needed to "save" any of our local environment variables,
 because the command-line ones are easy to remember and type,
 and we&#8217;ve made sure all the other ones that affect config settings have sensible defaults for dev.
 But there&#8217;s just no way to get a working login system without this one!</p>
@@ -1758,7 +1698,7 @@ But there&#8217;s just no way to get a working login system without this one!</p
 <p>Rather than having to go look up this password every time you start a new shell,
 it&#8217;s quite common to save these sorts of settings into a local file
 in your project folder named <code>.env</code>.
-It&#8217;s a convention which makes it a hidden file, on Unix-like systems at least:</p>
+It&#8217;s a convention that makes it a hidden file, on Unix-like systems at least:</p>
 </div>
 <div class="listingblock skipme">
 <div class="content">
@@ -1774,21 +1714,20 @@ as well as remembering to activate your virtualenv.</p>
 </div>
 <div class="paragraph">
 <p>If you search or ask around, you&#8217;ll find there are some tools and shell plugins
-that load virtualenvs and <em>.env</em> files automatically,
-and/or django plugins that do this stuff too.</p>
+that load virtualenvs and <em>.env</em> files automatically, or Django plugins that handle this stuff too. A few options:</p>
 </div>
 <div class="ulist">
 <ul>
 <li>
 <p>Django-specific:
-<a href="https://django-environ.readthedocs.io/en/latest/">django-environ</a> or
+<a href="https://django-environ.readthedocs.io">django-environ</a> or
 <a href="https://github.com/jpadilla/django-dotenv">django-dotenv</a></p>
 </li>
 <li>
-<p>More general Python project management <a href="https://docs.pipenv.org/">Pipenv</a></p>
+<p>More general Python project management: <a href="https://docs.pipenv.org">Pipenv</a></p>
 </li>
 <li>
-<p>Or even <a href="https://stackoverflow.com/questions/19331497/set-environment-variables-from-file/34093548#34093548">roll your own</a></p>
+<p>Or even: <a href="https://oreil.ly/F9iV3">roll your own</a></p>
 </li>
 </ul>
 </div>
@@ -1803,13 +1742,13 @@ and/or django plugins that do this stuff too.</p>
 </div>
 </div>
 <div class="paragraph">
-<p>&#8230;&#8203;you should see something like <a href="#despiked-success-message">Check your email&#8230;&#8203;.</a>.</p>
+<p>&#8230;&#8203;you should see something like <a href="#despiked-success-message">Check your email&#8230;&#8203;</a>.</p>
 </div>
 <div id="despiked-success-message" class="imageblock">
 <div class="content">
 <img src="images/tdd3_2102.png" alt="De-spiked site with success message">
 </div>
-<div class="title">Figure 2. Check your email&#8230;&#8203;.</div>
+<div class="title">Figure 2. Check your email&#8230;&#8203;</div>
 </div>
 <div class="paragraph">
 <p>Woohoo!</p>
@@ -1818,9 +1757,7 @@ and/or django plugins that do this stuff too.</p>
 <p>I&#8217;ve been waiting to do a commit up until this moment, just to make sure
 everything works.  At this point, you could make a series of separate
 commits&#8212;&#8203;one for the login view, one for the auth backend, one for
-the user model, one for wiring up the template.  Or you could decide that,
-since they&#8217;re all interrelated, and none will work without the others,
-you may as well just have one big commit:</p>
+the user model, one for wiring up the template.  Or you could decide that&#8212;because they&#8217;re all interrelated, and none will work without the others&#8212;you may as well just have one big commit:</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -1835,10 +1772,10 @@ $ <strong>git commit -m "Custom passwordless auth backend + custom user model"</
 <div class="ulist">
 <ul>
 <li>
-<p><em><span class="strikethrough line-through">Token model with email + uid</span></em></p>
+<p><em><span class="strikethrough line-through">Token model with email and UID</span></em></p>
 </li>
 <li>
-<p><em><span class="strikethrough line-through">_view to create token + send login email incl. url w/ token uid</span></em></p>
+<p><em><span class="strikethrough line-through">View to create token and send login email incl. url w/ token UID</span></em></p>
 </li>
 <li>
 <p><em><span class="strikethrough line-through">Custom user model with USERNAME_FIELD=email</span></em></p>
@@ -1847,13 +1784,13 @@ $ <strong>git commit -m "Custom passwordless auth backend + custom user model"</
 <p><em><span class="strikethrough line-through">Authentication backend with authenticate() and get_user() functions</span></em></p>
 </li>
 <li>
-<p><em><span class="strikethrough line-through">Register auth backend in settings.py</span></em></p>
+<p><em><span class="strikethrough line-through">Registering auth backend in settings.py</span></em></p>
 </li>
 <li>
-<p><em><span class="strikethrough line-through">login view calls authenticate() and login() from django.contrib.auth</span></em></p>
+<p><em><span class="strikethrough line-through">Login view calls authenticate() and login() from django.contrib.auth</span></em></p>
 </li>
 <li>
-<p><em>logout view calls django.contrib.auth.logout</em></p>
+<p><em>Logout view calls django.contrib.auth.logout</em></p>
 </li>
 </ul>
 </div>
@@ -1862,13 +1799,13 @@ $ <strong>git commit -m "Custom passwordless auth backend + custom user model"</
 </div>
 </div>
 <div class="sect2">
-<h3 id="_finishing_off_our_ft_testing_logout">Finishing Off Our FT, Testing Logout</h3>
+<h3 id="_finishing_off_our_ft_testing_logout">Finishing Off Our FT: Testing Logout</h3>
 <div class="paragraph">
 <p>
 The last thing we need to do before we call it a day is to test the logout button.
 We extend the FT with a couple more steps:</p>
 </div>
-<div class="exampleblock sourcecode">
+<div class="exampleblock sourcecode small-code">
 <div class="title">src/functional_tests/test_login.py (ch21l024)</div>
 <div class="content">
 <div class="listingblock">
@@ -1907,7 +1844,7 @@ element: input[name=email]; [...]</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>So let&#8217;s tell the base template that we want a new url named "logout":</p>
+<p>So, let&#8217;s tell the base template that we want a new URL named "logout":</p>
 </div>
 <div class="exampleblock sourcecode small-code">
 <div class="title">src/lists/templates/base.html (ch21l025)</div>
@@ -1918,7 +1855,9 @@ element: input[name=email]; [...]</pre>
             <span class="tok-p">&lt;</span><span class="tok-nt">span</span> <span class="tok-na">class</span><span class="tok-o">=</span><span class="tok-s">"navbar-text"</span><span class="tok-p">&gt;</span>Logged in as {{ user.email }}<span class="tok-p">&lt;/</span><span class="tok-nt">span</span><span class="tok-p">&gt;</span>
             <span class="tok-p">&lt;</span><span class="tok-nt">form</span> <span class="tok-na">method</span><span class="tok-o">=</span><span class="tok-s">"POST"</span> <span class="tok-na">action</span><span class="tok-o">=</span><span class="tok-s">"{% url 'logout' %}"</span><span class="tok-p">&gt;</span>
               {% csrf_token %}
-              <span class="tok-p">&lt;</span><span class="tok-nt">button</span> <span class="tok-na">id</span><span class="tok-o">=</span><span class="tok-s">"id_logout"</span> <span class="tok-na">class</span><span class="tok-o">=</span><span class="tok-s">"btn btn-outline-secondary"</span> <span class="tok-na">type</span><span class="tok-o">=</span><span class="tok-s">"submit"</span><span class="tok-p">&gt;</span>Log out<span class="tok-p">&lt;/</span><span class="tok-nt">button</span><span class="tok-p">&gt;</span>
+              <span class="tok-p">&lt;</span><span class="tok-nt">button</span> <span class="tok-na">id</span><span class="tok-o">=</span><span class="tok-s">"id_logout"</span> <span class="tok-na">class</span><span class="tok-o">=</span><span class="tok-s">"btn btn-outline-secondary"</span> <span class="tok-na">type</span><span class="tok-o">=</span><span class="tok-s">"submit"</span><span class="tok-p">&gt;</span>
+                Log out
+              <span class="tok-p">&lt;/</span><span class="tok-nt">button</span><span class="tok-p">&gt;</span>
             <span class="tok-p">&lt;/</span><span class="tok-nt">form</span><span class="tok-p">&gt;</span>
           {% else %}</code></pre>
 </div>
@@ -1927,7 +1866,7 @@ element: input[name=email]; [...]</pre>
 </div>
 <div class="paragraph">
 <p>If you try the FTs at this point,
-you&#8217;ll see an error saying that URL doesn&#8217;t exist yet:</p>
+you&#8217;ll see an error saying that the URL doesn&#8217;t exist yet:</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -1971,7 +1910,7 @@ which clears down the user&#8217;s session and redirects them to a page of our c
 </div>
 </div>
 </div>
-<div class="paragraph">
+<div class="paragraph pagebreak-before">
 <p>And that gets us a fully passing FT&#8212;&#8203;indeed, a fully passing test suite:</p>
 </div>
 <div class="listingblock">
@@ -1994,7 +1933,7 @@ OK</pre>
 </td>
 <td class="content">
 We&#8217;re nowhere near a truly secure or acceptable login system here.
-    Since this is just an example app for a book, we&#8217;ll leave it at that,
+    As this is just an example app for a book, we&#8217;ll leave it at that,
     but in "real life" you&#8217;d want to explore a lot more security
     and usability issues before calling the job done.
     We&#8217;re dangerously close to "rolling our own crypto" here,
@@ -2010,10 +1949,10 @@ We&#8217;re nowhere near a truly secure or acceptable login system here.
 <div class="ulist">
 <ul>
 <li>
-<p><em><span class="strikethrough line-through">Token model with email + uid</span></em></p>
+<p><em><span class="strikethrough line-through">Token model with email and UID</span></em></p>
 </li>
 <li>
-<p><em><span class="strikethrough line-through">_view to create token + send login email incl. url w/ token uid</span></em></p>
+<p><em><span class="strikethrough line-through">View to create token and send login email incl. url w/ token UID</span></em></p>
 </li>
 <li>
 <p><em><span class="strikethrough line-through">Custom user model with USERNAME_FIELD=email</span></em></p>
@@ -2022,13 +1961,13 @@ We&#8217;re nowhere near a truly secure or acceptable login system here.
 <p><em><span class="strikethrough line-through">Authentication backend with authenticate() and get_user() functions</span></em></p>
 </li>
 <li>
-<p><em><span class="strikethrough line-through">Register auth backend in settings.py</span></em></p>
+<p><em><span class="strikethrough line-through">Registering auth backend in settings.py</span></em></p>
 </li>
 <li>
-<p><em><span class="strikethrough line-through">login view calls authenticate() and login() from django.contrib.auth</span></em></p>
+<p><em><span class="strikethrough line-through">Login view calls authenticate() and login() from django.contrib.auth</span></em></p>
 </li>
 <li>
-<p><em><span class="strikethrough line-through">logout view calls django.contrib.auth.logout</span></em></p>
+<p><em><span class="strikethrough line-through">Logout view calls django.contrib.auth.logout</span></em></p>
 </li>
 </ul>
 </div>
@@ -2036,9 +1975,9 @@ We&#8217;re nowhere near a truly secure or acceptable login system here.
 </div>
 <div class="paragraph">
 <p>In the next chapter, we&#8217;ll start trying to put our login system to good use.
-In the meantime, do a commit and enjoy this recap:</p>
+In the meantime, do a commit and enjoy this recap.</p>
 </div>
-<div id="mocking-py-sidebar" class="sidebarblock">
+<div id="mocking-py-sidebar" class="sidebarblock pagebreak-before less_space">
 <div class="content">
 <div class="title">On Mocking in Python</div>
 <div class="dlist">
@@ -2048,9 +1987,9 @@ In the meantime, do a commit and enjoy this recap:</p>
 <p>The <code>.return_value</code> attribute on a mock can be used in two ways.
 You can <em>read</em> it, to access the return value of a mocked-out function,
 and thus check on how it gets used later in your code;
-this usually happens in the "Assert" or "Then" part of your test.
+this usually happens in the "assert" or "then" part of your test.
 Alternatively, you can <em>assign</em> to it,
-usally up-front in the "Arrange" or "Given" part of your test,
+usally up-front in the "arrange" or "given" part of your test,
 as a way of saying
 "I want this mocked-out function to return a particular value".</p>
 </dd>
@@ -2067,12 +2006,12 @@ but that&#8217;s quite different from the style I mostly follow and show in this
 
 </p>
 </dd>
-<dt class="hdlist1">Mocks can allow you to verify implementation details</dt>
+<dt class="hdlist1">Mocks can enable you to verify implementation details</dt>
 <dd>
 <p>Most tests should test behaviour, not implementation.
-At some point though, we decided that the fact that we used a particular implementation
-<em>was</em> important, and so we used a mock as a way to verify that,
-and document it for our future selves.</p>
+At some point though, we decided using a particular implementation
+<em>was</em> important. And so, we used a mock as a way to verify that,
+and to document it for our future selves.</p>
 </dd>
 <dt class="hdlist1">There are alternatives to mocks, but they require rethinking how your code is structured</dt>
 <dd>
@@ -2081,9 +2020,7 @@ In programming languages
 that lack Python&#8217;s dynamic ability to monkeypatch things at runtime,
 developers have had to work on alternative ways to test code with dependencies.
 While these techniques can be more complex,
-they do force you to think about how your code is structured,
-to cleanly identify your dependencies,
-and to build clean abstractions and interfaces around them.
+they do force you to think about how your code is structured&#8212;to cleanly identify your dependencies and build clean abstractions and interfaces around them.
 Further discussion is beyond the scope of this book,
 but check out <a href="http://cosmicpython.com">Cosmic Python</a>.</p>
 </dd>
@@ -2098,15 +2035,15 @@ but check out <a href="http://cosmicpython.com">Cosmic Python</a>.</p>
 <div id="footnotes">
 <hr>
 <div class="footnote" id="_footnotedef_1">
-<a href="#_footnoteref_1">1</a>. There was actually an attempt to mitigate this problem in Python 3.5, with the addition of an <code>unsafe</code> argument that defaults to False, which will cause the mock to raise AttributeError for some common mis-spellings of <code>assert_</code>.  Just not, for example, the one I&#8217;m using here. So I prefer not to rely on that. More info at <a href="https://docs.python.org/3/library/unittest.mock.html#unittest.mock.Mock" class="bare">https://docs.python.org/3/library/unittest.mock.html#unittest.mock.Mock</a>
+<a href="#_footnoteref_1">1</a>. There was actually an attempt to mitigate this problem in Python 3.5, with the addition of an <code>unsafe</code> argument that defaults to <code>False</code>, which will cause the mock to raise <code>AttributeError</code> for some common misspellings of <code>assert_</code>.  Just not, for example, the one I&#8217;m using here&#8212;so I prefer not to rely on that. More info in the <a href="https://docs.python.org/3/library/unittest.mock.html#unittest.mock.Mock">Python docs</a>.
 </div>
 <div class="footnote" id="_footnotedef_2">
-<a href="#_footnoteref_2">2</a>. If you&#8217;re using pytest, there&#8217;s an additional benefit of seeing the <code>assert</code> keyword, rather than a normal method call, which makes the assert pop out.
+<a href="#_footnoteref_2">2</a>. If you&#8217;re using Pytest, there&#8217;s an additional benefit to seeing the <code>assert</code> keyword rather than a normal method call: it makes the assert pop out.
 </div>
 </div>
 <div id="footer">
 <div id="footer-text">
-License: Creative Commons <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode">CC-BY-NC-ND</a>. Last updated: 2025-07-28 10:14:18 +0100
+License: Creative Commons <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode">CC-BY-NC-ND</a>. Last updated: 2025-10-08 16:07:54 +0100
 </div>
 </div>
 <div class="comments" style="padding: 20px">
