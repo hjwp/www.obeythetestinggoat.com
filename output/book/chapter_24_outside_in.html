@@ -43,37 +43,9 @@ httpRequest.send();
 <div class="sect1">
 <h2 id="chapter_24_outside_in">Finishing "My Lists": Outside-In TDD</h2>
 <div class="sectionbody">
-<div class="sidebarblock">
-<div class="content">
-<div class="title">A Note for Early Release Readers</div>
-<div class="paragraph">
-<p>With Early Release ebooks, you get books in their earliest form&#8212;the author&#8217;s raw and unedited content as they write&#8212;so you can take advantage of these technologies long before the official release of these titles.</p>
-</div>
-<div class="paragraph">
-<p>This will be the 24th chapter of the final book. The GitHub repo is available at <a href="https://github.com/hjwp/book-example" class="bare">https://github.com/hjwp/book-example</a>.</p>
-</div>
-<div class="paragraph">
-<p>If you have comments about how we might improve the content and/or examples in this book, or if you notice missing material within this chapter, please reach out to the author at <a href="mailto:obeythetestinggoat@gmail.com">obeythetestinggoat@gmail.com</a>.</p>
-</div>
-</div>
-</div>
-<div class="sidebarblock">
-<div class="content">
-<div class="title">Warning, Chapter Recently Updated</div>
-<div class="paragraph">
-<p>Warning, this Chapter is freshly updated for Django 5 + Python 3.13.</p>
-</div>
-<div class="paragraph">
-<p>The code listings should have valid syntax,
-and I&#8217;ve been through and sense-checked the chapter text,
-but a few things might still be off!
-So let me know what you think of the chapter, via <a href="mailto:obeythetestinggoat@gmail.com">obeythetestinggoat@gmail.com</a></p>
-</div>
-</div>
-</div>
 <div class="paragraph">
 <p>
-In this chapter I&#8217;d like to talk about a technique called Outside-In TDD.
+In this chapter, I&#8217;d like to talk about a technique called outside-in TDD.
 It&#8217;s pretty much what we&#8217;ve been doing all along.
 Our "double-loop" TDD process,
 in which we write the functional test first and then the unit tests,
@@ -82,7 +54,7 @@ design the system from the outside, and build up our code in layers.
 Now I&#8217;ll make it explicit, and talk about some of the common issues involved.</p>
 </div>
 <div class="sect2">
-<h3 id="_the_alternative_inside_out">The Alternative: "Inside-Out"</h3>
+<h3 id="_the_alternative_inside_out">The Alternative: Inside-Out</h3>
 <div class="paragraph">
 <p>The alternative to "outside-in" is to work "inside-out",
 which is the way most people intuitively work before they encounter TDD.
@@ -91,12 +63,11 @@ to implement it starting with the innermost, lowest-level components first.</p>
 </div>
 <div class="paragraph">
 <p>For example, when faced with our current problem,
-providing users with a "My Lists" page of saved lists,
+providing users with a "My lists" page of saved lists,
 the temptation is to start at the models layer:
 we probably want to add an "owner" attribute to the <code>List</code> model object,
 reasoning that an attribute like this is "obviously" going to be required.
-Once that&#8217;s in place, we would modify the more peripheral layers of code,
-such as views and templates, taking advantage of the new attribute,
+Once that&#8217;s in place, we would modify the more peripheral layers of code&#8212;such as views and templates&#8212;taking advantage of the new attribute,
 and then finally add URL routing to point to the new view.</p>
 </div>
 <div class="paragraph">
@@ -114,7 +85,7 @@ on which to build the next layer out.</p>
 <div class="paragraph">
 <p>
 
-The most obvious problem with inside-out is that
+The most obvious problem with inside-out TDD is that
 it requires us to stray from a TDD workflow.
 Our functional test&#8217;s first failure might be due to missing URL routing,
 but we decide to ignore that
@@ -122,24 +93,23 @@ and go off adding attributes to our database model objects instead.</p>
 </div>
 <div class="paragraph">
 <p>We might have ideas in our head
-about the new desired behaviour of our inner layers like database models,
-and often these ideas will be pretty good,
-but they are actually just speculation about what&#8217;s really required,
+about the desired behaviour of our inner layers like database models,
+and often these ideas will be pretty good&#8212;but they are actually just speculation about what&#8217;s really required,
 because we haven&#8217;t yet built the outer layers that will use them.</p>
 </div>
 <div class="paragraph">
-<p>One problem that can result is to build inner components that are more general
-or more capable than we actually need, which is a waste of time,
+<p>One problem that can occur is building inner components that are more general
+or more capable than we actually need, which is a waste of time
 and an added source of complexity for your project.
 Another common problem is that you create inner components
-with an API which is convenient for their own internal design,
+with an API that is convenient for their own internal design,
 but which later turns out to be inappropriate
-for the calls your outer layers would like to make&#8230;&#8203;worse still,
+for the calls that your outer layers would like to make&#8230;&#8203;worse still,
 you might end up with inner components which, you later realise,
 don&#8217;t actually solve the problem that your outer layers need solved.</p>
 </div>
 <div class="paragraph">
-<p>In contrast, working outside-in allows you to use each layer
+<p>In contrast, working outside-in enables you to use each layer
 to imagine the most convenient API you could want from the layer beneath it.
 Let&#8217;s see it in action.</p>
 </div>
@@ -152,29 +122,29 @@ As we work through the following functional test,
 we start with the most outward-facing (presentation layer),
 through to the view functions (or "controllers"),
 and lastly the innermost layers, which in this case will be model code.
-See <a href="#outside-in-layers">The Layer in Our Application</a>.</p>
+See <a href="#outside-in-layers">The layer in our application</a>.</p>
 </div>
 <div id="outside-in-layers" class="imageblock">
 <div class="content">
 <img src="images/tdd3_2401.png" alt="A diagram of the layers of the application, with the user at the top, then a presentation layer (aka views in mvc) containing some templates, below that the views layer (aka controllers in mvc) containg views and forms, then the models layer with django models, and finally an icon for the database at the bottom.  there is also an arrow from top to bottom, with the top labelled OUTSIDE! and the bottom labelled IN!">
 </div>
-<div class="title">Figure 1. The Layer in Our Application</div>
+<div class="title">Figure 1. The layer in our application</div>
 </div>
 <div class="paragraph">
 <p>While we&#8217;re drawing diagrams, would it help to sketch out
-what we&#8217;re imagining?  See <a href="#my-lists-page-sketch">A sketch of the "My Lists" page</a>.</p>
+what we&#8217;re imagining?  See <a href="#my-lists-page-sketch">A sketch of the "My lists" page</a>.</p>
 </div>
 <div id="my-lists-page-sketch" class="imageblock">
 <div class="content">
 <img src="images/tdd3_2402.png" alt="A sketch of the My Lists page, showing the users email in the page header, and several lists with a callout saying that we will use the first item text as the hyperlink text for each list.">
 </div>
-<div class="title">Figure 2. A sketch of the "My Lists" page</div>
+<div class="title">Figure 2. A sketch of the "My lists" page</div>
 </div>
-<div class="paragraph">
+<div class="paragraph pagebreak-before">
 <p>Let&#8217;s incarnate this idea in FT form.
 We know our <code>create_pre_authenticated_session</code> code works now,
-so we can just fill out the actual body of the test,
-to describe using this prospective "My Lists" page.</p>
+so we can just fill out the actual body of the test
+to describe how a user might interact with this prospective "My lists" page:</p>
 </div>
 <div class="exampleblock sourcecode">
 <div class="title">src/functional_tests/test_my_lists.py (ch24l001)</div>
@@ -227,17 +197,16 @@ to describe using this prospective "My Lists" page.</p>
 </table>
 </div>
 <div class="paragraph">
-<p>As you can see, we create a list with a couple of items,
-then we check that this list appears on a new "My Lists" page,
+<p>As you can see, we create a list with a couple of items. Then, we check that this list appears on a new "My lists" page,
 and that it&#8217;s "named" after the first item in the list.</p>
 </div>
-<div class="paragraph">
+<div class="paragraph pagebreak-before">
 <p>Let&#8217;s validate that it really works by creating a second list,
-and seeing that appear on the My Lists page as well.
+and seeing that appear on the "My lists" page as well.
 The FT continues, and while we&#8217;re at it,
-we check that only logged-in users can see the "My Lists" page:</p>
+we check that only logged-in users can see the "My lists" page:</p>
 </div>
-<div class="exampleblock sourcecode">
+<div class="exampleblock sourcecode small-code">
 <div class="title">src/functional_tests/test_my_lists.py (ch24l002)</div>
 <div class="content">
 <div class="listingblock">
@@ -274,7 +243,7 @@ we check that only logged-in users can see the "My Lists" page:</p>
 </div>
 <div class="paragraph">
 <p>Our FT uses a new helper method, <code>add_list_item()</code>,
-which abstracts away entering text into the right input box.
+which abstracts away the process of entering text into the right input box.
 We define it in <em>base.py</em>:</p>
 </div>
 <div class="exampleblock sourcecode small-code">
@@ -296,8 +265,7 @@ We define it in <em>base.py</em>:</p>
 </div>
 </div>
 <div class="paragraph">
-<p>And while we&#8217;re at it we can use it in a few of the other FTs,
-like this for example:</p>
+<p>And while we&#8217;re at it, we can use it in a few of the other FTs&#8212;like this, for example:</p>
 </div>
 <div class="exampleblock sourcecode dofirst-ch24l004-1">
 <div class="title">src/functional_tests/test_layout_and_styling.py (ch24l004-2)</div>
@@ -320,7 +288,7 @@ like this for example:</p>
 I made a total of six changes&#8212;&#8203;see if you agree with me.</p>
 </div>
 <div class="paragraph">
-<p>A quick run of all FTs, a commit, and then back to the FT we&#8217;re working on.
+<p>Let&#8217;s do a quick run of all FTs, a commit, and then back to the FT we&#8217;re working on.
 The first error should look like this:</p>
 </div>
 <div class="listingblock">
@@ -336,7 +304,7 @@ element: My lists; [...]</pre>
 <h3 id="_the_outside_layer_presentation_and_templates">The Outside Layer: Presentation and Templates</h3>
 <div class="paragraph">
 <p>
-The test is currently failing because it can&#8217;t find a link saying "My Lists".
+The test is currently failing because it can&#8217;t find a link saying "My lists".
 We can address that at the presentation layer, in <em>base.html</em>, in our navigation bar.
 Here&#8217;s the minimal code change:</p>
 </div>
@@ -377,12 +345,9 @@ AssertionError: 'edith@example.com' not found in 'Your To-Do list'</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>Which is telling us we&#8217;re going to have to build a page
+<p>That is telling us that we&#8217;re going to have to build a page
 that at least has the user&#8217;s email in its header.
-Let&#8217;s start with the basics&#8212;&#8203;a URL and a placeholder template for it.</p>
-</div>
-<div class="paragraph">
-<p>Again, we can go outside-in,
+Let&#8217;s start with the basics&#8212;&#8203;a URL and a placeholder template for it. Again, we can go outside-in,
 starting at the presentation layer with just the URL and nothing else:</p>
 </div>
 <div class="exampleblock sourcecode">
@@ -421,11 +386,8 @@ selenium.common.exceptions.NoSuchElementException: [...]</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>To fix it, we&#8217;ll need to start to move from working at the presentation layer,
-gradually into the controller layer, Django&#8217;s urls and views.</p>
-</div>
-<div class="paragraph">
-<p>As always, we start with a test.
+<p>To fix it, we&#8217;ll need to start moving from working at the presentation layer,
+gradually into the controller layer&#8212;Django&#8217;s URLs and views. As always, we start with a test.
 In this layer, a unit test is the way to go:</p>
 </div>
 <div class="exampleblock sourcecode">
@@ -451,7 +413,7 @@ In this layer, a unit test is the way to go:</p>
 AssertionError: No templates used to render the response</pre>
 </div>
 </div>
-<div class="paragraph">
+<div class="paragraph pagebreak-before">
 <p>That&#8217;s because the URL doesn&#8217;t exist yet, and a 404 has no template.
 Let&#8217;s start our fix in <em>urls.py</em>:</p>
 </div>
@@ -472,8 +434,8 @@ Let&#8217;s start our fix in <em>urls.py</em>:</p>
 <div class="paragraph">
 <p>That gives us a new test failure,
 which informs us of what we should do.
-As you can see, it&#8217;s pointing us at a <em>views.py</em>,
-we&#8217;re clearly in the controller layer:</p>
+As you can see, it&#8217;s pointing us at a <em>views.py</em>.
+We&#8217;re clearly in the controller layer:</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -497,7 +459,7 @@ AttributeError: module 'lists.views' has no attribute 'my_lists'</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>And a minimal template, with no real content
+<p>Let&#8217;s also create a minimal template, with no real content
 except for the header that shows the user&#8217;s email address:</p>
 </div>
 <div class="exampleblock sourcecode">
@@ -513,7 +475,7 @@ except for the header that shows the user&#8217;s email address:</p>
 </div>
 </div>
 <div class="paragraph">
-<p>That gets our unit tests passing.</p>
+<p>That gets our unit tests passing:</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -534,9 +496,9 @@ element: Reticulate splines; [...]</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>Step by step! Sure enough, the FT get a little further.
-It <em>can</em> now find the email in the <code>&lt;h1&gt;</code>,
-but it&#8217;s now saying that the "My Lists" page doesn&#8217;t yet show any lists.
+<p>Step by step! Sure enough, the FT gets a little further.
+It can now find the email in the <code>&lt;h1&gt;</code>,
+but it&#8217;s now saying that the "My lists" page doesn&#8217;t yet show any lists.
 It wants them to appear as clickable links, named after the first item.</p>
 </div>
 </div>
@@ -544,12 +506,10 @@ It wants them to appear as clickable links, named after the first item.</p>
 <h3 id="_another_pass_outside_in">Another Pass, Outside-In</h3>
 <div class="paragraph">
 <p>
-At each stage, we&#8217;re still letting the FT drive what development we do.</p>
-</div>
-<div class="paragraph">
-<p>Starting again at the outside layer, in the template,
+At each stage, we&#8217;re still letting the FT drive what development we do.
+Starting again at the outside layer, in the template,
 we begin to write the template code we&#8217;d like to use
-to get the "My Lists" page to work the way we want it to.
+to get the "My lists" page to work the way we want it to.
 As we do so, we start to specify the API we want
 from the code at the layers below.</p>
 </div>
@@ -558,10 +518,10 @@ from the code at the layers below.</p>
 <div class="paragraph">
 <p>
 Let&#8217;s take a look at our base template, <em>base.html</em>.
-It currently has a lot of content that&#8217;s specific to editing todo lists,
-which our "My Lists" page doesn&#8217;t need:</p>
+It currently has a lot of content that&#8217;s specific to editing to-do lists,
+which our "My lists" page doesn&#8217;t need:</p>
 </div>
-<div class="exampleblock sourcecode currentcontents">
+<div class="exampleblock sourcecode currentcontents small-code">
 <div class="title">src/lists/templates/base.html</div>
 <div class="content">
 <div class="listingblock">
@@ -601,7 +561,7 @@ which our "My Lists" page doesn&#8217;t need:</p>
 </div>
 </div>
 </div>
-<div class="colist arabic">
+<div class="colist arabic pagebreak-before">
 <table>
 <tr>
 <td><i class="conum" data-value="1"></i><b>1</b></td>
@@ -610,95 +570,93 @@ Everything else up to this point is generic enough to be on any page.</td>
 </tr>
 <tr>
 <td><i class="conum" data-value="2"></i><b>2</b></td>
-<td>Similarly the <code>{% block table %}</code> isn&#8217;t something we&#8217;d need on the "My Lists" page.</td>
+<td>Similarly, the <code>{% block table %}</code> isn&#8217;t something we&#8217;d need on the "My lists" page.</td>
 </tr>
 <tr>
 <td><i class="conum" data-value="3"></i><b>3</b></td>
-<td>Finally the <code>&lt;script&gt;</code> tag is specific to lists too.</td>
+<td>Finally, the <code>&lt;script&gt;</code> tag is specific to lists too.</td>
 </tr>
 </table>
 </div>
 <div class="paragraph">
-<p>So we&#8217;ll want to change things so that <em>base.html</em> is a bit more generic.</p>
+<p>So, we&#8217;ll want to change things so that <em>base.html</em> is a bit more generic.</p>
 </div>
 <div class="paragraph">
-<p>Let&#8217;s recap: we&#8217;ve got three actual pages we want to render:</p>
+<p>Let&#8217;s recap. We&#8217;ve got three actual pages we want to render:</p>
 </div>
 <div class="olist arabic">
 <ol class="arabic">
 <li>
-<p>The home page (where you can enter a first todo item to create a new list)</p>
+<p>The home page (where you can enter a first to-do item to create a new list)</p>
 </li>
 <li>
-<p>The "list" page (where you can view an existing list and add to it)</p>
+<p>The "List" page (where you can view an existing list and add to it)</p>
 </li>
 <li>
-<p>The "my lists" page (which is a list of all your existing lists)</p>
-<div class="ulist">
-<ul>
-<li>
-<p>The home page and list page both share the "form" elements and the lists.js javascript.</p>
-</li>
-<li>
-<p>But the lists page is the only one that needs to show the full table of list items</p>
-</li>
-<li>
-<p>The "my lists" page doesn&#8217;t need anything related to editing or displaying lists.</p>
-</li>
-</ul>
-</div>
+<p>The "My lists" page (which is a list of all your existing lists)</p>
 </li>
 </ol>
 </div>
 <div class="paragraph">
-<p>So we have some things shared between all 3, and some only shared between 1 and 2.</p>
+<p>And the home page and list page both share the same "form" elements and the <em>lists.js</em> JavaScript. But the "List" page is the only one that needs to show the full table of list items. The "My lists" page doesn&#8217;t need anything related to editing or displaying lists.</p>
 </div>
 <div class="paragraph">
-<p>So far we&#8217;ve been using inheritance to share the common parts of our templates,
+<p>So, we have some things shared between all three, and some only shared between the first and second.</p>
+</div>
+<div class="paragraph">
+<p>So far, we&#8217;ve been using inheritance to share the common parts of our templates,
 but this is a good place to start using composition instead.
-At the moment we&#8217;re saying that "home" is a type of "base" template,
+At the moment, we&#8217;re saying that "home" is a type of "base" template,
 but with the "table" section switched off, which is a bit awkward.
-Let&#8217;s not make it even more awkward by saying that "lists"
+Let&#8217;s not make it even more awkward by saying that "list"
 is a "base" template with both the form and the table switched off!
-It might make more sense to say that "home" is a type of base template which "includes" a list form,
-but no table, and "list" includes both the list form and the list table.</p>
+It might make more sense to say that "home" is a type of base template that includes a list form,
+but no table, and that "list" includes both the list form and the list table.</p>
 </div>
-<div class="paragraph">
-<p>
-TIP: People often say "prefer composition over inheritance",
+<div class="admonitionblock tip">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-tip" title="Tip"></i>
+</td>
+<td class="content">
+People often say "prefer composition over inheritance",
     because inheritance can become hard to reason about as the inheritance hierarchy grows.
-    Composition is more flexible,
+    Composition is more flexible
     and often makes more sense.
     For a lengthy discussion of this topic, see
-    <a href="https://hynek.me/articles/python-subclassing-redux/">Hynek Schlawack&#8217;s definitive article on subclassing in Python</a>.</p>
+    <a href="https://hynek.me/articles/python-subclassing-redux/">Hynek Schlawack&#8217;s definitive article on subclassing in Python</a>.
+</td>
+</tr>
+</table>
 </div>
-<div class="paragraph">
-<p>So, let&#8217;s:</p>
+<div class="paragraph pagebreak-before">
+<p>So, let&#8217;s do the following:</p>
 </div>
 <div class="olist arabic">
 <ol class="arabic">
 <li>
 <p>Pull out the <code>&lt;form&gt;</code> tag and the <em>lists.js</em> <code>&lt;script&gt;</code> tag into into some blocks
-we can "include" in our homepage and lists page.</p>
+we can "include" in our home page and lists page.</p>
 </li>
 <li>
-<p>Move the <code>&lt;table&gt;</code> block so it only exists in the lists page.</p>
+<p>Move the <code>&lt;table&gt;</code> block so it only exists in the list page.</p>
 </li>
 <li>
-<p>Take all the lists-specific stuff out of the <em>base.html</em> template,
-making it into a more generic page with a header and a placeholder for generic content:</p>
+<p>Take all the list-specific stuff out of the <em>base.html</em> template,
+making it into a more generic page with a header and a placeholder for generic content.</p>
 </li>
 </ol>
 </div>
 <div class="paragraph">
 <p>We&#8217;ll use what&#8217;s called an
-<a href="https://docs.djangoproject.com/en/5.2/ref/templates/builtins/#include">include</a>
-to be able to compose reusable template fragments,
+<a href="https://docs.djangoproject.com/en/5.2/ref/templates/builtins/#include"><code>include</code></a>
+to compose reusable template fragments
 when we don&#8217;t want to use inheritance.</p>
 </div>
 </div>
 <div class="sect3">
-<h4 id="_an_early_return_so_were_refactoring_against_green">An Early Return so we&#8217;re Refactoring Against Green</h4>
+<h4 id="_an_early_return_so_were_refactoring_against_green">An Early Return So We&#8217;re Refactoring Against Green</h4>
 <div class="paragraph">
 <p>Before we start refactoring, let&#8217;s put an early return in our FT,
 so we&#8217;re refactoring against green tests:</p>
@@ -735,8 +693,8 @@ OK</pre>
 </div>
 </div>
 </div>
-<div class="sect3">
-<h4 id="_factoring_out_two_template_includes">Factoring Out Two Template Includes</h4>
+<div class="sect3 pagebreak-before less_space">
+<h4 id="_factoring_out_two_template_includes">Factoring Out Two Template includes</h4>
 <div class="paragraph">
 <p>First let&#8217;s pull out the form and the script tag from <em>base.html</em>:</p>
 </div>
@@ -800,11 +758,11 @@ OK</pre>
 </div>
 </div>
 </div>
-<div class="paragraph">
-<p>You can see we&#8217;ve replaced all the lists-specific stuff with 3 new blocks:</p>
+<div class="paragraph pagebreak-before">
+<p>You can see we&#8217;ve replaced all the list-specific stuff with three new blocks:</p>
 </div>
-<div class="ulist">
-<ul>
+<div class="olist arabic">
+<ol class="arabic">
 <li>
 <p><code>extra_header</code> for anything we want to put in the big header section</p>
 </li>
@@ -812,14 +770,14 @@ OK</pre>
 <p><code>content</code> for the main content of the page</p>
 </li>
 <li>
-<p><code>scripts</code> for any javascript we want to include.</p>
+<p><code>scripts</code> for any JavaScript we want to include</p>
 </li>
-</ul>
+</ol>
 </div>
 <div class="paragraph">
-<p>Let&#8217;s paste in the <code>&lt;form&gt;</code> tag into a file at
+<p>Let&#8217;s paste the <code>&lt;form&gt;</code> tag into a file at
 <em>src/lists/templates/includes/form.html</em>
-(having a subfolder in templates for includes is a common practice).</p>
+(having a subfolder in templates for includes is a common practice):</p>
 </div>
 <div class="exampleblock sourcecode small-code">
 <div class="title">src/lists/templates/includes/form.html (ch24l010-2)</div>
@@ -853,13 +811,13 @@ OK</pre>
 <table>
 <tr>
 <td><i class="conum" data-value="1"></i><b>1</b></td>
-<td>This is the only change,
+<td>This is the only change;
 we&#8217;ve replaced the <code>{% block form_action %}</code> with <code>{{ form_action }}</code>.</td>
 </tr>
 </table>
 </div>
 <div class="paragraph">
-<p>Let&#8217;s paste the scripts tags verbatim
+<p>Let&#8217;s paste the <code>script</code> tags verbatim
 into a new file at <em>includes/scripts.html</em>:</p>
 </div>
 <div class="exampleblock sourcecode">
@@ -878,9 +836,9 @@ into a new file at <em>includes/scripts.html</em>:</p>
 </div>
 </div>
 </div>
-<div class="paragraph">
-<p>Now let&#8217;s look at how to use the include,
-and how the <code>form_action</code> change plays out,
+<div class="paragraph pagebreak-before">
+<p>Now let&#8217;s look at how to use the <code>include</code>,
+and how the <code>form_action</code> change plays out
 in the changes to <em>home.html</em>:</p>
 </div>
 <div class="exampleblock sourcecode small-code">
@@ -908,7 +866,7 @@ in the changes to <em>home.html</em>:</p>
 <table>
 <tr>
 <td><i class="conum" data-value="1"></i><b>1</b></td>
-<td>The <code>{% url ... as %}</code> syntax lets us define a template variable in-line</td>
+<td>The <code>{% url ... as %}</code> syntax lets us define a template variable inline.</td>
 </tr>
 <tr>
 <td><i class="conum" data-value="2"></i><b>2</b></td>
@@ -924,7 +882,7 @@ with no variables.</td>
 </tr>
 </table>
 </div>
-<div class="paragraph">
+<div class="paragraph pagebreak-before">
 <p>Now let&#8217;s see it in <em>list.html</em>:</p>
 </div>
 <div class="exampleblock sourcecode">
@@ -973,16 +931,16 @@ and we use the <code>include</code> to pull in the form.</td>
 <tr>
 <td><i class="conum" data-value="2"></i><b>2</b></td>
 <td>The <code>block table</code> becomes a <code>content</code> block,
-with all the html we need for our table.</td>
+with all the HTML we need for our table.</td>
 </tr>
 <tr>
 <td><i class="conum" data-value="3"></i><b>3</b></td>
-<td>And the scripts block is the same as the one from <em>home.html</em>.</td>
+<td>And the <code>scripts</code> block is the same as the one from <em>home.html</em>.</td>
 </tr>
 </table>
 </div>
 <div class="paragraph">
-<p>Now a little re-run of all our FTs to make sure we haven&#8217;t broken anything:</p>
+<p>Now a little rerun of all our FTs to make sure we haven&#8217;t broken anything:</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -991,8 +949,8 @@ with all the html we need for our table.</td>
 OK</pre>
 </div>
 </div>
-<div class="paragraph">
-<p>OK let&#8217;s remove the early return:</p>
+<div class="paragraph pagebreak-before">
+<p>OK, let&#8217;s remove the early return:</p>
 </div>
 <div class="exampleblock sourcecode">
 <div class="title">src/functional_tests/test_my_lists.py (ch24l010-6)</div>
@@ -1022,16 +980,15 @@ $ <strong>git commit -m "refactor templates to use composition/includes"</strong
 </div>
 <div class="paragraph">
 <p>Now let&#8217;s get back to our outside-in process,
-and working in our template to drive out the requirements
-for our views layer:</p>
+and to working in our template to drive out the requirements
+for our views layer.</p>
 </div>
 </div>
 <div class="sect3">
 <h4 id="_designing_our_api_using_the_template">Designing Our API Using the Template</h4>
 <div class="paragraph">
 <p>With the early return removed,
-our FT is back to telling us that we need to actually show our lists,
-named after their first items, on the new my_lists page:</p>
+our FT is back to telling us that we need to actually show our lists&#8212;named after their first items&#8212;on the new "My lists" page:</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -1043,7 +1000,7 @@ element: Reticulate splines; [...]</pre>
 </div>
 <div class="paragraph">
 <p>(If you haven&#8217;t taken a look around the site recently,
-it does look pretty blank, see <a href="#empty-my-lists-page">Not much to see here</a>.)</p>
+it does look pretty blank&#8212;see <a href="#empty-my-lists-page">Not much to see here</a>.)</p>
 </div>
 <div id="empty-my-lists-page" class="imageblock">
 <div class="content">
@@ -1053,7 +1010,7 @@ it does look pretty blank, see <a href="#empty-my-lists-page">Not much to see he
 </div>
 <div class="paragraph">
 <p>
-So, in <em>my_lists.html</em> we can now work in the <code>content</code> block:</p>
+So, in <em>my_lists.html</em>, we can now work in the <code>content</code> block:</p>
 </div>
 <div class="exampleblock sourcecode">
 <div class="title">src/lists/templates/my_lists.html (ch24l010-7)</div>
@@ -1076,20 +1033,20 @@ So, in <em>my_lists.html</em> we can now work in the <code>content</code> block:
 </div>
 <div class="paragraph">
 <p>We&#8217;ve made several design decisions in this template
-which are going to filter their way down through the code:</p>
+that are going to filter their way down through the code:</p>
 </div>
 <div class="colist arabic">
 <table>
 <tr>
 <td><i class="conum" data-value="1"></i><b>1</b></td>
 <td>We want a variable called <code>owner</code> to represent the user in our template.
-This is what will allow one user to view another users&#8217;s lists.</td>
+This is what will allow one user to view another user&#8217;s lists.</td>
 </tr>
 <tr>
 <td><i class="conum" data-value="2"></i><b>2</b></td>
 <td>We want to be able to iterate through the lists created by that user
-using <code>owner.lists.all</code>
-(I happen to know how to make this work with the Django ORM).</td>
+using <code>owner.lists.all</code>.
+(I happen to know how to make this work with the Django ORM.)</td>
 </tr>
 <tr>
 <td><i class="conum" data-value="3"></i><b>3</b></td>
@@ -1100,27 +1057,27 @@ which is currently specified as the text of its first element.</td>
 </div>
 <div class="sidebarblock">
 <div class="content">
-<div class="title">Programming By Wishful Thinking Again, Still</div>
+<div class="title">Programming by Wishful Thinking Again, Still</div>
 <div class="paragraph">
 <p>The phrase "programming by wishful thinking" was first popularised by
 the amazing, mind-expanding textbook
-<a href="https://en.wikipedia.org/wiki/Structure_and_Interpretation_of_Computer_Programs">SICP</a>, which I <em>cannot</em> recommend highly enough.</p>
+<a href="https://oreil.ly/5EZNI">Structure and Interpretation of Computer Programs (SICP)</a>, which I <em>cannot</em> recommend highly enough.</p>
 </div>
 <div class="paragraph">
 <p>In it, the authors use it as a way to think about and write code
 at a higher level of abstraction,
-without worrying about the details of a lower level,
+without worrying about the details of a lower level
 that might not even exist yet.
-For them, it&#8217;s a key tool for designing programs,
+For them, it&#8217;s a key tool for designing programs
 and managing complexity.</p>
 </div>
 <div class="paragraph">
 <p>We&#8217;ve been doing a lot of "programming by wishful thinking" in this book.
-We&#8217;ve talked about how TDD itself is a form of wishful thinking,
+We&#8217;ve talked about how TDD itself is a form of wishful thinking;
 our tests express that we <em>wish</em> we had code that worked in such-and-such a way.</p>
 </div>
 <div class="paragraph">
-<p>Outside-In TDD is very much an extension of this philosophy.
+<p>Outside-in TDD is very much an extension of this philosophy.
 We start writing code at the higher levels
 based on what we <em>wish</em> we had at the lower levels,
 even though it doesn&#8217;t exist yet&#8230;&#8203;</p>
@@ -1128,13 +1085,13 @@ even though it doesn&#8217;t exist yet&#8230;&#8203;</p>
 <div class="paragraph">
 <p>YAGNI also comes into it.  By driving our development from the outside in,
 each piece of code we write is only there because we know it&#8217;s actually needed
-by a higher layer, and, ultimately, by the user.</p>
+by a higher layer and, ultimately, by the user.</p>
 </div>
 </div>
 </div>
 <div class="paragraph">
-<p>We can rerun our FTs, to check that we didn&#8217;t break anything,
-and to see whether we&#8217;ve got any further:</p>
+<p>We can rerun our FTs to check that we didn&#8217;t break anything,
+and to see whether we&#8217;ve gotten any further:</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -1150,7 +1107,7 @@ FAILED (errors=1)</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>Well, no further, but at least we didn&#8217;t break anything. Time for a commit:</p>
+<p>Well, no further&#8212;but at least we didn&#8217;t break anything. Time for a commit:</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -1160,13 +1117,12 @@ $ <strong>git commit -m "url, placeholder view, and first-cut templates for my_l
 </div>
 </div>
 </div>
-<div class="sect3">
+<div class="sect3 pagebreak-before less_space">
 <h4 id="_moving_down_to_the_next_layer_what_the_view_passes_to_the_template">Moving Down to the Next Layer: What the View Passes to the Template</h4>
 <div class="paragraph">
 <p>
 Now our views layer needs to respond to the requirements we&#8217;ve laid out in the template layer,
-by giving it the objects it needs.
-In this case, the list owner:</p>
+by giving it the objects it needs&#8212;in this case, the list owner:</p>
 </div>
 <div class="exampleblock sourcecode">
 <div class="title">src/lists/tests/test_views.py (ch24l011)</div>
@@ -1191,7 +1147,7 @@ In this case, the list owner:</p>
 </div>
 </div>
 <div class="paragraph">
-<p>Gives:</p>
+<p>That gives:</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -1245,11 +1201,11 @@ We just need to add a user for it as well:</p>
 </div>
 </div>
 <div class="sect2">
-<h3 id="_the_next_requirement_from_the_views_layer_new_lists_should_record_owner">The Next "Requirement" from the Views Layer: New Lists Should Record Owner</h3>
+<h3 id="_the_next_requirement_from_the_views_layer_new_lists_should_record_owner">The Next "Requirement" from the Views Layer: <span class="keep-together">New Lists Should Record Owner</span></h3>
 <div class="paragraph">
 <p>
 Before we move down to the model layer,
-there&#8217;s another part of the code at the views layer that will need to use our model:
+there&#8217;s another part of the code at the view layer that will need to use our model:
 we need some way for newly created lists to be assigned to an owner,
 if the current user is logged in to the site.</p>
 </div>
@@ -1317,15 +1273,15 @@ with a logged-in user.</td>
 <table>
 <tr>
 <td><i class="conum" data-value="1"></i><b>1</b></td>
-<td>We&#8217;ll set the <code>.owner</code> attribute on our new list</td>
+<td>We&#8217;ll set the <code>.owner</code> attribute on our new list.</td>
 </tr>
 <tr>
 <td><i class="conum" data-value="2"></i><b>2</b></td>
-<td>And we&#8217;ll try and save it to the datababase.</td>
+<td>And we&#8217;ll try and save it to the database.</td>
 </tr>
 </table>
 </div>
-<div class="paragraph">
+<div class="paragraph pagebreak-before">
 <p>But it won&#8217;t actually work, because we don&#8217;t know <em>how</em> to save a list owner yet:</p>
 </div>
 <div class="listingblock">
@@ -1341,28 +1297,24 @@ AttributeError: 'List' object has no attribute 'owner'</pre>
 <p>
 In order to get this test passing, as it&#8217;s written now,
 we have to move down to the model layer.
-However, it means doing more work with a failing test, which is not ideal.</p>
-</div>
-<div class="paragraph">
-<p>
-The alternative is to rewrite the test
+However, it means doing more work with a failing test, which is not ideal. The alternative is to rewrite the test
 to make it more <em>isolated</em> from the level below, using mocks.</p>
 </div>
 <div class="paragraph">
 <p>On the one hand, it&#8217;s a lot more effort to use mocks,
 and it can lead to tests that are harder to read.
-On the other hand, advocates of what&#8217;s known as "London School" TDD
+On the other hand, advocates of London-school TDD
 are very keen on the approach.
 You can read an exploration of this approach in
 <a href="https://www.obeythetestinggoat.com/book/appendix_purist_unit_tests.html">Online Appendix: Test Isolation and "Listening to Your Tests"</a>.</p>
 </div>
 <div class="paragraph">
-<p>For now we&#8217;ll accept the tradeoff, moving down one layer with failing tests,
+<p>For now, we&#8217;ll accept the trade-off: moving down one layer with failing tests,
 but avoiding the extra mocks.</p>
 </div>
 <div id="revisit_this_point_with_isolated_tests" class="paragraph">
-<p>Let&#8217;s do a commit, and then <em>tag</em> the commit as a way of remembering our
-position if we want to revisit this decision later.</p>
+<p>Let&#8217;s do a commit, and then <code>tag</code> the commit as a way of remembering our
+position if we want to revisit this decision later:</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -1496,15 +1448,15 @@ Migrations for 'lists':
 <pre>ERROR: test_can_save_a_POST_request
 [...]
 ValueError: Cannot assign "&lt;SimpleLazyObject:
-&lt;django.contrib.auth.models.AnonymousUser object at 0x1069852e&gt;&gt;": "List.owner" must
-be a "User" instance.
+&lt;django.contrib.auth.models.AnonymousUser object at 0x1069852e&gt;&gt;": "List.owner"
+must be a "User" instance.
 [...]
 
 ERROR: test_redirects_after_POST
 [...]
 ValueError: Cannot assign "&lt;SimpleLazyObject:
-&lt;django.contrib.auth.models.AnonymousUser object at 0x106a1b440&gt;&gt;": "List.owner" must
-be a "User" instance.</pre>
+&lt;django.contrib.auth.models.AnonymousUser object at 0x106a1b440&gt;&gt;": "List.owner"
+must be a "User" instance.</pre>
 </div>
 </div>
 <div class="paragraph">
@@ -1516,10 +1468,7 @@ when we haven&#8217;t got a logged-in user.</p>
 <p>The tests are reminding us to think of this use case too:
 we should only save the list owner when the user is actually logged in.
 The <code>.is_authenticated</code> attribute we came across in <a href="/book/chapter_19_spiking_custom_auth.html">[chapter_19_spiking_custom_auth]</a>
-comes in useful now
-(when they&#8217;re not logged in,
-Django represents users using a class called <code>AnonymousUser</code>,
-whose <code>.is_authenticated</code> is always <code>False</code>):</p>
+comes in useful now:<sup class="footnote">[<a id="_footnoteref_2" class="footnote" href="#_footnotedef_2" title="View footnote.">2</a>]</sup></p>
 </div>
 <div class="exampleblock sourcecode">
 <div class="title">src/lists/views.py (ch24l023)</div>
@@ -1538,7 +1487,7 @@ whose <code>.is_authenticated</code> is always <code>False</code>):</p>
 </div>
 </div>
 </div>
-<div class="paragraph">
+<div class="paragraph pagebreak-before">
 <p>And that gets us passing!</p>
 </div>
 <div class="listingblock">
@@ -1565,7 +1514,7 @@ $ <strong>git commit -m "lists can have owners, which are saved on creation."</s
 <h3 id="_final_step_feeding_through_the_name_api_from_the_template">Final Step: Feeding Through the .name API from the Template</h3>
 <div class="paragraph">
 <p>The last thing our outside-in design wanted came from the templates,
-which wanted to be able to access a list "name" based on the text of
+which want to be able to access a list "name" based on the text of
 its first item:</p>
 </div>
 <div class="exampleblock sourcecode">
@@ -1595,8 +1544,8 @@ its first item:</p>
 </div>
 </div>
 <div class="paragraph">
-<p>And that, believe it or not, actually gets us a passing test,
-and a working "My Lists" page (<a href="#my-lists-page">The "My Lists" page, in all its glory (and proof I did test on Windows)</a>)!</p>
+<p>And that, believe it or not, actually gets us a passing test
+and a working "My lists" page (see <a href="#my-lists-page">The "My lists" page, in all its glory (and proof I did test on Windows)</a>)!</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -1611,7 +1560,7 @@ OK</pre>
 <div class="content">
 <img src="images/tdd3_2404.png" alt="Screenshot of new My Lists page">
 </div>
-<div class="title">Figure 4. The "My Lists" page, in all its glory (and proof I did test on Windows)</div>
+<div class="title">Figure 4. The "My lists" page, in all its glory (and proof I did test on Windows)</div>
 </div>
 <div class="sidebarblock">
 <div class="content">
@@ -1626,15 +1575,17 @@ on a class to make it appear to the outside world like an attribute.</p>
 <div class="paragraph">
 <p>
 This is a powerful feature of the language, because it makes it easy to
-implement "duck typing", to change the implementation of a property without
+implement "duck typing"&#8212;to change the implementation of a property without
 changing the interface of the class.  In other words, if we decide to change
-<code>.name</code> into being a "real" attribute on the model, which is stored as text in
+<code>.name</code> into being a "real" attribute on the model, stored as text in
 the database, then we will be able to do so entirely transparently&#8212;&#8203;as far as
-the rest of our code is concerned, they will still be able to just access
+the rest of our code is concerned, will still be able to just access
 <code>.name</code> and get the list name, without needing to know about the
-implementation. Raymond Hettinger gave a
-<a href="https://www.youtube.com/watch?v=HTLu2DFOdTg">classic, beginner-friendly talk on
-this topic at Pycon back in 2013</a>, which I enthusiastically recommend (it
+implementation.</p>
+</div>
+<div class="paragraph">
+<p>Raymond Hettinger gave a <a href="https://oreil.ly/WQ2CX">classic, beginner-friendly talk on
+this topic at PyCon back in 2013</a>, which I enthusiastically recommend (it
 covers about a million good practices for Pythonic class design besides).
 Of course, in the Django template language, <code>.name</code> would still call the method
 even if it didn&#8217;t have <code>@property</code>, but that&#8217;s a particularity of Django, and
@@ -1645,16 +1596,16 @@ doesn&#8217;t apply to Python in general&#8230;&#8203;</p>
 <div class="paragraph">
 <p>
 In the next chapter, it&#8217;s time to recruit some computers
-to do more of the work for us.  Let&#8217;s talk about Continuous Integration (CI).</p>
+to do more of the work for us.  Let&#8217;s talk about continuous integration (CI).</p>
 </div>
 <div class="sidebarblock">
 <div class="content">
 <div class="title">Outside-In TDD</div>
 <div class="dlist">
 <dl>
-<dt class="hdlist1">Outside-In TDD</dt>
+<dt class="hdlist1">Outside-in TDD</dt>
 <dd>
-<p>A methodology for building code, driven by tests,
+<p>This is methodology for building code, driven by tests,
 which proceeds by starting from the "outside" layers (presentation, GUI),
 and moving "inwards" step by step, via view/controller layers,
 down towards the model layer.
@@ -1694,12 +1645,15 @@ You&#8217;ll need to remember them yourself.
 <div id="footnotes">
 <hr>
 <div class="footnote" id="_footnotedef_1">
-<a href="#_footnoteref_1">1</a>. Strictly speaking you could have omitted the <code>with=</code> in this case, as included templates autmatically get the context of their parent. But sometimes you want to pass a context variable under a different name, so I like the with, for consistency and explicitness.
+<a href="#_footnoteref_1">1</a>. Strictly speaking, you could have omitted the <code>with=</code> in this case, as included templates automatically get the context of their parent. But sometimes you want to pass a context variable under a different name, so I like the <code>with</code>, for consistency and explicitness.
+</div>
+<div class="footnote" id="_footnotedef_2">
+<a href="#_footnoteref_2">2</a>. When they&#8217;re not logged in, Django represents users using a class called <code>AnonymousUser</code>, whose <code>.is_authenticated</code> is always <code>False</code>.
 </div>
 </div>
 <div id="footer">
 <div id="footer-text">
-License: Creative Commons <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode">CC-BY-NC-ND</a>. Last updated: 2025-07-28 10:14:18 +0100
+License: Creative Commons <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode">CC-BY-NC-ND</a>. Last updated: 2025-10-08 16:07:54 +0100
 </div>
 </div>
 <div class="comments" style="padding: 20px">

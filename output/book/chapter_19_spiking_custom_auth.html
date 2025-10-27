@@ -41,41 +41,15 @@ httpRequest.send();
 </div>
 <div id="content">
 <div class="sect1">
-<h2 id="chapter_19_spiking_custom_auth">User Authentication, Spiking, and <span class="keep-together">De-Spiking</span></h2>
+<h2 id="chapter_19_spiking_custom_auth">User Authentication, Spiking, <span class="keep-together">and De-Spiking</span></h2>
 <div class="sectionbody">
-<div class="sidebarblock">
-<div class="content">
-<div class="title">A Note for Early Release Readers</div>
-<div class="paragraph">
-<p>With Early Release ebooks, you get books in their earliest form&#8212;the author&#8217;s raw and unedited content as they write&#8212;so you can take advantage of these technologies long before the official release of these titles.</p>
-</div>
-<div class="paragraph">
-<p>This will be the 19th chapter of the final book. The GitHub repo is available at <a href="https://github.com/hjwp/book-example" class="bare">https://github.com/hjwp/book-example</a>.</p>
-</div>
-<div class="paragraph">
-<p>If you have comments about how we might improve the content and/or examples in this book, or if you notice missing material within this chapter, please reach out to the author at <a href="mailto:obeythetestinggoat@gmail.com">obeythetestinggoat@gmail.com</a>.</p>
-</div>
-</div>
-</div>
-<div class="sidebarblock">
-<div class="content">
-<div class="title">Warning, Recently Updated</div>
-<div class="paragraph">
-<p>This chapter has recently been updated for the third edition.
-Its listings now use Django 5.2 and Python 3.13.</p>
-</div>
-<div class="paragraph">
-<p>Please send feedback!  <a href="mailto:obeythetestinggoat@gmail.com">obeythetestinggoat@gmail.com</a></p>
-</div>
-</div>
-</div>
 <div class="paragraph">
 <p>
 Our beautiful lists site has been live for a few days,
 and our users are starting to come back to us with feedback.
 "We love the site", they say, "but we keep losing our lists.
 Manually remembering URLs is hard.
-It&#8217;d be great if it could remember what lists we&#8217;d started".</p>
+It&#8217;d be great if it could remember what lists we&#8217;d started."</p>
 </div>
 <div class="paragraph">
 <p>Remember Henry Ford and faster horses. Whenever you hear a user requirement,
@@ -94,27 +68,22 @@ Naturally we&#8217;re not going to mess about
 with remembering passwords ourselves&#8212;&#8203;besides being <em>so</em> '90s,
 secure storage of user passwords is a security nightmare
 we&#8217;d rather leave to someone else.
-We&#8217;ll use something fun called passwordless auth instead.</p>
+We&#8217;ll use something fun called "passwordless authentication" instead.<sup class="footnote">[<a id="_footnoteref_1" class="footnote" href="#_footnotedef_1" title="View footnote.">1</a>]</sup></p>
 </div>
-<div class="paragraph">
-<p>(If you <em>insist</em> on storing your own passwords,
-Django&#8217;s default auth module is ready and waiting for you.
-It&#8217;s nice and straightforward, and I&#8217;ll leave it to you to discover on your own.)</p>
-</div>
-<div class="sect2 pagebreak-before less_space">
-<h3 id="_passwordless_auth_with_magic_links">Passwordless Auth With "Magic Links"</h3>
+<div class="sect2">
+<h3 id="_passwordless_auth_with_magic_links">Passwordless Auth with "Magic Links"</h3>
 <div class="paragraph">
 <p>
 
 
 
 What authentication system could we use to avoid storing passwords ourselves?
-Oauth?  Openid?  "Login with Facebook"?   Ugh.
-For me those all have unacceptable creepy overtones;
-why should Google or Facebook know what sites you&#8217;re logging into and when?</p>
+OAuth?  OpenID?  "Sign in with Facebook"? Ugh.
+For me, those all have unacceptable creepy overtones;
+why should Google or Facebook know what sites you&#8217;re logging in to and when?</p>
 </div>
 <div class="paragraph">
-<p>Instead, for the second edition,<sup class="footnote">[<a id="_footnoteref_1" class="footnote" href="#_footnotedef_1" title="View footnote.">1</a>]</sup>
+<p>Instead, for the second edition,<sup class="footnote">[<a id="_footnoteref_2" class="footnote" href="#_footnotedef_2" title="View footnote.">2</a>]</sup>
 I found a fun approach to authentication
 that now goes by the name of "Magic Links",
 but you might call it "just use email".</p>
@@ -124,9 +93,8 @@ but you might call it "just use email".</p>
 by someone annoyed at having to create new passwords for so many websites.
 They found themselves just using random, throwaway passwords,
 not even trying to remember them, and using the "forgot my password" feature
-whenever he needed to log in again.
-You can
-<a href="https://medium.com/@ninjudd/passwords-are-obsolete-9ed56d483eb#.cx8iber30">read
+whenever they needed to log in again.
+You can <a href="https://oreil.ly/je14i">read
 all about it on Medium</a>.</p>
 </div>
 <div class="paragraph">
@@ -154,9 +122,9 @@ but this is just a fun toy project so let&#8217;s give it a go.</p>
 </td>
 <td class="content">
 Reminder: a spike is a phase of exploratory coding,
-  where allow ourselves to code without tests,
-  in order to explore a new tool, or experiment with a new idea.
-  We will come back and re-do the code "properly" with TDD later.
+  where we can code without tests,
+  in order to explore a new tool or experiment with a new idea.
+  We will come back and redo the code "properly" with TDD later.
 </td>
 </tr>
 </table>
@@ -165,13 +133,13 @@ Reminder: a spike is a phase of exploratory coding,
 <p>
 
 To get this Magic Links project set up, the first thing I did was take a look at existing Python and Django authentication
-packages, like <a href="https://docs.allauth.org/en/latest/">django-allauth</a>
+packages, like <a href="https://docs.allauth.org">django-allauth</a>,
 but both of them looked overcomplicated for this stage
 (and besides, it&#8217;ll be more fun to code our own!).</p>
 </div>
 <div class="paragraph">
-<p>So instead I dived in and hacked about, and after a few dead ends and wrong turns,
-I had something which just about works.
+<p>So instead, I dived in and hacked about, and after a few dead ends and wrong turns,
+I had something that just about works.
 I&#8217;ll take you on a tour,
 and then we&#8217;ll go through and "de-spike" the implementation&#8212;&#8203;that is,
 replace the prototype with tested, production-ready code.</p>
@@ -188,10 +156,7 @@ and convince yourself that it really does work.</p>
 <p>
 
 This spike is going to be a bit more involved than the last one,
-so we&#8217;ll be a little more rigorous with our version control.</p>
-</div>
-<div class="paragraph">
-<p>Before embarking on a spike it&#8217;s a good idea to start a new branch,
+so we&#8217;ll be a little more rigorous with our version control. Before embarking on a spike it&#8217;s a good idea to start a new branch,
 so you can still use your VCS without worrying about
 your spike commits getting mixed up with your production code:</p>
 </div>
@@ -223,12 +188,12 @@ spike:</p>
 </div>
 </div>
 <div class="sect3">
-<h4 id="_frontend_log_in_ui">Frontend Log in UI</h4>
+<h4 id="_frontend_login_ui">Frontend Login UI</h4>
 <div class="paragraph">
 <p>
-Let&#8217;s start with the frontend, hacking in
-an actual form to be able to enter your email address into the navbar,
-and a logout link for users who are already authenticated:</p>
+Let&#8217;s start with the frontend by adding in
+an actual form to enter your email address into the navbar,
+along with a logout link for users who are already authenticated:</p>
 </div>
 <div class="exampleblock sourcecode">
 <div class="title">src/lists/templates/base.html (ch19l001)</div>
@@ -267,13 +232,13 @@ and a logout link for users who are already authenticated:</p>
 
 
 
-The login in theory will be something like this <a href="#magic-links-diagram">Overview of the magic links login process</a>:</p>
+The login will be something like <a href="#magic-links-diagram">Overview of the Magic Links login process</a>.</p>
 </div>
 <div id="magic-links-diagram" class="imageblock">
 <div class="content">
 <img src="images/tdd3_1901.png" alt="A diagram showing the interaction between user and server.  First the user fills in a login form and gives their email.  the server creates a token associated with that email, and then sends them an email containg a magic link, which includes the token.  the user waits for the email.  they click the link in the email, which goes to another endpoint on the server. it then checks if the token is valid, and if so, logs the user in.">
 </div>
-<div class="title">Figure 1. Overview of the magic links login process</div>
+<div class="title">Figure 1. Overview of the Magic Links login process</div>
 </div>
 <div class="olist arabic">
 <ol class="arabic">
@@ -283,16 +248,16 @@ link it to their email, store it in the database, and send it to them.</p>
 </li>
 <li>
 <p>The user then checks their email,
-which will have a link to a URL that includes that token.</p>
+which will have a link for a URL that includes that token.</p>
 </li>
 <li>
-<p>When they click that link, we check whether the token exists in the database,
-and if so, they are logged in as the associated user.</p>
+<p>When they click that link, we check whether the token exists in the database
+and, if so, they are logged in as the associated user.</p>
 </li>
 </ol>
 </div>
 <div class="paragraph">
-<p>First let&#8217;s prep an app for our accounts stuff:</p>
+<p>First, let&#8217;s prep an app for our accounts stuff:</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -322,7 +287,7 @@ In the top-level <em>superlists/urls.py</em>&#8230;&#8203;</p>
 </div>
 </div>
 </div>
-<div class="paragraph">
+<div class="paragraph pagebreak-before">
 <p>And we give the accounts module its own <em>urls.py</em>:</p>
 </div>
 <div class="exampleblock sourcecode">
@@ -343,7 +308,7 @@ In the top-level <em>superlists/urls.py</em>&#8230;&#8203;</p>
 </div>
 <div class="paragraph">
 <p>Here&#8217;s the view that&#8217;s in charge of creating a token
-associated with the email address the user puts in our login form:</p>
+associated with the email address that the user puts in our login form:</p>
 </div>
 <div class="exampleblock sourcecode">
 <div class="title">src/accounts/views.py (ch19l005)</div>
@@ -377,7 +342,7 @@ associated with the email address the user puts in our login form:</p>
 </div>
 </div>
 <div class="paragraph">
-<p>For that to work we&#8217;ll need a template with a placeholder message confirming the email was
+<p>For that to work, we&#8217;ll need a template with a placeholder message confirming the email was
 sent:</p>
 </div>
 <div class="exampleblock sourcecode">
@@ -404,13 +369,12 @@ with our <em>base.html</em> in the real version.)</p>
 <div class="sect3">
 <h4 id="_email_server_config_for_django">Email Server Config for Django</h4>
 <div class="paragraph">
-<p>The <a href="https://docs.djangoproject.com/en/5.2/topics/email/">django docs on email</a>
+<p>The <a href="https://docs.djangoproject.com/en/5.2/topics/email">django docs on email</a>
 explain how <code>send_mail()</code> works, as well as how you configure it
 by telling Django what email server to use,
 and how to authenticate with it.
-I&#8217;m just using my Gmail<sup class="footnote">[<a id="_footnoteref_2" class="footnote" href="#_footnotedef_2" title="View footnote.">2</a>]</sup>
-account for now.
-You can use any email provider you like, as long as they support SMTP:</p>
+Here, I&#8217;m just using my Gmail<sup class="footnote">[<a id="_footnoteref_3" class="footnote" href="#_footnotedef_3" title="View footnote.">3</a>]</sup>
+account for now&#8212;but you can use any email provider you like, as long as they support SMTP (Simple Mail Transfer Protocol):</p>
 </div>
 <div class="exampleblock sourcecode">
 <div class="title">src/superlists/settings.py (ch19l007)</div>
@@ -435,7 +399,7 @@ You can use any email provider you like, as long as they support SMTP:</p>
 <td class="content">
 If you want to use Gmail as well,
     you&#8217;ll probably have to visit your Google account security settings page.
-    If you&#8217;re using two-factor auth, you&#8217;ll want to set up an
+    If you&#8217;re using two-factor authentication, you&#8217;ll want to set up an
     <a href="https://myaccount.google.com/apppasswords">app-specific password</a>.
     If you&#8217;re not, you will probably still need to
     <a href="https://www.google.com/settings/security/lesssecureapps">allow access for less secure apps</a>.
@@ -458,10 +422,7 @@ If you want to use Gmail as well,
 
 Once again, we have a "secret"
 that we want to avoid keeping directly in our source code or on GitHub,
-so another environment variable gets used in the <code>os.environ.get</code>.</p>
-</div>
-<div class="paragraph">
-<p>To get this to work,
+so another environment variable is used in the <code>os.environ.get</code>. To get this to work,
 we need to set it in the shell that&#8217;s running my dev server:</p>
 </div>
 <div class="listingblock">
@@ -470,11 +431,11 @@ we need to set it in the shell that&#8217;s running my dev server:</p>
 </div>
 </div>
 <div class="paragraph">
-<p>Later we&#8217;ll see about adding that to the env file
+<p>Later, we&#8217;ll see about adding that to the env file
 on the staging server as well.</p>
 </div>
 </div>
-<div class="sect3">
+<div class="sect3 pagebreak-before less_space">
 <h4 id="_storing_tokens_in_the_database">Storing Tokens in the Database</h4>
 <div class="paragraph">
 <p>
@@ -501,7 +462,7 @@ How are we doing? Let&#8217;s review where we&#8217;re at in the process:</p>
 <div class="paragraph">
 <p>We&#8217;ll need a model to store our tokens in the database&#8212;&#8203;they
 link an email address with a unique ID.
-Pretty simple:</p>
+It&#8217;s pretty simple:</p>
 </div>
 <div class="exampleblock sourcecode">
 <div class="title">src/accounts/models.py (ch19l008)</div>
@@ -513,14 +474,19 @@ Pretty simple:</p>
 
 <span class="tok-k">class</span> <span class="tok-nc">Token</span><span class="tok-p">(</span><span class="tok-n">models</span><span class="tok-o">.</span><span class="tok-n">Model</span><span class="tok-p">):</span>
     <span class="tok-n">email</span> <span class="tok-o">=</span> <span class="tok-n">models</span><span class="tok-o">.</span><span class="tok-n">EmailField</span><span class="tok-p">()</span>
-    <span class="tok-n">uid</span> <span class="tok-o">=</span> <span class="tok-n">models</span><span class="tok-o">.</span><span class="tok-n">CharField</span><span class="tok-p">(</span><span class="tok-n">max_length</span><span class="tok-o">=</span><span class="tok-mi">255</span><span class="tok-p">)</span></code></pre>
+    <span class="tok-n">uid</span> <span class="tok-o">=</span> <span class="tok-n">models</span><span class="tok-o">.</span><span class="tok-n">CharField</span><span class="tok-p">(</span><span class="tok-n">max_length</span><span class="tok-o">=</span><span class="tok-mi">255</span><span class="tok-p">)</span> <i class="conum" data-value="1"></i><b>(1)</b></code></pre>
 </div>
 </div>
 </div>
 </div>
-<div class="paragraph">
-<p>(Django does have a specific UUID fields type for many databases,
-but I just want to keep things simple for now)</p>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>Django does have a specific UID (universally unique identifier) fields type for many databases,
+but I just want to keep things simple for now.</td>
+</tr>
+</table>
 </div>
 <div class="paragraph">
 <p>The point of this spike is about authentication and emails,
@@ -549,8 +515,8 @@ We&#8217;ve got enough things we need to learn as it is!</p>
 </div>
 </div>
 </div>
-<div class="paragraph">
-<p>We can then do a quick migrations dance to add the token model to the db:</p>
+<div class="paragraph pagebreak-before">
+<p>We can then do a quick migrations dance to add the token model to the database:</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -567,9 +533,7 @@ Running migrations:
 </div>
 <div class="paragraph">
 <p>And at this point, if you actually try the email form in your browser,
-you&#8217;ll see it really does send an actual real email.
-To your real email address hopefully (best not spam someone else now!)
-See <a href="#spike-email-sent">Looks like we might have sent an email</a> and <a href="#spike-email-received">Yep looks like we received it</a></p>
+you&#8217;ll see it really does send an actual real email&#8212;to your real email address hopefully (best not spam someone else now!). See Figures <a href="#spike-email-sent">19-2</a> and <a href="#spike-email-received">19-3</a>.</p>
 </div>
 <div id="spike-email-sent" class="imageblock">
 <div class="content">
@@ -581,14 +545,14 @@ See <a href="#spike-email-sent">Looks like we might have sent an email</a> and <
 <div class="content">
 <img src="images/tdd3_1903.png" alt="Screenshot of my email client showing the email from the server, saying 'your login link for superlist' and including a token url">
 </div>
-<div class="title">Figure 3. Yep looks like we received it</div>
+<div class="title">Figure 3. Yep, looks like we received it</div>
 </div>
 </div>
-<div class="sect3">
+<div class="sect3 pagebreak-before less_space">
 <h4 id="_custom_authentication_models">Custom Authentication Models</h4>
 <div class="paragraph">
 <p>
-OK so we&#8217;ve done the first half of "generate and recognise unique tokens":</p>
+OK, so we&#8217;ve done the first half of "Generating and recognising unique tokens":</p>
 </div>
 <div class="sidebarblock scratchpad">
 <div class="content">
@@ -601,20 +565,16 @@ OK so we&#8217;ve done the first half of "generate and recognise unique tokens":
 <p><em><span class="strikethrough line-through">Generating</span> and recognising unique tokens</em></p>
 </li>
 <li>
-<p><em>How to authenticate someone in Django</em>&#8230;&#8203;</p>
+<p><em>How to authenticate someone in Django</em></p>
 </li>
 </ul>
 </div>
 </div>
 </div>
 <div class="paragraph">
-<p>Before we can move on to recognising them and making the login work end-to-end though,
-we need to explore Django&#8217;s authentication system.</p>
-</div>
-<div class="paragraph">
-<p>The first thing we&#8217;ll need is a user model.
-I took a dive into the
-<a href="https://docs.djangoproject.com/en/5.2/topics/auth/customizing">Django
+<p>But, before we can move on to recognising them and making the login work end-to-end though,
+we need to explore Django&#8217;s authentication system. The first thing we&#8217;ll need is a user model.
+I took a dive into the <a href="https://docs.djangoproject.com/en/5.2/topics/auth/customizing">Django
 auth documentation</a> and tried to hack in the simplest possible one:</p>
 </div>
 <div class="exampleblock sourcecode">
@@ -647,15 +607,13 @@ auth documentation</a> and tried to hack in the simplest possible one:</p>
 </div>
 </div>
 </div>
-<div class="paragraph">
+<div class="paragraph pagebreak-before">
 <p>That&#8217;s what I call a minimal user model!
-One field, none of this firstname/lastname/username nonsense,
-and, pointedly, no password!
-Somebody else&#8217;s problem!</p>
+One field, none of this first name/last name/username nonsense,
+and&#8212;pointedly&#8212;no password! That&#8217;s somebody else&#8217;s problem!</p>
 </div>
 <div class="paragraph">
-<p>But, again, you can see that this code isn&#8217;t ready for production,
-from the commented-out lines to the hardcoded harry email address.
+<p>But, again, you can see that this code isn&#8217;t ready for production&#8212;from the commented-out lines to the hardcoded Harry email address.
 We&#8217;ll neaten this up quite a lot when we de-spike.</p>
 </div>
 <div class="paragraph">
@@ -680,12 +638,12 @@ for some reason:</p>
 </div>
 <div class="paragraph">
 <p>No need to worry about what a model manager is at this stage;
-for now we just need it because we need it, and it works.
+for now, we just need it because we need it, and it works.
 When we de-spike, we&#8217;ll examine each bit of code that actually ends up in production
 and make sure we understand it fully.</p>
 </div>
 <div class="paragraph">
-<p>We&#8217;ll need another <code>makemigrations/migrate</code> to make the and user model real:</p>
+<p>We&#8217;ll need to run <code>makemigrations</code> and <code>migrate</code> again to make the user model real:</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -722,12 +680,12 @@ Running migrations:
 </div>
 </div>
 </div>
-<div class="paragraph">
+<div class="paragraph pagebreak-before">
 <p>
 Hmm, we can&#8217;t quite cross off anything yet.
 Turns out the steps we <em>thought</em> we&#8217;d go through
 aren&#8217;t quite the same as the steps we&#8217;re <em>actually</em> going through
-(this is not uncommon as I&#8217;m sure you know).</p>
+(this is not uncommon, as I&#8217;m sure you know).</p>
 </div>
 <div class="paragraph">
 <p>Still, we&#8217;re almost there&#8212;&#8203;our last step will combine recognising the token
@@ -736,7 +694,7 @@ Once we&#8217;ve done this,
 we&#8217;ll be able to pretty much strike off all the items on our scratchpad.</p>
 </div>
 <div class="paragraph">
-<p>So here&#8217;s the view that actually handles the click through from the link in the
+<p>So here&#8217;s the view that actually handles the click-through from the link in the
 email:</p>
 </div>
 <div class="exampleblock sourcecode small-code">
@@ -772,10 +730,10 @@ email:</p>
 </div>
 <div class="paragraph">
 <p>The <code>authenticate()</code> function invokes Django&#8217;s authentication framework,
-which we configure using a custom "authentication backend"
-whose job it is to validate the UID and return a user with the right email.</p>
+which we configure using a custom "authentication backend,"
+whose job it is to validate the UID (unique identifier) and return a user with the right email.</p>
 </div>
-<div class="paragraph">
+<div class="paragraph pagebreak-before">
 <p>We could have done this stuff directly in the view,
 but we may as well structure things the way Django expects.
 It makes for a reasonably neat separation of concerns:</p>
@@ -815,9 +773,7 @@ It makes for a reasonably neat separation of concerns:</p>
 </div>
 </div>
 <div class="paragraph">
-<p>Again, lots of debug prints in there, and some duplicated code,
-not something we&#8217;d want in production, but it works&#8230;&#8203;
-as long as we add it to <em>settings.py</em> (it doesn&#8217;t matter where):</p>
+<p>Again, lots of debug prints in there, and some duplicated code&#8212;not something we&#8217;d want in production, but it works&#8230;&#8203;as long as we add it to <em>settings.py</em> (it doesn&#8217;t matter where):</p>
 </div>
 <div class="exampleblock sourcecode">
 <div class="title">src/superlists/settings.py (ch19l012-1)</div>
@@ -832,7 +788,7 @@ as long as we add it to <em>settings.py</em> (it doesn&#8217;t matter where):</p
 </div>
 </div>
 </div>
-<div class="paragraph">
+<div class="paragraph pagebreak-before">
 <p>And finally, a logout view:</p>
 </div>
 <div class="exampleblock sourcecode">
@@ -871,16 +827,13 @@ as long as we add it to <em>settings.py</em> (it doesn&#8217;t matter where):</p
 </div>
 </div>
 <div class="paragraph">
-<p>And we should be all done!
-Spin up a dev server with <code>runserver</code> and try it&#8212;&#8203;believe it or not,
-it <em>actually</em> works:
-(<a href="#spike-login-worked">It works! It works! Mwahahahaha.</a>).</p>
+<p>And we should be all done! Spin up a dev server with <code>runserver</code> and try it&#8212;&#8203;believe it or not, it <em>actually</em> works (see <a href="#spike-login-worked">It works! It works!</a>).</p>
 </div>
 <div id="spike-login-worked" class="imageblock">
 <div class="content">
-<img src="images/tdd3_1904.png" alt="screenshot of several windows including gmail and termainals but in the foreground our site showing us as being logged in.">
+<img src="images/tdd3_1904.png" alt="screenshot of several windows including gmail and terminals but in the foreground our site showing us as being logged in.">
 </div>
-<div class="title">Figure 4. It works! It works! Mwahahahaha.</div>
+<div class="title">Figure 4. It works! It works!</div>
 </div>
 <div class="admonitionblock tip">
 <table>
@@ -892,7 +845,7 @@ it <em>actually</em> works:
 If you get an <code>SMTPSenderRefused</code> error message, don&#8217;t forget to set
     the <code>EMAIL_PASSWORD</code> environment variable in the shell that&#8217;s running
     <code>runserver</code>.
-    Also, if you see a message saying "Application-specific password required.",
+    Also, if you see a message saying "Application-specific password required",
     that&#8217;s a Gmail security policy.  Follow the link in the error message.
 </td>
 </tr>
@@ -940,28 +893,28 @@ $ <strong>git commit -am "spiked in custom passwordless auth backend"</strong></
 </div>
 </div>
 </div>
-<div class="sect2">
+<div class="sect2 pagebreak-before less_space">
 <h3 id="_de_spiking">De-spiking</h3>
 <div class="paragraph">
 <p>
-De-spiking means rewriting your prototype code using TDD.</p>
+De-spiking means rewriting your prototype code using TDD. In this section, we&#8217;ll work through how to do that in a safe and methodical way. We&#8217;ll take the knowledge we&#8217;ve acquired during the spiking process&#8212;whether that&#8217;s in our heads, in our notes, or in our branch in Git&#8212;and apply it as we re-implement gradually in a test-first way. And the hope is that our code will turn out a bit nicer the second time around!</p>
 </div>
 <div class="sect3">
 <h4 id="_making_a_plan">Making a Plan</h4>
 <div class="paragraph">
 <p>While it&#8217;s fresh in our minds,
-let&#8217;s make a few notes, based on what we&#8217;ve learned,
-about what we know we&#8217;re probably going to need to build, during our de-spike.</p>
+let&#8217;s make a few notes based on what we&#8217;ve learned
+about what we know we&#8217;re probably going to need to build during our de-spike:</p>
 </div>
 <div class="sidebarblock scratchpad">
 <div class="content">
 <div class="ulist">
 <ul>
 <li>
-<p><em>Token model with email + uid</em></p>
+<p><em>Token model with email and UID</em></p>
 </li>
 <li>
-<p><em>view to create token + send login email incl. url w/ token uid</em></p>
+<p><em>View to create token and send login email incl. url w/ token UID</em></p>
 </li>
 <li>
 <p><em>Custom user model with USERNAME_FIELD=email</em></p>
@@ -970,13 +923,13 @@ about what we know we&#8217;re probably going to need to build, during our de-sp
 <p><em>Authentication backend with authenticate() and get_user() functions</em></p>
 </li>
 <li>
-<p><em>Register auth backend in settings.py</em></p>
+<p><em>Registering auth backend in settings.py</em></p>
 </li>
 <li>
-<p><em>login view calls authenticate() and login() from django.contrib.auth</em></p>
+<p><em>Login view calls authenticate() and login() from django.contrib.auth</em></p>
 </li>
 <li>
-<p><em>logout view calls django.contrib.auth.logout</em></p>
+<p><em>Logout view calls django.contrib.auth.logout</em></p>
 </li>
 </ul>
 </div>
@@ -987,14 +940,11 @@ about what we know we&#8217;re probably going to need to build, during our de-sp
 <h4 id="_wring_an_ft_against_the_spiked_code">Wring an FT Against the Spiked Code</h4>
 <div class="paragraph">
 <p>We now have enough information to "do it properly".
-So what&#8217;s the first step?  An FT, of course!</p>
-</div>
-<div class="paragraph">
-<p>We&#8217;ll stay on the spike branch for now,
+So, what&#8217;s the first step?  An FT, of course! We&#8217;ll stay on the spike branch for now
 to see our FT pass against our spiked code.
 Then we&#8217;ll go back to our main branch and commit just the FT.</p>
 </div>
-<div class="paragraph">
+<div class="paragraph pagebreak-before">
 <p>Here&#8217;s a first, simple version of the FT:</p>
 </div>
 <div class="exampleblock sourcecode small-code">
@@ -1072,8 +1022,8 @@ to avoid accidentally spamming anyone!</td>
 <td><i class="conum" data-value="2"></i><b>2</b></td>
 <td>Were you worried about how we were going to handle retrieving emails
 in our tests?
-Thankfully we can cheat for now!
-When running tests, Django gives us access to any emails
+Thankfully, we can cheat for now!
+When running tests, Django gives us access to any emails that
 the server tries to send via the <code>mail.outbox</code> attribute.
 We&#8217;ll discuss checking "real" emails in <a href="/book/chapter_23_debugging_prod.html">[chapter_23_debugging_prod]</a>.</td>
 </tr>
@@ -1108,6 +1058,9 @@ and reintroduce them one by one in a test-driven way.</p>
 </div>
 <div class="sect3">
 <h4 id="_reverting_our_spiked_code">Reverting Our Spiked Code</h4>
+<div class="paragraph">
+<p>We can revert our spike using our version control system:</p>
+</div>
 <div class="listingblock">
 <div class="content">
 <pre>$ <strong>git switch main</strong> # switch back to main branch
@@ -1118,7 +1071,7 @@ $ <strong>git commit -m "FT for login via email"</strong></pre>
 </div>
 <div class="paragraph">
 <p>Now we rerun the FT and let it be the main driver of our development,
-referring back to our scratchpad from time to time when we need to.</p>
+referring back to our scratchpad from time to time when we need to:</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -1135,9 +1088,8 @@ element: input[name=email]; [...]
 <i class="fa icon-tip" title="Tip"></i>
 </td>
 <td class="content">
-If you see an exception saying `No module named accounts,
-    you may have missed a step in the de-spiking process,
-    maybe a commit or the change of branch.
+If you see an exception saying "No module named accounts",
+    you may have missed a step in the de-spiking process&#8212;maybe a commit or the change of branch.
 </td>
 </tr>
 </table>
@@ -1145,7 +1097,7 @@ If you see an exception saying `No module named accounts,
 <div class="paragraph">
 <p>The first thing it wants us to do is add an email input element.
 Bootstrap has some built-in classes for navigation bars,
-so we&#8217;ll use them, and include a form for the login email:<sup class="footnote">[<a id="_footnoteref_3" class="footnote" href="#_footnotedef_3" title="View footnote.">3</a>]</sup></p>
+so we&#8217;ll use them, and include a form for the login email:<sup class="footnote">[<a id="_footnoteref_4" class="footnote" href="#_footnotedef_4" title="View footnote.">4</a>]</sup></p>
 </div>
 <div class="exampleblock sourcecode">
 <div class="title">src/lists/templates/base.html (ch19l020)</div>
@@ -1184,8 +1136,8 @@ so we&#8217;ll use them, and include a form for the login email:<sup class="foot
 </div>
 </div>
 </div>
-<div class="paragraph">
-<p>At this point you&#8217;ll find the unit tests start to fail:</p>
+<div class="paragraph pagebreak-before">
+<p>At this point, you&#8217;ll find that the unit tests start to fail:</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -1193,23 +1145,21 @@ so we&#8217;ll use them, and include a form for the login email:<sup class="foot
 [...]
     [form] = parsed.cssselect("form[method=POST]")
     ^^^^^^
-ValueError: too many values to unpack (expected 1)
+ValueError: too many values to unpack (expected 1, got 2)
+
 
 ERROR: test_renders_input_form
     [form] = parsed.cssselect("form[method=POST]")
     ^^^^^^
-ValueError: too many values to unpack (expected 1)</pre>
+ValueError: too many values to unpack (expected 1, got 2)</pre>
 </div>
 </div>
 <div class="paragraph">
 <p>It&#8217;s because these unit tests had a hard assumption
-that there&#8217;s only one POST form on the page.</p>
-</div>
-<div class="paragraph">
-<p>Let&#8217;s change them to be more resilient.
+that there&#8217;s only one POST form on the page. Let&#8217;s change them to be more resilient.
 Here&#8217;s how you might change the first one:</p>
 </div>
-<div class="exampleblock sourcecode">
+<div class="exampleblock sourcecode small-code">
 <div class="title">src/lists/tests/test_views.py (ch19l020-1)</div>
 <div class="content">
 <div class="listingblock">
@@ -1235,13 +1185,12 @@ Here&#8217;s how you might change the first one:</p>
 <tr>
 <td><i class="conum" data-value="2"></i><b>2</b></td>
 <td>We check that at least <em>one</em> of the forms has the right <code>action=</code> URL.
-I&#8217;m using <code>assertIn()</code> so we get a nice error message;
-If we can&#8217;t find the right URL,
-we&#8217;ll see the list of urls that <em>do</em> exist on the page.</td>
+I&#8217;m using <code>assertIn()</code>, so we get a nice error message. If we can&#8217;t find the right URL,
+we&#8217;ll see the list of URLs that <em>do</em> exist on the page.</td>
 </tr>
 <tr>
 <td><i class="conum" data-value="3"></i><b>3</b></td>
-<td>Now we can feel free to go back to using unpacking,
+<td>Now we can feel free to go back to unpacking,
 and get the right form, based on its <code>action</code> attribute.</td>
 </tr>
 <tr>
@@ -1250,7 +1199,7 @@ and get the right form, based on its <code>action</code> attribute.</td>
 </tr>
 </table>
 </div>
-<div class="paragraph">
+<div class="paragraph pagebreak-before">
 <p>Here&#8217;s a similar set of changes in the second test:</p>
 </div>
 <div class="exampleblock sourcecode">
@@ -1280,10 +1229,7 @@ and get the right form, based on its <code>action</code> attribute.</td>
 <div class="paragraph">
 <p>It&#8217;s pretty much the same edit,
 except this time I decided to have a <code>url</code> variable,
-to remove the duplication of using <em>/lists/{mylist.id}/</em> three times.</p>
-</div>
-<div class="paragraph">
-<p>That gets our unit tests passing again:</p>
+to remove the duplication of using <code>/lists/{mylist.id}/</code> three times. That gets our unit tests passing again:</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -1329,17 +1275,17 @@ placeholder app files from our modifications.
 <h3 id="_a_minimal_custom_user_model">A Minimal Custom User Model</h3>
 <div class="paragraph">
 <p>
-Let&#8217;s turn to the models layer.<sup class="footnote">[<a id="_footnoteref_4" class="footnote" href="#_footnotedef_4" title="View footnote.">4</a>]</sup></p>
+Let&#8217;s turn to the models layer:<sup class="footnote">[<a id="_footnoteref_5" class="footnote" href="#_footnotedef_5" title="View footnote.">5</a>]</sup></p>
 </div>
 <div class="sidebarblock scratchpad">
 <div class="content">
 <div class="ulist">
 <ul>
 <li>
-<p><em>Token model with email + uid</em></p>
+<p><em>Token model with email and UID</em></p>
 </li>
 <li>
-<p><em>view to create token + send login email incl. url w/ token uid</em></p>
+<p><em>View to create token and send login email incl. url w/ token UID</em></p>
 </li>
 <li>
 <p><em>Custom user model with USERNAME_FIELD=email</em></p>
@@ -1348,27 +1294,26 @@ Let&#8217;s turn to the models layer.<sup class="footnote">[<a id="_footnoteref_
 <p><em>Authentication backend with authenticate() and get_user() functions</em></p>
 </li>
 <li>
-<p><em>Register auth backend in settings.py</em></p>
+<p><em>Registering auth backend in settings.py</em></p>
 </li>
 <li>
-<p><em>login view calls authenticate() and login() from django.contrib.auth</em></p>
+<p><em>Login view calls authenticate() and login() from django.contrib.auth</em></p>
 </li>
 <li>
-<p><em>logout view calls django.contrib.auth.logout</em></p>
+<p><em>Logout view calls django.contrib.auth.logout</em></p>
 </li>
 </ul>
 </div>
 </div>
 </div>
 <div class="paragraph">
-<p>We know we have to build a Token model and a custom user model,
-and the user model was the part that was messiest in our spike,
-so let&#8217;s have a go at redoing that test-first, to see if it comes out nicer.</p>
+<p>We know we have to build a token model and a custom user model,
+and the user model was the messiest part in our spike.
+So, let&#8217;s have a go at redoing that test-first, to see if it comes out nicer.</p>
 </div>
 <div class="paragraph">
 <p>Django&#8217;s built-in user model makes all sorts of assumptions about
-what information you want to track about users,
-from explicitly recording first name and last name,<sup class="footnote">[<a id="_footnoteref_5" class="footnote" href="#_footnotedef_5" title="View footnote.">5</a>]</sup>
+what information you want to track about users&#8212;from explicitly requiring a first name and last name<sup class="footnote">[<a id="_footnoteref_6" class="footnote" href="#_footnotedef_6" title="View footnote.">6</a>]</sup>
 to forcing you to use a username.
 I&#8217;m a great believer in not storing information about users
 unless you absolutely must,
@@ -1387,7 +1332,7 @@ $ <strong>touch src/accounts/tests/__init__.py</strong></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>And now let&#8217;s add add a <em>test_models.py</em> to say:</p>
+<p>And now, let&#8217;s add a <em>test_models.py</em> to say:</p>
 </div>
 <div class="exampleblock sourcecode">
 <div class="title">src/accounts/tests/test_models.py (ch19l023)</div>
@@ -1419,7 +1364,7 @@ ImportError: cannot import name 'User' from 'accounts.models'
 </div>
 </div>
 <div class="paragraph">
-<p>Ok let&#8217;s try the absolute minimum then:</p>
+<p>OK, let&#8217;s try the absolute minimum then:</p>
 </div>
 <div class="exampleblock sourcecode">
 <div class="title">src/accounts/models.py (ch19l024)</div>
@@ -1436,7 +1381,7 @@ ImportError: cannot import name 'User' from 'accounts.models'
 </div>
 </div>
 <div class="paragraph">
-<p>That gives us an error because Django won&#8217;t all models,
+<p>That gives us an error because Django won&#8217;t recognise models
 unless they&#8217;re in <code>INSTALLED_APPS</code>:</p>
 </div>
 <div class="listingblock">
@@ -1446,7 +1391,7 @@ app_label and isn't in an application in INSTALLED_APPS.</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>So let&#8217;s add it to <em>settings.py</em>:</p>
+<p>So, let&#8217;s add it to <em>settings.py</em>:</p>
 </div>
 <div class="exampleblock sourcecode">
 <div class="title">src/superlists/settings.py (ch19l025)</div>
@@ -1477,9 +1422,7 @@ app_label and isn't in an application in INSTALLED_APPS.</pre>
 </div>
 <div class="paragraph">
 <p>Now let&#8217;s see if we&#8217;ve built a user model that Django can actually work with.
-There&#8217;s a built-in function in <code>django.contrib.auth</code> called <code>get_user_model()</code>
-which retrieves the currently active user model,
-and as we&#8217;ll see, also performs some checks on it.
+There&#8217;s a built-in function in <code>django.contrib.auth</code> called <code>get_user_model()</code>&#8212;which retrieves the currently active user model and, as we&#8217;ll see, also performs some checks on it.
 Let&#8217;s use it in our tests:</p>
 </div>
 <div class="exampleblock sourcecode">
@@ -1513,7 +1456,7 @@ Let&#8217;s use it in our tests:</p>
 </div>
 </div>
 <div class="paragraph">
-<p>Ok so let&#8217;s try wiring up our model inside <em>settings.py</em>,
+<p>OK, so let&#8217;s try wiring up our model inside <em>settings.py</em>,
 in a variable called <code>AUTH_USER_MODEL</code>:</p>
 </div>
 <div class="exampleblock sourcecode">
@@ -1529,7 +1472,7 @@ in a variable called <code>AUTH_USER_MODEL</code>:</p>
 <div class="paragraph">
 <p>Now when we run our tests, Django complains
 that our custom user model is missing a couple of bits of metadata.
-In fact, it&#8217;s so unhappy that it wont even run the tests:</p>
+In fact, it&#8217;s so unhappy that it won&#8217;t even run the tests:</p>
 </div>
 <div class="listingblock ignore-errors">
 <div class="content">
@@ -1543,9 +1486,11 @@ AttributeError: type object 'User' has no attribute 'REQUIRED_FIELDS'</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>Sigh.  Come on, Django, it&#8217;s only got one field,
-so you should be able to figure out the answers to these questions for yourself.
-Here you go:</p>
+<p>Sigh.  Come on, Django; it&#8217;s only got one field,
+so you should be able to figure out the answers to these questions for yourself.</p>
+</div>
+<div class="paragraph pagebreak-before">
+<p>Here you go:</p>
 </div>
 <div class="exampleblock sourcecode">
 <div class="title">src/accounts/models.py (ch19l027)</div>
@@ -1561,7 +1506,7 @@ Here you go:</p>
 </div>
 </div>
 <div class="paragraph">
-<p>Next silly question?<sup class="footnote">[<a id="_footnoteref_6" class="footnote" href="#_footnotedef_6" title="View footnote.">6</a>]</sup></p>
+<p>Next silly question?<sup class="footnote">[<a id="_footnoteref_7" class="footnote" href="#_footnotedef_7" title="View footnote.">7</a>]</sup></p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -1569,7 +1514,7 @@ Here you go:</p>
 </div>
 </div>
 <div class="paragraph">
-<p>And we go through a few more of these, until we get to:</p>
+<p>We&#8217;ll go through a few more of these, until we get to:</p>
 </div>
 <div class="exampleblock sourcecode">
 <div class="title">src/accounts/models.py (ch19l029)</div>
@@ -1616,7 +1561,7 @@ the 'USERNAME_FIELD'.</pre>
 </div>
 <div class="paragraph">
 <p>And now we get a different error again, slightly more familiar this time!
-Django is a bit happier with the structure of our custom User model,
+Django is a bit happier with the structure of our custom user model,
 but it&#8217;s unhappy about the database:</p>
 </div>
 <div class="listingblock">
@@ -1624,7 +1569,7 @@ but it&#8217;s unhappy about the database:</p>
 <pre>django.db.utils.OperationalError: no such table: accounts_user</pre>
 </div>
 </div>
-<div class="paragraph">
+<div class="paragraph pagebreak-before">
 <p>In other words, we need to create a migration:</p>
 </div>
 <div class="listingblock">
@@ -1656,11 +1601,8 @@ We could make it even simpler!</p>
 <div class="paragraph">
 <p>
 
-Let&#8217;s go all the way and make the email field into the primary key,<sup class="footnote">[<a id="_footnoteref_7" class="footnote" href="#_footnotedef_7" title="View footnote.">7</a>]</sup>
-and thus implicitly remove the autogenerated <code>id</code> column.</p>
-</div>
-<div class="paragraph">
-<p>Although we could just <em>do it</em> and our test would still pass,
+Let&#8217;s go all the way and make the email field the primary key,<sup class="footnote">[<a id="_footnoteref_8" class="footnote" href="#_footnotedef_8" title="View footnote.">8</a>]</sup>
+and thus implicitly remove the autogenerated <code>id</code> column. Although we could just <em>do it</em> and our test would still pass,
 and conceivably claim it was "just a refactor",
 it would be better to have a specific test:</p>
 </div>
@@ -1700,7 +1642,7 @@ AssertionError: None != 'a@b.com'</pre>
 </td>
 <td class="content">
 Your tests can be a form of documentation for your code&#8212;&#8203;they
-    express what your requirements are of a particular class or function.
+    express the requirements for a particular class or function.
     Sometimes, if you forget why you&#8217;ve done something a particular way,
     going back and looking at the tests will give you the answer.
     That&#8217;s why it&#8217;s important to make your tests readable,
@@ -1710,7 +1652,7 @@ Your tests can be a form of documentation for your code&#8212;&#8203;they
 </table>
 </div>
 <div class="paragraph">
-<p>And here&#8217;s the implementation (<code>primary_key</code> makes the <code>unique=True</code> obsolete):</p>
+<p>Here&#8217;s the implementation (<code>primary_key</code> makes the <code>unique=True</code> obsolete):</p>
 </div>
 <div class="exampleblock sourcecode">
 <div class="title">src/accounts/models.py (ch19l033)</div>
@@ -1747,7 +1689,7 @@ OK</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>It&#8217;s probably a good time for a commit, too.</p>
+<p>It&#8217;s probably a good time for a commit, too:</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -1756,17 +1698,17 @@ $ <strong>git commit -m "custom user model with email as primary key"</strong></
 </div>
 </div>
 <div class="paragraph">
-<p>And cross off one item from our de-spiking list.  Hooray!</p>
+<p>And we can cross off one item from our de-spiking list.  Hooray!</p>
 </div>
 <div class="sidebarblock scratchpad">
 <div class="content">
 <div class="ulist">
 <ul>
 <li>
-<p><em>Token model with email + uid</em></p>
+<p><em>Token model with email and UID</em></p>
 </li>
 <li>
-<p><em>view to create token + send login email incl. url w/ token uid</em></p>
+<p><em>View to create token and send login email incl. url w/ token UID</em></p>
 </li>
 <li>
 <p><em><span class="strikethrough line-through">Custom user model with USERNAME_FIELD=email</span></em></p>
@@ -1775,13 +1717,13 @@ $ <strong>git commit -m "custom user model with email as primary key"</strong></
 <p><em>Authentication backend with authenticate() and get_user() functions</em></p>
 </li>
 <li>
-<p><em>Register auth backend in settings.py</em></p>
+<p><em>Registering auth backend in settings.py</em></p>
 </li>
 <li>
-<p><em>login view calls authenticate() and login() from django.contrib.auth</em></p>
+<p><em>Login view calls authenticate() and login() from django.contrib.auth</em></p>
 </li>
 <li>
-<p><em>logout view calls django.contrib.auth.logout</em></p>
+<p><em>Logout view calls django.contrib.auth.logout</em></p>
 </li>
 </ul>
 </div>
@@ -1796,7 +1738,7 @@ $ <strong>git commit -m "custom user model with email as primary key"</strong></
 Next let&#8217;s build a token model.
 Here&#8217;s a short unit test that captures the essence&#8212;&#8203;you
 should be able to link an email to a unique ID,
-and that ID shouldn&#8217;t be the same two times in a row:</p>
+and that ID shouldn&#8217;t be the same twice in a row:</p>
 </div>
 <div class="exampleblock sourcecode">
 <div class="title">src/accounts/tests/test_models.py (ch19l035)</div>
@@ -1817,7 +1759,7 @@ and that ID shouldn&#8217;t be the same two times in a row:</p>
 </div>
 </div>
 <div class="paragraph">
-<p>I won&#8217;t show every single listing for creating the Token class in <em>models.py</em>;
+<p>I won&#8217;t show every single listing for creating the token class in <em>models.py</em>;
 I&#8217;ll let you do that yourself instead.
 Driving Django models with basic TDD
 involves jumping through a few hoops because of the migration,
@@ -1836,6 +1778,9 @@ TypeError: Token() got unexpected keyword arguments: 'email'</pre>
 <p>I&#8217;ll trust you to go through these conscientiously&#8212;&#8203;remember,
 I may not be able to see you, but the Testing Goat can!</p>
 </div>
+<div class="paragraph">
+<p>You might go through a hoop like this one, for example, where you find yourself needing to create and then delete a migration for an incomplete solution:</p>
+</div>
 <div class="listingblock dofirst-ch19l037">
 <div class="content">
 <pre>$ <strong>python src/manage.py makemigrations</strong>
@@ -1848,7 +1793,7 @@ $ <strong>rm src/accounts/migrations/0002_token.py</strong></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>Eventually you should get to this code&#8230;&#8203;</p>
+<p>Eventually, you should get to this code&#8230;&#8203;</p>
 </div>
 <div class="exampleblock sourcecode dofirst-ch19l038-0">
 <div class="title">src/accounts/models.py (ch19l038)</div>
@@ -1877,8 +1822,8 @@ AssertionError: '' == ''</pre>
 <div class="paragraph">
 <p>And here we have to decide how to generate our random unique ID field.
 We could use the <code>random</code> module, but Python actually comes with another module
-specifically designed for generating unique IDs called "uuid"
-(for "universally unique id").
+specifically designed for generating unique IDs called "UUID"
+(for "universally unique ID").
 We can use it like this:</p>
 </div>
 <div class="exampleblock sourcecode">
@@ -1900,15 +1845,15 @@ We can use it like this:</p>
 <table>
 <tr>
 <td><i class="conum" data-value="1"></i><b>1</b></td>
-<td>The <code>default=</code> argument for a field can either be a static value,
-or a callable that will return a value at the time the model is created.
-In our case, the use of a callable means
+<td>The <code>default=</code> argument for a field can be either a static value
+or a callable that returns a value at the time the model is created.
+In our case, using a callable means
 we&#8217;ll get a different unique ID for every model.</td>
 </tr>
 </table>
 </div>
-<div class="paragraph">
-<p>And, perhaps with a bit more wrangling of <code>makemigrations</code>:</p>
+<div class="paragraph pagebreak-before">
+<p>And, perhaps with a bit more wrangling of <code>makemigrations</code>&#8230;&#8203;</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -1920,7 +1865,7 @@ Migrations for 'accounts':
 </div>
 </div>
 <div class="paragraph">
-<p>That should get us to passing tests:</p>
+<p>&#8230;&#8203;that should get us to passing tests:</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -1932,17 +1877,17 @@ OK</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>Well,  we are well on our way!</p>
+<p>So, we are well on our way!</p>
 </div>
 <div class="sidebarblock scratchpad">
 <div class="content">
 <div class="ulist">
 <ul>
 <li>
-<p><em><span class="strikethrough line-through">Token model with email + uid</span></em></p>
+<p><em><span class="strikethrough line-through">Token model with email and UID</span></em></p>
 </li>
 <li>
-<p><em>view to create token + send login email incl. url w/ token uid</em></p>
+<p><em>View to create token and send login email incl. url w/ token UID</em></p>
 </li>
 <li>
 <p><em><span class="strikethrough line-through">Custom user model with USERNAME_FIELD=email</span></em></p>
@@ -1951,13 +1896,13 @@ OK</pre>
 <p><em>Authentication backend with authenticate() and get_user() functions</em></p>
 </li>
 <li>
-<p><em>Register auth backend in settings.py</em></p>
+<p><em>Registering auth backend in settings.py</em></p>
 </li>
 <li>
-<p><em>login view calls authenticate() and login() from django.contrib.auth</em></p>
+<p><em>Login view calls authenticate() and login() from django.contrib.auth</em></p>
 </li>
 <li>
-<p><em>logout view calls django.contrib.auth.logout</em></p>
+<p><em>Logout view calls django.contrib.auth.logout</em></p>
 </li>
 </ul>
 </div>
@@ -1965,11 +1910,7 @@ OK</pre>
 </div>
 <div class="paragraph">
 <p>The models layer is done, at least.
-In the next chapter, we&#8217;ll get into mocking,
-a key technique for testing external dependencies like email.</p>
-</div>
-<div class="paragraph">
-<p></p>
+In the next chapter, we&#8217;ll get into mocking&#8212;a key technique for testing external dependencies like email.</p>
 </div>
 <div class="sidebarblock pagebreak-before">
 <div class="content">
@@ -1978,7 +1919,7 @@ a key technique for testing external dependencies like email.</p>
 <dl>
 <dt class="hdlist1">Spiking</dt>
 <dd>
-<p>Exploratory coding to find out about a new API,
+<p>Spiking is exploratory coding to find out about a new API,
 or to explore the feasibility of a new solution.
 Spiking can be done without tests.
 It&#8217;s a good idea to do your spike on a new branch,
@@ -1987,7 +1928,7 @@ and go back to your main branch when de-spiking.
 </dd>
 <dt class="hdlist1">De-spiking</dt>
 <dd>
-<p>Taking the work from a spike and making it part of the production codebase.
+<p>De-spiking means taking the work from a spike and making it part of the production codebase.
 The idea is to throw away the old spike code altogether,
 and start again from scratch, using TDD once again.
 De-spiked code can often come out looking quite different
@@ -1999,8 +1940,8 @@ from the original spike, and usually much nicer.</p>
 The reason it can be useful is because it can help you write the FT
 correctly&#8212;&#8203;figuring out how to test your spike
 can be just as challenging as the spike itself.
-On the other hand, it might constrain you towards
-reimplementing a very similar solution to your spiked one;
+On the other hand, it might constrain you to
+reimplementing a solution very similar to your spiked one;
 something to watch out for.
 
 </p>
@@ -2016,30 +1957,33 @@ something to watch out for.
 <div id="footnotes">
 <hr>
 <div class="footnote" id="_footnotedef_1">
-<a href="#_footnoteref_1">1</a>. In the first edition I used an experimental project called "Persona", cooked up by a some of the wonderful techno-hippy-idealists at Mozilla, but sadly that project was abandoned.
+<a href="#_footnoteref_1">1</a>. If you <em>insist</em> on storing your own passwords, Django&#8217;s default authentication module is ready and waiting for you. It&#8217;s nice and straightforward, and I&#8217;ll leave it to you to discover on your own.
 </div>
 <div class="footnote" id="_footnotedef_2">
-<a href="#_footnoteref_2">2</a>. Didn&#8217;t I just spend a whole intro banging on about the privacy implications of using Google for login, only to go on and use Gmail? Yes, it&#8217;s a contradiction (honest, I will move off Gmail one day!). But in this case I&#8217;m just using it for testing, and the important thing is that I&#8217;m not forcing Google on my users.
+<a href="#_footnoteref_2">2</a>. In the first edition, I used an experimental project called "Persona", cooked up by some of the wonderful techno-hippie-idealists at Mozilla, but sadly that project was abandoned.
 </div>
 <div class="footnote" id="_footnotedef_3">
-<a href="#_footnoteref_3">3</a>. We are now introducing a conceptual dependency from the base template to the <code>accounts</code> app, because its URL is in the form. I didn&#8217;t want to spend time on it in the book, but this might be a time to consider moving the temnplate out of <em>lists/templates</em>, and into <em>superlists/templates</em>. By convention, that&#8217;s the place for templates whose scope is wider than a single app.
+<a href="#_footnoteref_3">3</a>. Didn&#8217;t I just spend a whole intro banging on about the privacy implications of using Google for login, only to go on and use Gmail? Yes, it&#8217;s a contradiction (honest, I will move off Gmail one day!). But in this case I&#8217;m just using it for testing, and the important thing is that I&#8217;m not forcing Google on my users.
 </div>
 <div class="footnote" id="_footnotedef_4">
-<a href="#_footnoteref_4">4</a>. In this chapter, we&#8217;re building things in a "bottom-up" way, starting with the models, and then building the layers on top, the views and templates that depend on them. This is a common approach, but it&#8217;s not the only one! In <a href="/book/chapter_24_outside_in.html">[chapter_24_outside_in]</a> we&#8217;ll explore building software from the outside in, which has all sorts of advantages too.
+<a href="#_footnoteref_4">4</a>. We are now introducing a conceptual dependency from the base template to the <code>accounts</code> app because its URL is in the form. I didn&#8217;t want to spend time on this in the book, but this might be a good time to consider moving the template out of <em>lists/templates</em> and into <em>superlists/templates</em>. By convention, that&#8217;s the place for templates whose scope is wider than a single app.
 </div>
 <div class="footnote" id="_footnotedef_5">
-<a href="#_footnoteref_5">5</a>. A decision which you&#8217;ll find prominent Django maintainers saying they now regret.  Not everyone has a first name and a last name.
+<a href="#_footnoteref_5">5</a>. In this chapter, we&#8217;re building things in a "bottom-up" way, starting with the models, and then building the layers on top&#8212;the views and templates that depend on them. This is a common approach, but it&#8217;s not the only one! In <a href="/book/chapter_24_outside_in.html">[chapter_24_outside_in]</a> we&#8217;ll explore building software from the outside in, which has all sorts of advantages too.
 </div>
 <div class="footnote" id="_footnotedef_6">
-<a href="#_footnoteref_6">6</a>. You might ask, if I think Django is so silly, why don&#8217;t I submit a pull request to fix it? Should be quite a simple fix. Well, I promise I will, as soon as I&#8217;ve finished updating the book. For now, snarky comments will have to suffice.
+<a href="#_footnoteref_6">6</a>. This is a decision that even some prominent Django maintainers have said they now regret&#8212;not everyone has a first and last name.
 </div>
 <div class="footnote" id="_footnotedef_7">
-<a href="#_footnoteref_7">7</a>. Emails may not be the perfect primary key IRL. One reader, clearly deeply scarred, wrote me an emotional email about how much they&#8217;ve suffered for over a decade from trying to deal with the effects of email primary keys, due to their making multiuser account management impossible. So, as ever, YMMV.
+<a href="#_footnoteref_7">7</a>. You might ask, if I think Django is so silly, why don&#8217;t I submit a pull request to fix it? It should be quite a simple fix. Well, I promise I will, as soon as I&#8217;ve finished updating the book. For now, snarky comments will have to suffice.
+</div>
+<div class="footnote" id="_footnotedef_8">
+<a href="#_footnoteref_8">8</a>. Emails may not be the perfect primary key in real life. One reader&#8212;clearly deeply scarred&#8212;wrote me an emotional email about how much they&#8217;ve suffered for over a decade from trying to deal with the consquences of using email as a primary key, particularly how it makes multiuser account management nearly impossible. So, as ever, YMMV.
 </div>
 </div>
 <div id="footer">
 <div id="footer-text">
-License: Creative Commons <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode">CC-BY-NC-ND</a>. Last updated: 2025-07-28 10:14:18 +0100
+License: Creative Commons <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode">CC-BY-NC-ND</a>. Last updated: 2025-10-27 16:48:45 UTC
 </div>
 </div>
 <div class="comments" style="padding: 20px">

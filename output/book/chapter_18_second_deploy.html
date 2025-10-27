@@ -42,28 +42,9 @@ httpRequest.send();
 <div class="sect1">
 <h2 id="chapter_18_second_deploy">Deploying Our New Code</h2>
 <div class="sectionbody">
-<div class="sidebarblock">
-<div class="content">
-<div class="title">A Note for Early Release Readers</div>
-<div class="paragraph">
-<p>With Early Release ebooks, you get books in their earliest form&#8212;the author&#8217;s raw and unedited content as they write&#8212;so you can take advantage of these technologies long before the official release of these titles.</p>
-</div>
-<div class="paragraph">
-<p>This will be the 18th chapter of the final book. The GitHub repo is available at <a href="https://github.com/hjwp/book-example" class="bare">https://github.com/hjwp/book-example</a>.</p>
-</div>
-<div class="paragraph">
-<p>If you have comments about how we might improve the content and/or examples in this book, or if you notice missing material within this chapter, please reach out to the author at <a href="mailto:obeythetestinggoat@gmail.com">obeythetestinggoat@gmail.com</a>.</p>
-</div>
-</div>
-</div>
 <div class="paragraph">
 <p>
-It&#8217;s time to deploy our brilliant new validation code to our live servers.</p>
-</div>
-<div class="paragraph">
-<p>This will be a chance to see our automated deploy scripts in action for the
-second time.
-Let&#8217;s take the opportunity to make a little deployment checklist.</p>
+It&#8217;s time to deploy our brilliant new validation code to our live servers. This will be a chance to see our automated deploy scripts in action for the second time. Let&#8217;s take the opportunity to make a little deployment checklist.</p>
 </div>
 <div class="admonitionblock note">
 <table>
@@ -85,18 +66,6 @@ At this point I always want to say a huge thanks to Andrew Godwin
 </tr>
 </table>
 </div>
-<div class="sidebarblock">
-<div class="content">
-<div class="title">Warning, Under construction</div>
-<div class="paragraph">
-<p>This chapter has only just been rewritten as part of the third edition.
-Please send feedback!</p>
-</div>
-<div class="paragraph">
-<p>You can refer back to <a href="/book/chapter_11_server_prep.html">[chapter_11_server_prep]</a> for reminders on Ansible commands.</p>
-</div>
-</div>
-</div>
 <div class="sect2">
 <h3 id="_the_deployment_checklist">The Deployment Checklist</h3>
 <div class="paragraph">
@@ -105,10 +74,10 @@ Please send feedback!</p>
 <div class="olist arabic">
 <ol class="arabic">
 <li>
-<p>We run all our unit and functional tests in the regular way. Just in case!</p>
+<p>We run all our unit tests and functional tests (FTs) in the regular way&#8212;just in case!</p>
 </li>
 <li>
-<p>We rebuild our Docker image, and run our tests against Docker, on our local machine.</p>
+<p>We rebuild our Docker image and run our tests against Docker on our local machine.</p>
 </li>
 <li>
 <p>We deploy to staging, and run our FTs against staging.</p>
@@ -127,9 +96,8 @@ Please send feedback!</p>
 <td class="content">
 A deployment checklist like this should be a temporary measure.
   Once you&#8217;ve worked through it manually a few times,
-  you should be looking to take the next step in automation,
-  continuous deployment straight using a CI/CD pipeline.
-  We&#8217;ll touch on this in <a href="/book/chapter_25_CI.html">[chapter_25_CI]</a>.
+  you should be looking to take the next step in automation:
+  continuous deployment straight to production using a CI/CD (continuous integration/continuous development) pipeline. We&#8217;ll touch on this in <a href="/book/chapter_25_CI.html">[chapter_25_CI]</a>.
 </td>
 </tr>
 </table>
@@ -155,12 +123,11 @@ OK</pre>
 <div class="sect2">
 <h3 id="_quick_test_run_against_docker">Quick Test Run Against Docker</h3>
 <div class="paragraph">
-<p>The next step closer to prod, is running things in Docker.
-This was one of the main reasons we went to the trouble of containerising our app,
-which is being able to repro the production environment as faithfully as possible,
-on our own machine.</p>
+<p>The next step towards production is running things in Docker.
+This was one of the main reasons we went to the trouble of containerising our app:
+to reproduce the production environment as faithfully as possible on our own machine.</p>
 </div>
-<div class="paragraph">
+<div class="paragraph pagebreak-before">
 <p>So let&#8217;s rebuild our Docker image and spin up a local Docker container:</p>
 </div>
 <div class="listingblock">
@@ -174,7 +141,7 @@ on our own machine.</p>
     -it superlists
  =&gt; [internal] load build definition from Dockerfile                  0.0s
  =&gt; =&gt; transferring dockerfile: 371B                                  0.0s
- =&gt; [internal] load metadata for docker.io/library/python:3.13-slim   1.4s
+ =&gt; [internal] load metadata for docker.io/library/python:3.14-slim   1.4s
  [...]
  =&gt; =&gt; naming to docker.io/library/superlists                         0.0s
 + docker run -p 8888:8888 --mount
@@ -205,7 +172,7 @@ OK</pre>
 <p>Looking good!  Let&#8217;s move on to staging.</p>
 </div>
 </div>
-<div class="sect2">
+<div class="sect2 pagebreak-before less_space">
 <h3 id="_staging_deploy_and_test_run">Staging Deploy and Test Run</h3>
 <div class="paragraph">
 <p>Here&#8217;s our <code>ansible-playbook</code> command to deploy to staging:</p>
@@ -296,9 +263,9 @@ OK</pre>
 <div class="sect2">
 <h3 id="_production_deploy">Production Deploy</h3>
 <div class="paragraph">
-<p>Since all is looking well we can deploy to prod!</p>
+<p>As all is looking well, we can deploy to prod!</p>
 </div>
-<div class="listingblock against-server">
+<div class="listingblock against-server small-code">
 <div class="content">
 <pre>$ <strong>ansible-playbook --user=elspeth -i www.ottg.co.uk, infra/deploy-playbook.yaml -vv</strong></pre>
 </div>
@@ -318,25 +285,22 @@ already contain duplicate items:</p>
 </div>
 </div>
 <div class="paragraph">
-<p>At this point you have two choices:</p>
+<p>At this point, you have two choices:</p>
 </div>
 <div class="olist arabic">
 <ol class="arabic">
 <li>
-<p>Delete the database on the server and try again.
-After all, it&#8217;s only a toy project!</p>
+<p>Delete the database on the server and try again&#8212;after all, it&#8217;s only a toy project!</p>
 </li>
 <li>
-<p>Create about data migrations.
-Learn about them in the
-<a href="https://docs.djangoproject.com/en/5.2/topics/migrations/#data-migrations">Django migrations docs</a>.</p>
+<p>Create a data migration. You can find out more in the <a href="https://docs.djangoproject.com/en/5.2/topics/migrations/#data-migrations">Django migrations docs</a>.</p>
 </li>
 </ol>
 </div>
 <div class="sect3">
 <h4 id="_how_to_delete_the_database_on_the_staging_server">How to Delete the Database on the Staging Server</h4>
 <div class="paragraph">
-<p>Here&#8217;s how you might do option (1):</p>
+<p>Here&#8217;s how you might do option 1:</p>
 </div>
 <div class="listingblock skipme">
 <div class="content">
@@ -346,7 +310,7 @@ Learn about them in the
 <div class="paragraph">
 <p>The <code>ssh</code> command takes an arbitrary shell command to run as its last argument,
 so we pass in <code>rm db.sqlite3</code>.
-We don&#8217;t need a full path because we keep the sqlite database in elspeth&#8217;s home folder.</p>
+We don&#8217;t need a full path because we keep the SQLite database in our home folder.</p>
 </div>
 <div class="admonitionblock warning">
 <table>
@@ -355,7 +319,7 @@ We don&#8217;t need a full path because we keep the sqlite database in elspeth&#
 <i class="fa icon-warning" title="Warning"></i>
 </td>
 <td class="content">
-Don&#8217;t do this in prod!
+Try not to accidentally delete your production database.
 </td>
 </tr>
 </table>
@@ -365,7 +329,7 @@ Don&#8217;t do this in prod!
 <div class="sect2">
 <h3 id="_wrap_up_git_tag_the_new_release">Wrap-Up: git tag the New Release</h3>
 <div class="paragraph">
-<p>The last thing to do is to tag the release in our VCS&#8212;&#8203;it&#8217;s important that
+<p>The last thing to do is to tag the release in our version control system (VCS)&#8212;it&#8217;s important that
 we&#8217;re always able to keep track of what&#8217;s live:</p>
 </div>
 <div class="listingblock">
@@ -391,11 +355,9 @@ Some people don&#8217;t like to use <code>push -f</code> and update an existing 
 </table>
 </div>
 <div class="paragraph">
-<p>And on that note, we can wrap up <a href="/book/part2.forbook.html">[part2]</a>,
-and move on to the more exciting topics that comprise <a href="/book/part3.forbook.html">[part3]</a>.
-Can&#8217;t wait!</p>
+<p>And on that note, we can wrap up the last of the concepts we discussed in <a href="/book/part3.forbook.html">[part3]</a>, and move on to the more exciting topics that comprise <a href="/book/part4.forbook.html">[part4]</a>. Can&#8217;t wait!</p>
 </div>
-<div class="sidebarblock pagebreak-before less_space">
+<div class="sidebarblock">
 <div class="content">
 <div class="title">Deployment Procedure Review</div>
 <div class="paragraph">
@@ -404,27 +366,25 @@ Can&#8217;t wait!</p>
 <div class="ulist">
 <ul>
 <li>
-<p>Deploy to staging first</p>
+<p>Deploy to staging first.</p>
 </li>
 <li>
 <p>Run our FTs against staging.</p>
 </li>
 <li>
-<p>Deploy to live</p>
+<p>Deploy to live.</p>
 </li>
 <li>
-<p>Tag the release</p>
+<p>Tag the release.</p>
 </li>
 </ul>
 </div>
 <div class="paragraph">
 <p>Deployment procedures evolve and get more complex as projects grow,
-and it&#8217;s an area that can grow hard to maintain,
-full of manual checks and procedures,
-if you&#8217;re not careful to keep things automated.
+and it&#8217;s an area that can become hard to maintain&#8212;full of manual checks and procedures&#8212;if you&#8217;re not careful to keep things automated.
 There&#8217;s lots more to learn about this, but it&#8217;s out of scope for this book.
 Dave Farley&#8217;s
-<a href="https://www.youtube.com/watch?v=tQMrrNo16jo">video on Continuous Delivery</a>
+<a href="https://oreil.ly/X2O_T">video on continuous delivery</a>
 is a good place to start.
 </p>
 </div>
@@ -436,7 +396,7 @@ is a good place to start.
 </div>
 <div id="footer">
 <div id="footer-text">
-License: Creative Commons <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode">CC-BY-NC-ND</a>. Last updated: 2025-07-28 10:37:35 +0100
+License: Creative Commons <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode">CC-BY-NC-ND</a>. Last updated: 2025-10-27 16:48:45 UTC
 </div>
 </div>
 <div class="comments" style="padding: 20px">

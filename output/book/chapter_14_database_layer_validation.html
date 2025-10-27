@@ -43,24 +43,10 @@ httpRequest.send();
 <div class="sect1">
 <h2 id="chapter_14_database_layer_validation">Validation at the Database Layer</h2>
 <div class="sectionbody">
-<div class="sidebarblock">
-<div class="content">
-<div class="title">A Note for Early Release Readers</div>
-<div class="paragraph">
-<p>With Early Release ebooks, you get books in their earliest form&#8212;the author&#8217;s raw and unedited content as they write&#8212;so you can take advantage of these technologies long before the official release of these titles.</p>
-</div>
-<div class="paragraph">
-<p>This will be the 14th chapter of the final book. The GitHub repo is available at <a href="https://github.com/hjwp/book-example" class="bare">https://github.com/hjwp/book-example</a>.</p>
-</div>
-<div class="paragraph">
-<p>If you have comments about how we might improve the content and/or examples in this book, or if you notice missing material within this chapter, please reach out to the author at <a href="mailto:obeythetestinggoat@gmail.com">obeythetestinggoat@gmail.com</a>.</p>
-</div>
-</div>
-</div>
 <div class="paragraph">
 <p>
 
-Over the next few chapters we&#8217;ll talk about testing
+Over the next few chapters, we&#8217;ll talk about testing
 and implementing validation of user inputs.</p>
 </div>
 <div class="paragraph">
@@ -75,10 +61,10 @@ really getting into the swing of things, the rhythm of TDD, and how we get work 
 I&#8217;ve saved a bit of fun with JavaScript (!) for the end of <a href="/book/part2.forbook.html">[part2]</a>.
 Then it&#8217;s on to <a href="/book/part3.forbook.html">[part3]</a>,
 where I promise we&#8217;ll get right back into some of the real nitty-gritty discussions
-in TDD methodology&#8212;&#8203;unit tests versus integration tests, mocking, and more.
+on TDD methodology&#8212;&#8203;unit tests versus integration tests, mocking, and more.
 Stay tuned!</p>
 </div>
-<div class="paragraph">
+<div class="paragraph pagebreak-before">
 <p>But for now, a little validation.
 Let&#8217;s just remind ourselves where our FT is pointing us:</p>
 </div>
@@ -135,13 +121,13 @@ because I&#8217;m a bit too fond of databases and database integrity rules, and
 partially because, again, it&#8217;s safer&#8212;&#8203;you can sometimes forget which form you
 use to validate input, but you&#8217;re always going to use the same database.</p>
 </div>
-<div class="sect3">
+<div class="sect3 pagebreak-before less_space">
 <h4 id="_the_self_assertraises_context_manager">The self.assertRaises Context Manager</h4>
 <div class="paragraph">
 <p>
 
 Let&#8217;s go down and write a unit test at the models layer.
-Add a new test method to <code>ListAndItemModelsTest</code> which tries to create a blank list item.
+Add a new test method to <span class="keep-together"><code>ListAndItemModelsTest</code></span>, which tries to create a blank list item.
 This test is interesting
 because it&#8217;s testing that the code under test should raise an exception:</p>
 </div>
@@ -198,7 +184,7 @@ If you&#8217;re new to Python, you may never have seen the <code>with</code> sta
     Together, they wrap a block of code,
     usually with some kind of setup, cleanup, or error-handling code.
     There&#8217;s a good write-up on
-    <a href="https://www.pythonmorsels.com/what-is-a-context-manager/">Python Morsels</a>.
+    <a href="https://oreil.ly/z6Eh8">Python Morsels</a>.
     
     
 </td>
@@ -207,7 +193,7 @@ If you&#8217;re new to Python, you may never have seen the <code>with</code> sta
 </div>
 </div>
 <div class="sect3">
-<h4 id="_django_model_constraints_and_their_interaction_with_databases">Django Model Constraints and Their Interaction With Databases</h4>
+<h4 id="_django_model_constraints_and_their_interaction_with_databases">Django Model Constraints and Their Interaction with Databases</h4>
 <div class="paragraph">
 <p>When we run this new unit test, we see the failure we expected:</p>
 </div>
@@ -224,14 +210,14 @@ because <em>this test should already pass</em>.</p>
 <div class="paragraph">
 <p>If you take a look at the
 <a href="https://docs.djangoproject.com/en/5.2/ref/models/fields/#blank">docs for the Django model fields</a>,
-you&#8217;ll see under <em>Field options</em> that the default setting for <em>all</em> fields is
+you&#8217;ll see under "Field choices" that the default setting for <em>all</em> fields is
 <code>blank=False</code>.
-Since TextField is a type of Field, it <em>should</em> already disallow empty values.</p>
+Because "text field" is a type of field, it <em>should</em> already disallow empty values.</p>
 </div>
 <div class="paragraph">
 <p>
-So why is the test still failing?
-Why is our database not raising an IntegrityError when we try to save an empty string
+So, why is the test still failing?
+Why is our database not raising an <code>IntegrityError</code> when we try to save an empty string
 into the <code>text</code> column?</p>
 </div>
 <div class="paragraph">
@@ -243,7 +229,7 @@ into the <code>text</code> column?</p>
 <div class="paragraph">
 <p>Let&#8217;s have a look directly at the database using the <code>dbshell</code> command:</p>
 </div>
-<div class="listingblock skipme">
+<div class="listingblock skipme small-code">
 <div class="content">
 <pre>$ <strong>./src/manage.py dbshell</strong>  # (this is equivalent to running sqlite3 src/db.sqlite3)
 SQLite version 3.[...]
@@ -261,14 +247,11 @@ but it will actually allow the empty string.</p>
 </div>
 <div class="paragraph">
 <p>Whilst it is
-<a href="https://stackoverflow.com/questions/10371077/not-empty-string-constraint-in-sqlite">technically possible</a>
-to implement a "not empty string" constraint on a Text column in SQLite,
-the Django developers have chosen not to do this.</p>
-</div>
-<div class="paragraph">
-<p>This is because Django distinguishes between what they call "database-related"
+<a href="https://oreil.ly/kzu65">technically possible</a>
+to implement a "not empty string" constraint on a text column in SQLite,
+the Django developers have chosen not to do this. This is because Django distinguishes between what they call "database-related"
 and "validation-related" constraints.
-As well as <code>empty=False</code>, all fields get <code>null=False</code> setting,
+As well as <code>empty=False</code>, all fields get a <code>null=False</code> setting,
 which translates into the database-level <code>NOT NULL</code> constraint we saw earlier.</p>
 </div>
 <div class="paragraph">
@@ -291,7 +274,7 @@ We&#8217;ll pass in <code>text=None</code> instead of <code>text=""</code>
 </div>
 </div>
 <div class="paragraph">
-<p>You&#8217;ll see that <em>this</em> test now passes.</p>
+<p>You&#8217;ll see that <em>this</em> test now passes:</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -302,7 +285,7 @@ OK</pre>
 </div>
 </div>
 <div class="sect3">
-<h4 id="_testing_django_model_validation">Testing Django Model Validation:</h4>
+<h4 id="_testing_django_model_validation">Testing Django Model Validation</h4>
 <div class="paragraph">
 <p>That&#8217;s all vaguely interesting, but it&#8217;s not actually what we set out to do.
 How do we make sure that the "validation-related" constraint is being enforced?
@@ -344,11 +327,11 @@ Django uses <code>ValidationError</code> to signal errors that come from its own
 <table>
 <tr>
 <td><i class="conum" data-value="1"></i><b>1</b></td>
-<td>This time we pass <code>text=""</code></td>
+<td>This time we pass <code>text=""</code>.</td>
 </tr>
 <tr>
 <td><i class="conum" data-value="2"></i><b>2</b></td>
-<td>And we&#8217;re expecting a <code>ValidationError</code> instead of an <code>IntegrityError</code>:</td>
+<td>And we&#8217;re expecting a <code>ValidationError</code> instead of an <code>IntegrityError</code>.</td>
 </tr>
 </table>
 </div>
@@ -356,7 +339,7 @@ Django uses <code>ValidationError</code> to signal errors that come from its own
 <div class="sect3">
 <h4 id="_a_django_quirk_model_save_doesnt_run_validation">A Django Quirk: Model Save Doesn&#8217;t Run Validation</h4>
 <div class="paragraph">
-<p>We can try running <em>this</em> new unit test,
+<p>We can try running this new unit test,
 and we&#8217;ll see its expected failure&#8230;&#8203;</p>
 </div>
 <div class="listingblock">
@@ -374,7 +357,7 @@ constraint by default.  Why doesn&#8217;t this work?</p>
 <p>
 We&#8217;ve discovered one of Django&#8217;s little quirks.
 For
-<a href="https://groups.google.com/g/django-developers/c/uIhzSwWHj4c">slightly
+<a href="https://oreil.ly/u3N_2">slightly
 counterintuitive historical reasons</a>,
 Django models don&#8217;t run full validation on save.</p>
 </div>
@@ -420,23 +403,21 @@ and set <code>blank=True</code> on the <code>text</code> field (try it!).</p>
 <div class="olist arabic">
 <ol class="arabic">
 <li>
-<p>Database-level constraints like <code>null=False</code> or <code>unique=True</code>.
-(We&#8217;ll see an example of the latter in in <a href="/book/chapter_16_advanced_forms.html">[chapter_16_advanced_forms]</a>).
-These are enforced by the database itself,
-using things like <code>NOT NULL</code> or <code>UNIQUE</code> constraints.
-These bubble up as `IntegrityError`s if you try to save an invalid object.</p>
+<p>Database-level constraints like <code>null=False</code> or <code>unique=True</code>
+(as we&#8217;ll see an example of in <a href="/book/chapter_16_advanced_forms.html">[chapter_16_advanced_forms]</a>), which are enforced by the database itself,
+using things like <code>NOT NULL</code> or <code>UNIQUE</code> constraints and bubble up as <code>IntegrityError</code>s if you try to save an invalid object</p>
 </li>
 <li>
-<p>Model-level validation like <code>blank=False</code>,
-which is only enforced by Django, when you call <code>full_clean()</code>,
-and they raise a <code>ValidationError</code>.</p>
+<p>Model-level validations like <code>blank=False</code>,
+which are only enforced by Django, when you call <code>full_clean()</code>,
+and they raise a <code>ValidationError</code></p>
 </li>
 </ol>
 </div>
 <div class="paragraph">
-<p>The subtlety is that Django <em>also</em> enforces database-level constraints
+<p>The subtlety is that Django also enforces database-level constraints
 when you call <code>full_clean()</code>.
-So you&#8217;ll only see <code>IntegrityError</code> if you forget to call <code>full_clean()</code>
+So, you&#8217;ll only see <code>IntegrityError</code> if you forget to call <code>full_clean()</code>
 before doing a <code>.save()</code>.</p>
 </div>
 </div>
@@ -448,15 +429,15 @@ outside of this one unit test.</p>
 </div>
 </div>
 </div>
-<div class="sect2">
+<div class="sect2 pagebreak-before less_space">
 <h3 id="_surfacing_model_validation_errors_in_the_view">Surfacing Model Validation Errors in the View</h3>
 <div class="paragraph">
 <p>
 Let&#8217;s try to enforce our model validation in the views layer
-and bring it up through into our templates, so the user can see them.
-Here&#8217;s how we can optionally display an error in our HTML&#8212;&#8203;we check
-whether the template has been passed an error variable,
-and if so, we do this:</p>
+and bring it up into our templates so the user can see them.
+To optionally display an error in our HTML, we check
+whether the template has been passed an error variable
+and, if so, we do this:</p>
 </div>
 <div class="exampleblock sourcecode">
 <div class="title">src/lists/templates/base.html (ch14l005)</div>
@@ -465,14 +446,14 @@ and if so, we do this:</p>
 <div class="content">
 <pre class="pygments highlight"><code data-lang="html"><span></span>  <span class="tok-p">&lt;</span><span class="tok-nt">form</span> <span class="tok-na">method</span><span class="tok-o">=</span><span class="tok-s">"POST"</span> <span class="tok-na">action</span><span class="tok-o">=</span><span class="tok-s">"{% block form_action %}{% endblock %}"</span><span class="tok-p">&gt;</span>
     <span class="tok-p">&lt;</span><span class="tok-nt">input</span>
-      <span class="tok-na">class</span><span class="tok-o">=</span><span class="tok-s">"form-control form-control-lg {% if error %}is-invalid{% endif %}"</span>  <i class="conum" data-value="1"></i><b>(1)</b>
+      <span class="tok-na">class</span><span class="tok-o">=</span><span class="tok-s">"form-control form-control-lg {% if error %}is-invalid{% endif %}"</span> <i class="conum" data-value="1"></i><b>(1)</b>
       <span class="tok-na">name</span><span class="tok-o">=</span><span class="tok-s">"item_text"</span>
       <span class="tok-na">id</span><span class="tok-o">=</span><span class="tok-s">"id_new_item"</span>
       <span class="tok-na">placeholder</span><span class="tok-o">=</span><span class="tok-s">"Enter a to-do item"</span>
     <span class="tok-p">/&gt;</span>
     {% csrf_token %}
     {% if error %}
-      <span class="tok-p">&lt;</span><span class="tok-nt">div</span> <span class="tok-na">class</span><span class="tok-o">=</span><span class="tok-s">"invalid-feedback"</span><span class="tok-p">&gt;</span>{{ error }}<span class="tok-p">&lt;/</span><span class="tok-nt">div</span><span class="tok-p">&gt;</span>  <i class="conum" data-value="2"></i><b>(2)</b>
+      <span class="tok-p">&lt;</span><span class="tok-nt">div</span> <span class="tok-na">class</span><span class="tok-o">=</span><span class="tok-s">"invalid-feedback"</span><span class="tok-p">&gt;</span>{{ error }}<span class="tok-p">&lt;/</span><span class="tok-nt">div</span><span class="tok-p">&gt;</span> <i class="conum" data-value="2"></i><b>(2)</b>
     {% endif %}
   <span class="tok-p">&lt;/</span><span class="tok-nt">form</span><span class="tok-p">&gt;</span></code></pre>
 </div>
@@ -483,7 +464,7 @@ and if so, we do this:</p>
 <table>
 <tr>
 <td><i class="conum" data-value="1"></i><b>1</b></td>
-<td>We add the <code>.is-invalid</code> class to any form inputs that have validation errors</td>
+<td>We add the <code>.is-invalid</code> class to any form inputs that have validation errors.</td>
 </tr>
 <tr>
 <td><i class="conum" data-value="2"></i><b>2</b></td>
@@ -510,23 +491,23 @@ However, ignore the Bootstrap docs' advice to prefer client-side
     If you can&#8217;t do both, then server-side validation is the one you really
     can&#8217;t do without.
     Check the
-    <a href="https://owasp.org/www-project-secure-coding-practices-quick-reference-guide/stable-en/02-checklist/05-checklist.html">OWASP checklist</a>,
+    <a href="https://oreil.ly/pkFo8">OWASP checklist</a>,
     if you are not convinced yet.
     Client-side validation will provide faster feedback on the UI, but
-    <a href="https://cheatsheetseries.owasp.org/cheatsheets/Input_Validation_Cheat_Sheet.html#client-side-vs-server-side-validation">it is not a security measure.</a>
+    <a href="https://oreil.ly/xAUt8">it is not a security measure.</a>
     Server-side validation is indispensable for handling any input
-    that gets processed by the server&#8212;&#8203;and it will also provide albeit slower,
+    that gets processed by the server&#8212;&#8203;and it will also provide (albeit slower)
     feedback for the client side.
 </td>
 </tr>
 </table>
 </div>
 <div class="paragraph">
-<p>Passing this error to the template is the job of the view function. Let&#8217;s take
+<p>Passing this error to the template is the view function&#8217;s job. Let&#8217;s take
 a look at the unit tests in the <code>NewListTest</code> class.  I&#8217;m going to use two
 slightly different error-handling patterns here.</p>
 </div>
-<div class="paragraph">
+<div class="paragraph pagebreak-before">
 <p>In the first case, our URL and view for new lists will optionally render the
 same template as the home page, but with the addition of an error message.
 Here&#8217;s a unit test for that:</p>
@@ -553,9 +534,9 @@ Here&#8217;s a unit test for that:</p>
 <p>As we&#8217;re writing this test, we might get slightly offended by the <em>/lists/new</em>
 URL, which we&#8217;re manually entering as a string. We&#8217;ve got a lot of URLs
 hardcoded in our tests, in our views, and in our templates, which violates the
-DRY principle.  I don&#8217;t mind a bit of duplication in tests, but we should
+DRY (don&#8217;t repeat yourself) principle.  I don&#8217;t mind a bit of duplication in tests, but we should
 definitely be on the lookout for hardcoded URLs in our views and templates,
-and make a note to refactor them out.  But we won&#8217;t do them straight away,
+and make a note to refactor them out.  But we won&#8217;t do that straight away,
 because right now our application is in a broken state. We want to get back
 to a working state first.</p>
 </div>
@@ -594,7 +575,7 @@ URL to get rid of.  Let&#8217;s add that to our scratchpad:</p>
 <div class="ulist">
 <ul>
 <li>
-<p><em>Remove hardcoded URLs from views.py</em></p>
+<p><em>Remove hardcoded URLs from views.py.</em></p>
 </li>
 </ul>
 </div>
@@ -639,7 +620,7 @@ tests should tell us what to code next.</p>
 </div>
 </div>
 <div class="paragraph">
-<p>That gets us back to the 302 != 200:</p>
+<p>That gets us back to the <code>302 != 200</code>:</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -856,9 +837,9 @@ selenium.common.exceptions.NoSuchElementException: Message: Unable to locate
 element: .invalid-feedback; [...]</pre>
 </div>
 </div>
-<div class="paragraph">
+<div class="paragraph pagebreak-before">
 <p>Not quite, but they did get a little further.
-Checking the line in which the error occurred&#8212;_line 31_ in my case&#8212;&#8203;we
+Checking the line in which the error occurred (line 31 in my case) we
 can see that we&#8217;ve got past the first part of the test,
 and are now onto the second check&#8212;&#8203;that
 submitting a second empty item also shows an error.</p>
@@ -874,7 +855,7 @@ We&#8217;ve got some working code though, so let&#8217;s have a commit:</p>
 </div>
 </div>
 <div class="sect3">
-<h4 id="_adding_an_early_return_to_our_ft_to_let_us_refactor_against_green">Adding an Early Return to our FT to Let us Refactor Against Green</h4>
+<h4 id="_adding_an_early_return_to_our_ft_to_let_us_refactor_against_green">Adding an Early Return to Our FT to Let Us Refactor Against Green</h4>
 <div class="paragraph">
 <p>
 Let&#8217;s put an early return in the FT to separate
@@ -908,10 +889,10 @@ what we got working from those that still need to be dealt with:</p>
 <div class="ulist">
 <ul>
 <li>
-<p><em>Remove hardcoded URLs from views.py</em></p>
+<p><em>Remove hardcoded URLs from views.py.</em></p>
 </li>
 <li>
-<p><em>Remove the early return from the FT</em></p>
+<p><em>Remove the early return from the FT.</em></p>
 </li>
 </ul>
 </div>
@@ -930,7 +911,7 @@ what we got working from those that still need to be dealt with:</p>
 When working on a new feature, it&#8217;s common to realise partway through
     that a refactor of the application is needed.
     Adding an early return to the FT you&#8217;re currently working on
-    allows you to perform this refactor against passing FTs,
+    enables you to perform this refactor against passing FTs,
     even while the feature is still in progress.
 </td>
 </tr>
@@ -939,25 +920,23 @@ When working on a new feature, it&#8217;s common to realise partway through
 </div>
 </div>
 <div class="sect2">
-<h3 id="_django_pattern_processing_post_requests_in_the_same_view_as_renders_the_form">Django Pattern: Processing POST Requests in the Same View as Renders the Form</h3>
+<h3 id="_django_pattern_processing_post_requests_in_the_same_view_that_renders_the_form">Django Pattern: Processing POST Requests in the Same View That Renders the Form</h3>
 <div class="paragraph">
 <p>
 
 
-This time we&#8217;ll use a slightly different approach,
-one that&#8217;s actually a very common pattern in Django,
-which is to use the same view to process POST requests
-to also render the form that they come from.
-Whilst this doesn&#8217;t fit the RESTful URL model quite as well,
+This time we&#8217;ll use a slightly different approach&#8212;one that&#8217;s actually a very common pattern in Django&#8212;which uses the same view to both process POST requests
+and render the form that they come from.
+Whilst this doesn&#8217;t fit the REST-ful URL model quite as well,
 it has the important advantage that the same URL can display a form,
 and display any errors encountered in processing the user&#8217;s input;
-see <a href="#single-endpoint-for-forms">Existing List, Viewing and Adding Items in the Same Endpoint</a>:</p>
+see <a href="#single-endpoint-for-forms">Existing list, viewing and adding items in the same end point</a>.</p>
 </div>
 <div id="single-endpoint-for-forms" class="imageblock">
 <div class="content">
-<img src="images/tdd3_1401.png" alt="A diagram, showing the 3 different user requests for our endpoint at /lists/list-id/. (1) a GET request, which receives an HTML response containing the list items and the add-item Form. (2) a valid POST request, wich receives a 301 Redirect response to reload /lists/list-id/. (3) an invalid POST request, whose response is HTML including the list and the form, this time with errors">
+<img src="images/tdd3_1401.png" alt="A diagram, showing the 3 different user requests for our end point at /lists/list-id/. (1) a GET request, which receives an HTML response containing the list items and the add-item Form. (2) a valid POST request, wich receives a 301 Redirect response to reload /lists/list-id/. (3) an invalid POST request, whose response is HTML including the list and the form, this time with errors">
 </div>
-<div class="title">Figure 1. Existing List, Viewing and Adding Items in the Same Endpoint</div>
+<div class="title">Figure 1. Existing list, viewing and adding items in the same end point</div>
 </div>
 <div class="paragraph">
 <p>The current situation is that we have one view and URL for displaying a list,
@@ -971,7 +950,7 @@ We&#8217;re going to combine them into one.</p>
 <i class="fa icon-note" title="Note"></i>
 </td>
 <td class="content">
-In this section we&#8217;re performing a refactor at the application level.
+In this section, we&#8217;re performing a refactor at the application level.
     We execute our application-level refactor by changing or adding unit tests,
     and then adjusting our code.
     We use the functional tests to warn us if we ever go backwards and introduce a regression,
@@ -985,9 +964,7 @@ In this section we&#8217;re performing a refactor at the application level.
 <div class="sect3">
 <h4 id="_refactor_transferring_the_new_item_functionality_into_view_list">Refactor: Transferring the new_item Functionality into view_list</h4>
 <div class="paragraph">
-<p>Let&#8217;s take the two old tests from <code>NewItemTest</code>,
-the ones that are about saving POST requests to existing lists,
-and move them into <code>ListViewTest</code>.
+<p>Let&#8217;s take the two old tests from <code>NewItemTest</code>&#8212;the ones that are about saving POST requests to existing lists&#8212;and move them into <code>ListViewTest</code>.
 As we do so, we also make them point at the base list URL, instead of <em>&#8230;&#8203;/add_item</em>:</p>
 </div>
 <div class="exampleblock sourcecode">
@@ -1043,7 +1020,7 @@ As we do so, we also make them point at the base list URL, instead of <em>&#8230
 <table>
 <tr>
 <td><i class="conum" data-value="1"></i><b>1</b></td>
-<td>We want our form to point at the base URL</td>
+<td>We want our form to point at the base URL.</td>
 </tr>
 <tr>
 <td><i class="conum" data-value="2"></i><b>2</b></td>
@@ -1056,7 +1033,7 @@ As we do so, we also make them point at the base list URL, instead of <em>&#8230
 I&#8217;ve also changed the name of the redirect test
 to make it explicit that it only applies to POST requests.</p>
 </div>
-<div class="paragraph">
+<div class="paragraph pagebreak-before">
 <p>That gives:</p>
 </div>
 <div class="listingblock">
@@ -1084,7 +1061,7 @@ FAILED (failures=3)</pre>
 </div>
 <div class="paragraph">
 <p>That last one is something we can fix in the template.
-Let&#8217;s go to <em>list.html</em>, and change the <code>action</code> attribute on our form,
+Let&#8217;s go to <em>list.html</em>, and change the <code>action</code> attribute on our form
 so that it points at the existing list URL:</p>
 </div>
 <div class="exampleblock sourcecode">
@@ -1098,28 +1075,28 @@ so that it points at the existing list URL:</p>
 </div>
 </div>
 <div class="paragraph">
-<p>Incidentally, that&#8217;s another hardcoded URL.  Let&#8217;s add it to our to-do list,
-and while we&#8217;re thinking about it, there&#8217;s one in <em>home.html</em> too:</p>
+<p>Incidentally, that&#8217;s another hardcoded URL.  Let&#8217;s add it to our to-do list
+and, while we&#8217;re thinking about it, there&#8217;s one in <em>home.html</em> too:</p>
 </div>
 <div class="sidebarblock scratchpad">
 <div class="content">
 <div class="ulist">
 <ul>
 <li>
-<p><em>Remove hardcoded URLs from views.py</em></p>
+<p><em>Remove hardcoded URLs from views.py.</em></p>
 </li>
 <li>
-<p><em>Remove the early return from the FT</em></p>
+<p><em>Remove the early return from the FT.</em></p>
 </li>
 <li>
-<p><em>Remove hardcoded URL from forms in list.html and home.html</em></p>
+<p><em>Remove hardcoded URL from forms in list.html and home.html.</em></p>
 </li>
 </ul>
 </div>
 </div>
 </div>
-<div class="paragraph">
-<p>We&#8217;re now down to two failing tests</p>
+<div class="paragraph pagebreak-before">
+<p>We&#8217;re now down to two failing tests:</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -1141,7 +1118,7 @@ FAILED (failures=2)</pre>
 </div>
 <div class="paragraph">
 <p>Those are both about getting the list view to handle POST requests.
-Let&#8217;s copy some code across from add item view to do just that:</p>
+Let&#8217;s copy some code across from <code>add_item</code> view to do just that:</p>
 </div>
 <div class="exampleblock sourcecode">
 <div class="title">src/lists/views.py (ch14l032)</div>
@@ -1162,7 +1139,7 @@ Let&#8217;s copy some code across from add item view to do just that:</p>
 <table>
 <tr>
 <td><i class="conum" data-value="1"></i><b>1</b></td>
-<td>We add a branch for when the method is POST</td>
+<td>We add a branch for when the method is POST.</td>
 </tr>
 <tr>
 <td><i class="conum" data-value="2"></i><b>2</b></td>
@@ -1182,7 +1159,7 @@ OK</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>Now we can delete the <code>add_item</code> view, since it&#8217;s no longer needed&#8230;&#8203;oops, an
+<p>Now we can delete the <code>add_item</code> view, as it&#8217;s no longer needed&#8230;&#8203;oops, an
 unexpected failure:</p>
 </div>
 <div class="listingblock dofirst-ch14l033">
@@ -1191,7 +1168,7 @@ unexpected failure:</p>
 AttributeError: module 'lists.views' has no attribute 'add_item'</pre>
 </div>
 </div>
-<div class="paragraph">
+<div class="paragraph pagebreak-before">
 <p>It&#8217;s because we&#8217;ve deleted the view, but it&#8217;s still being referred to in
 <em>urls.py</em>.  We remove it from there:</p>
 </div>
@@ -1209,7 +1186,7 @@ AttributeError: module 'lists.views' has no attribute 'add_item'</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>OK we&#8217;re back to the green on the unit tests.</p>
+<p>OK, we&#8217;re back to the green on the unit tests.</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -1236,7 +1213,7 @@ We should commit there:</p>
 </div>
 </div>
 <div class="paragraph">
-<p>We can remove the early return now.</p>
+<p>We can remove the early return now:</p>
 </div>
 <div class="exampleblock sourcecode">
 <div class="title">src/functional_tests/test_list_item_validation.py (ch14l035)</div>
@@ -1255,26 +1232,26 @@ We should commit there:</p>
 </div>
 </div>
 <div class="paragraph">
-<p>And from our scratchpad:</p>
+<p>And, let&#8217;s cross that off our scratchpad too:</p>
 </div>
 <div class="sidebarblock scratchpad">
 <div class="content">
 <div class="ulist">
 <ul>
 <li>
-<p><em>Remove hardcoded URLs from views.py</em></p>
+<p><em>Remove hardcoded URLs from views.py.</em></p>
 </li>
 <li>
-<p><em><span class="strikethrough line-through">Remove the early return from the FT</span></em></p>
+<p><em><span class="strikethrough line-through">Remove the early return from the FT.</span></em></p>
 </li>
 <li>
-<p><em>Remove hardcoded URL from forms in list.html and home.html</em></p>
+<p><em>Remove hardcoded URL from forms in list.html and home.html.</em></p>
 </li>
 </ul>
 </div>
 </div>
 </div>
-<div class="paragraph">
+<div class="paragraph pagebreak-before">
 <p>Run the FTs again to see what&#8217;s still there that needs to be fixed:</p>
 </div>
 <div class="listingblock">
@@ -1292,7 +1269,7 @@ FAILED (errors=1)</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>We&#8217;re back to working on this one failure in our new functional test.</p>
+<p>We&#8217;re back to working on this one failure in our new FT.</p>
 </div>
 </div>
 <div class="sect3">
@@ -1325,8 +1302,8 @@ it&#8217;s very similar to the one for the home page, with just a couple of twea
 </div>
 </div>
 <div class="paragraph">
-<p>That should fail, because our view currently does not do any validation, and
-just redirects for all POSTs:</p>
+<p>Because our view currently does not do any validation, this should fail and
+just redirect for all POSTs:</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -1334,7 +1311,7 @@ just redirects for all POSTs:</p>
 AssertionError: 302 != 200</pre>
 </div>
 </div>
-<div class="paragraph">
+<div class="paragraph pagebreak-before">
 <p>Here&#8217;s an implementation:</p>
 </div>
 <div class="exampleblock sourcecode">
@@ -1364,11 +1341,11 @@ AssertionError: 302 != 200</pre>
 <table>
 <tr>
 <td><i class="conum" data-value="1"></i><b>1</b></td>
-<td>Notice we do <code>Item()</code> instead of <code>Item.objects.create()</code></td>
+<td>Notice we do <code>Item()</code> instead of <code>Item.objects.create()</code>.</td>
 </tr>
 <tr>
 <td><i class="conum" data-value="2"></i><b>2</b></td>
-<td>Then we call <code>full_clean()</code> before we call <code>save()</code></td>
+<td>Then we call <code>full_clean()</code> before we call <code>save()</code>.</td>
 </tr>
 </table>
 </div>
@@ -1399,16 +1376,16 @@ We&#8217;ll just add it to our scratchpad for now:</p>
 <div class="ulist">
 <ul>
 <li>
-<p><em>Remove hardcoded URLs from views.py</em></p>
+<p><em>Remove hardcoded URLs from views.py.</em></p>
 </li>
 <li>
-<p><em><span class="strikethrough line-through">Remove the early return from the FT</span></em></p>
+<p><em><span class="strikethrough line-through">Remove the early return from the FT.</span></em></p>
 </li>
 <li>
-<p><em>Remove hardcoded URL from forms in list.html and home.html</em></p>
+<p><em>Remove hardcoded URL from forms in list.html and home.html.</em></p>
 </li>
 <li>
-<p><em>Remove duplication of validation logic in views</em></p>
+<p><em>Remove duplication of validation logic in views.</em></p>
 </li>
 </ul>
 </div>
@@ -1434,7 +1411,7 @@ One of the reasons that the "three strikes and refactor" rule exists is that,
 </table>
 </div>
 <div class="paragraph">
-<p>At least our functional tests are back to passing:</p>
+<p>At least our FTs are back to passing:</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -1446,8 +1423,7 @@ OK</pre>
 <div class="paragraph">
 <p>We&#8217;re back to a working state,
 so we can take a look at some of the items on our scratchpad.
-This would be a good time for a commit.
-And possibly a tea break.
+This would be a good time for a commit (and possibly a tea break):
 </p>
 </div>
 <div class="listingblock">
@@ -1465,7 +1441,7 @@ And possibly a tea break.
 
 
 Do you remember those <code>name=</code> parameters in <em>urls.py</em>?
-We just copied them across from the default example Django gave us,
+We just copied them across from the default example that Django gave us,
 and I&#8217;ve been giving them some reasonably descriptive names.
 Now we find out what they&#8217;re for:</p>
 </div>
@@ -1484,7 +1460,7 @@ Now we find out what they&#8217;re for:</p>
 <h4 id="_the_url_template_tag">The {% url %} Template Tag</h4>
 <div class="paragraph">
 <p>We can replace the hardcoded URL in <em>home.html</em> with a Django template tag
-which refers to the URL&#8217;s "name":</p>
+that refers to the URL&#8217;s "name":</p>
 </div>
 <div class="exampleblock sourcecode">
 <div class="title">src/lists/templates/home.html (ch14l038)</div>
@@ -1548,16 +1524,16 @@ OK</pre>
 <div class="ulist">
 <ul>
 <li>
-<p><em>Remove hardcoded URLs from views.py</em></p>
+<p><em>Remove hardcoded URLs from views.py.</em></p>
 </li>
 <li>
-<p><em><span class="strikethrough line-through">Remove the early return from the FT</span></em></p>
+<p><em><span class="strikethrough line-through">Remove the early return from the FT.</span></em></p>
 </li>
 <li>
-<p><em><span class="strikethrough line-through">Remove hardcoded URL from forms in list.html and home.html</span></em></p>
+<p><em><span class="strikethrough line-through">Remove hardcoded URL from forms in list.html and home.html.</span></em></p>
 </li>
 <li>
-<p><em>Remove duplication of validation logic in views</em></p>
+<p><em>Remove duplication of validation logic in views.</em></p>
 </li>
 </ul>
 </div>
@@ -1588,15 +1564,15 @@ passing in the name of the URL and a positional argument:</p>
 <p>That would get the unit and functional tests passing, but the <code>redirect</code>
 function can do even better magic than that!  In Django, because model objects
 are often associated with a particular URL, you can define a special function
-called <code>get_absolute_url</code> which says what page displays the item.  It&#8217;s useful
+called <code>get_absolute_url</code> which tells you what page displays the item.  It&#8217;s useful
 in this case, but it&#8217;s also useful in the Django admin (which I don&#8217;t cover in
-the book, but you&#8217;ll soon discover for yourself): it will let you jump from
+the book, but you&#8217;ll soon discover for yourself) because it will let you jump from
 looking at an object in the admin view to looking at the object on the live
 site. I&#8217;d always recommend defining a <code>get_absolute_url</code> for a model whenever
 there is one that makes sense; it takes no time at all.</p>
 </div>
 <div class="paragraph">
-<p>All it takes is a super-simple unit test in <em>test_models.py</em>:</p>
+<p>All it takes is a super simple unit test in <em>test_models.py</em>:</p>
 </div>
 <div class="exampleblock sourcecode">
 <div class="title">src/lists/tests/test_models.py (ch14l041)</div>
@@ -1611,7 +1587,7 @@ there is one that makes sense; it takes no time at all.</p>
 </div>
 </div>
 <div class="paragraph">
-<p>Which gives:</p>
+<p>That gives:</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -1620,9 +1596,7 @@ there is one that makes sense; it takes no time at all.</p>
 </div>
 <div class="paragraph">
 <p>The implementation is to use Django&#8217;s <code>reverse</code> function, which
-essentially does the reverse of what Django normally does with <em>urls.py</em>
-(see the
-<a href="https://docs.djangoproject.com/en/5.2/topics/http/urls/#reverse-resolution-of-urls">docs</a>):</p>
+essentially does the reverse of what Django normally does with <em>urls.py</em>:</p>
 </div>
 <div class="exampleblock sourcecode">
 <div class="title">src/lists/models.py (ch14l042)</div>
@@ -1686,7 +1660,7 @@ Quick check that the unit tests still pass:</p>
 </div>
 </div>
 <div class="paragraph">
-<p>And a full unit test and functional test run
+<p>And a full unit test and FT run
 to assure ourselves that everything still works:</p>
 </div>
 <div class="listingblock">
@@ -1705,16 +1679,16 @@ OK</pre>
 <div class="ulist">
 <ul>
 <li>
-<p><em><span class="strikethrough line-through">Remove hardcoded URLs from views.py</span></em></p>
+<p><em><span class="strikethrough line-through">Remove hardcoded URLs from views.py.</span></em></p>
 </li>
 <li>
-<p><em><span class="strikethrough line-through">Remove the early return from the FT</span></em></p>
+<p><em><span class="strikethrough line-through">Remove the early return from the FT.</span></em></p>
 </li>
 <li>
-<p><em><span class="strikethrough line-through">Remove hardcoded URL from forms in list.html and home.html</span></em></p>
+<p><em><span class="strikethrough line-through">Remove hardcoded URL from forms in list.html and home.html.</span></em></p>
 </li>
 <li>
-<p><em>Remove duplication of validation logic in views</em></p>
+<p><em>Remove duplication of validation logic in views.</em></p>
 </li>
 </ul>
 </div>
@@ -1737,21 +1711,21 @@ and we&#8217;ve taken the opportunity to do a few refactors along the way.
 <div class="paragraph">
 <p>That final scratchpad item will be the subject of the next chapter.</p>
 </div>
-<div class="sidebarblock">
+<div class="sidebarblock pagebreak-before less_space">
 <div class="content">
-<div class="title">On Database-Layer Validation</div>
+<div class="title">On Database-layer Validation</div>
 <div class="paragraph">
-<p>Although, as we saw, the specific "not empty" constraint we&#8217;re trying to apply here
-isn&#8217;t enforceable by SQLite, and so it was actually Django that ended up enforcing it for us,
-I always like to push my validation logic down as low as possible.
+<p>As we saw, the specific "not empty" constraint we&#8217;re trying to apply here
+isn&#8217;t enforceable by SQLite, and so it was actually Django that ended up enforcing it for us. However,
+I always like to push my validation logic down as low as possible:
 </p>
 </div>
 <div class="dlist">
 <dl>
 <dt class="hdlist1">Validation at the database layer is the ultimate guarantee of data integrity</dt>
 <dd>
-<p>It can ensure that, no matter how complex your code at the layers
-above gets, you have guarantees at the lowest level that your data is
+<p>It can ensure that, no matter how complex your code gets at the layers
+above, you have guarantees at the lowest level that your data is
 valid and consistent.
 </p>
 </dd>
@@ -1784,7 +1758,7 @@ send them.
 </div>
 <div id="footer">
 <div id="footer-text">
-License: Creative Commons <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode">CC-BY-NC-ND</a>. Last updated: 2025-07-28 10:14:18 +0100
+License: Creative Commons <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode">CC-BY-NC-ND</a>. Last updated: 2025-10-27 16:48:45 UTC
 </div>
 </div>
 <div class="comments" style="padding: 20px">
