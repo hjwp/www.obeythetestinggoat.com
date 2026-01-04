@@ -27,13 +27,13 @@ There are lots of ways you can read this book:
 
 <div class="row">
   <div class="large-3 columns">
-    <a class="button" href="http://amzn.to/2vl4B6O" target="_top">
+    <a class="button" href="https://amzn.to/4aJsZ6k" target="_top">
       Buy it on Amazon.com
     </a>
-    <a class="button" href="http://amzn.to/2wJTxOn" target="_top">
+    <a class="button" href="https://amzn.to/4jpVMyR" target="_top">
       Buy it on Amazon.co.uk
     </a>
-    <a class="button" href="http://www.ebooks.com/95836888/test-driven-development-with-python/percival-harry-j-w/" target="_top">
+    <a class="button" href="https://www.ebooks.com/en-gb/book/347116616/test-driven-development-with-python/harry-percival/" target="_top">
       Buy a DRM-free epub/pdf from ebooks.com
     </a>
     <a class="button" href="https://learning.oreilly.com/library/view/test-driven-development-with/9781098148706/" target="_top">
