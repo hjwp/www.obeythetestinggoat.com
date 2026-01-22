@@ -6,7 +6,7 @@ Tags: book, o''reilly, read online, buy, ebook, pdf
 <div class="right">
     <blockquote>
         <a href="http://shop.oreilly.com/product/0636920051091.do" target="_top">
-            <img src="https://akamaicovers.oreilly.com/images/0636920029533/cat.gif" border="0" alt="Test-Driven Development with Python"/>
+            <img src="https://learning.oreilly.com/covers/urn:orm:book:9781098148706/400w/" border="0" alt="Test-Driven Development with Python"/>
         </a>
     </blockquote>
 </div>
